@@ -1,0 +1,75 @@
+"use client";
+
+import { useState } from "react";
+import { AggregatedTeamStats, ScoutingData } from "@/types/ftc";
+import { Search } from "lucide-react";
+import clsx from "clsx";
+
+interface TeamListProps {
+    teams: AggregatedTeamStats[];
+    selectedTeamId: number | null;
+    onSelectTeam: (teamNumber: number) => void;
+    scoutingDataMap: Record<number, ScoutingData>;
+}
+
+export default function TeamList({ teams, selectedTeamId, onSelectTeam, scoutingDataMap }: TeamListProps) {
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filteredTeams = teams
+        .filter((team) =>
+            team.teamNumber.toString().includes(searchTerm) ||
+            team.teamName.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => a.teamNumber - b.teamNumber);
+
+    return (
+        <div className="w-full md:w-80 h-[calc(100vh-120px)] bg-white/5 border border-white/10 rounded-xl flex flex-col md:sticky md:top-6">
+            <div className="p-4 border-b border-white/10">
+                <h2 className="text-lg font-bold text-white mb-3">Equipos</h2>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                        type="text"
+                        placeholder="Buscar..."
+                        className="w-full pl-9 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                {filteredTeams.map((team) => {
+                    const hasData = scoutingDataMap[team.teamNumber] !== undefined;
+                    return (
+                        <button
+                            key={team.teamNumber}
+                            onClick={() => onSelectTeam(team.teamNumber)}
+                            className={clsx(
+                                "w-full text-left px-4 py-3 rounded-lg flex items-center justify-between group transition-all",
+                                selectedTeamId === team.teamNumber
+                                    ? "bg-primary text-white shadow-lg"
+                                    : "text-gray-400 hover:bg-white/5 hover:text-white"
+                            )}
+                        >
+                            <div>
+                                <span className="block font-bold font-display">{team.teamNumber}</span>
+                                <span className={clsx("text-xs truncate block max-w-[180px]", selectedTeamId === team.teamNumber ? "text-white/80" : "text-gray-500 group-hover:text-gray-300")}>
+                                    {team.teamName}
+                                </span>
+                            </div>
+
+                            {hasData && (
+                                <div className={clsx("w-2 h-2 rounded-full", selectedTeamId === team.teamNumber ? "bg-white" : "bg-green-500")} />
+                            )}
+                        </button>
+                    )
+                })}
+                {filteredTeams.length === 0 && (
+                    <div className="p-4 text-center text-gray-500 text-sm">
+                        No se encontraron equipos
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

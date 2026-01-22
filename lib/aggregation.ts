@@ -1,0 +1,120 @@
+import { fetchRankings, fetchAdvancementPoints, fetchAdvancement } from "./ftc-api";
+import { MEXICAN_EVENTS } from "./constants";
+import { AggregatedTeamStats } from "@/types/ftc";
+
+export async function getAggregatedStats(): Promise<AggregatedTeamStats[]> {
+    const teamMap = new Map<number, AggregatedTeamStats>();
+
+    const results = [];
+
+    // Process events sequentially to avoid "Failed to fetch" due to rate limits or connection exhaustion
+    for (const event of MEXICAN_EVENTS) {
+        try {
+            const [rankings, advPoints, advancement] = await Promise.all([
+                fetchRankings(event.code).catch(e => { console.error(`Error fetching rankings for ${event.code}`, e); return []; }),
+                fetchAdvancementPoints(event.code).catch(e => { console.error(`Error fetching points for ${event.code}`, e); return []; }),
+                fetchAdvancement(event.code).catch(e => { console.error(`Error fetching advancement for ${event.code}`, e); return null; }),
+            ]);
+            results.push({ event, rankings, advPoints, advancement });
+        } catch (error) {
+            console.error(`Unexpected error processing event ${event.code}`, error);
+        }
+    }
+
+    for (const { event, rankings, advPoints, advancement } of results) {
+        if (!rankings) continue;
+
+        for (const rank of rankings) {
+            if (!teamMap.has(rank.teamNumber)) {
+                teamMap.set(rank.teamNumber, {
+                    teamNumber: rank.teamNumber,
+                    teamName: rank.teamName,
+                    regionalsAttended: 0,
+                    totalRS: 0,
+                    averageRS: 0,
+                    totalMatchPoints: 0,
+                    averageMatchPoints: 0,
+                    totalBasePoints: 0,
+                    averageBasePoints: 0,
+                    totalAutoPoints: 0,
+                    averageAutoPoints: 0,
+                    totalHighScore: 0,
+                    averageHighScore: 0,
+                    totalWins: 0,
+                    totalLosses: 0,
+                    totalTies: 0,
+                    bestRank: 999,
+                    averageRank: 0,
+                    hasAdvanced: false,
+                    advancementPoints: {
+                        total: 0,
+                        judging: 0,
+                        playoff: 0,
+                        selection: 0,
+                        qualification: 0,
+                    },
+                    events: [],
+                });
+            }
+
+            const teamStats = teamMap.get(rank.teamNumber)!;
+            teamStats.regionalsAttended += 1;
+            teamStats.totalRS += rank.sortOrder1;
+            teamStats.totalMatchPoints += rank.sortOrder2;
+            teamStats.totalBasePoints += rank.sortOrder3;
+            teamStats.totalAutoPoints += rank.sortOrder4;
+            teamStats.totalHighScore += rank.sortOrder6;
+            teamStats.totalWins += rank.wins;
+            teamStats.totalLosses += rank.losses;
+            teamStats.totalTies += rank.ties;
+            teamStats.bestRank = Math.min(teamStats.bestRank, rank.rank);
+            teamStats.events.push({
+                eventCode: event.abbr || event.code,
+                rank: rank.rank,
+                rs: rank.sortOrder1,
+                matchPoints: rank.sortOrder2,
+            });
+        }
+
+        if (advPoints) {
+            for (const teamAdv of advPoints) {
+                const teamStats = teamMap.get(teamAdv.team);
+                if (teamStats) {
+                    teamStats.advancementPoints.total += teamAdv.points[0] || 0;
+                    teamStats.advancementPoints.judging += teamAdv.points[1] || 0;
+                    teamStats.advancementPoints.playoff += teamAdv.points[2] || 0;
+                    teamStats.advancementPoints.selection += teamAdv.points[3] || 0;
+                    teamStats.advancementPoints.qualification += teamAdv.points[4] || 0;
+                }
+            }
+        }
+
+        if (advancement && advancement.advancement) {
+            for (const slot of advancement.advancement) {
+                const teamStats = teamMap.get(slot.team);
+                if (teamStats && !slot.declined) {
+                    teamStats.hasAdvanced = true;
+                }
+            }
+        }
+    }
+
+    // Finalize averages
+    const finalStats: AggregatedTeamStats[] = [];
+
+    for (const stats of teamMap.values()) {
+        const count = stats.regionalsAttended;
+        stats.averageRS = stats.totalRS / count;
+        stats.averageMatchPoints = stats.totalMatchPoints / count;
+        stats.averageBasePoints = stats.totalBasePoints / count;
+        stats.averageAutoPoints = stats.totalAutoPoints / count;
+        stats.averageHighScore = stats.totalHighScore / count;
+
+        const rankSum = stats.events.reduce((sum, e) => sum + e.rank, 0);
+        stats.averageRank = rankSum / count;
+
+        finalStats.push(stats);
+    }
+
+    return finalStats.sort((a, b) => b.averageRS - a.averageRS);
+}
