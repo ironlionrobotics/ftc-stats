@@ -135,23 +135,23 @@ export default function StatsTable({ data }: StatsTableProps) {
 
                             {viewMode === 'qualification' && (
                                 <>
-                                    <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageRS')}>
-                                        <div className="flex items-center justify-center gap-2">RS <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                    <th className="p-3 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageRS')}>
+                                        <div className="flex items-center justify-center gap-1.5 text-xs">RS <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageMatchPoints')}>
-                                        <div className="flex items-center justify-center gap-2">Pts de Match <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                    <th className="p-3 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageMatchPoints')}>
+                                        <div className="flex items-center justify-center gap-1.5 text-xs">Match <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageBasePoints')}>
-                                        <div className="flex items-center justify-center gap-2">Pts Base <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                    <th className="p-3 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageBasePoints')}>
+                                        <div className="flex items-center justify-center gap-1.5 text-xs">Base <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageAutoPoints')}>
-                                        <div className="flex items-center justify-center gap-2">Pts Auto <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                    <th className="p-3 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageAutoPoints')}>
+                                        <div className="flex items-center justify-center gap-1.5 text-xs">Auto <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageHighScore')}>
-                                        <div className="flex items-center justify-center gap-2">Puntaje Máximo <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                    <th className="p-3 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageHighScore')}>
+                                        <div className="flex items-center justify-center gap-1.5 text-xs">Máximo <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('totalWins')}>
-                                        <div className="flex items-center justify-center gap-2">W-L-T <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                    <th className="p-3 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('totalWins')}>
+                                        <div className="flex items-center justify-center gap-1.5 text-xs">W-L-T <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
                                 </>
                             )}
@@ -210,12 +210,12 @@ export default function StatsTable({ data }: StatsTableProps) {
 
                                 {viewMode === 'qualification' && (
                                     <>
-                                        <td className="p-4 text-center text-accent font-bold text-lg">{team.averageRS.toFixed(2)}</td>
-                                        <td className="p-4 text-center text-white">{team.averageMatchPoints.toFixed(2)}</td>
-                                        <td className="p-4 text-center text-white">{team.averageBasePoints.toFixed(2)}</td>
-                                        <td className="p-4 text-center text-white">{team.averageAutoPoints.toFixed(2)}</td>
-                                        <td className="p-4 text-center text-white">{Math.round(team.averageHighScore)}</td>
-                                        <td className="p-4 text-center text-gray-300 whitespace-nowrap">
+                                        <td className="p-3 text-center text-accent font-bold text-lg">{team.averageRS.toFixed(2)}</td>
+                                        <td className="p-3 text-center text-white">{team.averageMatchPoints.toFixed(2)}</td>
+                                        <td className="p-3 text-center text-white">{team.averageBasePoints.toFixed(2)}</td>
+                                        <td className="p-3 text-center text-white">{team.averageAutoPoints.toFixed(2)}</td>
+                                        <td className="p-3 text-center text-white">{Math.round(team.averageHighScore)}</td>
+                                        <td className="p-3 text-center text-gray-300 whitespace-nowrap text-sm">
                                             {team.totalWins}-{team.totalLosses}-{team.totalTies}
                                         </td>
                                     </>
