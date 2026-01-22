@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MEXICAN_EVENTS } from "@/lib/constants";
-import { Home, ClipboardList, MapPin, Trophy, Menu, X } from "lucide-react";
+import { Home, ClipboardList, MapPin, Trophy, Menu, X, BarChart3 } from "lucide-react";
 import clsx from "clsx";
 import { useState } from "react";
 import Image from "next/image";
@@ -104,8 +104,7 @@ export default function Sidebar() {
                     {/* Footer Info */}
                     <div className="mt-8 px-4 py-4 bg-white/5 rounded-xl border border-white/5">
                         <p className="text-xs text-gray-400 text-center leading-relaxed">
-                            Developed for FTC México<br />
-                            Season 2026
+                            Developed by Iron Lion
                         </p>
                     </div>
                 </div>

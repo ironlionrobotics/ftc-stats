@@ -95,12 +95,15 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
         />
     );
 
-    const Select = ({ value, onChange, options }: any) => (
+    const Select = ({ value, onChange, options, className = "" }: any) => (
         <select
             value={value}
             onChange={onChange}
             disabled={!isEditing}
-            className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed appearance-none"
+            className={clsx(
+                "px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed appearance-none",
+                className
+            )}
         >
             {options.map((opt: string) => <option key={opt} value={opt} className="bg-gray-900">{opt}</option>)}
         </select>
@@ -159,13 +162,24 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                             <Label>Nombre del Robot</Label>
                             <Input value={formData.robotName} onChange={(e: any) => handleChange('robotName', e.target.value)} />
                         </div>
-                        <div>
+                        <div className="flex flex-col gap-2">
                             <Label>Tipo de Chasis</Label>
-                            <Select
-                                value={formData.chassisType}
-                                onChange={(e: any) => handleChange('chassisType', e.target.value)}
-                                options={['Mecano', 'Tanque', 'Omnidireccional', 'Otros']}
-                            />
+                            <div className="flex gap-3">
+                                <Select
+                                    value={formData.chassisType}
+                                    onChange={(e: any) => handleChange('chassisType', e.target.value)}
+                                    options={['Mecano', 'Tanque', 'Omnidireccional', 'Otros']}
+                                    className={formData.chassisType === 'Otros' ? 'flex-1' : 'w-full'}
+                                />
+                                {formData.chassisType === 'Otros' && (
+                                    <Input
+                                        placeholder="Especifique..."
+                                        className="flex-1"
+                                        value={formData.chassisTypeDetail || ''}
+                                        onChange={(e: any) => handleChange('chassisTypeDetail', e.target.value)}
+                                    />
+                                )}
+                            </div>
                         </div>
                         <div className="col-span-1 md:col-span-2">
                             <Label>Medidas del Chasis (Ancho x Largo)</Label>
@@ -238,7 +252,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                                 <Input type="number" value={formData.autoArtifacts} onChange={(e: any) => handleChange('autoArtifacts', Number(e.target.value))} />
                             </div>
                             <div>
-                                <Label>Organizan artifacts para el pattern?</Label>
+                                <Label>¿Organizan artifacts para el patrón (pattern)?</Label>
                                 <div className="flex gap-4 mt-2">
                                     <label className="flex items-center gap-2 text-gray-300 cursor-pointer">
                                         <input type="radio" checked={formData.organizesPattern} onChange={() => isEditing && handleChange('organizesPattern', true)} disabled={!isEditing} /> Si
@@ -262,11 +276,22 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
 
                         <div>
                             <Label>¿Cuáles sensores utilizan?</Label>
-                            <Select
-                                value={formData.sensors}
-                                onChange={(e: any) => handleChange('sensors', e.target.value)}
-                                options={['Ninguno', 'Visión', 'Odometría', 'Ambos', 'Otros']}
-                            />
+                            <div className="flex flex-col md:flex-row gap-3">
+                                <Select
+                                    value={formData.sensors}
+                                    onChange={(e: any) => handleChange('sensors', e.target.value)}
+                                    options={['Ninguno', 'Visión', 'Odometría', 'Ambos', 'Otros']}
+                                    className={formData.sensors === 'Otros' ? 'md:w-1/3' : 'w-full'}
+                                />
+                                {formData.sensors === 'Otros' && (
+                                    <Input
+                                        placeholder="Detalle de sensores..."
+                                        className="flex-1"
+                                        value={formData.sensorsDetail || ''}
+                                        onChange={(e: any) => handleChange('sensorsDetail', e.target.value)}
+                                    />
+                                )}
+                            </div>
                         </div>
 
                         <div>
@@ -329,12 +354,12 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                             <Select
                                 value={formData.endGamePreference}
                                 onChange={(e: any) => handleChange('endGamePreference', e.target.value)}
-                                options={['Ciclos rápidos de Artifacts', 'Buscar el pattern']}
+                                options={['Ciclos rápidos de Artifacts', 'Completar el patrón (pattern)']}
                             />
                         </div>
 
                         <div>
-                            <Label>¿Con qué situación se identifican en el base?</Label>
+                            <Label>¿Con qué situación se identifican en la base?</Label>
                             <Select
                                 value={formData.parkingStatus}
                                 onChange={(e: any) => handleChange('parkingStatus', e.target.value)}
@@ -360,11 +385,22 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                             </div>
                             <div className="flex-1">
                                 <Label>¿Qué tipo de elevación hacen?</Label>
-                                <Select
-                                    value={formData.elevationType}
-                                    onChange={(e: any) => handleChange('elevationType', e.target.value)}
-                                    options={['', 'Elevador', 'Giro 90 grados', 'Otros']}
-                                />
+                                <div className="flex gap-3">
+                                    <Select
+                                        value={formData.elevationType}
+                                        onChange={(e: any) => handleChange('elevationType', e.target.value)}
+                                        options={['', 'Elevador', 'Giro 90 grados', 'Otros']}
+                                        className={formData.elevationType === 'Otros' ? 'flex-1' : 'w-full'}
+                                    />
+                                    {formData.elevationType === 'Otros' && (
+                                        <Input
+                                            placeholder="Describa el mecanismo..."
+                                            className="flex-1"
+                                            value={formData.elevationTypeDetail || ''}
+                                            onChange={(e: any) => handleChange('elevationTypeDetail', e.target.value)}
+                                        />
+                                    )}
+                                </div>
                             </div>
                         </div>
 

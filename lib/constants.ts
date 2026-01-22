@@ -8,4 +8,4 @@ export const MEXICAN_EVENTS = [
     { code: "MXCMP", abbr: "CMP", name: "Championship Nacional" },
 ];
 
-export const SEASON = 2025;
+export const SEASON = 2026;

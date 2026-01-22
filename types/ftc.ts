@@ -81,15 +81,16 @@ export interface AggregatedTeamStats {
 export interface ScoutingData {
     teamNumber: number;
     robotName: string;
-    chassisType: 'Mecano' | 'Tanque' | 'Omnidireccional' | 'Otros';
+    chassisType: string;
+    chassisTypeDetail?: string;
     chassisWidth: number;
     chassisLength: number;
     chassisUnit: 'cm' | 'in';
     robotHeight: number;
 
     // Autonomous
-    canLeaveLaunchZone: 'No, de ninguno' | 'Si, sale del triángulo grande' | 'Si, sale del triángulo pequeño' | 'Si, ambos';
-    preferredLaunchZone: 'Triángulo grande' | 'Triángulo pequeño';
+    canLeaveLaunchZone: string;
+    preferredLaunchZone: string;
     autoParsings: {
         triangleBigRed: boolean;
         triangleSmallRed: boolean;
@@ -103,12 +104,13 @@ export interface ScoutingData {
         far: boolean;
         none: boolean;
     };
-    sensors: 'Ninguno' | 'Visión' | 'Odometría' | 'Ambos' | 'Otros';
+    sensors: string;
+    sensorsDetail?: string;
     organizesPattern: boolean;
     autoRating: number;
 
     // Tele-Op
-    teleopFocus: 'Tiros largos' | 'Tiros cortos' | 'Defensa / Obstrucción';
+    teleopFocus: string;
     artifactSource: {
         ground: boolean;
         humanPlayer: boolean;
@@ -117,10 +119,11 @@ export interface ScoutingData {
     cyclesCount: number;
 
     // End Game
-    endGamePreference: 'Ciclos rápidos de Artifacts' | 'Buscar el pattern';
-    parkingStatus: 'Robot entra completamente y no sobra espacio' | 'Robot entra completo y sobran de 2 a 4 pulgadas' | 'Robot entra completo y sobran mas de 4 pulgadas';
+    endGamePreference: string;
+    parkingStatus: string;
     canHang: boolean;
-    elevationType: 'Elevador' | 'Giro 90 grados' | 'Otros' | '';
+    elevationType: string;
+    elevationTypeDetail?: string;
     photoUrl?: string;
     notes?: string;
 }

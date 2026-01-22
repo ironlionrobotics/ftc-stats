@@ -72,7 +72,7 @@ export default function StatsTable({ data }: StatsTableProps) {
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     <h2 className="text-2xl font-bold font-display text-white flex items-center gap-2">
                         {viewMode === 'qualification' ? <Trophy className="text-accent" /> : <Calculator className="text-secondary" />}
-                        {viewMode === 'qualification' ? 'Qualification Rankings' : 'Advancement Report'}
+                        {viewMode === 'qualification' ? 'Rankings de Clasificación' : 'Reporte de Avance'}
                     </h2>
 
                     <div className="flex bg-white/5 rounded-lg p-1 border border-white/10">
@@ -119,7 +119,7 @@ export default function StatsTable({ data }: StatsTableProps) {
                         )}
                     >
                         <Star className={clsx("w-4 h-4", showAdvancedOnly ? "fill-secondary" : "")} />
-                        Advanced
+                        Clasificados
                     </button>
                 </div>
             </div>
@@ -139,16 +139,16 @@ export default function StatsTable({ data }: StatsTableProps) {
                                         <div className="flex items-center justify-center gap-2">RS <ArrowUpDown size={14} className="flex-shrink-0" /></div>
                                     </th>
                                     <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageMatchPoints')}>
-                                        <div className="flex items-center justify-center gap-2">Match Points <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                        <div className="flex items-center justify-center gap-2">Pts de Match <ArrowUpDown size={14} className="flex-shrink-0" /></div>
                                     </th>
                                     <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageBasePoints')}>
-                                        <div className="flex items-center justify-center gap-2">Base Points <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                        <div className="flex items-center justify-center gap-2">Pts Base <ArrowUpDown size={14} className="flex-shrink-0" /></div>
                                     </th>
                                     <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageAutoPoints')}>
-                                        <div className="flex items-center justify-center gap-2">Auto Points <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                        <div className="flex items-center justify-center gap-2">Pts Auto <ArrowUpDown size={14} className="flex-shrink-0" /></div>
                                     </th>
                                     <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageHighScore')}>
-                                        <div className="flex items-center justify-center gap-2">High Score <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                        <div className="flex items-center justify-center gap-2">Puntaje Máximo <ArrowUpDown size={14} className="flex-shrink-0" /></div>
                                     </th>
                                     <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('totalWins')}>
                                         <div className="flex items-center justify-center gap-2">W-L-T <ArrowUpDown size={14} className="flex-shrink-0" /></div>
@@ -159,7 +159,7 @@ export default function StatsTable({ data }: StatsTableProps) {
                             {viewMode === 'advancement' && (
                                 <>
                                     <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('totalPoints')}>
-                                        <div className="flex items-center justify-center gap-2">Total Pts <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                        <div className="flex items-center justify-center gap-2">Pts Totales <ArrowUpDown size={14} className="flex-shrink-0" /></div>
                                     </th>
                                     <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('judging')}>
                                         <div className="flex items-center justify-center gap-2">Judging <ArrowUpDown size={14} className="flex-shrink-0" /></div>
@@ -168,15 +168,15 @@ export default function StatsTable({ data }: StatsTableProps) {
                                         <div className="flex items-center justify-center gap-2">Playoff <ArrowUpDown size={14} className="flex-shrink-0" /></div>
                                     </th>
                                     <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('selection')}>
-                                        <div className="flex items-center justify-center gap-2">Selection <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                        <div className="flex items-center justify-center gap-2">Alianza <ArrowUpDown size={14} className="flex-shrink-0" /></div>
                                     </th>
                                     <th className="p-4 cursor-pointer hover:text-white transition-colors text-center whitespace-nowrap" onClick={() => handleSort('qualification')}>
-                                        <div className="flex items-center justify-center gap-2">Qual Points <ArrowUpDown size={14} className="flex-shrink-0" /></div>
+                                        <div className="flex items-center justify-center gap-2">Pts Clasificación <ArrowUpDown size={14} className="flex-shrink-0" /></div>
                                     </th>
                                 </>
                             )}
 
-                            <th className="p-4 text-center">Events</th>
+                            <th className="p-4 text-center">Eventos</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -200,7 +200,7 @@ export default function StatsTable({ data }: StatsTableProps) {
                                             <span className="font-bold text-white text-lg font-display">{team.teamNumber}</span>
                                             {team.hasAdvanced && (
                                                 <span className="px-1.5 py-0.5 rounded-full bg-secondary/20 border border-secondary/30 text-[10px] text-secondary font-bold uppercase tracking-tighter">
-                                                    Advanced
+                                                    Clasificado
                                                 </span>
                                             )}
                                         </div>
