@@ -11,7 +11,7 @@ export default async function Home() {
       <div className="absolute top-0 left-0 w-full h-96 bg-primary/10 blur-[100px] rounded-full -translate-y-1/2 pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-full h-96 bg-secondary/10 blur-[100px] rounded-full translate-y-1/2 pointer-events-none" />
 
-      <div className="container mx-auto px-10 py-12 relative z-10">
+      <div className="container mx-auto px-14 py-12 relative z-10">
         <header className="mb-12 text-center md:text-left">
           <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-6">
             <div>

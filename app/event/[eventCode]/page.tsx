@@ -15,7 +15,7 @@ export default function EventPage({ params }: { params: { eventCode: string } })
     }
 
     return (
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-8 py-12">
             <header className="mb-8 border-b border-white/10 pb-6">
                 <h1 className="text-4xl font-bold font-display text-white mb-2">
                     {event.name}
