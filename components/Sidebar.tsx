@@ -56,7 +56,7 @@ export default function Sidebar() {
             {/* Sidebar Container */}
             <aside
                 className={clsx(
-                    "fixed top-0 left-0 h-screen w-64 bg-[#0a0a0b]/95 backdrop-blur-xl border-r border-white/5 z-40 transition-transform duration-300 ease-in-out overflow-y-auto",
+                    "fixed top-0 left-0 h-screen w-60 bg-[#0a0a0b]/95 backdrop-blur-xl border-r border-white/5 z-40 transition-transform duration-300 ease-in-out overflow-y-auto",
                     isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                 )}
             >
