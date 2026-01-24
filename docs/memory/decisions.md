@@ -45,3 +45,15 @@ Este documento registra el "por qué" detrás de las elecciones técnicas para e
 - **Contexto**: Se requiere una herramienta que funcione en los regionales donde el Wi-Fi es inestable.
 - **Decisión**: Guardar el mapa de datos de scouting en `localStorage` en lugar de una base de datos remota inmediata.
 - **Razón**: Garantiza que ningún dato se pierda si el scout cierra la pestaña o pierde conexión, permitiendo una sincronización manual o automática futura sin fricción inicial.
+
+## 9. Manejo de Parámetros en Next.js 15+
+- **Fecha**: 24 Ene 2026
+- **Contexto**: Las páginas dinámicas devolvían 404 debido a un cambio en la API de Next.js donde `params` ahora es una Promesa.
+- **Decisión**: Utilizar `await props.params` en los Server Components.
+- **Razón**: Asegura retrocompatibilidad y corrige el error donde el ID del regional llegaba como `undefined` al componente.
+
+## 10. Cuadrícula de 4 Columnas para Alianzas
+- **Fecha**: 24 Ene 2026
+- **Contexto**: Los nombres de equipos y números se desalineaban verticalmente cuando se usaba una sola celda por alianza.
+- **Decisión**: Dividir cada alianza en 2 celdas de tabla independientes (Total 4 columnas de equipos).
+- **Razón**: Obliga a que la información de cada equipo ocupe una ranura fija, garantizando una alineación perfecta de arriba a abajo independientemente de la longitud del nombre del equipo.

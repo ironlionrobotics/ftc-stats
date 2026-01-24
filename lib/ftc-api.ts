@@ -1,4 +1,4 @@
-import { TeamRanking, AdvancementResponse, AdvancementPoints } from "@/types/ftc";
+import { TeamRanking, AdvancementResponse, AdvancementPoints, FTCMatch } from "@/types/ftc";
 
 const BASE_URL = "https://ftc-api.firstinspires.org/v2.0";
 const SEASON = 2025;
@@ -69,6 +69,27 @@ export async function fetchAdvancementPoints(eventCode: string): Promise<Advance
         return data || [];
     } catch (error) {
         console.error(`Error fetching advancement points for ${eventCode}:`, error);
+        return [];
+    }
+}
+
+export async function fetchMatches(eventCode: string): Promise<FTCMatch[]> {
+    try {
+        const response = await fetch(`${BASE_URL}/${SEASON}/matches/${eventCode}`, {
+            headers: AUTH_HEADER,
+            next: { revalidate: 60 }, // Cache for 1 minute for live updates
+        });
+
+        if (!response.ok) {
+            console.error(`Status: ${response.status} ${response.statusText} for matches ${eventCode}`);
+            if (response.status === 404) return [];
+            return [];
+        }
+
+        const data = await response.json();
+        return data.matches || [];
+    } catch (error) {
+        console.error(`Error fetching matches for ${eventCode}:`, error);
         return [];
     }
 }

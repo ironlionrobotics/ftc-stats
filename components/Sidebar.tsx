@@ -16,7 +16,8 @@ export default function Sidebar() {
     const handleLinkClick = () => setIsOpen(false);
 
     const NavItem = ({ href, icon: Icon, children, className = "" }: { href: string; icon: any; children: React.ReactNode; className?: string }) => {
-        const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+        // Use exact match for specific routes to avoid prefix bugs (like MXTOQ matching MXTOQ2)
+        const isActive = pathname === href;
         return (
             <Link
                 href={href}

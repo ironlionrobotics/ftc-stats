@@ -73,7 +73,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
 
     // Helper Inputs
     const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-        <h3 className="text-xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2 flex items-center gap-2">
+        <h3 className="text-xl font-bold text-white mt-4 mb-4 border-b border-white/10 pb-2 flex items-center gap-2">
             {children}
         </h3>
     );
@@ -127,15 +127,20 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
     return (
         <div className="flex-1 bg-white/5 border border-white/10 rounded-xl overflow-hidden flex flex-col h-full md:h-auto">
             {/* Header */}
-            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-black/20">
-                <div>
+            <div className="px-6 py-3 border-b border-white/10 flex justify-between items-center bg-black/20">
+                <div className="flex items-center gap-4">
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                         <span className="text-primary font-display text-3xl">{formData.teamNumber}</span>
                         {team.teamName}
                     </h2>
-                    <p className="text-sm text-gray-400 mt-1">
-                        {!isEditing ? "Modo Lectura" : "Modo Edición"}
-                    </p>
+                    <span className={clsx(
+                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
+                        !isEditing
+                            ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                            : "bg-green-500/10 border-green-500/30 text-green-400"
+                    )}>
+                        {!isEditing ? "Lectura" : "Edición"}
+                    </span>
                 </div>
 
                 <button
@@ -152,11 +157,13 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
             </div>
 
             {/* Form Content */}
-            <div className="p-8 overflow-y-auto custom-scrollbar space-y-8 pb-32">
+            <div className="p-6 md:p-8 pt-0 overflow-y-auto custom-scrollbar space-y-8 pb-16">
 
                 {/* ROBOT DATA */}
                 <section>
-                    <SectionTitle>Datos del Robot</SectionTitle>
+                    <h3 className="text-xl font-bold text-white mt-0 mb-3 border-b border-white/10 pb-1 flex items-center gap-2">
+                        Datos del Robot
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <Label>Nombre del Robot</Label>
@@ -405,8 +412,41 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                         </div>
 
                         <div>
-                            <Label>Foto del Robot (URL)</Label>
-                            <Input placeholder="https://..." value={formData.photoUrl} onChange={(e: any) => handleChange('photoUrl', e.target.value)} />
+                            <Label>Foto del Robot</Label>
+                            <div className="flex flex-col gap-3">
+                                <div className="flex gap-4 items-center">
+                                    <label className={clsx(
+                                        "px-4 py-2 bg-white/5 border border-white/10 border-dashed rounded-lg text-sm text-gray-400 cursor-pointer hover:bg-white/10 transition-all flex items-center gap-2",
+                                        !isEditing && "opacity-50 cursor-not-allowed pointer-events-none"
+                                    )}>
+                                        <AlertCircle size={16} />
+                                        <span>Seleccionar Archivo (JPG, PNG)</span>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/png, image/jpeg"
+                                            disabled={!isEditing}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    // For now, we just store the name or a local Blob URL
+                                                    handleChange('photoUrl', file.name);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                    {formData.photoUrl && (
+                                        <span className="text-xs text-primary font-medium truncate max-w-[200px]">
+                                            {formData.photoUrl}
+                                        </span>
+                                    )}
+                                </div>
+                                <Input
+                                    placeholder="O pegue un enlace (URL) aquí..."
+                                    value={formData.photoUrl}
+                                    onChange={(e: any) => handleChange('photoUrl', e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
                 </section>

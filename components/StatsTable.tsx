@@ -68,7 +68,7 @@ export default function StatsTable({ data }: StatsTableProps) {
 
     return (
         <Card className="w-full overflow-hidden p-0">
-            <div className="p-6 border-b border-white/10 flex flex-col gap-6">
+            <div className="pt-0 pb-4 px-1 border-b border-white/10 flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     <h2 className="text-2xl font-bold font-display text-white flex items-center gap-2">
                         {viewMode === 'qualification' ? <Trophy className="text-accent" /> : <Calculator className="text-secondary" />}
@@ -198,11 +198,6 @@ export default function StatsTable({ data }: StatsTableProps) {
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2">
                                             <span className="font-bold text-white text-lg font-display">{team.teamNumber}</span>
-                                            {team.hasAdvanced && (
-                                                <span className="px-1.5 py-0.5 rounded-full bg-secondary/20 border border-secondary/30 text-[10px] text-secondary font-bold uppercase tracking-tighter">
-                                                    Clasificado
-                                                </span>
-                                            )}
                                         </div>
                                         <span className="text-gray-400 text-sm group-hover:text-primary transition-colors">{team.teamName}</span>
                                     </div>

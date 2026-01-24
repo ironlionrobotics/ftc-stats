@@ -33,14 +33,15 @@ Transformación de un script de automatización en Python (`ftc_event_advancemen
     - Creación de la tabla interactiva con resaltado para equipos que ya tienen pase al nacional.
     - Corrección de bugs en el cálculo del High Score (usando `sortOrder6`).
 
-### Sesión 4: Sistema de Scouting y Estabilidad (22 Ene 2026)
-- **Objetivo**: Crear una herramienta de campo robusta y persistente.
+### Sesión 5: Monitoreo en Vivo y Refinamiento (24 Ene 2026)
+- **Objetivo**: Implementar la visualización de partidos en vivo y mejorar la experiencia de usuario en regionales.
 - **Logros**:
-    - **Formulario de Scouting**: Implementación completa de campos para Robot Data, Autónomo, Teleop y Endgame, redactados en español ("ustedes").
-    - **Persistencia Local**: Uso de `localStorage` para guardar datos automáticamente por equipo, permitiendo uso sin internet estable.
-    - **Optimización de Red**: Cambio de carga paralela a secuencial para evitar errores de conexión ("Failed to fetch").
-    - **Arquitectura de Datos**: Migración de la carga de API a *Server Components* para evitar problemas de CORS en el navegador.
-    - **Limpieza de Proyecto**: Eliminación del script de Python original y reestructuración de carpetas para un entorno de desarrollo profesional.
+    - **Página de Eventos**: Creación de la ruta dinámica `/event/[eventCode]` con fetching de datos en servidor (SSR) para evitar bloqueos de la API.
+    - **Visualización de Matches**: Implementación del componente `MatchList` que muestra alianzas rojas/azules, marcadores dinámicos y ganadores resaltados.
+    - **Alineación Premium**: Rediseño de la tabla de alianzas a un sistema de 4 columnas individuales para asegurar alineación vertical perfecta entre equipos.
+    - **Vínculo de Equipos**: Integración de nombres oficiales de equipos dentro de la lista de partidos mediante el mapeo de datos de rankings.
+    - **Abreviación Inteligente**: Optimización de descripciones (ej. "Upper Bracket R1 M1") para maximizar el espacio en pantalla.
+    - **Expansión de Calendario**: Inclusión de los regionales de Toluca y San Luis Potosí, y corrección de la temporada a 2025 para sincronización de datos.
 
 ---
 
@@ -49,11 +50,12 @@ Transformación de un script de automatización en Python (`ftc_event_advancemen
 2. **Abreviaturas de Eventos**: Uso de códigos amigables como MTY, GDL, CDMX para mejorar la legibilidad.
 3. **Filtro Advanced**: Inclusión de un toggle rápido para visualizar solo a los clasificados al nacional.
 4. **Scouting Traducido**: Se decidió mantener las opciones internas del formulario en español para facilitar la captura rápida por parte de los scouts en México.
+5. **Nomenclatura Híbrida**: En los matches, se decidió mantener los nombres de brackets oficiales ("Upper/Lower Bracket") completos pero abreviar términos técnicos ("Round/Match" a "R/M") por estética y espacio.
 
 ---
 
 ## 🚀 Próximos Pasos (Prioridad Alta)
 1. **GitHub Setup**: Vincular el proyecto al nuevo repositorio `ftc-stats`.
-2. **Detalle por Regional**: Poblar las páginas de eventos con rankings específicos y listas de partidos.
-3. **Subida de Fotos**: Integrar un sistema para que la URL de la foto del robot se guarde junto con el JSON del equipo.
+2. **Ranking en Vivo**: Implementar una tabla de estadísticas de desempeño (Average Score, RP) dentro de la página de cada regional.
+3. **Subida de Fotos**: Integrar un sistema para que la URL de la foto del robot se guarde junto con el JSON del equipo en Scouting.
 4. **Exportación**: Posibilidad de exportar los datos de scouting acumulados para análisis en Excel.

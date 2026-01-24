@@ -127,3 +127,25 @@ export interface ScoutingData {
     photoUrl?: string;
     notes?: string;
 }
+
+export interface FTCMatchTeam {
+    teamNumber: number;
+    station: 'Red1' | 'Red2' | 'Blue1' | 'Blue2';
+    dq: boolean;
+    onField: boolean;
+}
+
+export interface FTCMatch {
+    description: string;
+    matchNumber: number;
+    scoreRedFinal: number;
+    scoreBlueFinal: number;
+    scoreRedAuto: number;
+    scoreBlueAuto: number;
+    scoreRedFoul: number;
+    scoreBlueFoul: number;
+    teams: FTCMatchTeam[];
+    actualStartTime?: string;
+    postResultTime?: string;
+    tournamentLevel: string; // "QUALIFICATION", "PLAYOFF", etc.
+}
