@@ -7,8 +7,12 @@ interface MatchListProps {
 }
 
 export default function MatchList({ matches, rankings }: MatchListProps) {
-    const qualMatches = matches.filter(m => m.tournamentLevel === "QUALIFICATION");
-    const otherMatches = matches.filter(m => m.tournamentLevel !== "QUALIFICATION" && m.tournamentLevel !== "PRACTICE");
+    const qualMatches = matches
+        .filter(m => m.tournamentLevel === "QUALIFICATION")
+        .sort((a, b) => a.matchNumber - b.matchNumber);
+    const otherMatches = matches
+        .filter(m => m.tournamentLevel !== "QUALIFICATION" && m.tournamentLevel !== "PRACTICE")
+        .sort((a, b) => a.matchNumber - b.matchNumber);
 
     // Helper to create a map for quick team name lookup
     const teamNamesMap = new Map(rankings.map(r => [r.teamNumber, r.teamName]));
