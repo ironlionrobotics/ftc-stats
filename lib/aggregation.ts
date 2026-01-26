@@ -1,8 +1,8 @@
-import { fetchRankings, fetchAdvancementPoints, fetchAdvancement } from "./ftc-api";
+import { fetchRankings, fetchAdvancementPoints, fetchAdvancement, fetchMatches } from "./ftc-api";
 import { MEXICAN_EVENTS } from "./constants";
 import { AggregatedTeamStats } from "@/types/ftc";
 
-export async function getAggregatedStats(): Promise<AggregatedTeamStats[]> {
+export async function getAggregatedStats(season: number = 2024): Promise<AggregatedTeamStats[]> {
     const teamMap = new Map<number, AggregatedTeamStats>();
 
     const results = [];
@@ -10,19 +10,54 @@ export async function getAggregatedStats(): Promise<AggregatedTeamStats[]> {
     // Process events sequentially to avoid "Failed to fetch" due to rate limits or connection exhaustion
     for (const event of MEXICAN_EVENTS) {
         try {
-            const [rankings, advPoints, advancement] = await Promise.all([
-                fetchRankings(event.code).catch(e => { console.error(`Error fetching rankings for ${event.code}`, e); return []; }),
-                fetchAdvancementPoints(event.code).catch(e => { console.error(`Error fetching points for ${event.code}`, e); return []; }),
-                fetchAdvancement(event.code).catch(e => { console.error(`Error fetching advancement for ${event.code}`, e); return null; }),
+            const [rankings, advPoints, advancement, matches] = await Promise.all([
+                fetchRankings(season, event.code).catch(e => { console.error(`Error fetching rankings for ${event.code}`, e); return []; }),
+                fetchAdvancementPoints(season, event.code).catch(e => { console.error(`Error fetching points for ${event.code}`, e); return []; }),
+                fetchAdvancement(season, event.code).catch(e => { console.error(`Error fetching advancement for ${event.code}`, e); return null; }),
+                fetchMatches(season, event.code).catch(e => { console.error(`Error fetching matches for ${event.code}`, e); return []; }),
             ]);
-            results.push({ event, rankings, advPoints, advancement });
+            results.push({ event, rankings, advPoints, advancement, matches });
         } catch (error) {
             console.error(`Unexpected error processing event ${event.code}`, error);
         }
     }
 
-    for (const { event, rankings, advPoints, advancement } of results) {
+    for (const { event, rankings, advPoints, advancement, matches } of results) {
         if (!rankings) continue;
+
+        // Calculate NP per team from matches in this event
+        const teamEventNP: Record<number, number[]> = {};
+        const teamEventHigh: Record<number, number> = {};
+
+        if (matches) {
+            for (const match of matches) {
+                if (match.tournamentLevel === "PRACTICE") continue;
+
+                const isQual = match.tournamentLevel === "QUALIFICATION";
+
+                const redTeams = match.teams.filter(t => t.station.startsWith("Red"));
+                const blueTeams = match.teams.filter(t => t.station.startsWith("Blue"));
+
+                const redNP = match.scoreRedFinal - match.scoreBlueFoul;
+                const blueNP = match.scoreBlueFinal - match.scoreRedFoul;
+
+                redTeams.forEach(t => {
+                    if (isQual) {
+                        if (!teamEventNP[t.teamNumber]) teamEventNP[t.teamNumber] = [];
+                        teamEventNP[t.teamNumber].push(redNP);
+                    }
+                    teamEventHigh[t.teamNumber] = Math.max(teamEventHigh[t.teamNumber] || 0, match.scoreRedFinal);
+                });
+
+                blueTeams.forEach(t => {
+                    if (isQual) {
+                        if (!teamEventNP[t.teamNumber]) teamEventNP[t.teamNumber] = [];
+                        teamEventNP[t.teamNumber].push(blueNP);
+                    }
+                    teamEventHigh[t.teamNumber] = Math.max(teamEventHigh[t.teamNumber] || 0, match.scoreBlueFinal);
+                });
+            }
+        }
 
         for (const rank of rankings) {
             if (!teamMap.has(rank.teamNumber)) {
@@ -38,6 +73,9 @@ export async function getAggregatedStats(): Promise<AggregatedTeamStats[]> {
                     averageBasePoints: 0,
                     totalAutoPoints: 0,
                     averageAutoPoints: 0,
+                    totalNP: 0,
+                    averageNP: 0,
+                    opr: 0,
                     totalHighScore: 0,
                     averageHighScore: 0,
                     totalWins: 0,
@@ -63,7 +101,16 @@ export async function getAggregatedStats(): Promise<AggregatedTeamStats[]> {
             teamStats.totalMatchPoints += rank.sortOrder2;
             teamStats.totalBasePoints += rank.sortOrder3;
             teamStats.totalAutoPoints += rank.sortOrder4;
-            teamStats.totalHighScore += rank.sortOrder6;
+
+            // Use Math.max for High Score across events
+            const eventHigh = teamEventHigh[rank.teamNumber] || 0;
+            teamStats.totalHighScore = Math.max(teamStats.totalHighScore, eventHigh);
+
+            // NP Aggregation
+            const matchNPList = teamEventNP[rank.teamNumber] || [];
+            const avgNPInEvent = matchNPList.length > 0 ? matchNPList.reduce((a, b) => a + b, 0) / matchNPList.length : 0;
+            teamStats.totalNP += avgNPInEvent;
+
             teamStats.totalWins += rank.wins;
             teamStats.totalLosses += rank.losses;
             teamStats.totalTies += rank.ties;
@@ -108,7 +155,9 @@ export async function getAggregatedStats(): Promise<AggregatedTeamStats[]> {
         stats.averageMatchPoints = stats.totalMatchPoints / count;
         stats.averageBasePoints = stats.totalBasePoints / count;
         stats.averageAutoPoints = stats.totalAutoPoints / count;
-        stats.averageHighScore = stats.totalHighScore / count;
+        stats.averageHighScore = stats.totalHighScore;
+        stats.averageNP = stats.totalNP / count;
+        stats.opr = stats.averageNP;
 
         const rankSum = stats.events.reduce((sum, e) => sum + e.rank, 0);
         stats.averageRank = rankSum / count;

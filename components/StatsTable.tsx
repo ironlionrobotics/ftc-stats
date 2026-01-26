@@ -6,6 +6,7 @@ import { Card } from "./ui/Card";
 import { motion } from "framer-motion";
 import { ArrowUpDown, Search, Trophy, Medal, Star, Calculator, BarChart3 } from "lucide-react";
 import { clsx } from "clsx";
+import Link from "next/link";
 
 interface StatsTableProps {
     data: AggregatedTeamStats[];
@@ -195,12 +196,12 @@ export default function StatsTable({ data }: StatsTableProps) {
                                     {index + 1}
                                 </td>
                                 <td className="p-3">
-                                    <div className="flex flex-col">
+                                    <Link href={`/team/${team.teamNumber}`} className="flex flex-col group/link">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-bold text-white text-lg font-display">{team.teamNumber}</span>
+                                            <span className="font-bold text-white text-lg font-display group-hover/link:text-primary transition-colors">{team.teamNumber}</span>
                                         </div>
-                                        <span className="text-gray-400 text-sm group-hover:text-primary transition-colors">{team.teamName}</span>
-                                    </div>
+                                        <span className="text-gray-400 text-sm group-hover/link:text-primary/70 transition-colors">{team.teamName}</span>
+                                    </Link>
                                 </td>
 
                                 {viewMode === 'qualification' && (

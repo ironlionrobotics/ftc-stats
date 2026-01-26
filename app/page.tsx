@@ -1,9 +1,21 @@
 import { getAggregatedStats } from "@/lib/aggregation";
 import StatsTable from "@/components/StatsTable";
 import { SEASON } from "@/lib/constants";
+import { cookies } from "next/headers";
 
 export default async function Home() {
-  const stats = await getAggregatedStats();
+  const cookieStore = await cookies();
+  const season = Number(cookieStore.get("ftc_season")?.value || 2024);
+  const stats = await getAggregatedStats(season);
+
+  const gameNames: Record<number, string> = {
+    2025: "Decode",
+    2024: "Into The Deep",
+    2023: "CenterStage",
+    2022: "PowerPlay",
+  };
+
+  const gameName = gameNames[season] || "Season Stats";
 
   return (
     <main className="min-h-screen bg-background relative overflow-hidden">
@@ -19,7 +31,7 @@ export default async function Home() {
                 FTC <span className="text-primary">México</span>
               </h1>
               <p className="text-xl text-gray-400 font-light">
-                Estadísticas y Proyecciones <span className="text-accent font-medium">{SEASON}</span>
+                Estadísticas y Proyecciones <span className="text-accent font-medium">{season} - {gameName}</span>
               </p>
             </div>
             <div className="flex gap-8">
