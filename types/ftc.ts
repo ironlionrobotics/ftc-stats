@@ -90,10 +90,13 @@ export interface PitScouting {
     weight?: string;
     motors?: string;
     sensors?: string;
-    canHang?: boolean;
-    canPark?: boolean;
-    autoCapabilities?: string[];
-    teleopCapabilities?: string[];
+    servoCount?: number; // New for DECODE (limit 10)
+    intakeType?: string;
+    scoringMechanism?: string;
+    patternMechanism?: string;
+    visionSensors?: string[];
+    canDualPark?: boolean;
+    motifDetection?: boolean;
     photoUrl?: string;
     notes?: string;
     lastUpdatedBy?: string;
@@ -111,16 +114,26 @@ export interface MatchScouting {
 
     // Auto
     autoParked: boolean;
-    autoSampleScored: number;
-    autoSpecimenScored: number;
+    autoLaunchLine: boolean;
+    autoPurpleArtifacts: number;
+    autoGreenArtifacts: number;
+    autoMotifStarted: boolean;
+    movementRP: boolean;
     autoPoints: number;
-    autoNav: boolean;
 
     // Teleop
-    teleopSamples: number;
-    teleopSpecimens: number;
-    teleopHangLevel: number; // 0, 1, 2, 3
+    teleopPurpleArtifacts: number;
+    teleopGreenArtifacts: number;
+    patternsCompleted: number;
+    gatesUsed: boolean;
     driverSkill: number; // 1-5
+
+    // Endgame
+    endgameBaseParking: 'None' | 'Partial' | 'Full';
+    dualParking: boolean;
+    motifCompleted: boolean;
+    goalRP: boolean;
+    patternRP: boolean;
 
     // Notes
     notes: string;
