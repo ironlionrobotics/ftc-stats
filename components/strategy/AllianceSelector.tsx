@@ -34,7 +34,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
         if (teamEntries.length === 0) return null;
 
         const avgSkill = teamEntries.reduce((acc, e) => acc + e.driverSkill, 0) / teamEntries.length;
-        const avgSamples = teamEntries.reduce((acc, e) => acc + (e.teleopSamples + e.autoSampleScored), 0) / teamEntries.length;
+        const avgSamples = teamEntries.reduce((acc, e) => acc + ((e.teleopPurpleArtifacts + e.teleopGreenArtifacts) + (e.autoPurpleArtifacts + e.autoGreenArtifacts)), 0) / teamEntries.length;
 
         return {
             avgSkill,

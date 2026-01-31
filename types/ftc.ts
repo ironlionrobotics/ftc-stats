@@ -1,6 +1,6 @@
 export interface FTCEvent {
-    eventCode: string;
-    name?: string;
+    code: string;
+    name: string;
 }
 
 export interface TeamRanking {
@@ -21,6 +21,15 @@ export interface TeamRanking {
     dq: number;
     matchesPlayed: number;
     matchesCounted: number;
+}
+
+export interface ExtendedTeamRanking extends TeamRanking {
+    eventCode: string;
+    eventName: string;
+    winRate: number;
+    avgNP: number;
+    avgAuto: number;
+    highScore: number;
 }
 
 export interface AdvancementSlot {
@@ -100,7 +109,7 @@ export interface PitScouting {
     photoUrl?: string;
     notes?: string;
     lastUpdatedBy?: string;
-    lastUpdatedAt?: any; // Firestore Timestamp
+    lastUpdatedAt?: { seconds: number; nanoseconds: number } | null; // Firestore Timestamp
 }
 
 export interface MatchScouting {
@@ -137,7 +146,7 @@ export interface MatchScouting {
 
     // Notes
     notes: string;
-    timestamp: any;
+    timestamp: { seconds: number; nanoseconds: number } | null;
 }
 
 export type ScoutingData = PitScouting;

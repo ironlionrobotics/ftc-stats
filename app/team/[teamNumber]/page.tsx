@@ -1,6 +1,6 @@
 import { fetchTeam, fetchTeamRankingsInSeason, fetchTeamAwards } from "@/lib/ftc-api";
+import { ExtendedTeamRanking } from "@/types/ftc";
 import { cookies } from "next/headers";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { MapPin, Globe, Award, Calendar, Trophy } from "lucide-react";
@@ -15,7 +15,11 @@ const GAME_NAMES: Record<number, string> = {
     2022: "PowerPlay",
 };
 
-export default async function TeamPage(props: any) {
+interface TeamPageProps {
+    params: Promise<{ teamNumber: string }>;
+}
+
+export default async function TeamPage(props: TeamPageProps) {
     const params = await props.params;
     const { teamNumber } = params;
     const teamNum = parseInt(teamNumber);
@@ -122,7 +126,7 @@ export default async function TeamPage(props: any) {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                    {year.rankings.map((rank: any, idx) => (
+                                    {year.rankings.map((rank: ExtendedTeamRanking, idx: number) => (
                                         <Card key={idx} className="bg-black/40 border-white/5 p-6 flex flex-col gap-4 hover:border-primary/30 transition-all group overflow-hidden relative">
                                             {/* Decorative Background */}
                                             <div className="absolute -right-6 -bottom-6 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">

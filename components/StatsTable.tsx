@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AggregatedTeamStats } from "@/types/ftc";
 import { Card } from "./ui/Card";
 import { motion } from "framer-motion";
-import { ArrowUpDown, Search, Trophy, Medal, Star, Calculator, BarChart3 } from "lucide-react";
+import { ArrowUpDown, Search, Trophy, Star, Calculator } from "lucide-react";
 import { clsx } from "clsx";
 import Link from "next/link";
 

@@ -1,6 +1,5 @@
 import { getAggregatedStats } from "@/lib/aggregation";
 import StatsTable from "@/components/StatsTable";
-import { SEASON } from "@/lib/constants";
 import { cookies } from "next/headers";
 
 export default async function Home() {

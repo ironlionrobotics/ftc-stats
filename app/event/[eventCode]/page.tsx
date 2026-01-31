@@ -1,9 +1,12 @@
 import { fetchMatches, fetchRankings, fetchEvents } from "@/lib/ftc-api";
 import EventViewManager from "@/components/event/EventViewManager";
-import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 
-export default async function EventPage(props: any) {
+interface EventPageProps {
+    params: Promise<{ eventCode: string }>;
+}
+
+export default async function EventPage(props: EventPageProps) {
     const params = await props.params;
     const { eventCode } = params;
 
@@ -24,7 +27,7 @@ export default async function EventPage(props: any) {
                 </div>
                 <h1 className="text-3xl font-bold mb-2">Event Not Found</h1>
                 <p className="text-gray-400 max-w-md">
-                    We couldn't find event <span className="text-primary font-mono">{eventCode}</span> in the <span className="text-white font-bold">{season}</span> season records.
+                    We couldn&apos;t find event <span className="text-primary font-mono">{eventCode}</span> in the <span className="text-white font-bold">{season}</span> season records.
                 </p>
             </div>
         );

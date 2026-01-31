@@ -5,7 +5,7 @@
 
 const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
-export async function chatWithAssistant(message: string, contextData: any) {
+export async function chatWithAssistant(message: string, contextData: Record<string, unknown>) {
     if (!GEMINI_API_KEY) {
         return {
             role: "assistant",

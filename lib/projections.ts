@@ -57,11 +57,12 @@ export function calculateTeamProjection(
     // 2. Scout Score (Live Performance)
     let scoutPoints = apiBase;
     if (scoutingEntries.length > 0) {
-        // Points estimation for Into The Deep season
+        // Points estimation for Decode season
         const avgMatchScout = scoutingEntries.reduce((acc, match) => {
-            const auto = (match.autoSampleScored * 4) + (match.autoSpecimenScored * 6) + (match.autoParked ? 3 : 0);
-            const tele = (match.teleopSamples * 4) + (match.teleopSpecimens * 6);
-            const end = match.teleopHangLevel * 10; // Level 1=10, 2=20, 3=30
+            const auto = (match.autoPurpleArtifacts * 3) + (match.autoGreenArtifacts * 3) + (match.autoPoints || 0);
+            const tele = (match.teleopPurpleArtifacts * 2) + (match.teleopGreenArtifacts * 2) + (match.patternsCompleted * 10);
+            const parkingPoints = match.endgameBaseParking === 'Full' ? 10 : match.endgameBaseParking === 'Partial' ? 5 : 0;
+            const end = (match.dualParking ? 20 : 0) + parkingPoints;
             return acc + auto + tele + end;
         }, 0) / scoutingEntries.length;
 

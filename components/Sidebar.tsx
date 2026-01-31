@@ -10,8 +10,10 @@ import Image from "next/image";
 import { useSeason } from "@/context/SeasonContext";
 import { useAuth } from "@/context/AuthContext";
 
+import { FTCEvent } from "@/types/ftc";
+
 interface SidebarProps {
-    initialEvents: any[];
+    initialEvents: FTCEvent[];
 }
 
 export default function Sidebar({ initialEvents }: SidebarProps) {
@@ -34,26 +36,6 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
             setSearchTerm("");
             setIsOpen(false);
         }
-    };
-
-    const NavItem = ({ href, icon: Icon, children, className = "" }: { href: string; icon: any; children: React.ReactNode; className?: string }) => {
-        const isActive = pathname === href;
-        return (
-            <Link
-                href={href}
-                onClick={handleLinkClick}
-                className={clsx(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm group",
-                    isActive
-                        ? "bg-primary/20 text-primary border border-primary/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]"
-                        : "text-gray-400 hover:text-white hover:bg-white/5",
-                    className
-                )}
-            >
-                <Icon className={clsx("w-5 h-5", isActive ? "text-primary" : "text-gray-500 group-hover:text-white transition-colors")} />
-                {children}
-            </Link>
-        );
     };
 
     const regionalEvents = initialEvents.filter(e => e.code !== "MXCMP");
@@ -134,10 +116,10 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
 
                     <nav className="flex-1 space-y-1">
                         <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 mt-2">Main</p>
-                        <NavItem href="/" icon={Home}>
+                        <NavItem href="/" icon={Home} isActive={pathname === "/"} onClick={handleLinkClick}>
                             General Stats
                         </NavItem>
-                        <NavItem href="/scouting" icon={ClipboardList}>
+                        <NavItem href="/scouting" icon={ClipboardList} isActive={pathname === "/scouting"} onClick={handleLinkClick}>
                             Scouting Form
                         </NavItem>
 
@@ -148,7 +130,7 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                             <p className="px-4 text-xs text-gray-600 italic">No regionals found</p>
                         ) : (
                             regionalEvents.map((event) => (
-                                <NavItem key={event.code} href={`/event/${event.code}`} icon={MapPin}>
+                                <NavItem key={event.code} href={`/event/${event.code}`} icon={MapPin} isActive={pathname === `/event/${event.code}`} onClick={handleLinkClick}>
                                     {event.name.replace("Regional ", "").replace("FIRST Tech Challenge ", "")}
                                 </NavItem>
                             ))
@@ -161,6 +143,8 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                                 <NavItem
                                     href={`/event/${championshipEvent.code}`}
                                     icon={Trophy}
+                                    isActive={pathname === `/event/${championshipEvent.code}`}
+                                    onClick={handleLinkClick}
                                     className="!bg-secondary/10 !text-secondary !border-secondary/20 hover:!bg-secondary/20"
                                 >
                                     {championshipEvent.name.replace("Championship ", "").replace("Nacional ", "Nacional ")}
@@ -225,6 +209,34 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                 </div>
             </aside>
         </>
+    );
+}
+
+interface NavItemProps {
+    href: string;
+    icon: React.ElementType; // Using ElementType is safer for Lucide icons
+    children: React.ReactNode;
+    className?: string;
+    isActive: boolean;
+    onClick: () => void;
+}
+
+function NavItem({ href, icon: Icon, children, className = "", isActive, onClick }: NavItemProps) {
+    return (
+        <Link
+            href={href}
+            onClick={onClick}
+            className={clsx(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm group",
+                isActive
+                    ? "bg-primary/20 text-primary border border-primary/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]"
+                    : "text-gray-400 hover:text-white hover:bg-white/5",
+                className
+            )}
+        >
+            <Icon className={clsx("w-5 h-5", isActive ? "text-primary" : "text-gray-500 group-hover:text-white transition-colors")} />
+            {children}
+        </Link>
     );
 }
 

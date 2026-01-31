@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FTCMatch, TeamRanking } from "@/types/ftc";
+import { FTCMatch, TeamRanking, FTCMatchTeam } from "@/types/ftc";
 import clsx from "clsx";
 import { Trophy, Zap, Star, Hash } from "lucide-react";
 
@@ -21,7 +21,7 @@ export default function MatchList({ matches, rankings }: MatchListProps) {
     const teamNamesMap = new Map(rankings.map(r => [r.teamNumber, r.teamName]));
 
     // Calculate Dynamic KPIs for filtered team
-    let stats = { wins: 0, losses: 0, ties: 0, totalNP: 0, highScore: 0, count: 0 };
+    const stats = { wins: 0, losses: 0, ties: 0, totalNP: 0, highScore: 0, count: 0 };
     if (filterTeam) {
         filteredMatches.forEach(m => {
             const isRed = m.teams.some(t => t.teamNumber === filterTeam && t.station.startsWith('Red'));
@@ -173,6 +173,29 @@ function KPICard({ label, value, icon, subline }: { label: string, value: string
     );
 }
 
+function TeamInfo({ team, teamNamesMap, onTeamClick }: { team?: FTCMatchTeam, teamNamesMap: Map<number, string>, onTeamClick: (id: number) => void }) {
+    if (!team) return <div className="min-w-[120px]" />;
+    const name = teamNamesMap.get(team.teamNumber) || "Team";
+    const isRed = team.station.startsWith('Red');
+    return (
+        <button
+            onClick={() => onTeamClick(team.teamNumber)}
+            className="flex flex-col items-center min-w-[120px] px-2 group/team hover:bg-white/5 rounded-lg py-1 transition-all"
+            key={team.teamNumber}
+        >
+            <span className={clsx(
+                "font-mono font-bold text-base transition-all group-hover/team:scale-110",
+                isRed ? "text-red-400 group-hover/team:text-red-300" : "text-blue-400 group-hover/team:text-blue-300"
+            )}>
+                {team.teamNumber}
+            </span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-tighter truncate max-w-[110px] group-hover/team:text-white transition-colors">
+                {name}
+            </span>
+        </button>
+    );
+}
+
 function MatchRow({ match, teamNamesMap, onTeamClick }: { match: FTCMatch, teamNamesMap: Map<number, string>, onTeamClick: (id: number) => void }) {
     const redTeams = match.teams.filter(t => t.station.startsWith('Red')).sort((a, b) => a.station.localeCompare(b.station));
     const blueTeams = match.teams.filter(t => t.station.startsWith('Blue')).sort((a, b) => a.station.localeCompare(b.station));
@@ -188,28 +211,7 @@ function MatchRow({ match, teamNamesMap, onTeamClick }: { match: FTCMatch, teamN
     const redWin = match.scoreRedFinal > match.scoreBlueFinal;
     const blueWin = match.scoreBlueFinal > match.scoreRedFinal;
 
-    const TeamInfo = ({ team }: { team?: any, isRed: boolean }) => {
-        if (!team) return <div className="min-w-[120px]" />;
-        const name = teamNamesMap.get(team.teamNumber) || "Team";
-        const isRed = team.station.startsWith('Red');
-        return (
-            <button
-                onClick={() => onTeamClick(team.teamNumber)}
-                className="flex flex-col items-center min-w-[120px] px-2 group/team hover:bg-white/5 rounded-lg py-1 transition-all"
-                key={team.teamNumber}
-            >
-                <span className={clsx(
-                    "font-mono font-bold text-base transition-all group-hover/team:scale-110",
-                    isRed ? "text-red-400 group-hover/team:text-red-300" : "text-blue-400 group-hover/team:text-blue-300"
-                )}>
-                    {team.teamNumber}
-                </span>
-                <span className="text-[10px] text-gray-500 uppercase tracking-tighter truncate max-w-[110px] group-hover/team:text-white transition-colors">
-                    {name}
-                </span>
-            </button>
-        );
-    };
+
 
     return (
         <tr className="hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
@@ -221,18 +223,18 @@ function MatchRow({ match, teamNamesMap, onTeamClick }: { match: FTCMatch, teamN
 
             {/* Red Alliance Teams (2 columns) */}
             <td className={clsx("p-4 border-l-4", redWin ? "border-red-500 bg-red-500/10" : "border-transparent")}>
-                <TeamInfo team={redTeams[0]} isRed={true} />
+                <TeamInfo team={redTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={onTeamClick} />
             </td>
             <td className={clsx("p-4 border-r border-white/5", redWin ? "bg-red-500/10" : "border-transparent")}>
-                <TeamInfo team={redTeams[1]} isRed={true} />
+                <TeamInfo team={redTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={onTeamClick} />
             </td>
 
             {/* Blue Alliance Teams (2 columns) */}
             <td className={clsx("p-4", blueWin ? "bg-blue-500/10" : "border-transparent")}>
-                <TeamInfo team={blueTeams[0]} isRed={false} />
+                <TeamInfo team={blueTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={onTeamClick} />
             </td>
             <td className={clsx("p-4 border-r-4", blueWin ? "border-blue-500 bg-blue-500/10" : "border-transparent")}>
-                <TeamInfo team={blueTeams[1]} isRed={false} />
+                <TeamInfo team={blueTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={onTeamClick} />
             </td>
 
             {/* Score */}

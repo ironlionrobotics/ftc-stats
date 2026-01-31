@@ -3,7 +3,8 @@
 import { TeamRanking, FTCMatch } from "@/types/ftc";
 import clsx from "clsx";
 import Link from "next/link";
-import { Trophy, Users, Hash, Star, Zap } from "lucide-react";
+// Trophy and Star removed
+import { Users, Hash } from "lucide-react";
 
 interface RankingTableProps {
     rankings: TeamRanking[];

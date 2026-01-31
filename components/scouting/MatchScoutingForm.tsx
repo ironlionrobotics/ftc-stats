@@ -6,7 +6,7 @@ import { saveMatchScouting } from "@/lib/scouting-service";
 import { useAuth } from "@/context/AuthContext";
 import { useSeason } from "@/context/SeasonContext";
 import { Card } from "@/components/ui/Card";
-import { Save, Plus, Trash2, User, Trophy, Minus } from "lucide-react";
+import { Save, Plus, User, Trophy, Minus } from "lucide-react";
 import clsx from "clsx";
 
 interface MatchScoutingFormProps {
@@ -82,7 +82,8 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormPr
             patternRP,
 
             notes,
-            timestamp: new Date()
+
+            timestamp: null
         });
 
         setIsAdding(false);
@@ -95,7 +96,14 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormPr
         setNotes("");
     };
 
-    const Counter = ({ label, value, setter, color = "primary" }: any) => (
+    interface CounterProps {
+        label: string;
+        value: number;
+        setter: (val: number) => void;
+        color?: "primary" | "purple" | "green";
+    }
+
+    const Counter = ({ label, value, setter, color = "primary" }: CounterProps) => (
         <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold text-gray-500 uppercase">{label}</label>
             <div className="flex items-center gap-3 bg-black/40 p-1 rounded-lg border border-white/5">
@@ -106,7 +114,13 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormPr
         </div>
     );
 
-    const Checkbox = ({ label, checked, setter }: any) => (
+    interface CheckboxProps {
+        label: string;
+        checked: boolean;
+        setter: (checked: boolean) => void;
+    }
+
+    const Checkbox = ({ label, checked, setter }: CheckboxProps) => (
         <label className={clsx(
             "flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer group",
             checked ? "bg-primary/20 border-primary/50" : "bg-white/5 border-white/10 hover:border-white/20"
@@ -274,7 +288,9 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormPr
                                         <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
                                             <User size={14} className="opacity-50" /> {entry.scouterName}
                                             <span className="opacity-30">•</span>
-                                            {new Date(entry.timestamp?.seconds * 1000 || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {entry.timestamp?.seconds
+                                                ? new Date(entry.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                : "..."}
                                         </div>
                                     </div>
 
@@ -345,11 +361,7 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormPr
     );
 }
 
-function X({ size }: { size: number }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-    )
-}
+
 
 function ClipboardList({ size, className }: { size: number, className?: string }) {
     return (
