@@ -1,6 +1,6 @@
 export interface FTCEvent {
-    eventCode: string;
-    name?: string;
+    code: string;
+    name: string;
 }
 
 export interface TeamRanking {
@@ -21,6 +21,15 @@ export interface TeamRanking {
     dq: number;
     matchesPlayed: number;
     matchesCounted: number;
+}
+
+export interface ExtendedTeamRanking extends TeamRanking {
+    eventCode: string;
+    eventName: string;
+    winRate: number;
+    avgNP: number;
+    avgAuto: number;
+    highScore: number;
 }
 
 export interface AdvancementSlot {
@@ -70,6 +79,9 @@ export interface AggregatedTeamStats {
         selection: number;
         qualification: number;
     };
+    totalNP: number;
+    averageNP: number;
+    opr: number;
     events: {
         eventCode: string;
         rank: number;
@@ -78,55 +90,66 @@ export interface AggregatedTeamStats {
     }[];
 }
 
-export interface ScoutingData {
+export interface PitScouting {
     teamNumber: number;
-    robotName: string;
-    chassisType: string;
-    chassisTypeDetail?: string;
-    chassisWidth: number;
-    chassisLength: number;
-    chassisUnit: 'cm' | 'in';
-    robotHeight: number;
-
-    // Autonomous
-    canLeaveLaunchZone: string;
-    preferredLaunchZone: string;
-    autoParsings: {
-        triangleBigRed: boolean;
-        triangleSmallRed: boolean;
-        triangleBigBlue: boolean;
-        triangleSmallBlue: boolean;
-    };
-    autoArtifacts: number;
-    spikeMarkSource: {
-        near: boolean;
-        medium: boolean;
-        far: boolean;
-        none: boolean;
-    };
-    sensors: string;
-    sensorsDetail?: string;
-    organizesPattern: boolean;
-    autoRating: number;
-
-    // Tele-Op
-    teleopFocus: string;
-    artifactSource: {
-        ground: boolean;
-        humanPlayer: boolean;
-    };
-    artifactsPerCycle: number;
-    cyclesCount: number;
-
-    // End Game
-    endGamePreference: string;
-    parkingStatus: string;
-    canHang: boolean;
-    elevationType: string;
-    elevationTypeDetail?: string;
+    season: number;
+    robotName?: string;
+    driveTrain?: string;
+    dimensions?: string;
+    weight?: string;
+    motors?: string;
+    sensors?: string;
+    servoCount?: number; // New for DECODE (limit 10)
+    intakeType?: string;
+    scoringMechanism?: string;
+    patternMechanism?: string;
+    visionSensors?: string[];
+    canDualPark?: boolean;
+    motifDetection?: boolean;
     photoUrl?: string;
     notes?: string;
+    lastUpdatedBy?: string;
+    lastUpdatedAt?: { seconds: number; nanoseconds: number } | null; // Firestore Timestamp
 }
+
+export interface MatchScouting {
+    id?: string;
+    teamNumber: number;
+    eventCode: string;
+    matchNumber: number;
+    season: number;
+    scouterName: string;
+    scouterId: string;
+
+    // Auto
+    autoParked: boolean;
+    autoLaunchLine: boolean;
+    autoPurpleArtifacts: number;
+    autoGreenArtifacts: number;
+    autoMotifStarted: boolean;
+    movementRP: boolean;
+    autoPoints: number;
+
+    // Teleop
+    teleopPurpleArtifacts: number;
+    teleopGreenArtifacts: number;
+    patternsCompleted: number;
+    gatesUsed: boolean;
+    driverSkill: number; // 1-5
+
+    // Endgame
+    endgameBaseParking: 'None' | 'Partial' | 'Full';
+    dualParking: boolean;
+    motifCompleted: boolean;
+    goalRP: boolean;
+    patternRP: boolean;
+
+    // Notes
+    notes: string;
+    timestamp: { seconds: number; nanoseconds: number } | null;
+}
+
+export type ScoutingData = PitScouting;
 
 export interface FTCMatchTeam {
     teamNumber: number;
@@ -148,4 +171,13 @@ export interface FTCMatch {
     actualStartTime?: string;
     postResultTime?: string;
     tournamentLevel: string; // "QUALIFICATION", "PLAYOFF", etc.
+}
+
+export interface FTCAward {
+    awardId: number;
+    teamNumber: number;
+    displayTeamNumber: string;
+    awardName: string;
+    series: number;
+    eventCode: string;
 }

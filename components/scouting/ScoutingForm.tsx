@@ -1,69 +1,49 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AggregatedTeamStats, ScoutingData } from "@/types/ftc";
+import { AggregatedTeamStats, PitScouting } from "@/types/ftc";
 import { Save, Edit2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 
 interface ScoutingFormProps {
     team: AggregatedTeamStats;
-    initialData?: ScoutingData;
-    onSave: (data: ScoutingData) => void;
+    initialData?: PitScouting;
+    onSave: (data: PitScouting) => void;
 }
 
-const INITIAL_FORM_STATE: Omit<ScoutingData, 'teamNumber'> = {
+const INITIAL_FORM_STATE: Omit<PitScouting, 'teamNumber' | 'season'> = {
     robotName: "",
-    chassisType: "Mecano",
-    chassisWidth: 0,
-    chassisLength: 0,
-    chassisUnit: "in",
-    robotHeight: 0,
-    canLeaveLaunchZone: "No, de ninguno",
-    preferredLaunchZone: "Triángulo grande",
-    autoParsings: { triangleBigRed: false, triangleSmallRed: false, triangleBigBlue: false, triangleSmallBlue: false },
-    autoArtifacts: 0,
-    spikeMarkSource: { near: false, medium: false, far: false, none: false },
-    sensors: "Ninguno",
-    organizesPattern: false,
-    autoRating: 5,
-    teleopFocus: "Tiros largos",
-    artifactSource: { ground: false, humanPlayer: false },
-    artifactsPerCycle: 0,
-    cyclesCount: 0,
-    endGamePreference: "Buscar el pattern",
-    parkingStatus: "Robot entra completamente y no sobra espacio",
-    canHang: false,
-    elevationType: "",
+    driveTrain: "Mecano",
+    dimensions: "",
+    weight: "",
+    motors: "",
+    sensors: "",
+    servoCount: 0,
+    intakeType: "Fricción",
+    scoringMechanism: "Lanzador",
+    patternMechanism: "Rampa",
+    visionSensors: [],
+    canDualPark: false,
+    motifDetection: false,
     photoUrl: "",
     notes: ""
 };
 
 export default function ScoutingForm({ team, initialData, onSave }: ScoutingFormProps) {
     const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState<ScoutingData>(() => initialData || { teamNumber: team.teamNumber, ...INITIAL_FORM_STATE });
+    const [formData, setFormData] = useState<PitScouting>(() => initialData || { teamNumber: team.teamNumber, season: 2025, ...INITIAL_FORM_STATE });
 
-    // Update form data when switching teams. Always default to View Mode (isEditing = false)
     useEffect(() => {
         if (initialData) {
             setFormData(initialData);
         } else {
-            setFormData({ teamNumber: team.teamNumber, ...INITIAL_FORM_STATE });
+            setFormData({ teamNumber: team.teamNumber, season: 2025, ...INITIAL_FORM_STATE });
         }
-        setIsEditing(false); // Fix the "flash" and ensure read-only by default
+        setIsEditing(false);
     }, [team.teamNumber, initialData]);
 
-    const handleChange = (field: keyof ScoutingData, value: any) => {
+    const handleChange = (field: keyof PitScouting, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleNestedChange = (parent: keyof ScoutingData, key: string, value: any) => {
-        setFormData(prev => ({
-            ...prev,
-            [parent]: {
-                ...(prev[parent] as object),
-                [key]: value
-            }
-        }));
     };
 
     const handleSave = () => {
@@ -71,7 +51,6 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
         setIsEditing(false);
     }
 
-    // Helper Inputs
     const SectionTitle = ({ children }: { children: React.ReactNode }) => (
         <h3 className="text-xl font-bold text-white mt-4 mb-4 border-b border-white/10 pb-2 flex items-center gap-2">
             {children}
@@ -82,12 +61,13 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
         <label className="block text-sm font-medium text-gray-400 mb-1">{children}</label>
     );
 
-    const Input = ({ type = "text", value, onChange, disabled = false, className = "" }: any) => (
+    const Input = ({ type = "text", value, onChange, disabled = false, className = "", placeholder = "" }: any) => (
         <input
             type={type}
-            value={value}
+            value={value || ""}
             onChange={onChange}
             disabled={!isEditing || disabled}
+            placeholder={placeholder}
             className={clsx(
                 "w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all",
                 className
@@ -101,7 +81,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
             onChange={onChange}
             disabled={!isEditing}
             className={clsx(
-                "px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed appearance-none",
+                "px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed appearance-none w-full",
                 className
             )}
         >
@@ -109,35 +89,21 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
         </select>
     )
 
-    const Checkbox = ({ label, checked, onChange }: any) => (
-        <label className={clsx("flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer",
-            checked ? "bg-primary/20 border-primary/50" : "bg-white/5 border-white/10 hover:bg-white/10",
-            !isEditing && "opacity-60 cursor-not-allowed"
-        )}>
-            <div className={clsx("w-5 h-5 rounded border flex items-center justify-center transition-colors", checked ? "bg-primary border-primary" : "border-gray-500")}>
-                {checked && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
-            </div>
-            <input type="checkbox" className="hidden" checked={checked} onChange={e => isEditing && onChange(e.target.checked)} disabled={!isEditing} />
-            <span className="text-sm text-gray-200">{label}</span>
-        </label>
-    )
-
-    if (!team) return <div className="text-gray-400 p-8">Seleccione un equipo para comenzar.</div>;
-
     return (
-        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl overflow-hidden flex flex-col h-full md:h-auto">
+        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl overflow-hidden flex flex-col h-full">
             {/* Header */}
             <div className="px-6 py-3 border-b border-white/10 flex justify-between items-center bg-black/20">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <span className="text-primary font-display text-3xl">{formData.teamNumber}</span>
-                        {team.teamName}
-                    </h2>
+                    <div className="flex flex-col">
+                        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                            <span className="text-primary font-display text-3xl">{team.teamNumber}</span>
+                            {team.teamName}
+                        </h2>
+                        <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Temporada 2025: DECODE</span>
+                    </div>
                     <span className={clsx(
                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
-                        !isEditing
-                            ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                            : "bg-green-500/10 border-green-500/30 text-green-400"
+                        !isEditing ? "bg-blue-500/10 border-blue-500/30 text-blue-400" : "bg-green-500/10 border-green-500/30 text-green-400"
                     )}>
                         {!isEditing ? "Lectura" : "Edición"}
                     </span>
@@ -147,310 +113,119 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                     onClick={() => isEditing ? handleSave() : setIsEditing(true)}
                     className={clsx(
                         "px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg",
-                        isEditing
-                            ? "bg-green-600 hover:bg-green-500 text-white"
-                            : "bg-primary hover:bg-primary/80 text-white"
+                        isEditing ? "bg-green-600 hover:bg-green-500 text-white" : "bg-primary hover:bg-primary/80 text-white"
                     )}
                 >
-                    {isEditing ? <><Save size={18} /> Guardar Cambios</> : <><Edit2 size={18} /> Editar Formulario</>}
+                    {isEditing ? <><Save size={18} /> Guardar Pit Data</> : <><Edit2 size={18} /> Editar Pit Data</>}
                 </button>
             </div>
 
-            {/* Form Content */}
             <div className="p-6 md:p-8 pt-0 overflow-y-auto custom-scrollbar space-y-8 pb-16">
-
-                {/* ROBOT DATA */}
                 <section>
-                    <h3 className="text-xl font-bold text-white mt-0 mb-3 border-b border-white/10 pb-1 flex items-center gap-2">
-                        Datos del Robot
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <SectionTitle>Especificaciones Técnicas</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div>
                             <Label>Nombre del Robot</Label>
-                            <Input value={formData.robotName} onChange={(e: any) => handleChange('robotName', e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <Label>Tipo de Chasis</Label>
-                            <div className="flex gap-3">
-                                <Select
-                                    value={formData.chassisType}
-                                    onChange={(e: any) => handleChange('chassisType', e.target.value)}
-                                    options={['Mecano', 'Tanque', 'Omnidireccional', 'Otros']}
-                                    className={formData.chassisType === 'Otros' ? 'flex-1' : 'w-full'}
-                                />
-                                {formData.chassisType === 'Otros' && (
-                                    <Input
-                                        placeholder="Especifique..."
-                                        className="flex-1"
-                                        value={formData.chassisTypeDetail || ''}
-                                        onChange={(e: any) => handleChange('chassisTypeDetail', e.target.value)}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                        <div className="col-span-1 md:col-span-2">
-                            <Label>Medidas del Chasis (Ancho x Largo)</Label>
-                            <div className="flex gap-4 items-center">
-                                <Input type="number" className="!w-32" value={formData.chassisWidth} onChange={(e: any) => handleChange('chassisWidth', Number(e.target.value))} />
-                                <span className="text-gray-400">x</span>
-                                <Input type="number" className="!w-32" value={formData.chassisLength} onChange={(e: any) => handleChange('chassisLength', Number(e.target.value))} />
-
-                                <div className="flex bg-black/40 rounded-lg p-1 border border-white/10 ml-4">
-                                    {['cm', 'in'].map(unit => (
-                                        <button
-                                            key={unit}
-                                            onClick={() => isEditing && handleChange('chassisUnit', unit)}
-                                            className={clsx(
-                                                "px-3 py-1 rounded text-xs font-bold transition-all uppercase",
-                                                formData.chassisUnit === unit ? "bg-primary text-white" : "text-gray-500",
-                                                !isEditing && "cursor-default"
-                                            )}
-                                        >
-                                            {unit}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                            <Input value={formData.robotName} onChange={(e: any) => handleChange('robotName', e.target.value)} placeholder="Ej: Iron Lion Bot" />
                         </div>
                         <div>
-                            <Label>Altura del Robot ({formData.chassisUnit})</Label>
-                            <Input type="number" value={formData.robotHeight} onChange={(e: any) => handleChange('robotHeight', Number(e.target.value))} />
-                        </div>
-                    </div>
-                </section>
-
-                {/* AUTONOMOUS */}
-                <section>
-                    <SectionTitle>Periodo Autónomo (30s)</SectionTitle>
-
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                                <Label>¿Pueden salir del Launch Zone?</Label>
-                                <Select
-                                    value={formData.canLeaveLaunchZone}
-                                    onChange={(e: any) => handleChange('canLeaveLaunchZone', e.target.value)}
-                                    options={['No, de ninguno', 'Si, sale del triángulo grande', 'Si, sale del triángulo pequeño', 'Si, ambos']}
-                                />
-                            </div>
-                            <div>
-                                <Label>¿En cuál Launch Zone prefieren colocar el robot?</Label>
-                                <Select
-                                    value={formData.preferredLaunchZone}
-                                    onChange={(e: any) => handleChange('preferredLaunchZone', e.target.value)}
-                                    options={['Triángulo grande', 'Triángulo pequeño']}
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <Label>¿Tienen autónomo para qué posición(es)?</Label>
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-                                <Checkbox label="T. Grande Rojo" checked={formData.autoParsings.triangleBigRed} onChange={(v: boolean) => handleNestedChange('autoParsings', 'triangleBigRed', v)} />
-                                <Checkbox label="T. Pequeño Rojo" checked={formData.autoParsings.triangleSmallRed} onChange={(v: boolean) => handleNestedChange('autoParsings', 'triangleSmallRed', v)} />
-                                <Checkbox label="T. Grande Azul" checked={formData.autoParsings.triangleBigBlue} onChange={(v: boolean) => handleNestedChange('autoParsings', 'triangleBigBlue', v)} />
-                                <Checkbox label="T. Pequeño Azul" checked={formData.autoParsings.triangleSmallBlue} onChange={(v: boolean) => handleNestedChange('autoParsings', 'triangleSmallBlue', v)} />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                                <Label>¿Cuántos artifacts anotan?</Label>
-                                <Input type="number" value={formData.autoArtifacts} onChange={(e: any) => handleChange('autoArtifacts', Number(e.target.value))} />
-                            </div>
-                            <div>
-                                <Label>¿Organizan artifacts para el patrón (pattern)?</Label>
-                                <div className="flex gap-4 mt-2">
-                                    <label className="flex items-center gap-2 text-gray-300 cursor-pointer">
-                                        <input type="radio" checked={formData.organizesPattern} onChange={() => isEditing && handleChange('organizesPattern', true)} disabled={!isEditing} /> Si
-                                    </label>
-                                    <label className="flex items-center gap-2 text-gray-300 cursor-pointer">
-                                        <input type="radio" checked={!formData.organizesPattern} onChange={() => isEditing && handleChange('organizesPattern', false)} disabled={!isEditing} /> No
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <Label>Si recogen de Spike Marks, ¿De cuáles?</Label>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                                <Checkbox label="Near" checked={formData.spikeMarkSource.near} onChange={(v: boolean) => handleNestedChange('spikeMarkSource', 'near', v)} />
-                                <Checkbox label="Medium" checked={formData.spikeMarkSource.medium} onChange={(v: boolean) => handleNestedChange('spikeMarkSource', 'medium', v)} />
-                                <Checkbox label="Far" checked={formData.spikeMarkSource.far} onChange={(v: boolean) => handleNestedChange('spikeMarkSource', 'far', v)} />
-                                <Checkbox label="No recoge" checked={formData.spikeMarkSource.none} onChange={(v: boolean) => handleNestedChange('spikeMarkSource', 'none', v)} />
-                            </div>
-                        </div>
-
-                        <div>
-                            <Label>¿Cuáles sensores utilizan?</Label>
-                            <div className="flex flex-col md:flex-row gap-3">
-                                <Select
-                                    value={formData.sensors}
-                                    onChange={(e: any) => handleChange('sensors', e.target.value)}
-                                    options={['Ninguno', 'Visión', 'Odometría', 'Ambos', 'Otros']}
-                                    className={formData.sensors === 'Otros' ? 'md:w-1/3' : 'w-full'}
-                                />
-                                {formData.sensors === 'Otros' && (
-                                    <Input
-                                        placeholder="Detalle de sensores..."
-                                        className="flex-1"
-                                        value={formData.sensorsDetail || ''}
-                                        onChange={(e: any) => handleChange('sensorsDetail', e.target.value)}
-                                    />
-                                )}
-                            </div>
-                        </div>
-
-                        <div>
-                            <Label>Calificación del Autónomo (1-10)</Label>
-                            <div className="flex items-center gap-4">
-                                <input
-                                    type="range"
-                                    min="1" max="10"
-                                    value={formData.autoRating}
-                                    onChange={(e) => handleChange('autoRating', Number(e.target.value))}
-                                    disabled={!isEditing}
-                                    className="w-full accent-primary"
-                                />
-                                <span className="text-2xl font-bold text-primary w-8 text-center">{formData.autoRating}</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* TELEOP */}
-                <section>
-                    <SectionTitle>Tele-Op</SectionTitle>
-                    <div className="space-y-6">
-                        <div>
-                            <Label>¿En qué se enfocan?</Label>
+                            <Label>Tipo de Tracción</Label>
                             <Select
-                                value={formData.teleopFocus}
-                                onChange={(e: any) => handleChange('teleopFocus', e.target.value)}
-                                options={['Tiros largos', 'Tiros cortos', 'Defensa / Obstrucción']}
+                                value={formData.driveTrain}
+                                onChange={(e: any) => handleChange('driveTrain', e.target.value)}
+                                options={['Mecanno', 'X-Drive', 'Tanque', 'Omnidireccional', 'Swerve', 'Otros']}
                             />
                         </div>
-
                         <div>
-                            <Label>¿De dónde pueden tomar artifacts?</Label>
-                            <div className="flex gap-6 mt-2">
-                                <Checkbox label="Suelo" checked={formData.artifactSource.ground} onChange={(v: boolean) => handleNestedChange('artifactSource', 'ground', v)} />
-                                <Checkbox label="Human Player" checked={formData.artifactSource.humanPlayer} onChange={(v: boolean) => handleNestedChange('artifactSource', 'humanPlayer', v)} />
-                            </div>
+                            <Label>Cantidad de Servos (Max 10)</Label>
+                            <Input type="number" value={formData.servoCount} onChange={(e: any) => handleChange('servoCount', parseInt(e.target.value))} />
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <Label>¿Cuántos artifacts anotan por ciclo?</Label>
-                                <Input type="number" value={formData.artifactsPerCycle} onChange={(e: any) => handleChange('artifactsPerCycle', Number(e.target.value))} />
-                            </div>
-                            <div>
-                                <Label>¿Cuántos hacen en TeleOp?</Label>
-                                <Input type="number" value={formData.cyclesCount} onChange={(e: any) => handleChange('cyclesCount', Number(e.target.value))} />
-                            </div>
+                        <div>
+                            <Label>Dimensiones (Pulgadas)</Label>
+                            <Input value={formData.dimensions} onChange={(e: any) => handleChange('dimensions', e.target.value)} placeholder="Ej: 18x18x18" />
+                        </div>
+                        <div>
+                            <Label>Peso (Kg)</Label>
+                            <Input value={formData.weight} onChange={(e: any) => handleChange('weight', e.target.value)} placeholder="Ej: 12.5" />
+                        </div>
+                        <div>
+                            <Label>Motores</Label>
+                            <Input value={formData.motors} onChange={(e: any) => handleChange('motors', e.target.value)} placeholder="Ej: 4 Rev HD Hex" />
                         </div>
                     </div>
                 </section>
 
-                {/* ENDGAME */}
                 <section>
-                    <SectionTitle>End Game (30s)</SectionTitle>
-                    <div className="space-y-6">
+                    <SectionTitle>Mecanismos de Artifacts & Patterns</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div>
-                            <Label>¿Qué prefieren hacer?</Label>
+                            <Label>Tipo de Intake</Label>
                             <Select
-                                value={formData.endGamePreference}
-                                onChange={(e: any) => handleChange('endGamePreference', e.target.value)}
-                                options={['Ciclos rápidos de Artifacts', 'Completar el patrón (pattern)']}
+                                value={formData.intakeType}
+                                onChange={(e: any) => handleChange('intakeType', e.target.value)}
+                                options={['Fricción (Ruedas)', 'Garra', 'Succión', 'Activo-Vertical', 'Otro']}
                             />
                         </div>
-
                         <div>
-                            <Label>¿Con qué situación se identifican en la base?</Label>
+                            <Label>Mecanismo Scoring (Goal)</Label>
                             <Select
-                                value={formData.parkingStatus}
-                                onChange={(e: any) => handleChange('parkingStatus', e.target.value)}
-                                options={[
-                                    'Robot entra completamente y no sobra espacio',
-                                    'Robot entra completo y sobran de 2 a 4 pulgadas',
-                                    'Robot entra completo y sobran mas de 4 pulgadas'
-                                ]}
+                                value={formData.scoringMechanism}
+                                onChange={(e: any) => handleChange('scoringMechanism', e.target.value)}
+                                options={['Lanzador', 'Elevador/Depósito', 'Rampa Directa', 'Otro']}
                             />
                         </div>
-
-                        <div className="flex flex-col md:flex-row gap-8">
-                            <div>
-                                <Label>¿Se elevan (Hang)?</Label>
-                                <div className="flex gap-4 mt-2">
-                                    <label className="flex items-center gap-2 text-gray-300 cursor-pointer">
-                                        <input type="radio" checked={formData.canHang} onChange={() => isEditing && handleChange('canHang', true)} disabled={!isEditing} /> Si
-                                    </label>
-                                    <label className="flex items-center gap-2 text-gray-300 cursor-pointer">
-                                        <input type="radio" checked={!formData.canHang} onChange={() => isEditing && handleChange('canHang', false)} disabled={!isEditing} /> No
-                                    </label>
-                                </div>
-                            </div>
-                            <div className="flex-1">
-                                <Label>¿Qué tipo de elevación hacen?</Label>
-                                <div className="flex gap-3">
-                                    <Select
-                                        value={formData.elevationType}
-                                        onChange={(e: any) => handleChange('elevationType', e.target.value)}
-                                        options={['', 'Elevador', 'Giro 90 grados', 'Otros']}
-                                        className={formData.elevationType === 'Otros' ? 'flex-1' : 'w-full'}
-                                    />
-                                    {formData.elevationType === 'Otros' && (
-                                        <Input
-                                            placeholder="Describa el mecanismo..."
-                                            className="flex-1"
-                                            value={formData.elevationTypeDetail || ''}
-                                            onChange={(e: any) => handleChange('elevationTypeDetail', e.target.value)}
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
                         <div>
-                            <Label>Foto del Robot</Label>
-                            <div className="flex flex-col gap-3">
-                                <div className="flex gap-4 items-center">
-                                    <label className={clsx(
-                                        "px-4 py-2 bg-white/5 border border-white/10 border-dashed rounded-lg text-sm text-gray-400 cursor-pointer hover:bg-white/10 transition-all flex items-center gap-2",
-                                        !isEditing && "opacity-50 cursor-not-allowed pointer-events-none"
-                                    )}>
-                                        <AlertCircle size={16} />
-                                        <span>Seleccionar Archivo (JPG, PNG)</span>
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/png, image/jpeg"
-                                            disabled={!isEditing}
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    // For now, we just store the name or a local Blob URL
-                                                    handleChange('photoUrl', file.name);
-                                                }
-                                            }}
-                                        />
-                                    </label>
-                                    {formData.photoUrl && (
-                                        <span className="text-xs text-primary font-medium truncate max-w-[200px]">
-                                            {formData.photoUrl}
-                                        </span>
-                                    )}
-                                </div>
-                                <Input
-                                    placeholder="O pegue un enlace (URL) aquí..."
-                                    value={formData.photoUrl}
-                                    onChange={(e: any) => handleChange('photoUrl', e.target.value)}
-                                />
-                            </div>
+                            <Label>Mecanismo de Patrones (Ramp)</Label>
+                            <Input value={formData.patternMechanism} onChange={(e: any) => handleChange('patternMechanism', e.target.value)} placeholder="Ej: Rampa con Gates" />
                         </div>
                     </div>
                 </section>
 
+                <section>
+                    <SectionTitle>Capacidades de Juego & Visión</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" checked={formData.motifDetection} onChange={e => handleChange('motifDetection', e.target.checked)} disabled={!isEditing} className="w-5 h-5 accent-primary" />
+                                <span className="text-white font-medium">¿Detecta Motif (Visión)?</span>
+                            </label>
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" checked={formData.canDualPark} onChange={e => handleChange('canDualPark', e.target.checked)} disabled={!isEditing} className="w-5 h-5 accent-primary" />
+                                <span className="text-white font-medium">¿Permite Dual Parking (18x18)?</span>
+                            </label>
+                        </div>
+                        <div>
+                            <Label>Sensores / Cámaras</Label>
+                            <Input value={formData.sensors} onChange={(e: any) => handleChange('sensors', e.target.value)} placeholder="Ej: Webcam C920, Sensores de color" />
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <SectionTitle>Notas y Fotos</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-1">
+                            <Label>URL de la Foto</Label>
+                            <Input value={formData.photoUrl} onChange={(e: any) => handleChange('photoUrl', e.target.value)} placeholder="https://..." />
+                        </div>
+                        <div className="md:col-span-2">
+                            <Label>Notas Generales de Estrategia</Label>
+                            <textarea
+                                value={formData.notes || ""}
+                                onChange={(e) => handleChange('notes', e.target.value)}
+                                disabled={!isEditing}
+                                className="w-full h-32 px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                                placeholder="Debilidades, fortalezas, estilo de conducción..."
+                            />
+                        </div>
+                    </div>
+                </section>
+
+                {formData.lastUpdatedBy && (
+                    <p className="text-xs text-gray-500 italic">
+                        Última actualización por {formData.lastUpdatedBy}
+                    </p>
+                )}
             </div>
         </div>
     );
