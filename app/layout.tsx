@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 
 import { cookies } from "next/headers";
 import { fetchEvents } from "@/lib/ftc-api";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export default async function RootLayout({
   children,
@@ -41,17 +42,19 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-white`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <SeasonProvider>
-          <AuthProvider>
-            <Sidebar initialEvents={mexicanEvents} />
-            <div className="md:ml-60 min-h-screen transition-all duration-300 pb-20 md:pb-0">
-              {children}
-            </div>
-            <AssistantChat />
-          </AuthProvider>
-        </SeasonProvider>
+        <ThemeProvider>
+          <SeasonProvider>
+            <AuthProvider>
+              <Sidebar initialEvents={mexicanEvents} />
+              <div className="md:ml-60 min-h-screen transition-all duration-300 pb-20 md:pb-0">
+                {children}
+              </div>
+              <AssistantChat />
+            </AuthProvider>
+          </SeasonProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -52,8 +52,26 @@ Este documento registra el "por qué" detrás de las elecciones técnicas para e
 - **Decisión**: Utilizar `await props.params` en los Server Components.
 - **Razón**: Asegura retrocompatibilidad y corrige el error donde el ID del regional llegaba como `undefined` al componente.
 
-## 10. Cuadrícula de 4 Columnas para Alianzas
-- **Fecha**: 24 Ene 2026
-- **Contexto**: Los nombres de equipos y números se desalineaban verticalmente cuando se usaba una sola celda por alianza.
-- **Decisión**: Dividir cada alianza en 2 celdas de tabla independientes (Total 4 columnas de equipos).
-- **Razón**: Obliga a que la información de cada equipo ocupe una ranura fija, garantizando una alineación perfecta de arriba a abajo independientemente de la longitud del nombre del equipo.
+## 11. Pesos de Premios DECODE 2025-2026
+- **Fecha**: 03 Feb 2026
+- **Contexto**: El sistema anterior usaba pesos arbitrarios (100, 80, 60).
+- **Decisión**: Adaptar el algoritmo `getAwardValue` a los puntos de avance oficiales del manual DECODE (Inspire 60/30/15, Alianzas 40/20, Otros 12/6/3).
+- **Razón**: Alinea el Power Score con la realidad competitiva de la temporada, haciendo la proyección nacional matemáticamente relevante.
+
+## 12. Índice de Fortaleza de Evento (Event Strength)
+- **Fecha**: 03 Feb 2026
+- **Contexto**: Ganar un premio o tener un score alto en un evento de 15 equipos no es igual de difícil que en uno de 30+ equipos con promedios altos.
+- **Decisión**: Implementar un multiplicador de fortaleza (0.6x a 1.1x) basado en: Volumen de equipos (30%), Promedio de Puntaje (50%) y Promedio de Auto (20%).
+- **Razón**: Normaliza los resultados de la temporada, evitando que equipos que destacaron en regionales "sencillos" dominen artificialmente el ranking nacional.
+
+## 13. Columna "Sticky" en Data Lab
+- **Fecha**: 03 Feb 2026
+- **Contexto**: Al haber más de 8 regionales, la tabla se volvió muy ancha, perdiendo de vista qué equipo correspondía a cada fila al hacer scroll.
+- **Decisión**: Aplicar `sticky left-0` con un fondo sólido y blur a la primera columna.
+- **Razón**: Crítico para la usabilidad en dispositivos móviles y para analistas que comparan datos entre sedes distantes.
+
+## 14. Comparación de Tipos en Filtrado de Premios
+- **Fecha**: 02 Feb 2026
+- **Contexto**: Algunos premios no aparecían en el Data Lab aunque estaban en la base de datos.
+- **Decisión**: Cambiar la comparación de `teamNumber` de estricta (`===`) a flexible (`==`).
+- **Razón**: La API de FTC a veces devuelve el número de equipo como una cadena y otras como un entero. La comparación flexible elimina este bug silencioso sin necesidad de conversiones costosas en cada iteración.

@@ -287,6 +287,27 @@ export async function fetchEvents(season: number): Promise<any[]> {
     }
 }
 
+export async function fetchEventAwards(season: number, eventCode: string): Promise<FTCAward[]> {
+    const cacheKey = `event_awards_${season}_${eventCode}`;
+    const cached = await getCachedData<FTCAward[]>(cacheKey, 3600);
+    if (cached) return cached;
+
+    try {
+        const response = await fetch(`${BASE_URL}/${season}/awards/${eventCode}`, {
+            headers: AUTH_HEADER,
+            next: { revalidate: 3600 },
+        });
+
+        if (!response.ok) return [];
+        const data = await response.json();
+        const awards = data.awards || [];
+        await setCachedData(cacheKey, awards);
+        return awards;
+    } catch (error) {
+        return [];
+    }
+}
+
 export async function fetchEventAwardsForTeam(season: number, eventCode: string, teamNumber: number): Promise<FTCAward[]> {
     const cacheKey = `awards_${season}_${eventCode}_${teamNumber}`;
     const cached = await getCachedData<FTCAward[]>(cacheKey, 3600);

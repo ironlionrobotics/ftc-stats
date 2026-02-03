@@ -1,6 +1,11 @@
 export interface FTCEvent {
     code: string;
     name: string;
+    dateStart: string;
+    venue?: string;
+    city?: string;
+    country?: string;
+    stateProv?: string;
 }
 
 export interface TeamRanking {
@@ -178,6 +183,7 @@ export interface FTCAward {
     teamNumber: number;
     displayTeamNumber: string;
     awardName: string;
+    name?: string;
     series: number;
     eventCode: string;
 }

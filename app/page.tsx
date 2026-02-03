@@ -24,21 +24,21 @@ export default async function Home() {
 
       <div className="container mx-auto px-8 py-12 relative z-10">
         <header className="mb-12 text-center md:text-left">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-6">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-border/50 pb-6">
             <div>
-              <h1 className="text-5xl md:text-6xl font-bold font-display tracking-tight text-white mb-2">
+              <h1 className="text-5xl md:text-6xl font-bold font-display tracking-tight text-foreground mb-2">
                 FTC <span className="text-primary">México</span>
               </h1>
-              <p className="text-xl text-gray-400 font-light">
+              <p className="text-xl text-muted-foreground font-light">
                 Estadísticas y Proyecciones <span className="text-accent font-medium">{season} - {gameName}</span>
               </p>
             </div>
             <div className="flex gap-8">
               <div className="text-right hidden md:block">
-                <span className="block text-sm text-gray-500 uppercase tracking-widest">Total de Equipos</span>
-                <span className="text-3xl font-bold text-white font-display">{stats.length}</span>
+                <span className="block text-sm text-muted-foreground uppercase tracking-widest">Total de Equipos</span>
+                <span className="text-3xl font-bold text-foreground font-display">{stats.length}</span>
               </div>
-              <div className="text-right hidden md:block border-l border-white/10 pl-8">
+              <div className="text-right hidden md:block border-l border-border/50 pl-8">
                 <span className="block text-sm text-secondary uppercase tracking-widest">Avanzaron</span>
                 <span className="text-3xl font-bold text-secondary font-display">
                   {stats.filter(s => s.hasAdvanced).length}
@@ -52,7 +52,7 @@ export default async function Home() {
           <StatsTable data={stats} />
         </section>
 
-        <footer className="text-center text-gray-600 text-sm py-8">
+        <footer className="text-center text-muted-foreground text-sm py-8">
           <p>© {new Date().getFullYear()} FTC México Stats. No afiliado oficialmente con FIRST.</p>
         </footer>
       </div>
