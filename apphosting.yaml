@@ -1,0 +1,5 @@
+env:
+  - variable: FTC_API_USERNAME
+    secret: FTC_API_USERNAME
+  - variable: FTC_API_KEY
+    secret: FTC_API_KEY
