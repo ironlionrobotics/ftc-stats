@@ -1,5 +1,6 @@
 import { fetchMatches, fetchRankings, fetchEvents } from "@/lib/ftc-api";
 import EventViewManager from "@/components/event/EventViewManager";
+import EventStats from "@/components/event/EventStats";
 import { cookies } from "next/headers";
 
 interface EventPageProps {
@@ -21,13 +22,13 @@ export default async function EventPage(props: EventPageProps) {
 
     if (!event) {
         return (
-            <div className="p-8 text-white min-h-[50vh] flex flex-col items-center justify-center text-center">
+            <div className="p-8 text-foreground min-h-[50vh] flex flex-col items-center justify-center text-center">
                 <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
                     <span className="text-2xl">⚠️</span>
                 </div>
                 <h1 className="text-3xl font-bold mb-2">Event Not Found</h1>
-                <p className="text-gray-400 max-w-md">
-                    We couldn&apos;t find event <span className="text-primary font-mono">{eventCode}</span> in the <span className="text-white font-bold">{season}</span> season records.
+                <p className="text-muted-foreground max-w-md">
+                    We couldn&apos;t find event <span className="text-primary font-mono">{eventCode}</span> in the <span className="text-foreground font-bold">{season}</span> season records.
                 </p>
             </div>
         );
@@ -40,22 +41,24 @@ export default async function EventPage(props: EventPageProps) {
 
     return (
         <div className="container mx-auto px-4 md:px-8 py-12">
-            <header className="mb-12 border-b border-white/10 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <header className="mb-12 border-b border-border/50 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-primary font-bold tracking-widest text-xs uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                         Season {season}
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold font-display text-white">
+                    <h1 className="text-4xl md:text-5xl font-bold font-display text-foreground">
                         {event.name}
                     </h1>
-                    <div className="flex items-center gap-3 text-gray-500">
-                        <span className="font-mono text-sm bg-white/5 px-2 py-0.5 rounded border border-white/5">{event.code}</span>
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                        <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded border border-border">{event.code}</span>
                         {event.venue && <span className="text-sm">• {event.venue}</span>}
                         {event.city && <span className="text-sm">• {event.city}, {event.stateProv}</span>}
                     </div>
                 </div>
             </header>
+
+            <EventStats matches={matches} rankings={rankings} />
 
             <EventViewManager matches={matches} rankings={rankings} />
         </div>

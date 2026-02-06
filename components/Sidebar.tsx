@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { Home, ClipboardList, MapPin, Trophy, Menu, X } from "lucide-react";
+import { Home, ClipboardList, MapPin, Trophy, Menu, X, BarChart2 } from "lucide-react";
 import clsx from "clsx";
 import { useState } from "react";
 import Image from "next/image";
 import { useSeason } from "@/context/SeasonContext";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { Sun, Moon } from "lucide-react";
 
 import { FTCEvent } from "@/types/ftc";
 
@@ -21,6 +23,7 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
     const router = useRouter();
     const { season, setSeason } = useSeason();
     const { user, signInWithGoogle, logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
 
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -46,7 +49,7 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
             {/* ... previous mobile button and overlay code ... */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="md:hidden fixed top-4 right-4 z-50 p-2 bg-background/80 backdrop-blur-md rounded-lg border border-white/10 text-white"
+                className="md:hidden fixed top-4 right-4 z-50 p-2 bg-background/80 backdrop-blur-md rounded-lg border border-border text-foreground"
             >
                 {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -60,7 +63,7 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
 
             <aside
                 className={clsx(
-                    "fixed top-0 left-0 h-screen w-60 bg-[#0a0a0b]/95 backdrop-blur-xl border-r border-white/5 z-40 transition-transform duration-300 ease-in-out overflow-y-auto",
+                    "fixed top-0 left-0 h-screen w-60 bg-card md:bg-card/95 backdrop-blur-xl border-r border-border z-40 transition-transform duration-300 ease-in-out overflow-y-auto",
                     isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                 )}
             >
@@ -70,7 +73,7 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                             <Image src="/icon.png" alt="Logo" fill className="object-contain" />
                         </div>
                         <div>
-                            <h1 className="font-display font-bold text-white text-lg tracking-tight">
+                            <h1 className="font-display font-bold text-foreground text-lg tracking-tight">
                                 FTC Stats
                             </h1>
                             <p className="text-xs text-secondary font-medium tracking-wider uppercase">México</p>
@@ -82,7 +85,7 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                             <select
                                 value={season}
                                 onChange={(e) => setSeason(Number(e.target.value))}
-                                className="w-full appearance-none bg-white/5 border border-white/10 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-primary cursor-pointer font-medium"
+                                className="w-full appearance-none bg-muted border border-border text-foreground text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-primary cursor-pointer font-bold"
                             >
                                 <option value={2025}>2025 - Decode</option>
                                 <option value={2024}>2024 - Into The Deep</option>
@@ -90,7 +93,7 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                                 <option value={2022}>2022 - PowerPlay</option>
                             </select>
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </div>
@@ -102,7 +105,7 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                             <input
                                 type="text"
                                 placeholder="Find Team #"
-                                className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-primary placeholder:text-gray-600"
+                                className="w-full bg-muted border border-border text-foreground text-sm rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-primary placeholder:text-muted-foreground"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -115,19 +118,22 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                     </form>
 
                     <nav className="flex-1 space-y-1">
-                        <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 mt-2">Main</p>
+                        <p className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 mt-2">Main</p>
                         <NavItem href="/" icon={Home} isActive={pathname === "/"} onClick={handleLinkClick}>
                             General Stats
                         </NavItem>
                         <NavItem href="/scouting" icon={ClipboardList} isActive={pathname === "/scouting"} onClick={handleLinkClick}>
                             Scouting Form
                         </NavItem>
+                        <NavItem href="/analytics" icon={BarChart2} isActive={pathname === "/analytics"} onClick={handleLinkClick}>
+                            Data Lab <span className="ml-auto text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold">NEW</span>
+                        </NavItem>
 
-                        <div className="my-6 border-t border-white/5" />
+                        <div className="my-6 border-t border-border/50" />
 
-                        <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Regionales</p>
+                        <p className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Regionales</p>
                         {regionalEvents.length === 0 ? (
-                            <p className="px-4 text-xs text-gray-600 italic">No regionals found</p>
+                            <p className="px-4 text-xs text-muted-foreground italic">No regionals found</p>
                         ) : (
                             regionalEvents.map((event) => (
                                 <NavItem key={event.code} href={`/event/${event.code}`} icon={MapPin} isActive={pathname === `/event/${event.code}`} onClick={handleLinkClick}>
@@ -138,8 +144,8 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
 
                         {championshipEvent && (
                             <>
-                                <div className="my-6 border-t border-white/5" />
-                                <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Championship</p>
+                                <div className="my-6 border-t border-border/50" />
+                                <p className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Championship</p>
                                 <NavItem
                                     href={`/event/${championshipEvent.code}`}
                                     icon={Trophy}
@@ -153,8 +159,28 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                         )}
                     </nav>
 
-                    {/* User Profile / Auth Section */}
-                    <div className="mt-auto pt-6 border-t border-white/5 space-y-4">
+                    {/* Theme Toggle & Auth Section */}
+                    <div className="mt-auto pt-6 border-t border-border/50 space-y-4">
+                        <div className="px-2">
+                            <button
+                                onClick={toggleTheme}
+                                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-muted border border-border hover:bg-muted/80 transition-all group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                        {theme === 'light' ? <Sun size={16} /> : <Moon size={16} />}
+                                    </div>
+                                    <span className="text-sm font-bold text-muted-foreground group-hover:text-foreground capitalize">{theme} Mode</span>
+                                </div>
+                                <div className="w-8 h-4 bg-border/50 rounded-full relative p-0.5">
+                                    <div className={clsx(
+                                        "w-3 h-3 rounded-full bg-foreground transition-all transform",
+                                        theme === 'dark' ? "translate-x-4" : "translate-x-0"
+                                    )} />
+                                </div>
+                            </button>
+                        </div>
+
                         {user ? (
                             <div className="flex flex-col gap-4">
                                 <div className="flex items-center gap-3 px-2">
@@ -168,13 +194,13 @@ export default function Sidebar({ initialEvents }: SidebarProps) {
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-white truncate">{user.displayName || "User"}</p>
-                                        <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+                                        <p className="text-sm font-bold text-foreground truncate">{user.displayName || "User"}</p>
+                                        <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => logout()}
-                                    className="w-full px-4 py-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 text-xs font-bold transition-all border border-transparent hover:border-red-500/20"
+                                    className="w-full px-4 py-2 rounded-xl bg-muted hover:bg-red-500/10 text-muted-foreground hover:text-red-500 text-xs font-bold transition-all border border-transparent hover:border-red-500/20"
                                 >
                                     Cerrar Sesión
                                 </button>
@@ -230,11 +256,11 @@ function NavItem({ href, icon: Icon, children, className = "", isActive, onClick
                 "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm group",
                 isActive
                     ? "bg-primary/20 text-primary border border-primary/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]"
-                    : "text-gray-400 hover:text-white hover:bg-white/5",
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
                 className
             )}
         >
-            <Icon className={clsx("w-5 h-5", isActive ? "text-primary" : "text-gray-500 group-hover:text-white transition-colors")} />
+            <Icon className={clsx("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground transition-colors")} />
             {children}
         </Link>
     );

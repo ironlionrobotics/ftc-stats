@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🤖 FTC Stats México
 
-## Getting Started
+Plataforma de alto rendimiento para el análisis de estadísticas y proyecciones de **FIRST Tech Challenge Mexico**. Diseñada para scouts, mentores y equipos que buscan una ventaja competitiva basada en datos reales de la API de FIRST.
 
-First, run the development server:
+## ✨ Características Principales
+
+- **Data Lab / Team Evolution**: Seguimiento detallado del progreso de los equipos a lo largo de la temporada.
+- **Power Score (DECODE 2025-2026)**: Algoritmo predictivo basado en el manual de avance oficial de la temporada actual.
+- **Índice de Fortaleza de Evento**: Ponderación inteligente de resultados basada en la competitividad de cada sede.
+- **Visualización de Matches**: Seguimiento en vivo de regionales con marcadores y alianzas.
+- **Proyección Nacional**: Estimación matemática del ranking nacional para el regional de México.
+- **Diseño Premium**: Interfaz moderna con modo oscuro, visualización de datos dinámica y scroll inteligente.
+
+## 🛠️ Stack Tecnológico
+
+- **Frontend**: Next.js 15, React, TypeScript.
+- **Estilos**: Tailwind CSS, Framer Motion.
+- **Backend/API**: Integración con `ftc-api.firstinspires.org`.
+- **Base de Datos**: Firestore (Caché local/remota).
+
+## 🚀 Comenzando
+
+### Requisitos Previos
+
+Necesitarás las credenciales de la API de FTC (Username y Key) configuradas en tus variables de entorno:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+FTC_API_USERNAME=tu_usuario
+FTC_API_KEY=tu_llave
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Instalación
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clona el repositorio.
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+3. Ejecuta el servidor de desarrollo:
+   ```bash
+   npm run dev
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📖 Documentación de Memoria
 
-## Learn More
+Este proyecto utiliza un sistema de memoria interna para registrar el progreso y decisiones técnicas:
+- [Resumen de Sesiones](./docs/memory/history.md)
+- [Bitácora de Decisiones](./docs/memory/decisions.md)
 
-To learn more about Next.js, take a look at the following resources:
+---
+*Desarrollado para la comunidad de FTC en México.*
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

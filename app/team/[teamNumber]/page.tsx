@@ -171,24 +171,29 @@ export default async function TeamPage(props: TeamPageProps) {
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {year.awards.map((award, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-yellow-500/5 to-transparent border border-yellow-500/10 hover:border-yellow-500/30 transition-all hover:bg-yellow-500/[0.08] group"
-                                                >
-                                                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.1)] group-hover:scale-110 transition-transform">
-                                                        <Trophy size={18} />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <span className="text-xs font-black text-white block mb-0.5 leading-tight group-hover:text-yellow-400 transition-colors">{award.awardName}</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{award.eventCode}</span>
-                                                            <span className="w-1 h-1 rounded-full bg-yellow-500/30" />
-                                                            <span className="text-[9px] text-yellow-500/60 font-bold uppercase tracking-tighter">Ganador</span>
+                                            {year.awards.map((award, i) => {
+                                                const aName = award.awardName || (award as any).name || "Premio Obtenido";
+                                                return (
+                                                    <div
+                                                        key={i}
+                                                        className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-transparent border border-yellow-500/20 hover:border-yellow-500/50 transition-all hover:bg-yellow-500/[0.12] group shadow-lg shadow-yellow-500/5"
+                                                    >
+                                                        <div className="w-12 h-12 rounded-2xl bg-yellow-500/20 flex items-center justify-center text-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.2)] group-hover:scale-110 group-hover:rotate-6 transition-transform">
+                                                            <Trophy size={24} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <span className="text-sm font-black text-white block mb-1 leading-tight group-hover:text-yellow-400 transition-colors uppercase tracking-tight">
+                                                                {aName}
+                                                            </span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{award.eventCode}</span>
+                                                                <span className="w-1 h-1 rounded-full bg-yellow-500/40" />
+                                                                <span className="text-[10px] text-yellow-500 font-black uppercase tracking-tighter shadow-sm">Ganador</span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}

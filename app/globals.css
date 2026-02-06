@@ -1,38 +1,86 @@
 @import "tailwindcss";
 
+:root {
+  --color-background: #ffffff;
+  --color-foreground: #030712;
+  --color-card: #f9fafb;
+  --color-card-foreground: #030712;
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+  --color-border: #e5e7eb;
+}
+
+.dark {
+  --color-background: #030712;
+  --color-foreground: #f9fafb;
+  --color-card: #111827;
+  --color-card-foreground: #f9fafb;
+  --color-muted: #1f2937;
+  --color-muted-foreground: #9ca3af;
+  --color-border: #374151;
+}
+
 @theme {
   --font-sans: var(--font-inter);
   --font-display: var(--font-outfit);
-  
-  --color-background: #030712; /* Gray 950 */
-  --color-foreground: #f9fafb; /* Gray 50 */
-  
-  --color-primary: #f97316; /* Orange 500 (FTC Brand Color-ish) */
+
+  --color-primary: #f97316;
   --color-primary-foreground: #ffffff;
-  
-  --color-secondary: #3b82f6; /* Blue 500 */
+  --color-secondary: #3b82f6;
   --color-secondary-foreground: #ffffff;
-  
-  --color-card: #111827; /* Gray 900 */
-  --color-card-foreground: #f9fafb;
-  
-  --color-muted: #1f2937; /* Gray 800 */
-  --color-muted-foreground: #9ca3af; /* Gray 400 */
-  
-  --color-accent: #f59e0b; /* Amber 500 */
+  --color-accent: #f59e0b;
   --color-accent-foreground: #ffffff;
-  
-  --color-border: #374151; /* Gray 700 */
+
+  /* Reference the variables defined above */
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-card: var(--color-card);
+  --color-card-foreground: var(--color-card-foreground);
+  --color-muted: var(--color-muted);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-border: var(--color-border);
 }
 
-/* Custom Utilities for Glassmorphism & Animations */
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    color: var(--color-foreground);
+  }
+}
+
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-lg border border-white/10;
+    @apply backdrop-blur-lg border transition-colors duration-300;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
   }
-  
+
+  .dark .glass {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
   .glass-card {
-    @apply bg-gray-900/60 backdrop-blur-xl border border-white/10 shadow-xl;
+    @apply backdrop-blur-xl border shadow-xl transition-all duration-300;
+    background-color: rgba(255, 255, 255, 0.6);
+    border-color: var(--color-border);
+  }
+
+  .dark .glass-card {
+    background-color: rgba(17, 24, 39, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .text-gradient {
@@ -40,12 +88,32 @@
   }
 }
 
-body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans);
+/* Force overrides for hardcoded classes in existing components */
+.text-white {
+  color: var(--color-foreground) !important;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
+.bg-background {
+  background-color: var(--color-background) !important;
+}
+
+.text-gray-400,
+.text-gray-500 {
+  color: var(--color-muted-foreground) !important;
+}
+
+.border-white\/10,
+.border-white\/5 {
+  border-color: var(--color-border) !important;
+}
+
+.bg-white\/5,
+.bg-white\/10 {
+  background-color: var(--color-muted) !important;
+}
+
+.md\:bg-white\/5 {
+  @media (min-width: 768px) {
+    background-color: var(--color-muted) !important;
+  }
 }

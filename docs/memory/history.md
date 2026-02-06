@@ -43,6 +43,15 @@ Transformación de un script de automatización en Python (`ftc_event_advancemen
     - **Abreviación Inteligente**: Optimización de descripciones (ej. "Upper Bracket R1 M1") para maximizar el espacio en pantalla.
     - **Expansión de Calendario**: Inclusión de los regionales de Toluca y San Luis Potosí, y corrección de la temporada a 2025 para sincronización de datos.
 
+### Sesión 6: Analítica de Potencial y Proyección Nacional (03 Feb 2026)
+- **Objetivo**: Refinar la precisión del Power Score y mejorar la visualización de la comparativa de equipos.
+- **Logros**:
+    - **Algoritmo DECODE 2025-2026**: Implementación de pesos oficiales para premios (Inspire 60/30/15, Otros 12/6/3) según el manual de la temporada.
+    - **Índice de Fortaleza (Event Strength)**: Creación de un sistema de ponderación de resultados basado en la competitividad de cada regional (número de equipos, promedios de puntaje y autónomo).
+    - **UX Mejorada**: Implementación de columna "Sticky" para nombres de equipos y visualización directa del Power Score en la tabla principal.
+    - **Corrección de Integridad**: Arreglo de bug en la caché que duplicaba premios entre eventos y ajuste de tipos de datos en el filtrado de premios.
+    - **Etiquetado Dinámico**: Sistema de etiquetas inteligentes ("Candidato Fuerte", "Potencial") basado en el Power Score y estabilidad.
+
 ---
 
 ## 💡 Decisiones de Diseño Importantes
@@ -51,11 +60,13 @@ Transformación de un script de automatización en Python (`ftc_event_advancemen
 3. **Filtro Advanced**: Inclusión de un toggle rápido para visualizar solo a los clasificados al nacional.
 4. **Scouting Traducido**: Se decidió mantener las opciones internas del formulario en español para facilitar la captura rápida por parte de los scouts en México.
 5. **Nomenclatura Híbrida**: En los matches, se decidió mantener los nombres de brackets oficiales ("Upper/Lower Bracket") completos pero abreviar términos técnicos ("Round/Match" a "R/M") por estética y espacio.
+6. **Poder de la Alianza**: Se decidió documentar explícitamente que los promedios (TeleOp, Auto) son de alianza, no individuales, para asegurar una interpretación correcta de los datos.
 
 ---
 
 ## 🚀 Próximos Pasos (Prioridad Alta)
-1. **GitHub Setup**: Vincular el proyecto al nuevo repositorio `ftc-stats`.
-2. **Ranking en Vivo**: Implementar una tabla de estadísticas de desempeño (Average Score, RP) dentro de la página de cada regional.
-3. **Subida de Fotos**: Integrar un sistema para que la URL de la foto del robot se guarde junto con el JSON del equipo en Scouting.
-4. **Exportación**: Posibilidad de exportar los datos de scouting acumulados para análisis en Excel.
+1. **GitHub Sync**: Mantener sincronizados los cambios con el repositorio remoto.
+2. **Mapa de Calor Nacional**: Visualizar la fuerza de los equipos por región geográfica.
+3. **Optimización de Caché**: Refinar el sistema de Firestore para minimizar llamadas redundantes a la API de FTC.
+4. **Reporte para Jueces**: Generar un PDF descargable con el resumen del equipo para entregar en el nacional.
+
