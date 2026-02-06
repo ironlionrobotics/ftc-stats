@@ -3,15 +3,37 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
-const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+const getFirebaseConfig = () => {
+    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+        return {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+            measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+        };
+    }
+
+    // Fallback for Firebase App Hosting
+    if (process.env.FIREBASE_WEBAPP_CONFIG) {
+        try {
+            const config = JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG);
+            return config;
+        } catch (e) {
+            console.error("Error parsing FIREBASE_WEBAPP_CONFIG", e);
+        }
+    }
+
+    return {
+        apiKey: "missing-api-key",
+        authDomain: "missing-auth-domain",
+        projectId: "missing-project-id",
+    };
 };
+
+const firebaseConfig = getFirebaseConfig();
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
