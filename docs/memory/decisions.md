@@ -70,8 +70,22 @@ Este documento registra el "por qué" detrás de las elecciones técnicas para e
 - **Decisión**: Aplicar `sticky left-0` con un fondo sólido y blur a la primera columna.
 - **Razón**: Crítico para la usabilidad en dispositivos móviles y para analistas que comparan datos entre sedes distantes.
 
-## 14. Comparación de Tipos en Filtrado de Premios
-- **Fecha**: 02 Feb 2026
-- **Contexto**: Algunos premios no aparecían en el Data Lab aunque estaban en la base de datos.
-- **Decisión**: Cambiar la comparación de `teamNumber` de estricta (`===`) a flexible (`==`).
-- **Razón**: La API de FTC a veces devuelve el número de equipo como una cadena y otras como un entero. La comparación flexible elimina este bug silencioso sin necesidad de conversiones costosas en cada iteración.
+## 15. Cálculo Híbrido de Ranking Points (RP)
+- **Fecha**: 09 Feb 2026
+- **Contexto**: Los indicadores de RP aparecían en 0% si no había scouting manual, lo que sesgaba la analítica.
+- **Decisión**: Inyectar lógica que analiza los puntajes de la alianza en cada match (Auto > 35, Tele > 75) para inferir la probabilidad de RP desde la API oficial.
+- **Razón**: Proporciona una base estadística sólida incluso si el personal de scouting no logra cubrir todos los partidos.
+
+## 16. Re-ponderación del Alliance Oracle
+- **Fecha**: 09 Feb 2026
+- **Contexto**: Penalizaciones fijas agresivas por disciplina enterraban a equipos TOP que tenían un par de faltas pero score masivo.
+- **Decisión**: 
+    - Subir peso del OPR al 70%.
+    - Cambiar penalización de disciplina a una escala dinámica (` deficit * 0.8`).
+- **Razón**: En la temporada *Into The Deep*, la potencia de anotación es el mejor predictor de victoria; una falta menor no debería invalidar a un equipo que anota 40 puntos más que el promedio.
+
+## 17. Inyección de RP Efectivos (Benefit of Doubt)
+- **Fecha**: 09 Feb 2026
+- **Contexto**: Equipos élite con 0% RP (por falta de datos) bajaban en la recomendación frente a equipos mediocres con 100% RP.
+- **Decisión**: Si un equipo tiene 0% RP pero OPRs altos (Auto > 25, Tele > 60), el Oracle inyecta automáticamente una probabilidad base (0.6 - 0.7).
+- **Razón**: Corrige el sesgo de datos faltantes, asegurando que los mejores robots siempre aparezcan arriba en las sugerencias tácticas.

@@ -32,12 +32,22 @@ export interface TeamEvolution {
         maxPoints: number;
         rankingPoints: number;
         matchesPlayed: number;
+        wins: number;
+        losses: number;
+        ties: number;
         awards: FTCAward[];
     }[];
     consistencyScore: number;
     trend: 'up' | 'down' | 'stable';
     powerScore: number; // 0-100 internal metric
     projectedNationalRank?: number;
+    opr?: number;
+    autoOPR?: number;
+    teleOPR?: number;
+    netDiscipline?: number;
+    rpMovement?: number; // 0-1 probability
+    rpArtifacts?: number; // 0-1 probability
+    rpPattern?: number; // 0-1 probability
 }
 
 export async function getAvailableEvents(season: number) {
@@ -45,7 +55,7 @@ export async function getAvailableEvents(season: number) {
     return events.sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime());
 }
 
-export async function analyzeMultipleEvents(season: number, eventCodes: string[]) {
+export async function analyzeMultipleEvents(season: number, eventCodes: string[], maxMatchesPerTeam?: number) {
     const results: EventAnalysisData[] = [];
     const teamMap = new Map<number, TeamEvolution>();
 
@@ -119,7 +129,18 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
             }
 
             const teamEntry = teamMap.get(rank.teamNumber)!;
-            const teamMatches = matches.filter(m => m.teams.some(t => t.teamNumber === rank.teamNumber));
+
+            // Filter matches for specific team and sort by match number
+            let teamMatches = matches
+                .filter(m => m.teams.some(t => t.teamNumber === rank.teamNumber))
+                .sort((a, b) => a.matchNumber - b.matchNumber); // Ensure correct chronological order
+
+            // Apply simulation filter if provided (only for the last event if needed, but here applies globally as per request logic)
+            // Ideally, we might want this only for the "active" event, but global simulation is also valid for "what if everyone only played 2 matches"
+            if (maxMatchesPerTeam && maxMatchesPerTeam > 0) {
+                teamMatches = teamMatches.slice(0, maxMatchesPerTeam);
+            }
+
             let teamTotalPoints = 0;
             let teamTotalAuto = 0;
             let teamTotalFoul = 0;
@@ -144,6 +165,9 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
             // Find awards for this team at this event
             const teamAwards = awards.filter(a => a.teamNumber == rank.teamNumber);
 
+            // Push event data only if they have played matches OR if we are not filtering strict (to show they exist)
+            // But if we are simulating rounds, and they haven't played, maybe we shouldn't push?
+            // Existing logic pushes regardless. The stats will be 0 if matchesPlayed is 0.
             teamEntry.events.push({
                 eventCode: code,
                 rank: rank.rank,
@@ -153,7 +177,10 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                 avgFoul: teamQualMatches > 0 ? teamTotalFoul / teamQualMatches : 0,
                 maxPoints: teamMaxPoints,
                 rankingPoints: rank.sortOrder1,
-                matchesPlayed: rank.matchesPlayed,
+                matchesPlayed: teamQualMatches, // Use the simulated count
+                wins: rank.wins || 0,
+                losses: rank.losses || 0,
+                ties: rank.ties || 0,
                 awards: teamAwards
             });
         });

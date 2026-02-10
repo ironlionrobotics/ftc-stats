@@ -64,6 +64,28 @@ Transformación de un script de automatización en Python (`ftc_event_advancemen
 
 ---
 
+### Sesión 7: Optimización del Alliance Oracle y RP Híbrido (09 Feb 2026)
+- **Objetivo**: Corregir inconsistencias en la recomendación de alianzas y mejorar la precisión de los Ranking Points.
+- **Logros**:
+    - **RP Híbrido (API + Scouting)**: Implementación de lógica que infiere el éxito de RPs (Movimiento, Artefactos) directamente de los puntajes de la API (Auto > 35, TeleOp > 75) como respaldo al scouting manual.
+    - **Algoritmo de Recomendación 2.0**: Re-balanceo de la fórmula final (OPR sube al 70% de peso) y transición de penalización por faltas fija a una **penalización dinámica escalada**.
+    - **Inyección de RP Efectivos**: Sistema que otorga "beneficio de la duda" a equipos élite con datos de RP en cero pero OPRs altos, evitando que bajen injustamente en las sugerencias.
+    - **UI/UX Avanzada**: Mejora visual del Oracle con indicadores de ranking oficial, numeración de sugerencias (#1, #2, etc.) y visualización de RPs proyectados incluso para equipos en el "pool" restante.
+    - **Sincronización de Filtros**: Implementación de limpieza automática de equipos excluidos al resetear la búsqueda principal.
+
+---
+
+## 💡 Decisiones de Diseño Importantes
+1. **Identidad Visual**: Uso de color Naranja (Primary) y Violeta/Indigo (Secondary) para diferenciar "Stats" de "Advancement".
+2. **Abreviaturas de Eventos**: Uso de códigos amigables como MTY, GDL, CDMX para mejorar la legibilidad.
+3. **Filtro Advanced**: Inclusión de un toggle rápido para visualizar solo a los clasificados al nacional.
+4. **Scouting Traducido**: Se decidió mantener las opciones internas del formulario en español para facilitar la captura rápida por parte de los scouts en México.
+5. **Nomenclatura Híbrida**: En los matches, se decidió mantener los nombres de brackets oficiales ("Upper/Lower Bracket") completos pero abreviar términos técnicos ("Round/Match" a "R/M") por estética y espacio.
+6. **Poder de la Alianza**: Se decidió documentar explícitamente que los promedios (TeleOp, Auto) son de alianza, no individuales, para asegurar una interpretación correcta de los datos.
+7. **Basura vs Datos**: En el oráculo, se decidió que es mejor "estimar al alza" basándose en OPR que mostrar un "0%" engañoso cuando la causa es falta de datos, no falta de capacidad.
+
+---
+
 ## 🚀 Próximos Pasos (Prioridad Alta)
 1. **GitHub Sync**: Mantener sincronizados los cambios con el repositorio remoto.
 2. **Mapa de Calor Nacional**: Visualizar la fuerza de los equipos por región geográfica.

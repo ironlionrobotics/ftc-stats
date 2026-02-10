@@ -1,4 +1,4 @@
-import { fetchMatches, fetchRankings, fetchEvents } from "@/lib/ftc-api";
+import { fetchMatches, fetchRankings, fetchEvents, fetchAdvancement, fetchEventAwards, fetchAdvancementPoints } from "@/lib/ftc-api";
 import EventViewManager from "@/components/event/EventViewManager";
 import EventStats from "@/components/event/EventStats";
 import { cookies } from "next/headers";
@@ -34,9 +34,12 @@ export default async function EventPage(props: EventPageProps) {
         );
     }
 
-    const [matches, rankings] = await Promise.all([
+    const [matches, rankings, advancement, awards, advancementPoints] = await Promise.all([
         fetchMatches(season, event.code),
-        fetchRankings(season, event.code)
+        fetchRankings(season, event.code),
+        fetchAdvancement(season, event.code),
+        fetchEventAwards(season, event.code),
+        fetchAdvancementPoints(season, event.code)
     ]);
 
     return (
@@ -60,7 +63,15 @@ export default async function EventPage(props: EventPageProps) {
 
             <EventStats matches={matches} rankings={rankings} />
 
-            <EventViewManager matches={matches} rankings={rankings} />
+            <EventViewManager
+                matches={matches}
+                rankings={rankings}
+                advancement={advancement}
+                awards={awards}
+                advancementPoints={advancementPoints}
+                eventCode={event.code}
+                season={season}
+            />
         </div>
     );
 }

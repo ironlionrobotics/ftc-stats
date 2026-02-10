@@ -131,34 +131,65 @@ export async function fetchAdvancementPoints(season: number, eventCode: string):
 }
 
 export async function fetchMatches(season: number, eventCode: string): Promise<FTCMatch[]> {
-    const cacheKey = `matches_v2_${season}_${eventCode}`; // Bumped version for new logic
+    const cacheKey = `matches_v2_${season}_${eventCode}`;
     const cached = await getCachedData<FTCMatch[]>(cacheKey, 15);
     if (cached) return cached;
 
+    const qualUrl = `${BASE_URL}/${season}/matches/${eventCode}?tournamentLevel=qual`;
+    const playoffUrl = `${BASE_URL}/${season}/matches/${eventCode}?tournamentLevel=playoff`;
+
+    // Debug logging
+    console.log(`[fetchMatches] Fetching for ${eventCode} (Season: ${season})`);
+    if (!AUTH_HEADER.Authorization || AUTH_HEADER.Authorization.includes("undefined")) {
+        console.warn("[fetchMatches] Warning: Auth header appears invalid or missing credentials.");
+    }
+
     try {
-        // Fetch both Quals and Playoffs to be sure, as some seasons/live-states 
-        // don't return everything in the base matches endpoint
         const [qualResult, playoffResult] = await Promise.all([
-            fetch(`${BASE_URL}/${season}/matches/${eventCode}?tournamentLevel=qual`, { headers: AUTH_HEADER }).then(r => r.json()),
-            fetch(`${BASE_URL}/${season}/matches/${eventCode}?tournamentLevel=playoff`, { headers: AUTH_HEADER }).then(r => r.json())
+            fetch(qualUrl, { headers: AUTH_HEADER }).then(async r => {
+                if (!r.ok) {
+                    console.warn(`[fetchMatches] Quals fetch failed: ${r.status} ${r.statusText}`);
+                    // If 404 or other error, return empty object to avoid crashing Promise.all
+                    return { matches: [] };
+                }
+                return r.json().catch(e => {
+                    console.error("[fetchMatches] Error parsing Quals JSON:", e);
+                    return { matches: [] };
+                });
+            }),
+            fetch(playoffUrl, { headers: AUTH_HEADER }).then(async r => {
+                if (!r.ok) {
+                    console.warn(`[fetchMatches] Playoffs fetch failed: ${r.status} ${r.statusText}`);
+                    return { matches: [] };
+                }
+                return r.json().catch(e => {
+                    console.error("[fetchMatches] Error parsing Playoffs JSON:", e);
+                    return { matches: [] };
+                });
+            })
         ]);
 
         const qualMatches = qualResult.matches || [];
         const playoffMatches = playoffResult.matches || [];
-
         const allMatches = [...qualMatches, ...playoffMatches].sort((a, b) => a.matchNumber - b.matchNumber);
+
+        console.log(`[fetchMatches] Found ${allMatches.length} matches for ${eventCode}`);
 
         await setCachedData(cacheKey, allMatches);
         return allMatches;
     } catch (error) {
-        console.error(`Error fetching matches for ${eventCode}:`, error);
+        console.error(`[fetchMatches] Critical error fetching matches for ${eventCode}:`, error);
 
-        // Fallback to base endpoint if params fail
+        // Fallback
         try {
-            const resp = await fetch(`${BASE_URL}/${season}/matches/${eventCode}`, { headers: AUTH_HEADER });
+            const fallbackUrl = `${BASE_URL}/${season}/matches/${eventCode}`;
+            console.log(`[fetchMatches] Attempting fallback: ${fallbackUrl}`);
+            const resp = await fetch(fallbackUrl, { headers: AUTH_HEADER });
+            if (!resp.ok) throw new Error(`Fallback failed: ${resp.status}`);
             const data = await resp.json();
             return data.matches || [];
         } catch (e) {
+            console.error(`[fetchMatches] Fallback also failed:`, e);
             return [];
         }
     }

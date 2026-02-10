@@ -161,6 +161,8 @@ export interface FTCMatchTeam {
     station: 'Red1' | 'Red2' | 'Blue1' | 'Blue2';
     dq: boolean;
     onField: boolean;
+    yellowCard: boolean;
+    redCard: boolean;
 }
 
 export interface FTCMatch {

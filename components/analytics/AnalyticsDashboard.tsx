@@ -15,6 +15,7 @@ interface AnalyticsDashboardProps {
 export default function AnalyticsDashboard({ initialEvents, season }: AnalyticsDashboardProps) {
     const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [maxRounds, setMaxRounds] = useState<number>(0);
     const [data, setData] = useState<{ eventStats: EventAnalysisData[], teamEvolution: TeamEvolution[] } | null>(null);
 
     const toggleEvent = (code: string) => {
@@ -30,12 +31,20 @@ export default function AnalyticsDashboard({ initialEvents, season }: AnalyticsD
 
         setIsLoading(true);
         try {
-            const result = await analyzeMultipleEvents(season, selectedCodes);
+            const result = await analyzeMultipleEvents(season, selectedCodes, maxRounds);
             setData(result);
         } catch (error) {
             console.error("Analysis failed", error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const toggleAll = (shouldSelectAll: boolean) => {
+        if (shouldSelectAll) {
+            setSelectedCodes(initialEvents.map(e => e.code));
+        } else {
+            setSelectedCodes([]);
         }
     };
 
@@ -46,6 +55,25 @@ export default function AnalyticsDashboard({ initialEvents, season }: AnalyticsD
                     <div>
                         <h2 className="text-xl font-bold text-foreground">Selección de Eventos</h2>
                         <p className="text-sm text-muted-foreground">Selecciona 2 o más eventos para comparar rendimiento y consistencia.</p>
+                    </div>
+
+                    <div className="flex flex-col gap-2 min-w-[200px]">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Simulación de Torneo</label>
+                        <div className="flex items-center gap-3 bg-muted/30 p-2 rounded-lg border border-border">
+                            <span className="text-xs font-bold text-primary whitespace-nowrap">Ronda {maxRounds === 0 ? 'FINAL' : maxRounds}</span>
+                            <input
+                                type="range"
+                                min="1"
+                                max="6"
+                                step="1"
+                                value={maxRounds === 0 ? 6 : maxRounds}
+                                onChange={(e) => {
+                                    const val = parseInt(e.target.value);
+                                    setMaxRounds(val === 6 ? 0 : val);
+                                }}
+                                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                            />
+                        </div>
                     </div>
 
                     <button
@@ -69,6 +97,7 @@ export default function AnalyticsDashboard({ initialEvents, season }: AnalyticsD
                     events={initialEvents}
                     selectedCodes={selectedCodes}
                     onToggle={toggleEvent}
+                    onToggleAll={toggleAll}
                 />
             </div>
 
