@@ -86,9 +86,20 @@ Transformación de un script de automatización en Python (`ftc_event_advancemen
 
 ---
 
+### Sesión 8: Simulador de Playoffs e Interactividad Total (10 Feb 2026)
+- **Objetivo**: Crear un sistema de simulación de brackets interactivo y probabilístico.
+- **Logros**:
+    - **Interactive Alliance Builder**: Implementación de un flujo de creación de alianzas manual y automático con selección dinámica de capitanes (el rango más alto disponible siempre elige).
+    - **Overrides de Bracket**: Capacidad única de forzar ganadores en cualquier match del bracket con propagación automática de resultados y probabilidades a las rondas siguientes.
+    - **Simulación Monte Carlo**: Integración de motor de simulación probabilística que ejecuta 2,000 iteraciones del torneo considerando la varianza de performance para dar probabilidades de campeonato reales.
+    - **Gestión de Escenarios**: Sistema de persistencia local para guardar y cargar configuraciones específicas de brackets (ej. "Escenario: Sorpresa en Semifinales").
+    - **Visualización de Brackets**: Rediseño visual de los brackets con líneas de conexión dinámicas y markers de flechas para indicar el flujo de ganadores y perdedores.
+
+---
+
 ## 🚀 Próximos Pasos (Prioridad Alta)
 1. **GitHub Sync**: Mantener sincronizados los cambios con el repositorio remoto.
-2. **Mapa de Calor Nacional**: Visualizar la fuerza de los equipos por región geográfica.
+2. **Compatibilidad de Autónomo**: Detectar conflictos de posición inicial entre aliados.
 3. **Optimización de Caché**: Refinar el sistema de Firestore para minimizar llamadas redundantes a la API de FTC.
 4. **Reporte para Jueces**: Generar un PDF descargable con el resumen del equipo para entregar en el nacional.
 

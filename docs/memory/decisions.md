@@ -89,3 +89,14 @@ Este documento registra el "por qué" detrás de las elecciones técnicas para e
 - **Contexto**: Equipos élite con 0% RP (por falta de datos) bajaban en la recomendación frente a equipos mediocres con 100% RP.
 - **Decisión**: Si un equipo tiene 0% RP pero OPRs altos (Auto > 25, Tele > 60), el Oracle inyecta automáticamente una probabilidad base (0.6 - 0.7).
 - **Razón**: Corrige el sesgo de datos faltantes, asegurando que los mejores robots siempre aparezcan arriba en las sugerencias tácticas.
+## 18. Selección Dinámica de Capitanes (Greedy Oracle)
+- **Fecha**: 10 Feb 2026
+- **Contexto**: El sistema anterior asumía que los capitanes eran siempre los Top N del ranking, pero en la realidad, si el #1 selecciona al #2, el #9 sube a ser capitán.
+- **Decisión**: Implementar un bucle de selección donde el equipo de mayor rango *disponible* se convierte en capitán, consume a su pareja de la bolsa general, y el siguiente disponible toma el liderazgo.
+- **Razón**: Modela fielmente el proceso de selección de alianzas de FIRST, permitiendo proyecciones realistas de cómo se verá el bracket final.
+
+## 19. Simulación Monte Carlo para Playoffs
+- **Fecha**: 10 Feb 2026
+- **Contexto**: Un bracket predeterminado por OPR no captura los "upsets" o la inconsistencia de los robots.
+- **Decisión**: Implementar un motor que ejecuta 2,000 torneos independientes aplicando una distribución normal (varianza sigma=30) a los OPRs en cada match.
+- **Razón**: Permite dar una probabilidad de campeonato (%) que es mucho más útil para equipos de media tabla que buscan saber sus opciones reales de dar la sorpresa frente a un líder dominante.
