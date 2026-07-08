@@ -10,7 +10,6 @@ import {
     orderBy,
     onSnapshot,
     Timestamp,
-    addDoc,
     limit,
 } from "firebase/firestore";
 import { PitScouting, MatchScouting, PublicPitSummary, CURRENT_GAME_SCHEMA } from "@/types/scouting";
@@ -123,6 +122,15 @@ export async function getPublicPitSummaries(
     return out;
 }
 
+// Stable per-capture id used as the Firestore document id (see below). Same
+// shape localDatabase generates, so an entry keeps one id from capture through
+// sync. Not content-derived on purpose: a legitimate re-scout of the same
+// (team, match) must be a distinct document (audit trail), and only a *re-send
+// of the same capture* should collapse to one doc.
+function generateEntryId(): string {
+    return `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
 // Match Scouting — federated model. Multiple entries per (match, team) are
 // expected: each scout's observation is its own document. Aggregation rules
 // for resolving conflicts live in docs/architecture/collaborative-scouting-model.md §3.
@@ -131,11 +139,25 @@ export async function getPublicPitSummaries(
 // gameSchemaVersion, appVersion, confidence default) so callers that haven't
 // migrated yet still produce well-formed documents. New form components should
 // set these explicitly; the defaults are a safety net, not the intended path.
-export async function saveMatchScouting(data: MatchScouting) {
-    const colRef = collection(db, MATCH_COLLECTION);
+//
+// IDEMPOTENCY (C5). The write uses a DETERMINISTIC document id (the entry's own
+// stable id — the Dexie local id for offline captures, or a QR-exported id) via
+// create-if-not-exists. `match_scouting` is immutable (Firestore rules forbid
+// update/delete: "re-scout = new entry"), so re-writing the same id must be a
+// no-op, never an overwrite. This makes an interrupted offline drain (write
+// committed but markAsSynced never ran), a retried mutation, or a re-scanned QR
+// converge to exactly ONE document instead of duplicating.
+//
+// Pass an explicit `docId` to force the id; otherwise `data.id` is used, or a
+// fresh id is generated for callers that supply none.
+export async function saveMatchScouting(data: MatchScouting, docId?: string) {
+    // Never store the client id inside the doc body — the id lives as the doc's
+    // key, and readers reconstruct it as `{ id: snap.id, ...snap.data() }`.
+    const { id: incomingId, ...rest } = data;
+    const id = docId ?? incomingId ?? generateEntryId();
 
     const enriched = {
-        ...data,
+        ...rest,
         // Federation defaults
         orgId: data.orgId ?? DEFAULT_ORG_ID,
         scoutId: data.scoutId ?? data.scouterId,
@@ -150,7 +172,14 @@ export async function saveMatchScouting(data: MatchScouting) {
         timestamp: Timestamp.now(),
     };
 
-    await addDoc(colRef, enriched);
+    const ref = doc(db, MATCH_COLLECTION, id);
+    // Create-if-not-exists: a prior (possibly interrupted) attempt that already
+    // committed this id leaves the doc in place untouched. The existence check
+    // — rather than a bare setDoc — is required because the immutability rules
+    // would reject a setDoc that resolves to an update.
+    const existing = await getDoc(ref);
+    if (existing.exists()) return;
+    await setDoc(ref, enriched);
 }
 
 /**

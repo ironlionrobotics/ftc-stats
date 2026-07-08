@@ -70,11 +70,12 @@ export default function OnlineSync() {
             for (const entry of items) {
                 if (!entry.id) continue;
                 try {
-                    // Strip id so Firestore generates a fresh one; we keep
-                    // the local Dexie id only to track sync status.
-                    const { id: localId, ...payload } = entry;
-                    await saveMatchScouting(payload as typeof entry);
-                    await markAsSynced(localId);
+                    // Use the stable Dexie local id as the Firestore document id
+                    // so an interrupted drain (write committed, markAsSynced not
+                    // yet run) re-converges to the SAME doc instead of creating a
+                    // duplicate. saveMatchScouting is create-if-not-exists.
+                    await saveMatchScouting(entry, entry.id);
+                    await markAsSynced(entry.id);
                 } catch (e) {
                     const msg = e instanceof Error ? e.message : String(e);
                     await recordSyncFailure(entry.id, msg);

@@ -40,10 +40,10 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
         setShowScanner(false);
         try {
             for (const item of data) {
-                // Delete ID to avoid collisions and let Firebase assign
-                const payload = { ...item };
-                delete payload.id;
-                await saveMatchScouting(payload as any);
+                // Keep the entry's own id as the Firestore doc id so re-scanning
+                // the same QR is idempotent (create-if-not-exists) rather than
+                // producing duplicate documents.
+                await saveMatchScouting(item);
             }
             toast.success(`Sincronizados ${data.length} registros a la nube`);
         } catch (e) {
@@ -64,9 +64,9 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
 
         try {
             for (const item of pendingData) {
-                const dataToSave = { ...item };
-                delete dataToSave.id;
-                await saveMatchScouting(dataToSave as any);
+                // Preserve the local id as the Firestore doc id so re-running
+                // this manual sync doesn't duplicate already-uploaded entries.
+                await saveMatchScouting(item);
             }
             await clearPending();
             setPendingData([]);

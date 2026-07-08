@@ -150,6 +150,16 @@ Este documento registra el "por qué" detrás de las elecciones técnicas para e
 - **Decisión**: Colecciones separadas: `orgs/{orgId}` (público entre authed), `org_secrets/{orgId}` (admin/lead-only). Pit scouting: `notes` privado por docId scoped al org, `publicSummary` opt-in para cross-org.
 - **Razón**: Estructural en lugar de UI-level — un cliente malicioso no puede leer secretos ni con queries arbitrarias.
 
+## 34. Fix C5: escrituras de match scouting idempotentes (id determinista)
+- **Fecha**: 08 Jul 2026
+- **Contexto**: `saveMatchScouting` usaba `addDoc` (id auto de Firestore, no idempotente). En `OnlineSync.drain` la secuencia era `saveMatchScouting` → `markAsSynced`; si el proceso se interrumpía entre ambos (tab cerrada, crash, red que cae tras el commit pero antes del ack), la fila Dexie seguía pendiente y se re-drenaba → **documento duplicado**. Mismo riesgo en re-escaneo de QR y retry de TanStack.
+- **Decisión**: `saveMatchScouting(data, docId?)` ahora usa un **id de documento determinista** (el id local de Dexie, ya único y estable por captura) con **create-if-not-exists** (`getDoc` → si existe, no-op; si no, `setDoc`).
+    - **Por qué existence-check y no setDoc directo**: las reglas hacen `match_scouting` inmutable (`allow update, delete: if false`, "re-scout = new entry"). Un `setDoc` sobre id existente sería un *update* → rechazado por reglas. El check de existencia respeta la inmutabilidad y logra idempotencia.
+    - **Id no derivado de contenido** a propósito: un re-scout legítimo del mismo (team, match) debe ser un doc distinto; solo un *re-envío de la misma captura* colapsa a uno.
+    - Call sites actualizados: `OnlineSync.drain` pasa `entry.id` y ya no lo quita; QR-import y sync-manual dejan de borrar el id.
+- **Razón**: sin duplicados en red inestable (caso de uso central del evento). El id local viaja de captura a sync. Tests en `scouting-service.idempotency.test.ts` (5; los 5 fallan contra el `addDoc` viejo, verificado).
+- **Residual (fuera de alcance)**: drains concurrentes (dos a la vez) siguen pudiendo chocar en el create — lo elimina M3 (ref-lock del drain). Entradas pendientes escritas bajo el esquema auto-id *antes* del deploy podrían duplicar una vez en el primer re-drain (población nula en práctica: sin evento real aún).
+
 ## 33. Fix C4: ground-truth validation scopeada por org (IDOR cross-tenant)
 - **Fecha**: 08 Jul 2026
 - **Contexto**: `validateGroundTruthAction` verificaba rol (admin/lead) pero llamaba `runGroundTruthValidation(season, eventCode)` sin scope de org. La función escribía `users/{scoutId}.reliability` de TODO scout que apareciera en (season, eventCode), cross-org. Un admin/lead de la org A podía pasar cualquier eventCode y sobrescribir la reliability de scouts de orgs B, C… — y la reliability pondera la agregación federada de todos, así que envenenaba analítica ajena.
