@@ -1,23 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AggregatedTeamStats, PitScouting, MatchScouting } from "@/types/ftc";
+import { AggregatedTeamStats, PitScouting, MatchScouting } from "@/types/scouting";
 import TeamList from "@/components/scouting/TeamList";
 import ScoutingForm from "@/components/scouting/ScoutingForm";
 import MatchScoutingForm from "@/components/scouting/MatchScoutingForm";
+import SuperScoutingForm from "@/components/scouting/SuperScoutingForm";
 import { getPitScouting, savePitScouting, listenToMatchScouting } from "@/lib/scouting-service";
 import { useAuth } from "@/context/AuthContext";
-import { useSeason } from "@/context/SeasonContext";
+import { useProgram } from "@/lib/stores/program-store";
+import { DEFAULT_ORG_ID } from "@/lib/orgs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { ClipboardList, Trophy } from "lucide-react";
+import Tip from "@/components/ui/Tip";
+import { ClipboardList, Trophy, Eye } from "lucide-react";
+import { toast } from "sonner";
 
 interface ScoutingClientProps {
     initialTeams: AggregatedTeamStats[];
 }
 
 export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
-    const { user } = useAuth();
-    const { season } = useSeason();
+    const { user, orgId } = useAuth();
+    const { season, program } = useProgram();
     const [selectedTeamId, setSelectedTeamId] = useState<number | null>(
         initialTeams.length > 0 ? initialTeams[0].teamNumber : null
     );
@@ -25,16 +29,19 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
     const [matchScoutingEntries, setMatchScoutingEntries] = useState<MatchScouting[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // Load Pit Scouting data for selected team
+    // Load this org's pit scouting record for the selected team. Other orgs'
+    // public summaries (if any) are surfaced inside ScoutingForm via the
+    // getPublicPitSummaries helper.
     useEffect(() => {
         if (selectedTeamId) {
             setLoading(true);
-            getPitScouting(season, selectedTeamId).then(data => {
+            const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
+            getPitScouting(season, selectedTeamId, effectiveOrgId).then(data => {
                 setPitData(data);
                 setLoading(false);
             });
         }
-    }, [selectedTeamId, season]);
+    }, [selectedTeamId, season, orgId]);
 
     // Listen to all match scouting for this event/season to show live updates
     // (In a real scenario, we might want to filter by eventCode properly)
@@ -49,15 +56,26 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
 
     const handleSavePitData = async (data: PitScouting) => {
         if (!user) {
-            alert("No estas autenticado");
+            toast.error("Debes iniciar sesión para guardar");
             return;
         }
-        await savePitScouting({
+        const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
+        const enriched: PitScouting = {
             ...data,
+            orgId: effectiveOrgId,
+            scoutedBy: user.uid,
             lastUpdatedBy: user.displayName || user.email || "Anonymous",
-            season
-        });
-        setPitData(data);
+            season,
+        };
+        try {
+            await savePitScouting(enriched);
+            setPitData(enriched);
+            toast.success("Pit scouting guardado");
+        } catch (e) {
+            toast.error("Error al guardar pit scouting", {
+                description: e instanceof Error ? e.message : undefined,
+            });
+        }
     };
 
     const selectedTeam = initialTeams.find((t) => t.teamNumber === selectedTeamId);
@@ -82,27 +100,47 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
                 {/* Main Content Area */}
                 <main className="flex-1 flex flex-col h-full overflow-hidden">
                     {selectedTeam ? (
-                        <Tabs defaultValue="pit" className="flex-1 flex flex-col">
+                        <Tabs defaultValue={program === 'FTC' ? "pit" : "match"} className="flex-1 flex flex-col">
+                            <Tip
+                                id="scouting-modes-v1"
+                                title="Tres modos de scouting"
+                                className="mb-3"
+                            >
+                                <strong>Pit:</strong> specs del robot (1×). <strong>Match:</strong> counters por match jugado. <strong>Super:</strong> impresiones cualitativas (driver, defense, would-pick) — alimenta el picklist.
+                            </Tip>
                             <TabsList className="mb-4 bg-white/5 border border-white/10 p-1 w-full md:w-fit">
-                                <TabsTrigger value="pit" className="flex items-center gap-2">
-                                    <ClipboardList size={16} /> Pit Scouting
-                                </TabsTrigger>
+                                {program === 'FTC' && (
+                                    <TabsTrigger value="pit" className="flex items-center gap-2">
+                                        <ClipboardList size={16} /> Pit Scouting
+                                    </TabsTrigger>
+                                )}
                                 <TabsTrigger value="match" className="flex items-center gap-2">
                                     <Trophy size={16} /> Match Scouting
+                                </TabsTrigger>
+                                <TabsTrigger value="super" className="flex items-center gap-2">
+                                    <Eye size={16} /> Super Scouting
                                 </TabsTrigger>
                             </TabsList>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                <TabsContent value="pit" className="m-0 h-full">
-                                    <ScoutingForm
-                                        key={`pit-${selectedTeam.teamNumber}`}
-                                        team={selectedTeam}
-                                        initialData={pitData || undefined}
-                                        onSave={handleSavePitData}
-                                    />
-                                </TabsContent>
+                                {program === 'FTC' && (
+                                    <TabsContent value="pit" className="m-0 h-full">
+                                        <ScoutingForm
+                                            key={`pit-${selectedTeam.teamNumber}`}
+                                            team={selectedTeam}
+                                            initialData={pitData || undefined}
+                                            onSave={handleSavePitData}
+                                        />
+                                    </TabsContent>
+                                )}
                                 <TabsContent value="match" className="m-0 h-full">
                                     <MatchScoutingForm
+                                        team={selectedTeam}
+                                        entries={matchScoutingEntries.filter(e => e.teamNumber === selectedTeam.teamNumber)}
+                                    />
+                                </TabsContent>
+                                <TabsContent value="super" className="m-0 h-full">
+                                    <SuperScoutingForm
                                         team={selectedTeam}
                                         entries={matchScoutingEntries.filter(e => e.teamNumber === selectedTeam.teamNumber)}
                                     />

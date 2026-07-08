@@ -1,4 +1,4 @@
-import { FTCAward, TeamRanking } from "@/types/ftc";
+import { FTCAward, TeamRanking } from "@/types/scouting";
 import { Award, Trophy } from "lucide-react";
 
 interface AwardListProps {
@@ -38,12 +38,12 @@ export default function AwardList({ awards, rankings }: AwardListProps) {
                         <h3 className="font-bold text-slate-800 text-sm">{awardName}</h3>
                     </div>
                     <div className="p-2 space-y-1">
-                        {awardList.sort((a, b) => a.series - b.series).map((award) => {
+                        {awardList.sort((a, b) => a.series - b.series).map((award, index) => {
                             const team = rankings?.find(r => r.teamNumber === award.teamNumber);
                             const teamName = team?.teamName || "Unknown Team";
 
                             return (
-                                <div key={award.awardId} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors group">
+                                <div key={`${award.awardId}-${award.teamNumber}-${index}`} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors group">
                                     <div className="flex items-center gap-3 w-full">
                                         <div className={`
                                         w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black border

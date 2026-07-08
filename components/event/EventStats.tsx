@@ -1,6 +1,6 @@
 "use client";
 
-import { FTCMatch, TeamRanking } from "@/types/ftc";
+import { FTCMatch, TeamRanking } from "@/types/scouting";
 import { Trophy, Zap, BarChart3, Users, Target } from "lucide-react";
 import { useMemo } from "react";
 

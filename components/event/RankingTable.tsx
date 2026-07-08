@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { TeamRanking, FTCMatch } from "@/types/ftc";
+import { TeamRanking, FTCMatch } from "@/types/scouting";
 import clsx from "clsx";
 import Link from "next/link";
 // Trophy and Star removed

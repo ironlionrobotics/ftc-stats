@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AggregatedTeamStats, MatchScouting, PitScouting } from "@/types/ftc";
+import { AggregatedTeamStats, MatchScouting, PitScouting } from "@/types/scouting";
 import { Card } from "@/components/ui/Card";
 import { Search, Plus, X, Swords, AlertTriangle, Zap, Percent } from "lucide-react";
 import { listenToMatchScouting, getPitScouting } from "@/lib/scouting-service";
-import { useSeason } from "@/context/SeasonContext";
+import { useProgram } from "@/lib/stores/program-store";
 import { calculateTeamProjection, predictMatch, MatchProjection, TeamProjection } from "@/lib/projections";
+import SourceBadge from "@/components/scouting/SourceBadge";
+import { useScoutReliabilities } from "@/lib/hooks/use-scout-reliabilities";
 import clsx from "clsx";
 
 interface MatchSimulatorProps {
@@ -14,7 +16,8 @@ interface MatchSimulatorProps {
 }
 
 export default function MatchSimulator({ teams }: MatchSimulatorProps) {
-    const { season } = useSeason();
+    const { season } = useProgram();
+    const scoutReliabilities = useScoutReliabilities();
     const [redAlliance, setRedAlliance] = useState<number[]>([]);
     const [blueAlliance, setBlueAlliance] = useState<number[]>([]);
     const [scoutingData, setScoutingData] = useState<MatchScouting[]>([]);
@@ -120,6 +123,8 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
                         onRemove={(id: number) => setRedAlliance(redAlliance.filter(x => x !== id))}
                         projection={projection?.redAlliance}
                         setManualAdjustments={setManualAdjustments}
+                        scoutingData={scoutingData}
+                        scoutReliabilities={scoutReliabilities}
                     />
 
                     {/* Blue Alliance */}
@@ -130,6 +135,8 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
                         onRemove={(id: number) => setBlueAlliance(blueAlliance.filter(x => x !== id))}
                         projection={projection?.blueAlliance}
                         setManualAdjustments={setManualAdjustments}
+                        scoutingData={scoutingData}
+                        scoutReliabilities={scoutReliabilities}
                     />
                 </div>
 
@@ -254,7 +261,25 @@ function PointBreakdownRow({ label, red, blue }: { label: string, red: number, b
     );
 }
 
-function AllianceBox({ color, teams, allTeams, onRemove, projection, setManualAdjustments }: any) {
+function AllianceBox({
+    color,
+    teams,
+    allTeams,
+    onRemove,
+    projection,
+    setManualAdjustments,
+    scoutingData,
+    scoutReliabilities,
+}: {
+    color: 'red' | 'blue';
+    teams: number[];
+    allTeams: AggregatedTeamStats[];
+    onRemove: (id: number) => void;
+    projection?: { score: number; teams: TeamProjection[] };
+    setManualAdjustments: React.Dispatch<React.SetStateAction<Record<number, number>>>;
+    scoutingData: MatchScouting[];
+    scoutReliabilities: Record<string, number>;
+}) {
     const isRed = color === 'red';
     return (
         <Card className={clsx(
@@ -288,9 +313,14 @@ function AllianceBox({ color, teams, allTeams, onRemove, projection, setManualAd
                         )}>
                             {team ? (
                                 <div className="flex-1 flex items-center justify-between">
-                                    <div>
+                                    <div className="space-y-1.5">
                                         <div className="text-3xl font-black font-display text-white">{team.teamNumber}</div>
                                         <div className="text-[10px] text-gray-500 font-bold uppercase truncate max-w-[120px]">{team.teamName}</div>
+                                        <SourceBadge
+                                            entries={scoutingData.filter(e => e.teamNumber === id)}
+                                            scoutReliabilities={scoutReliabilities}
+                                            variant="full"
+                                        />
                                     </div>
                                     <div className="flex items-center gap-4">
                                         {teamProj && (
@@ -313,13 +343,17 @@ function AllianceBox({ color, teams, allTeams, onRemove, projection, setManualAd
                                                 </div>
                                             </div>
                                         )}
-                                        <button onClick={() => onRemove(id)} className="p-2 text-gray-600 hover:text-red-500">
+                                        <button
+                                            onClick={() => onRemove(id)}
+                                            aria-label="Remover de alianza"
+                                            className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-md active:scale-[0.95] transition-all"
+                                        >
                                             <X size={20} />
                                         </button>
                                     </div>
                                 </div>
                             ) : (
-                                <span className="text-center w-full text-xs font-bold text-gray-700 uppercase tracking-widest italic">Slot Vacío</span>
+                                <span className="text-center w-full text-xs font-bold text-gray-500 uppercase tracking-widest italic">Slot Vacío</span>
                             )}
                         </div>
                     );

@@ -4,6 +4,8 @@ import { Alliance, PlayoffMatch } from "@/types/oracle";
 import { generateAlliances, initializeBracket, updateBracket, runMonteCarloSimulation, SimulationResult } from "@/lib/alliance-utils";
 import { Play, RotateCcw, Trophy, Shield, Swords, Users, Crown, Edit2, Check, Save, FolderOpen, PieChart } from "lucide-react";
 import clsx from "clsx";
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 interface TournamentSimulatorProps {
     teams: TeamEvolution[];
@@ -11,12 +13,12 @@ interface TournamentSimulatorProps {
 
 export default function TournamentSimulator({ teams }: TournamentSimulatorProps) {
     const [step, setStep] = useState<'config' | 'building' | 'bracket'>('config');
-    const [allianceCount, setAllianceCount] = useState<4 | 6 | 8>(4);
+    const [allianceCount, setAllianceCount] = useState<2 | 4 | 6 | 8>(4);
     const [alliances, setAlliances] = useState<Alliance[]>([]);
     const [bracket, setBracket] = useState<PlayoffMatch[]>([]);
     const [overrides, setOverrides] = useState<Record<string, number>>({});
     const [simResults, setSimResults] = useState<SimulationResult[] | null>(null);
-    const [scenarios, setScenarios] = useState<{ name: string, date: string, allianceCount: 4 | 6 | 8, alliances: Alliance[], overrides: Record<string, number> }[]>([]);
+    const [scenarios, setScenarios] = useState<{ name: string, date: string, allianceCount: 2 | 4 | 6 | 8, alliances: Alliance[], overrides: Record<string, number> }[]>([]);
 
     // Load scenarios on mount
     useEffect(() => {
@@ -51,22 +53,33 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
         localStorage.setItem('tournament_scenarios', JSON.stringify(updated));
     };
 
-    const handleLoadScenario = (s: typeof scenarios[0]) => {
-        if (confirm(`Load scenario "${s.name}"? Unsaved changes will be lost.`)) {
-            setAllianceCount(s.allianceCount);
-            setAlliances(s.alliances);
-            setOverrides(s.overrides);
-            setStep('bracket');
-            setSimResults(null);
-        }
+    const confirm = useConfirm();
+
+    const handleLoadScenario = async (s: typeof scenarios[0]) => {
+        const ok = await confirm({
+            title: `Cargar escenario "${s.name}"`,
+            description: "Los cambios sin guardar se perderán.",
+            confirmText: "Cargar",
+        });
+        if (!ok) return;
+        setAllianceCount(s.allianceCount);
+        setAlliances(s.alliances);
+        setOverrides(s.overrides);
+        setStep('bracket');
+        setSimResults(null);
     };
 
-    const handleDeleteScenario = (index: number) => {
-        if (confirm("Delete this scenario?")) {
-            const updated = scenarios.filter((_, i) => i !== index);
-            setScenarios(updated);
-            localStorage.setItem('tournament_scenarios', JSON.stringify(updated));
-        }
+    const handleDeleteScenario = async (index: number) => {
+        const ok = await confirm({
+            title: "Borrar escenario",
+            description: "Esta acción es permanente.",
+            confirmText: "Borrar",
+            variant: "danger",
+        });
+        if (!ok) return;
+        const updated = scenarios.filter((_, i) => i !== index);
+        setScenarios(updated);
+        localStorage.setItem('tournament_scenarios', JSON.stringify(updated));
     };
 
     // Effect to keep bracket updated whenever alliances or overrides change.
@@ -128,7 +141,9 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
             totalAuto: 0,
             totalTele: 0,
             totalEndgame: 0,
-            projectedScore: 0
+            projectedScore: 0,
+            // No history yet — Monte Carlo will fall back to default sigma.
+            totalSigma: 0
         }));
         setAlliances(empty);
         setStep('building');
@@ -143,7 +158,7 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
 
             const updated = { ...a, [memberType]: team };
             // Recalculate stats
-            const members = [updated.captain, updated.pick1].filter(Boolean);
+            const members = [updated.captain, updated.pick1].filter((t): t is TeamEvolution => !!t);
             const totalOPR = members.reduce((sum, t) => sum + (t.opr || 0), 0);
 
             return {
@@ -158,7 +173,7 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
     const handleSimulate = () => {
         // Validate
         if (alliances.some(a => !a.captain || !a.pick1)) {
-            alert("Please complete all alliance selections.");
+            toast.warning("Completa todas las selecciones de alianza primero");
             return;
         }
         // Bracket is updated by useEffect
@@ -196,7 +211,7 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                     </div>
 
                     <div className="flex gap-4">
-                        {[4, 6, 8].map((count) => (
+                        {[2, 4, 6, 8].map((count) => (
                             <button
                                 key={count}
                                 onClick={() => setAllianceCount(count as 4 | 6 | 8)}
@@ -450,6 +465,11 @@ const GAP_Y = 40;
 // Coordinates are in "Grid Units" (Col, Row)
 // We map them to pixels: x = col * (NODE_WIDTH + GAP_X), y = row * (NODE_HEIGHT + GAP_Y)
 const MATCH_LAYOUTS: Record<number, Record<string, { col: number, row: number }>> = {
+    2: {
+        'M1': { col: 0, row: 1 },
+        'M2': { col: 1, row: 1 },
+        'M3': { col: 2, row: 1 },
+    },
     4: {
         'M1': { col: 0, row: 0 },
         'M2': { col: 0, row: 2 },
@@ -499,7 +519,7 @@ interface BracketVisualProps {
     bracket: PlayoffMatch[];
     alliances: Alliance[];
     onMatchClick: (matchId: string, allianceId: number) => void;
-    type: 4 | 6 | 8;
+    type: 2 | 4 | 6 | 8;
 }
 
 function BracketVisual({ bracket, alliances, onMatchClick, type }: BracketVisualProps) {
@@ -605,7 +625,7 @@ function BracketVisual({ bracket, alliances, onMatchClick, type }: BracketVisual
 
                 {/* Champion Trophy (Positioned after final match) */}
                 {(() => {
-                    const finalId = type === 4 ? 'M6' : type === 6 ? 'M10' : 'M14';
+                    const finalId = type === 2 ? 'M2' : type === 4 ? 'M6' : type === 6 ? 'M10' : 'M14';
                     const finalPos = getPos(finalId);
                     if (!finalPos) return null;
                     const trophyX = finalPos.x + NODE_WIDTH + 60;

@@ -5,14 +5,15 @@ import MatchList from "./MatchList";
 import RankingTable from "./RankingTable";
 import ParticipantList from "./ParticipantList";
 import AlliancePredictor from "../analytics/AlliancePredictor";
-import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, AdvancementPoints } from "@/types/ftc";
+import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, AdvancementPoints, FTCMatchScouting } from "@/types/scouting";
 import { TeamEvolution } from "@/app/actions/analytics";
-import { Trophy, LayoutList, History, Sparkles, Medal, Target } from "lucide-react";
+import { Trophy, LayoutList, History, Sparkles, Medal, Target, Zap as LucideZap } from "lucide-react";
 import { listenToMatchScouting } from "@/lib/scouting-service";
 import clsx from "clsx";
 import { Users as LucideUsers } from "lucide-react";
 import AwardList from "./AwardList";
 import AdvancementList from "./AdvancementList";
+import Link from "next/link";
 
 interface EventViewManagerProps {
     matches: FTCMatch[];
@@ -255,9 +256,9 @@ export default function EventViewManager({ matches, rankings, advancement, award
             const teamScoutingMatches = scoutingData.filter(m => m.teamNumber === rank.teamNumber);
             if (teamScoutingMatches.length > 0) {
                 const sTotal = teamScoutingMatches.length;
-                const sMov = teamScoutingMatches.filter(m => m.movementRP).length / sTotal;
-                const sArt = teamScoutingMatches.filter(m => m.goalRP).length / sTotal;
-                const sPat = teamScoutingMatches.filter(m => m.patternRP).length / sTotal;
+                const sMov = teamScoutingMatches.filter(m => (m as FTCMatchScouting).movementRP).length / sTotal;
+                const sArt = teamScoutingMatches.filter(m => (m as FTCMatchScouting).goalRP).length / sTotal;
+                const sPat = teamScoutingMatches.filter(m => (m as FTCMatchScouting).patternRP).length / sTotal;
 
                 rpMovement = Math.max(rpMovement, sMov);
                 rpArtifacts = Math.max(rpArtifacts, sArt);
@@ -277,6 +278,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 wins: rank.wins || 0,
                 losses: rank.losses || 0,
                 ties: rank.ties || 0,
+                avgEndGame: 0,
                 awards: []
             };
 
@@ -357,6 +359,12 @@ export default function EventViewManager({ matches, rankings, advancement, award
                     >
                         <Medal size={18} /> Awards
                     </button>
+                    <Link
+                        href={`/event/${eventCode}/pro`}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-200 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100"
+                    >
+                        <LucideZap size={18} /> PRO
+                    </Link>
                 </div>
 
                 {activeTab !== "matches" && (

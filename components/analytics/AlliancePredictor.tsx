@@ -3,7 +3,7 @@ import { Search, Info, X, Zap, Trophy, TrendingUp, TrendingDown, Minus, Bot, Use
 import { Card } from "@/components/ui/Card";
 import clsx from "clsx";
 import { TeamEvolution } from "@/app/actions/analytics";
-import { MatchScouting } from "@/types/ftc";
+import { MatchScouting, FTCMatchScouting } from "@/types/scouting";
 import TournamentSimulator from "./TournamentSimulator";
 
 interface AlliancePredictorProps {
@@ -42,17 +42,35 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
         const teamMatches = scoutingData.filter(m => m.teamNumber === teamNumber);
         if (!teamMatches.length) return { driverSkill: 0, reliability: 0, archetype: 'Unknown', endgameSuccess: 0, notes: [] };
 
-        const avgSkill = teamMatches.reduce((acc, m) => acc + m.driverSkill, 0) / teamMatches.length;
+        // Simple predictive calculation
+        const autoAvg = teamMatches.reduce((acc, match) => {
+            const entry = match as FTCMatchScouting;
+            return acc + ((entry.autoPurpleArtifacts || 0) * 3) + ((entry.autoGreenArtifacts || 0) * 3) + (entry.autoPoints || 0);
+        }, 0) / teamMatches.length;
 
-        // Archetype logic: Miner (Heavy Artifacts) vs Architect (Heavy Patterns)
-        const avgArtifacts = teamMatches.reduce((acc, m) => acc + m.teleopPurpleArtifacts + m.teleopGreenArtifacts, 0) / teamMatches.length;
-        const avgPatterns = teamMatches.reduce((acc, m) => acc + m.patternsCompleted, 0) / teamMatches.length;
+        const teleAvg = teamMatches.reduce((acc, match) => {
+            const entry = match as FTCMatchScouting;
+            return acc + ((entry.teleopPurpleArtifacts || 0) * 2) + ((entry.teleopGreenArtifacts || 0) * 2) + ((entry.patternsCompleted || 0) * 10);
+        }, 0) / teamMatches.length;
+
+        const endAvg = teamMatches.reduce((acc, match) => {
+            const entry = match as FTCMatchScouting;
+            const parkingPts = entry.endgameBaseParking === 'Full' ? 10 : entry.endgameBaseParking === 'Partial' ? 5 : 0;
+            return acc + parkingPts + (entry.dualParking ? 20 : 0);
+        }, 0) / teamMatches.length;
+        const avgSkill = teamMatches.reduce((acc, m) => acc + (m.driverSkill ?? 3), 0) / teamMatches.length;
+
+        const avgArtifacts = teamMatches.reduce((acc, match) => {
+            const m = match as FTCMatchScouting;
+            return acc + (m.teleopPurpleArtifacts || 0) + (m.teleopGreenArtifacts || 0);
+        }, 0) / teamMatches.length;
+        const avgPatterns = teamMatches.reduce((acc, match) => acc + ((match as FTCMatchScouting).patternsCompleted || 0), 0) / teamMatches.length;
 
         let archetype: ScoutedMetrics['archetype'] = 'Balanced';
         if (avgArtifacts > avgPatterns * 2) archetype = 'Miner';
         else if (avgPatterns > avgArtifacts * 0.5 && avgPatterns > 0) archetype = 'Architect';
 
-        const endgameSuccess = teamMatches.filter(m => m.endgameBaseParking !== 'None').length / teamMatches.length;
+        const endgameSuccess = teamMatches.filter(match => (match as FTCMatchScouting).endgameBaseParking !== 'None').length / teamMatches.length;
 
         return {
             driverSkill: avgSkill,
@@ -217,9 +235,9 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
 
         // ... existing AI prompt code ...
         const prompt = `Analyze alliance: Team ${selectedTeam.teamNumber} & Team ${partner.teamNumber}.
-        TARGET: OPR ${(selectedTeam.opr || 0).toFixed(1)}, Auto ${(selectedTeam.autoOPR || 0).toFixed(1)}, Disc ${(selectedTeam.netDiscipline || 0).toFixed(1)}.
+        TARGET: OPR ${(selectedTeam.opr || 0).toFixed(1)}, Auto ${(selectedTeam.autoOPR || 0).toFixed(1)}, Tele ${(selectedTeam.teleOPR || 0).toFixed(1)}, End ${(selectedTeam.endgameOPR || 0).toFixed(1)}, Disc ${(selectedTeam.netDiscipline || 0).toFixed(1)}.
         RP PROBS: Mov ${(selectedTeam.rpMovement || 0).toFixed(2)}, Art ${(selectedTeam.rpArtifacts || 0).toFixed(2)}, Pat ${(selectedTeam.rpPattern || 0).toFixed(2)}.
-        PARTNER: OPR ${(partner.opr || 0).toFixed(1)}, Auto ${(partner.autoOPR || 0).toFixed(1)}, Disc ${(partner.netDiscipline || 0).toFixed(1)}.
+        PARTNER: OPR ${(partner.opr || 0).toFixed(1)}, Auto ${(partner.autoOPR || 0).toFixed(1)}, Tele ${(partner.teleOPR || 0).toFixed(1)}, End ${(partner.endgameOPR || 0).toFixed(1)}, Disc ${(partner.netDiscipline || 0).toFixed(1)}.
         RP PROBS: Mov ${(partner.rpMovement || 0).toFixed(2)}, Art ${(partner.rpArtifacts || 0).toFixed(2)}, Pat ${(partner.rpPattern || 0).toFixed(2)}.
         Context: Combined OPR ${(selectedTeam.opr || 0) + (partner.opr || 0)}. Match compatibility?`;
 
@@ -319,26 +337,49 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                 {/* Quick Metrics Bar (Updated) */}
                                 {selectedTeam && (
                                     <div className="flex-1 flex flex-wrap items-center gap-4 w-full">
-                                        <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100">
-                                            <div className="text-[8px] font-bold text-slate-400 uppercase mb-1">OPR (Est)</div>
+                                        <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100 relative group/tooltip">
+                                            <div className="text-[8px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                                OPR (Est) <Info size={10} className="text-slate-300" />
+                                            </div>
                                             <div className="text-lg font-black text-blue-600">{(selectedTeam.opr || 0).toFixed(1)}</div>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                                                Estimación de contribución total de puntos por match (Auto + Tele + Endgame).
+                                            </div>
                                         </div>
                                         <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100">
                                             <div className="text-[8px] font-bold text-slate-400 uppercase mb-1">Auto OPR</div>
                                             <div className="text-lg font-black text-slate-900">{(selectedTeam.autoOPR || 0).toFixed(1)}</div>
                                         </div>
                                         <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100">
-                                            <div className="text-[8px] font-bold text-slate-400 uppercase mb-1">Discipline</div>
+                                            <div className="text-[8px] font-bold text-slate-400 uppercase mb-1">Tele OPR</div>
+                                            <div className="text-lg font-black text-slate-900">{(selectedTeam.teleOPR || 0).toFixed(1)}</div>
+                                        </div>
+                                        <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100 relative group/tooltip">
+                                            <div className="text-[8px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                                End OPR <Info size={10} className="text-slate-300" />
+                                            </div>
+                                            <div className="text-lg font-black text-slate-900">{(selectedTeam.endgameOPR || 0).toFixed(1)}</div>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                                                Puntos promedio generados SOLO en Endgame (Ascenso + Parking). Diferente a "Disciplne".
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100 relative group/tooltip">
+                                            <div className="text-[8px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                                Discipline <Info size={10} className="text-slate-300" />
+                                            </div>
                                             <div className={clsx("text-lg font-black", (selectedTeam.netDiscipline || 0) >= 0 ? "text-green-500" : "text-red-500")}>
                                                 {(selectedTeam.netDiscipline || 0) > 0 ? "+" : ""}{(selectedTeam.netDiscipline || 0).toFixed(1)}
                                             </div>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                                                Impacto neto de penalizaciones (Fouls cometidos vs provocados).
+                                            </div>
                                         </div>
 
-                                        <div className="flex gap-2 bg-white p-2 rounded-xl border border-slate-100">
+                                        <div className="flex gap-2 bg-white p-2 rounded-xl border border-slate-100 flex-1 md:flex-none min-w-[140px]">
                                             <input
                                                 type="number"
                                                 placeholder="Exclude #"
-                                                className="w-20 px-2 py-1 text-xs font-bold bg-slate-50 rounded focus:outline-none"
+                                                className="w-full md:w-20 px-2 py-1 text-xs font-bold bg-slate-50 rounded focus:outline-none"
                                                 value={unavailableInput}
                                                 onChange={(e) => setUnavailableInput(e.target.value)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleUnavailableAdd()}
@@ -417,8 +458,8 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                                         </div>
 
                                                         {/* NEW: OPR Breakdown */}
-                                                        <div className="grid grid-cols-4 gap-1 mt-5 p-2 bg-slate-50/50 rounded-xl border border-slate-100 relative z-10 overflow-hidden">
-                                                            <div className="col-span-4 text-center pb-2 border-b border-slate-200 mb-2">
+                                                        <div className="grid grid-cols-5 gap-1 mt-5 p-2 bg-slate-50/50 rounded-xl border border-slate-100 relative z-10 overflow-hidden">
+                                                            <div className="col-span-5 text-center pb-2 border-b border-slate-200 mb-2">
                                                                 <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Projected Alliance Score</div>
                                                                 <div className="text-2xl font-black text-blue-600 font-mono">{rec.projectedScore.toFixed(0)}</div>
                                                             </div>
@@ -435,9 +476,23 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                                                 <div className="text-[7px] font-bold text-slate-400 uppercase leading-tight">Tele</div>
                                                                 <div className="text-xs font-black text-slate-900">{(rec.partner.teleOPR || 0).toFixed(0)}</div>
                                                             </div>
-                                                            <div className="text-center px-1 border-l border-slate-200">
-                                                                <div className="text-[7px] font-bold text-slate-400 uppercase leading-tight">Disc</div>
+                                                            <div className="text-center px-1 border-l border-slate-200 relative group/tooltip">
+                                                                <div className="text-[7px] font-bold text-slate-400 uppercase leading-tight flex justify-center items-center gap-0.5 whitespace-nowrap">
+                                                                    End <Info size={6} className="text-slate-300" />
+                                                                </div>
+                                                                <div className="text-xs font-black text-slate-900">{(rec.partner.endgameOPR || 0).toFixed(0)}</div>
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-32 bg-slate-800 text-white text-[8px] p-1.5 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl font-normal leading-tight">
+                                                                    Endgame Only (Ascenso/Park)
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-center px-1 border-l border-slate-200 relative group/tooltip">
+                                                                <div className="text-[7px] font-bold text-slate-400 uppercase leading-tight flex justify-center items-center gap-0.5 whitespace-nowrap">
+                                                                    Disc <Info size={6} className="text-slate-300" />
+                                                                </div>
                                                                 <div className={clsx("text-xs font-black", (rec.partner.netDiscipline || 0) < 0 ? "text-red-500" : "text-green-500")}>{(rec.partner.netDiscipline || 0).toFixed(0)}</div>
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-32 bg-slate-800 text-white text-[8px] p-1.5 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl font-normal leading-tight">
+                                                                    Promedio de Foul Pts (+/-)
+                                                                </div>
                                                             </div>
                                                         </div>
 
@@ -502,7 +557,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                                         <button
                                                             key={rec.partner.teamNumber}
                                                             onClick={() => triggerAI(rec.partner)} // Or open detail
-                                                            className="w-full bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between hover:border-blue-200 hover:shadow-sm transition-all group text-left"
+                                                            className="w-full bg-white border border-slate-200 rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 hover:border-blue-200 hover:shadow-sm transition-all group text-left"
                                                         >
                                                             <div className="flex items-center gap-4">
                                                                 <div className="w-16 flex items-center gap-2">
@@ -516,7 +571,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                                                 </div>
                                                                 <div className="flex-1">
                                                                     <div className="text-xs font-bold text-slate-700 uppercase mb-0.5">{rec.partner.teamName}</div>
-                                                                    <div className="flex gap-4 text-[10px] font-mono text-slate-400">
+                                                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-mono text-slate-400">
                                                                         <span>OPR: <b className="text-slate-600">{(rec.partner.opr || 0).toFixed(0)}</b></span>
                                                                         <span className={(rec.partner.netDiscipline || 0) < 0 ? "text-red-500 font-bold" : "text-green-500 font-bold"}>
                                                                             {(rec.partner.netDiscipline || 0) > 0 ? "+" : ""}{(rec.partner.netDiscipline || 0).toFixed(0)} Disc

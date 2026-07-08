@@ -117,3 +117,34 @@
     background-color: var(--color-muted) !important;
   }
 }
+/* ============================================================================
+ * Print styles — used by MatchBriefingCard for the drive coach handout.
+ *
+ * Strategy: hide the entire app chrome (sidebar, online indicator, chat, etc.)
+ * and let the printable <article> take the page. The component uses
+ * `print:*` tailwind utilities for its own layout overrides.
+ * ============================================================================ */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    /* Hide app chrome */
+    aside, nav, header[role="banner"] {
+        display: none !important;
+    }
+    /* Anything explicitly marked with print:hidden stays gone */
+    /* (tailwind covers this; this comment is documentation) */
+
+    /* The main content area's left margin is reserved for the sidebar; reclaim it */
+    body > div, body main, body > div > div {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Page sizing */
+    @page {
+        size: letter;
+        margin: 0.5in;
+    }
+}

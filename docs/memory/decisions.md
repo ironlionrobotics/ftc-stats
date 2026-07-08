@@ -100,3 +100,102 @@ Este documento registra el "por qué" detrás de las elecciones técnicas para e
 - **Contexto**: Un bracket predeterminado por OPR no captura los "upsets" o la inconsistencia de los robots.
 - **Decisión**: Implementar un motor que ejecuta 2,000 torneos independientes aplicando una distribución normal (varianza sigma=30) a los OPRs en cada match.
 - **Razón**: Permite dar una probabilidad de campeonato (%) que es mucho más útil para equipos de media tabla que buscan saber sus opciones reales de dar la sorpresa frente a un líder dominante.
+
+## 20. Migración de cache analítico a Upstash Redis
+- **Fecha**: 24 May 2026
+- **Contexto**: Firestore Web SDK en server (`experimentalForceLongPolling: true`) tenía 200-500ms RTT por lectura. Con ~32 lecturas por aggregation, el cold-start era 6-16s.
+- **Decisión**: Reemplazar `api_cache` collection en Firestore por Upstash Redis (`SET ... EX`). firebase-admin SDK para reads de Firestore que sí necesitamos. Quitar `force-dynamic` global del layout. Quitar `enableIndexedDbPersistence` (cacheaba api_cache completa en navegador, saturaba IndexedDB en celulares).
+- **Razón**: Redis tiene RTT 5-30ms vs 200-500ms. TTL nativo elimina el circuit breaker manual. Quitar persistence client-side de Firestore evita los crashes mobile que originaron toda la investigación.
+
+## 21. Modelo federado de scouting (multi-org)
+- **Fecha**: 24 May 2026
+- **Contexto**: Equipo 30311 típicamente tiene 2-3 scouts; no cubren todos los matches de un regional. Múltiples equipos quieren colaborar.
+- **Decisión**: Cada entry de `match_scouting` lleva `scoutId` + `orgId`. Aggregation cross-org per (match, team) con reglas distintas por kind: numeric → weighted mean, categorical → majority vote, **subjective (driver/defense ratings) NUNCA se mezcla cross-org** porque escalas 1-5 calibran distinto por equipo.
+- **Razón**: Bien común — más equipos participando = mejor cobertura para todos. Sin federación, datos del único equipo activo nunca alcanzan estadística decente.
+- **Documentado en**: `docs/architecture/collaborative-scouting-model.md`
+
+## 22. Bayesian inverse-variance blend en match projection
+- **Fecha**: 24 May 2026
+- **Contexto**: Pesos hardcoded 60/40 (API vs scouting) eran arbitrarios — no escalaban con cantidad de scouting data ni con su consistencia.
+- **Decisión**: Posterior bayesiano: `w_scout = (n / σ²_scout) / (n / σ²_scout + 1 / σ²_prior)`. Con n=0 scouts, prior API domina; con n=5+ scouts consistentes, scouting domina.
+- **Razón**: Statbotics y la literatura usan esta variante (EWMA con varianza inversa). Adaptativo por construcción, no requiere tunear pesos por temporada.
+
+## 23. Win probability con logística real (no piecewise linear)
+- **Fecha**: 24 May 2026
+- **Contexto**: La fórmula anterior `0.5 + diff / (avgScore * 0.6)` sobre-saturaba en los tails — a 50 pts de margen clampeaba a 0.98 cuando logistic calibrado daría 0.85.
+- **Decisión**: `1 / (1 + exp(-k · diff / avgScore))` con k=1.5. Mismo principio que Statbotics y Caleb Sykes Elo.
+- **Razón**: Modelo correcto en el tails; no es solo cosmético — afecta apuestas de estrategia en matches "casi ganados".
+
+## 24. Leave-one-out marginal accuracy en ground-truth validation
+- **Fecha**: 24 May 2026
+- **Contexto**: La versión inicial atribuía el mismo error pooled a todos los scouts que tocaron una alianza. Un scout cuidadoso en un pool ruidoso era castigado injustamente.
+- **Decisión**: Por cada scout en una alianza, recalcular el consensus SIN sus entries. Marginal contribution = error_without − error_with. `signal = clamp(0.5 + marginal/2, 0, 1)`. EWMA hacia ese signal. Caso degenerate (1 scout): fallback al pooled approach.
+- **Razón**: Atribución justa. Scout cuyos valores acercan el consensus a la realidad gana reliability; scout que activamente lo aleja, baja.
+
+## 25. Per-team σ en Monte Carlo
+- **Fecha**: 24 May 2026
+- **Contexto**: σ=30 global en Alliance Oracle trataba equipos consistentes y erráticos por igual.
+- **Decisión**: `σ_team = clamp(stddev(events.avgPoints), 8, 60)` con 2+ events; `clamp((max-avg)/2, 8, 60)` con 1 event; fallback 30. Per-alliance σ = `sqrt(Σ σ_team²)` asumiendo independencia.
+- **Razón**: Equipos consistentes → menor σ alliance → menos probabilidad de upsets. Equipos erráticos → mayor σ → más realismo en Monte Carlo. Statbotics usa la misma identidad de combinar varianzas.
+
+## 26. Per-RP logistic regression con fallback heurístico
+- **Fecha**: 24 May 2026
+- **Contexto**: Inferencia de RP usaba thresholds heurísticos (`if autoPoints > 25 then RP = 0.6`).
+- **Decisión**: Implementar logistic regression pura TypeScript con gradient descent + L2. Entrenar 3 modelos per season (movement / artifact / pattern compartido). Persistir en Upstash 30d. Inferencia con `inferTeamRpProbability` que cae al heurístico cuando no hay modelo cacheado.
+- **Razón**: Continuo vs threshold. Dos alianzas en el mismo "lado" de un umbral arbitrario antes eran iguales; ahora se ranquean fino. Fallback heurístico preserva comportamiento pre-C.3 cuando Redis o entrenamiento aún no están listos.
+
+## 27. Modelo de visibilidad pública vs privada per-org
+- **Fecha**: 24 May 2026
+- **Contexto**: Webhooks de Discord y notas privadas de scouting necesitaban privacidad cross-org. Firestore rules no soportan field-level read masking.
+- **Decisión**: Colecciones separadas: `orgs/{orgId}` (público entre authed), `org_secrets/{orgId}` (admin/lead-only). Pit scouting: `notes` privado por docId scoped al org, `publicSummary` opt-in para cross-org.
+- **Razón**: Estructural en lugar de UI-level — un cliente malicioso no puede leer secretos ni con queries arbitrarias.
+
+## 32. Unificación de win-probability: un modelo, dos entradas (lib/win-probability.ts)
+- **Fecha**: 08 Jul 2026
+- **Contexto**: Coexistían dos fórmulas para la misma cantidad: logística k=1.5 normalizada por avgScore (`projections.ts`, decisión #23) y Elo base-10 con divisor fijo 80 (`alliance-utils.ts`). El mismo matchup mostraba probabilidades distintas en tabs distintos (ej. spread 30 con σ=20: 0.86 vs 0.70), y el divisor 80 no escala con el nivel de puntaje de la temporada. Además el bracket analítico del Oracle contradecía a su propio Monte Carlo.
+- **Decisión**: nuevo módulo `lib/win-probability.ts` con UN supuesto (scores ~ ruido normal alrededor de la media proyectada) y dos entradas según la información disponible:
+    - `winProbabilityFromNormalModel(μr, μb, σdiff)` = Φ((μr−μb)/σdiff) — cuando hay modelo de varianza. Es exactamente la probabilidad que el Monte Carlo de `alliance-utils` muestrea (Box-Muller sobre las mismas normales), así que bracket analítico y simulador convergen al mismo número (test: BO3 empírico ≈ p²(3−2p) analítico). Φ vía aproximación erf A&S 7.1.26 (error ≤1.5e-7).
+    - `winProbabilityFromProjections(r, b)` = logística k=1.5 sobre diff/avgScore — cuando solo hay proyecciones de punto (la de #23, sin cambio de comportamiento; `predictMatch` delega aquí).
+    - Ambas clampean [0.01, 0.99]. σ inválida → fallback a la logística.
+- **Cambios de comportamiento**: solo en el Oracle bracket (`updateBracket`): las probabilidades ahora responden a la consistencia de las alianzas (σ) y escalan con el juego. `predictMatch` idéntico (tests fijan 0.8176).
+- **Extra**: fix del Box-Muller `u1 = 1 − Math.random()` (Math.random() puede dar 0 → log(0) = −Infinity corrompía la muestra; hallazgo de auditoría).
+- **Razón**: una cantidad, un modelo. 15 tests nuevos (win-probability.test.ts + alliance-utils.test.ts); regresión anti-Elo-80 verificada.
+
+## 31. Fix M8: descomposición compartida train/serve para features RP (modelo v2)
+- **Fecha**: 08 Jul 2026
+- **Contexto**: Auditoría detectó train-serve skew en la regresión logística de RP. Entrenamiento (`rp-inference.ts`) e inferencia (`analytics.ts`) descomponían el score de alianza en (auto, tele, end) con fórmulas distintas: el fallback de tele en entrenamiento era `final − auto − foul` (SIN restar endgame) mientras inferencia usaba `score − auto − foul − end`. Cuando la API devuelve `scoreXEndgame` pero no `scoreXTeleOp`, el endgame se contaba doble en entrenamiento (dentro de tele Y como feature propia) y el vector servido venía de otra distribución. Que las fórmulas coincidieran dependía de la suerte del payload.
+- **Decisión**:
+    - Nueva función `allianceScoreComponents(match, side)` en `lib/rp-inference.ts` como única fuente de verdad de la descomposición: `end = scoreEndgame ?? 0`, `tele = scoreTeleOp ?? max(0, final − auto − foul − end)`.
+    - `extractObservations` (entrenamiento) y los dos sitios de `analytics.ts` (perfil por equipo que alimenta `inferTeamRpProbability` + agregado por evento) la usan — paridad por construcción, no por convención.
+    - **Cache key bumped a `v2`** (`rpModelCacheKey`): los modelos v1 se entrenaron con la descomposición sesgada y no deben servirse contra vectores nuevos. Hasta reentrenar, la inferencia cae transparentemente al heurístico (degradación ya diseñada).
+- **Razón**: consistencia train-serve garantizada estructuralmente. Historial de versiones documentado en el docstring de `rpModelCacheKey`. 5 tests nuevos en `rp-inference.test.ts` (regresión de doble conteo verificada contra el código viejo).
+- **Operativo**: tras deploy, correr "Entrenar modelos" (sidebar admin) para poblar los modelos v2.
+- **Nota**: `pro-scouting.ts` tiene su propia descomposición para display (no alimenta inferencia RP) — fuera de alcance aquí.
+
+## 30. Fix M6: reliability de scouts = precisión de entradas propias (reemplaza LOO marginal)
+- **Fecha**: 08 Jul 2026
+- **Contexto**: Auditoría detectó que `runGroundTruthValidation` usaba dos escalas incompatibles: path LOO (señal = 0.5 + marginal/2, centrada en 0.5 = "sin impacto") vs fallback single-scout (señal = 1 − error, escala de precisión). Un scout perfecto convergía a 1.0 solo pero a 0.5 acompañado de un compañero igual de bueno → la reliability medía cobertura, no habilidad. Peor: la redundancia es la NORMA del modelo federado, así que a mejor cobertura, todos los marginales → 0 y todas las reliabilities decaían hacia 0.5. Además: entradas super-scouting entraban a la atribución (super solo → error ~100% falso → señal ~0) y entradas anónimas sesgaban el baseline sin recibir nunca señal.
+- **Decisión** (v3 del diseño; v1 = pooled, v2 = LOO de decisión #24):
+    - Señal única para todos: `signal = 1 − reconstructAllianceError(entradas propias del scout)`. Mismo estimando y misma fórmula solo o acompañado.
+    - Entradas super-scouting excluidas de la atribución por completo (espejo del filtro de `aggregateMatchTeam`); su reliability no se mueve aquí.
+    - Entradas anónimas: cuentan solo para el display de error de consenso, nunca generan señal.
+    - Lógica extraída a `computeAllianceSignals()` (pura, exportada, testeada); `marginalToSignal` eliminada.
+- **Razón**: la reliability se consume como PESO en el consenso federado (peso = reliability × confidence) — el estimando correcto es confiabilidad de los datos propios, no contribución única de información. Preserva la meta de equidad de #24 (el ruido del pool no te castiga: te juzgan solo tus datos) mejor que el propio LOO (cuyo marginal dependía de la composición del pool). EWMA y α sin cambios. 8 tests nuevos en `ground-truth-validation.test.ts`; 5 fallan contra el algoritmo viejo (verificado).
+- **Nota**: esto re-alcanza el ítem de backlog "Marginal accuracy v2: weight por contribución share" — la contribución share ya no es la métrica de reliability; si se quiere un leaderboard de "quién aporta más información", sería una métrica separada de la reliability-peso.
+
+## 29. Fix C6: estadísticas del blend bayesiano divididas por conteo filtrado
+- **Fecha**: 08 Jul 2026
+- **Contexto**: Auditoría detectó que `calculateTeamProjection` usaba `n = scoutingEntries.length` (todas las entradas) para dividir estadísticas calculadas solo sobre entradas objetivas (el loop salta super-scouting). Con 1 match + 2 supers, el guard `n>=2` dejaba pasar `variance([x]) = Infinity` → la única observación real se descartaba en silencio y la proyección colapsaba al prior API. Con supers presentes, `scoutMean` quedaba subestimado (÷ n en vez de ÷ scoredCount).
+- **Decisión**:
+    - Introducir `scoredCount = scoutedScores.length`; toda estadística objetiva (media, varianza, posterior, reliability) usa `scoredCount`. `n` queda solo para el modificador subjetivo driverSkill (los supers legítimamente lo aportan).
+    - `reliability` ahora se basa en observaciones objetivas: entradas solo-super → "low" (antes 2 supers daban "medium").
+    - Breakdown: si todas las observaciones puntúan 0, cae al split API/default en vez de producir breakdown todo-cero junto a projectedPoints > 0 (el viejo guard `|| 1`).
+    - Confianza: CV divide por `hybridBase` (pre-multiplicador) en vez de `projectedTotal` — el multiplicador escala media y sd por igual, así que la penalización mecánica ya no deflacta la confianza.
+- **Razón**: correctitud estadística; el descarte silencioso de datos reales era el peor síntoma. Tests de regresión en `lib/projections.test.ts` (24 tests; 3 fallan contra el código viejo, verificado).
+- **Pendiente de calibración**: el comentario de `driverSkillImpact` dice "capped ±7.5%" pero el código produce ±15% en los extremos Likert. Comportamiento preservado tal cual; decidir cuál es el intencional.
+
+## 28. Inconsistencia de season default en page-level fallbacks
+- **Fecha**: 24 May 2026
+- **Contexto**: Bug latente: `app/page.tsx` defaulteaba a `getCurrentSeason()` (calendar-aware) pero `/event/[code]` y `/analytics` hardcoded `|| 2024`. Al rolar `getCurrentSeason()` a 2025, click en eventos 2025 desde home → 404 en `/event/[code]`.
+- **Decisión**: Alinear todos los page-level defaults a `getCurrentSeason()`. Event page acepta `?season=` URL param explícito. Si evento no se encuentra en season primaria, fallback automático a `[primary, current, primary-1, primary+1]` antes de mostrar 404. EventList agrega `?season={N}` al href.
+- **Razón**: Cookie expira, links se comparten, cambio de año rompe acceso a temporadas anteriores. La búsqueda multi-season es robustez sin costo.

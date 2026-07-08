@@ -1,6 +1,6 @@
 "use client";
 
-import { TeamRanking } from "@/types/ftc";
+import { TeamRanking } from "@/types/scouting";
 import { Users, Search, Building2, MapPin } from "lucide-react";
 import { useState, useMemo } from "react";
 import clsx from "clsx";

@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const getFirebaseConfig = () => {
@@ -38,24 +38,26 @@ const firebaseConfig = getFirebaseConfig();
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-// Enable offline persistence for Firestore
-// This helps for offline scouting at events
-if (typeof window !== "undefined") {
-    // initialize persistence only on client side
-    // We catch errors because it might fail if multiple tabs are open
-    import("firebase/firestore").then(({ enableIndexedDbPersistence }) => {
-        enableIndexedDbPersistence(db).catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.warn("Multiple tabs open, persistence can only be enabled in one tab at a a time.");
-            } else if (err.code == 'unimplemented') {
-                console.warn("The current browser does not support all of the features required to enable persistence");
-            }
-        });
+// Optimize Firestore for server vs client
+let db: ReturnType<typeof getFirestore>;
+
+if (typeof window === "undefined") {
+    // SERVER SIDE: Force long-polling to avoid gRPC connection issues in Node/NextJS environments
+    const { initializeFirestore, terminate } = require("firebase/firestore");
+    db = initializeFirestore(app, {
+        experimentalForceLongPolling: true,
     });
+} else {
+    // CLIENT SIDE
+    db = getFirestore(app);
+}
 
-    // Initialize Analytics
+// Offline persistence handled by Dexie (lib/localDatabase.ts) for scouting data,
+// and by Upstash Redis (server-side) for analytical cache. We intentionally do NOT
+// enable Firestore IndexedDB persistence — it caches the entire api_cache collection
+// in the browser (hundreds of MB) and crashes mobile devices.
+if (typeof window !== "undefined") {
     isSupported().then((yes) => {
         if (yes) {
             getAnalytics(app);

@@ -1,5 +1,77 @@
 import { TeamEvolution } from "@/app/actions/analytics";
 import { Alliance, PlayoffMatch } from "@/types/oracle";
+import { winProbabilityFromNormalModel } from "@/lib/win-probability";
+
+// --- Per-team sigma estimation ---
+
+const SIGMA_MIN = 8;   // floor — even a "consistent" team has some match noise
+const SIGMA_MAX = 60;  // cap — prevents pathological tails in Monte Carlo
+const SIGMA_FALLBACK = 30; // legacy default when we lack any historical signal
+
+/**
+ * Estimates per-team score sigma from event history. Two paths in priority:
+ *
+ *  1. If the team played 2+ events, use the between-event sample stddev of
+ *     `avgPoints`. This captures real "how consistent are they event-to-event"
+ *     behavior. Sample stddev (Bessel's correction with n-1) because we have
+ *     a sample, not the population.
+ *
+ *  2. If only 1 event is on record, fall back to `(maxPoints - avgPoints) / 2`
+ *     as a rough range/2 estimate. Less accurate but better than σ=30 global.
+ *
+ *  3. No events → fallback to 30 (legacy global).
+ *
+ * Always clamps to [SIGMA_MIN, SIGMA_MAX] to keep simulation behavior sane.
+ *
+ * Limitations:
+ *  - Between-event variance is an upper-bound proxy for within-event match
+ *    variance. A team that's consistent within events but improves across
+ *    them will get a higher sigma than is "true" match-to-match. Acceptable
+ *    tradeoff; the data we'd need for true within-event variance (per-match
+ *    scores) isn't surfaced in TeamEvolution.
+ */
+export function computeTeamSigma(team: TeamEvolution): number {
+    const events = team.events ?? [];
+
+    if (events.length >= 2) {
+        const avgs = events
+            .map(e => e.avgPoints)
+            .filter(p => typeof p === "number" && p > 0);
+        if (avgs.length >= 2) {
+            const mean = avgs.reduce((a, b) => a + b, 0) / avgs.length;
+            const sumSquares = avgs.reduce((s, v) => s + (v - mean) ** 2, 0);
+            const variance = sumSquares / (avgs.length - 1);
+            return clamp(Math.sqrt(variance), SIGMA_MIN, SIGMA_MAX);
+        }
+    }
+
+    if (events.length === 1) {
+        const e = events[0];
+        const avg = e.avgPoints ?? 0;
+        const max = e.maxPoints ?? avg;
+        if (avg > 0) {
+            const rangeHalf = Math.abs(max - avg) / 2;
+            return clamp(rangeHalf, SIGMA_MIN, SIGMA_MAX);
+        }
+    }
+
+    return SIGMA_FALLBACK;
+}
+
+/**
+ * Combines per-team sigmas into an alliance sigma, assuming the per-team
+ * contributions are independent (uncorrelated). Variance adds; stddev is
+ * sqrt of the sum. Same identity used by Statbotics for alliance-level
+ * EPA variance.
+ */
+export function combineSigmas(sigmas: number[]): number {
+    const sumOfSquares = sigmas.reduce((acc, s) => acc + s * s, 0);
+    return Math.sqrt(sumOfSquares);
+}
+
+function clamp(x: number, lo: number, hi: number): number {
+    return Math.max(lo, Math.min(hi, x));
+}
 
 // --- Alliance Generation Logic ---
 
@@ -9,7 +81,7 @@ import { Alliance, PlayoffMatch } from "@/types/oracle";
  * Alliance 2 gets the best possible partners from the remaining pool.
  * And so on.
  */
-export function generateAlliances(teams: TeamEvolution[], count: 4 | 6 | 8): Alliance[] {
+export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8): Alliance[] {
     const availableTeams = [...teams];
     const alliances: Alliance[] = [];
 
@@ -53,6 +125,8 @@ export function generateAlliances(teams: TeamEvolution[], count: 4 | 6 | 8): All
         const totalAuto = members.reduce((sum, t) => sum + (t.autoOPR || 0), 0);
         // Tele is OPR - Auto roughly
         const totalTele = members.reduce((sum, t) => sum + ((t.opr || 0) - (t.autoOPR || 0)), 0);
+        // Per-team sigmas combined assuming independent contributions.
+        const totalSigma = combineSigmas(members.map(t => computeTeamSigma(t)));
 
         alliances.push({
             id: i,
@@ -63,7 +137,8 @@ export function generateAlliances(teams: TeamEvolution[], count: 4 | 6 | 8): All
             totalAuto,
             totalTele,
             totalEndgame: 0,
-            projectedScore: totalOPR
+            projectedScore: totalOPR,
+            totalSigma,
         });
     }
 
@@ -93,10 +168,18 @@ function calculateSynergyScore(t1: TeamEvolution, t2: TeamEvolution): number {
 
 // --- Playoff Bracket Logic ---
 
-export function initializeBracket(type: 4 | 6 | 8): PlayoffMatch[] {
+// --- Playoff Bracket Logic ---
+
+export function initializeBracket(type: 2 | 4 | 6 | 8): PlayoffMatch[] {
     const matches: PlayoffMatch[] = [];
 
-    if (type === 4) {
+    if (type === 2) {
+        // Finals Best of 3
+        // Start directly with Alliance 1 vs Alliance 2
+        matches.push({ id: "M1", name: "Finals 1", nextMatchWinner: undefined, nextMatchLoser: undefined, redAllianceId: 1, blueAllianceId: 2, winProbabilityRed: 0.5, winnerId: null, overriddenWinnerId: null });
+        matches.push({ id: "M2", name: "Finals 2", nextMatchWinner: undefined, nextMatchLoser: undefined, redAllianceId: 1, blueAllianceId: 2, winProbabilityRed: 0.5, winnerId: null, overriddenWinnerId: null });
+        matches.push({ id: "M3", name: "Finals 3 (If Needed)", nextMatchWinner: undefined, nextMatchLoser: undefined, redAllianceId: 1, blueAllianceId: 2, winProbabilityRed: 0.5, winnerId: null, overriddenWinnerId: null });
+    } else if (type === 4) {
         // Semi-Finals
         matches.push({ id: "M1", name: "Semi-Final 1", nextMatchWinner: "M3", nextMatchLoser: "M4", redAllianceId: 1, blueAllianceId: 4, winProbabilityRed: 0.5, winnerId: null, overriddenWinnerId: null });
         matches.push({ id: "M2", name: "Semi-Final 2", nextMatchWinner: "M3", nextMatchLoser: "M4", redAllianceId: 2, blueAllianceId: 3, winProbabilityRed: 0.5, winnerId: null, overriddenWinnerId: null });
@@ -171,8 +254,8 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[]): P
     const updatedMatches = [...matches];
     const matchMap = new Map(updatedMatches.map(m => [m.id, m]));
 
-    // Determine bracket type based on match count
-    const bracketType = matches.length === 6 ? 4 : matches.length === 10 ? 6 : matches.length === 14 ? 8 : 4;
+    // Determine bracket type
+    const bracketType = matches.length === 3 ? 2 : matches.length === 6 ? 4 : matches.length === 10 ? 6 : 8;
 
     // Helper to get winner ID
     const getWinner = (m: PlayoffMatch): number | null => {
@@ -188,6 +271,43 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[]): P
         if (w === m.redAllianceId) return m.blueAllianceId;
         return m.redAllianceId;
     };
+
+    // Special logic for Best of 3 (Type 2)
+    if (bracketType === 2) {
+        // Calculate Win Prob for M1
+        ['M1', 'M2', 'M3'].forEach(id => {
+            const m = matchMap.get(id);
+            if (!m) return;
+            // Always A1 vs A2
+            const red = allianceMap.get(1);
+            const blue = allianceMap.get(2);
+            if (red && blue) {
+                m.winProbabilityRed = calculateWinProbability(red, blue);
+                m.redAllianceId = 1;
+                m.blueAllianceId = 2;
+                m.winnerId = getWinner(m);
+            }
+        });
+
+        // Determine Champion
+        const wins1 = updatedMatches.filter(m => m.winnerId === 1).length;
+        const wins2 = updatedMatches.filter(m => m.winnerId === 2).length;
+
+        // If someone has 2 wins, they are the champion.
+        // But the simulator logic usually looks at the "last match winner".
+        // For BO3, we can consider M3 as the "Decider" if needed, or M2 if 2-0.
+        // Effectively, the M3 winner is the series winner ONLY if played.
+
+        // Simulating the Series Logic for the visuals/propagation isn't strictly needed for the static bracket
+        // unless we want to grey out M3 if M1 & M2 are same winner.
+        if (updatedMatches[0].winnerId && updatedMatches[0].winnerId === updatedMatches[1].winnerId) {
+            // Sweep 2-0
+            updatedMatches[2].winnerId = null; // M3 not played
+            updatedMatches[2].winProbabilityRed = 0.5; // Reset prob display?
+        }
+
+        return updatedMatches;
+    }
 
     // Propagate
     // We iterate multiple times to ensure flow (simple approach for DAG)
@@ -234,7 +354,7 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[]): P
 }
 
 // Logic to determine if a team goes to Red or Blue in the next match
-function setSlotInNextMatch(nextMatch: PlayoffMatch, teamId: number, sourceMatchId: string, type: 4 | 6 | 8) {
+function setSlotInNextMatch(nextMatch: PlayoffMatch, teamId: number, sourceMatchId: string, type: 2 | 4 | 6 | 8) {
     const key = `${sourceMatchId}_${nextMatch.id}`;
     let slot: 'red' | 'blue' | undefined;
 
@@ -279,15 +399,24 @@ function setSlotInNextMatch(nextMatch: PlayoffMatch, teamId: number, sourceMatch
 }
 
 
+/**
+ * Analytic win probability for the static bracket, from the shared model in
+ * lib/win-probability.ts.
+ *
+ * Uses the normal score-noise entry point with the SAME per-alliance sigmas
+ * the Monte Carlo simulation samples from (getSimulatedScore), so the
+ * analytic bracket probability and the simulated championship odds are two
+ * views of one model instead of two disagreeing formulas. (Previously this
+ * was an Elo base-10 curve with a fixed 80-point divisor — unscaled to the
+ * season's score level and inconsistent with both projections.ts and the
+ * simulator in this very file.)
+ */
 function calculateWinProbability(red: Alliance, blue: Alliance): number {
-    const spread = (red.totalOPR - blue.totalOPR); // e.g. 50
-    // Logistic function: https://en.wikipedia.org/wiki/Elo_rating_system#Theory
-    // P = 1 / (1 + 10^(-diff/400))
-    // Scaling: 50 points in FTC is huge. 400 is for Chess.
-    // FTC spread of 100 points is basically 100%. 
-    // Let's use divisor 80.
-
-    return 1 / (1 + Math.pow(10, -spread / 80));
+    const sigmaDiff = combineSigmas([
+        red.totalSigma || SIGMA_FALLBACK,
+        blue.totalSigma || SIGMA_FALLBACK,
+    ]);
+    return winProbabilityFromNormalModel(red.totalOPR, blue.totalOPR, sigmaDiff);
 }
 
 // --- Monte Carlo Simulation ---
@@ -298,7 +427,7 @@ export interface SimulationResult {
     finalsProbability: number; // 0-1
 }
 
-export function runMonteCarloSimulation(alliances: Alliance[], type: 4 | 6 | 8, iterations: number = 2000): SimulationResult[] {
+export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 | 8, iterations: number = 2000): SimulationResult[] {
     const championCounts: Record<number, number> = {};
     const finalsCounts: Record<number, number> = {};
 
@@ -324,9 +453,9 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 4 | 6 | 8, 
                     const red = allianceMap.get(match.redAllianceId)!;
                     const blue = allianceMap.get(match.blueAllianceId)!;
 
-                    // Simulate Match
-                    const redScore = getSimulatedScore(red.totalOPR);
-                    const blueScore = getSimulatedScore(blue.totalOPR);
+                    // Simulate Match — per-alliance sigma derived from team variance.
+                    const redScore = getSimulatedScore(red.totalOPR, red.totalSigma);
+                    const blueScore = getSimulatedScore(blue.totalOPR, blue.totalSigma);
 
                     match.winnerId = redScore > blueScore ? match.redAllianceId : match.blueAllianceId;
 
@@ -346,7 +475,33 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 4 | 6 | 8, 
 
         // Record Stats
         // Champion is winner of last match
-        const finalMatchId = type === 4 ? 'M6' : type === 6 ? 'M10' : 'M14';
+        // For type 2 (Best of 3), M2 or M3 determines the winner, but our `initializeBracket` creates 3 matches.
+        // In this simple boolean simulation, if M1 and M2 same winner, series over. If split, M3 winner is champion.
+        // Or simpler: count match wins.
+        let finalMatchId = type === 2 ? 'M2' : type === 4 ? 'M6' : type === 6 ? 'M10' : 'M14';
+
+        if (type === 2) {
+            const m1 = matchMap.get('M1');
+            const m2 = matchMap.get('M2');
+            const m3 = matchMap.get('M3');
+
+            // Count wins
+            let wins: Record<number, number> = {};
+            [m1, m2, m3].forEach(m => {
+                if (m?.winnerId) wins[m.winnerId] = (wins[m.winnerId] || 0) + 1;
+            });
+
+            // Find who has 2 wins
+            const champ = Object.keys(wins).find(id => wins[Number(id)] >= 2);
+            if (champ) {
+                championCounts[Number(champ)]++;
+                // Finalists are always 1 and 2
+                finalsCounts[1]++;
+                finalsCounts[2]++;
+            }
+            continue; // Skip standard logic for type 2
+        }
+
         const finalMatch = matchMap.get(finalMatchId);
         if (finalMatch?.winnerId) {
             championCounts[finalMatch.winnerId]++;
@@ -364,8 +519,16 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 4 | 6 | 8, 
     })).sort((a, b) => b.championProbability - a.championProbability);
 }
 
+// Box-Muller transform: returns a sample from N(mean, sigma²). Falls back to
+// σ=30 when sigma is missing or zero (e.g. empty alliances during manual setup
+// before any team is picked). Per-alliance sigma comes from combineSigmas of
+// per-team variance (see computeTeamSigma).
 function getSimulatedScore(mean: number, sigma: number = 30) {
-    const u1 = Math.random();
+    if (!sigma || sigma <= 0) sigma = 30;
+    // 1 − random() ∈ (0, 1]: Math.random() can return exactly 0, and
+    // log(0) = −Infinity would corrupt the sample (and that iteration's
+    // comparison). log(1) = 0 is harmless (z = 0).
+    const u1 = 1 - Math.random();
     const u2 = Math.random();
     const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
     return mean + z * sigma;

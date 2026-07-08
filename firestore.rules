@@ -1,0 +1,160 @@
+rules_version = '2';
+
+// Federated scouting rules — implements the visibility model from
+// docs/architecture/collaborative-scouting-model.md §4 and §5.
+//
+// Sprint 1.6: hardened from the placeholder rules. Now enforces:
+//   - match_scouting writes carry the writer's actual orgId (from users/{uid})
+//   - org create writes only by the document creator
+//   - invite redemption increments use counter without rewriting other fields
+//
+// Still TODO (Sprint 1.7+): per-event subscription gating for reads. Today any
+// authed user can read all match_scouting in any event.
+
+service cloud.firestore {
+    match /databases/{database}/documents {
+
+        function isAuthed() {
+            return request.auth != null;
+        }
+
+        function myUserDoc() {
+            return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+        }
+
+        function myOrgId() {
+            return myUserDoc().orgId;
+        }
+
+        function myRole() {
+            return myUserDoc().role;
+        }
+
+        function isOrgAdminOrLead() {
+            return myRole() == 'admin' || myRole() == 'lead';
+        }
+
+        // Users: a user reads/writes their own profile only. The orgId field
+        // is mutable so onboarding (setUserOrg) and invite redemption work.
+        match /users/{uid} {
+            allow read, write: if request.auth.uid == uid;
+        }
+
+        // Orgs: any authed user can read (to look up team names in UI). Org
+        // creation is open — the creator is recorded as createdBy. Subsequent
+        // mutations require lead/admin membership of the same org.
+        //
+        // IMPORTANT: do NOT put sensitive fields here — Firestore rules can't
+        // field-mask reads. Webhooks, API keys, etc. belong in /org_secrets.
+        match /orgs/{orgId} {
+            allow read: if isAuthed();
+            allow create: if isAuthed()
+                && request.resource.data.createdBy == request.auth.uid;
+            allow update, delete: if isAuthed()
+                && myOrgId() == orgId
+                && isOrgAdminOrLead();
+        }
+
+        // Org secrets: admin/lead-only. Server actions use the admin SDK
+        // which bypasses rules; client reads are blocked entirely so the
+        // webhook URL never leaks via Firestore queries.
+        match /org_secrets/{orgId} {
+            allow read, write: if isAuthed()
+                && myOrgId() == orgId
+                && isOrgAdminOrLead();
+        }
+
+        // Invites: code lookups are public-by-auth (any authed user can read
+        // by exact id) so redemption works. Listing is blocked elsewhere by
+        // not exposing list queries. Creation requires lead/admin of the
+        // creating org. Only the `uses` counter is updatable (the redeem path
+        // increments it).
+        match /org_invites/{code} {
+            allow get: if isAuthed();
+            allow list: if false;
+            allow create: if isAuthed()
+                && request.resource.data.orgId == myOrgId()
+                && isOrgAdminOrLead()
+                && request.resource.data.createdBy == request.auth.uid;
+            allow update: if isAuthed()
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses']);
+            allow delete: if isAuthed()
+                && resource.data.orgId == myOrgId()
+                && isOrgAdminOrLead();
+        }
+
+        // Event subscriptions: any authed user reads; writes require lead/admin.
+        match /event_subscriptions/{subId} {
+            allow read: if isAuthed();
+            allow write: if isAuthed()
+                && request.resource.data.orgId == myOrgId()
+                && isOrgAdminOrLead();
+        }
+
+        // Match scouting (federated):
+        //   - Anyone authed can read (Sprint 1.7 will scope by event subscription).
+        //   - Writers must set scoutId == their uid and orgId == their actual org.
+        //     This prevents impersonation across orgs.
+        //   - No updates after the fact. Re-scout = new entry. Audit trail.
+        match /match_scouting/{entryId} {
+            allow read: if isAuthed();
+            allow create: if isAuthed()
+                && request.resource.data.scoutId == request.auth.uid
+                && request.resource.data.orgId == myOrgId();
+            allow update, delete: if false;
+        }
+
+        // Pit scouting: any authed user reads (the public summary is included
+        // alongside private fields — Sprint 1.7 will split into public/private
+        // views via Firestore subcollections or denormalized public docs).
+        // Writes restricted to the doc's own org members.
+        match /pit_scouting/{pitId} {
+            allow read: if isAuthed();
+            allow create: if isAuthed()
+                && request.resource.data.orgId == myOrgId();
+            allow update: if isAuthed()
+                && resource.data.orgId == myOrgId();
+            allow delete: if isAuthed()
+                && resource.data.orgId == myOrgId()
+                && isOrgAdminOrLead();
+        }
+
+        // Team profiles (Virtual Pit): public read, write only by the team itself.
+        // The team's "owner" is the org whose teamNumber matches.
+        match /team_profiles/{profileId} {
+            allow read: if isAuthed();
+            allow write: if isAuthed()
+                && string(request.resource.data.teamNumber) == myOrgId();
+        }
+
+        // Picklists: one document per (org, event), real-time-synced for
+        // collaborative alliance selection. Read/write restricted to the
+        // owning org so other orgs can't snoop on each other's strategy.
+        match /picklists/{picklistId} {
+            allow read: if isAuthed() && resource.data.orgId == myOrgId();
+            allow create: if isAuthed()
+                && request.resource.data.orgId == myOrgId()
+                && request.resource.data.createdBy == request.auth.uid;
+            allow update: if isAuthed()
+                && resource.data.orgId == myOrgId();
+            allow delete: if isAuthed()
+                && resource.data.orgId == myOrgId()
+                && isOrgAdminOrLead();
+        }
+
+        // Calibration log: per-org. Reads/writes restricted to the owning org.
+        match /calibration_log/{entryId} {
+            allow read: if isAuthed()
+                && resource.data.orgId == myOrgId();
+            allow create: if isAuthed()
+                && request.resource.data.orgId == myOrgId();
+            allow update, delete: if false;
+        }
+
+        // Legacy Firestore-based api_cache. We migrated to Upstash Redis;
+        // these rules block further reads/writes so the collection gets retired.
+        match /api_cache/{key} {
+            allow read, write: if false;
+        }
+    }
+}

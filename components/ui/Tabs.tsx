@@ -19,7 +19,13 @@ export function Tabs({ defaultValue, children, className }: { defaultValue: stri
 
 export function TabsList({ children, className }: { children: React.ReactNode, className?: string }) {
     return (
-        <div className={clsx("flex p-1 bg-white/5 rounded-lg border border-white/10", className)}>
+        <div
+            role="tablist"
+            className={clsx(
+                "flex p-1 bg-white/5 rounded-lg border border-white/10 overflow-x-auto",
+                className,
+            )}
+        >
             {children}
         </div>
     );
@@ -30,11 +36,19 @@ export function TabsTrigger({ value, children, className }: { value: string, chi
     const isActive = activeValue === value;
     return (
         <button
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            data-state={isActive ? "active" : "inactive"}
             onClick={() => onValueChange(value)}
             className={clsx(
-                "px-4 py-2 rounded-md text-sm font-bold transition-all",
-                isActive ? "bg-primary text-white shadow-lg" : "text-gray-400 hover:text-white hover:bg-white/5",
-                className
+                // WCAG 2.1 AA touch target: 44px min height for tablet/mobile use.
+                "min-h-[44px] px-4 py-2 rounded-md text-sm font-bold transition-all whitespace-nowrap",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                isActive
+                    ? "bg-primary text-white shadow-lg"
+                    : "text-gray-400 hover:text-white hover:bg-white/5 active:bg-white/10",
+                className,
             )}
         >
             {children}
@@ -46,7 +60,15 @@ export function TabsContent({ value, children, className }: { value: string, chi
     const { value: activeValue } = React.useContext(TabsContext);
     if (activeValue !== value) return null;
     return (
-        <div className={clsx("mt-4", className)}>
+        <div
+            role="tabpanel"
+            // Fade-in keyframe defined in app/globals.css via tw `animate-in fade-in`.
+            // Slight upward motion adds perceived snappiness without distracting.
+            className={clsx(
+                "mt-4 animate-in fade-in-0 slide-in-from-bottom-1 duration-200",
+                className,
+            )}
+        >
             {children}
         </div>
     );

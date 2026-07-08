@@ -1,24 +1,56 @@
 import { fetchMatches, fetchRankings, fetchEvents, fetchAdvancement, fetchEventAwards, fetchAdvancementPoints } from "@/lib/ftc-api";
+import { getCurrentSeason } from "@/lib/constants";
 import EventViewManager from "@/components/event/EventViewManager";
 import EventStats from "@/components/event/EventStats";
 import { cookies } from "next/headers";
 
 interface EventPageProps {
     params: Promise<{ eventCode: string }>;
+    searchParams: Promise<{ season?: string }>;
 }
 
 export default async function EventPage(props: EventPageProps) {
     const params = await props.params;
+    const searchParams = await props.searchParams;
     const { eventCode } = params;
 
     const cookieStore = await cookies();
-    const season = Number(cookieStore.get("ftc_season")?.value || 2024);
+    // Resolution order: ?season= URL param (explicit from a link), then the
+    // user's cookie, then getCurrentSeason() (which knows about the FTC
+    // Sept-Aug calendar). Hardcoded 2024 was the previous fallback and caused
+    // "Event Not Found" once getCurrentSeason rolled to 2025.
+    const explicitSeason = searchParams?.season ? Number(searchParams.season) : undefined;
+    const cookieSeason = Number(cookieStore.get("ftc_season")?.value);
+    const primarySeason = explicitSeason || cookieSeason || getCurrentSeason();
 
-    // Fetch dynamic events for this season to get the correct name
-    const allEvents = await fetchEvents(season);
-    const event = allEvents.find(
+    // Try the primary season first; if the event isn't there, fall back to
+    // the adjacent seasons (last + next) so users following old links / cookies
+    // still find their event instead of hitting a 404.
+    const candidateSeasons = Array.from(
+        new Set([primarySeason, getCurrentSeason(), primarySeason - 1, primarySeason + 1]),
+    );
+
+    let season = primarySeason;
+    let allEvents = await fetchEvents(season);
+    let event = allEvents.find(
         (e) => e.code.toLowerCase() === (eventCode || "").toLowerCase()
     );
+
+    if (!event) {
+        for (const candidate of candidateSeasons) {
+            if (candidate === primarySeason) continue;
+            const events = await fetchEvents(candidate);
+            const found = events.find(
+                (e) => e.code.toLowerCase() === (eventCode || "").toLowerCase()
+            );
+            if (found) {
+                event = found;
+                season = candidate;
+                allEvents = events;
+                break;
+            }
+        }
+    }
 
     if (!event) {
         return (
@@ -28,7 +60,12 @@ export default async function EventPage(props: EventPageProps) {
                 </div>
                 <h1 className="text-3xl font-bold mb-2">Event Not Found</h1>
                 <p className="text-muted-foreground max-w-md">
-                    We couldn&apos;t find event <span className="text-primary font-mono">{eventCode}</span> in the <span className="text-foreground font-bold">{season}</span> season records.
+                    No encontramos el evento <span className="text-primary font-mono">{eventCode}</span> en las temporadas{" "}
+                    <span className="text-foreground font-bold">{candidateSeasons.join(", ")}</span>.
+                </p>
+                <p className="text-muted-foreground text-xs mt-2 max-w-md">
+                    Si sabes a qué temporada pertenece, prueba la URL{" "}
+                    <code className="text-primary">/event/{eventCode}?season=AÑO</code>.
                 </p>
             </div>
         );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting } from "@/types/ftc";
+import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting } from "@/types/scouting";
 import clsx from "clsx";
 import { Trophy, Zap, Star, Hash, Info, Target, MousePointer2, AlertTriangle } from "lucide-react";
 
@@ -593,8 +593,11 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
             avgAuto: rank?.sortOrder4 || 0, // This is Matches Played in Rank, not Avg Auto. Need recalculation or trust rankings map
             // Note: sortOrder meaning varies. Standard: 1=RP, 2=TBP1, 3=TBP2. 
             // In our earlier code we mapped sortOrder2 as NP Average.
-            scoutedAuto: matchScouting?.autoPoints,
-            scoutedTele: matchScouting ? (matchScouting.teleopPurpleArtifacts + matchScouting.teleopGreenArtifacts) : undefined, // Rough estimate
+            scoutedAuto: (matchScouting as FTCMatchScouting)?.autoPoints,
+            scoutedTele: matchScouting
+                ? ((matchScouting as FTCMatchScouting).teleopPurpleArtifacts ?? 0) +
+                  ((matchScouting as FTCMatchScouting).teleopGreenArtifacts ?? 0)
+                : undefined,
             hasScouting: !!matchScouting
         };
     };
@@ -651,23 +654,26 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
                                             <div className="text-[10px] text-muted-foreground font-bold uppercase">{stats.name}</div>
                                         </div>
                                         <div className="text-right">
-                                            {stats.hasScouting ? (
-                                                <div className="flex gap-4">
-                                                    <div>
-                                                        <span className="block text-[8px] text-slate-400 uppercase">Auto</span>
-                                                        <span className="font-mono font-bold text-sm">{stats.scoutedAuto}</span>
+                                            {scoutingData.map((sdItem, i) => {
+                                                const sd = sdItem as FTCMatchScouting;
+                                                const autoTotal = (sd.autoPurpleArtifacts ?? 0) + (sd.autoGreenArtifacts ?? 0);
+                                                const teleTotal = (sd.teleopPurpleArtifacts ?? 0) + (sd.teleopGreenArtifacts ?? 0);
+                                                const parking = sd.endgameBaseParking ?? 'None';
+                                                return (
+                                                    <div key={i} className="flex justify-between items-center text-xs py-1 px-2 border-b border-primary/10">
+                                                        <span className="text-gray-400 truncate max-w-[100px]">{sd.scoutName ?? sd.scouterName}</span>
+                                                        <div className="flex gap-2 text-white font-mono">
+                                                            <span className={autoTotal > 0 ? "text-green-400" : ""}>A:{autoTotal}</span>
+                                                            <span>T:{teleTotal}</span>
+                                                            <span className={parking !== 'None' ? "text-primary" : ""}>E:{parking.substring(0, 1)}</span>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <span className="block text-[8px] text-slate-400 uppercase">Tele</span>
-                                                        <span className="font-mono font-bold text-sm">~{stats.scoutedTele}</span>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <span className="block text-[8px] text-slate-400 uppercase">Season NP Avg</span>
-                                                    <span className="font-mono font-bold text-sm text-slate-600">{stats.opr.toFixed(1)}</span>
-                                                </div>
-                                            )}
+                                                );
+                                            })}
+                                            <div>
+                                                <span className="block text-[8px] text-slate-400 uppercase">Season NP Avg</span>
+                                                <span className="font-mono font-bold text-sm text-slate-600">{stats.opr.toFixed(1)}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 );

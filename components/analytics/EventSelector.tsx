@@ -1,6 +1,6 @@
 "use client";
 
-import { FTCEvent } from "@/types/ftc";
+import { FTCEvent } from "@/types/scouting";
 import { Check, Calendar } from "lucide-react";
 import clsx from "clsx";
 

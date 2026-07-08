@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AggregatedTeamStats } from "@/types/ftc";
+import { AggregatedTeamStats } from "@/types/scouting";
 import { Card } from "./ui/Card";
-import { motion } from "framer-motion";
 import { ArrowUpDown, Search, Trophy, Star, Calculator } from "lucide-react";
 import { clsx } from "clsx";
 import Link from "next/link";
@@ -71,9 +70,9 @@ export default function StatsTable({ data }: StatsTableProps) {
         <Card className="w-full overflow-hidden p-0 bg-card border-border">
             <div className="pt-4 pb-4 px-4 border-b border-border flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h2 className="text-2xl font-bold font-display text-foreground flex items-center gap-2">
+                    <h2 className="text-xl md:text-2xl font-bold font-display text-foreground flex items-center gap-2">
                         {viewMode === 'qualification' ? <Trophy className="text-primary" /> : <Calculator className="text-secondary" />}
-                        {viewMode === 'qualification' ? 'Rankings de Clasificación' : 'Reporte de Avance'}
+                        {viewMode === 'qualification' ? 'Rankings' : 'Reporte de Avance'}
                     </h2>
 
                     <div className="flex bg-muted rounded-lg p-1 border border-border">
@@ -113,7 +112,7 @@ export default function StatsTable({ data }: StatsTableProps) {
                     <button
                         onClick={() => setShowAdvancedOnly(!showAdvancedOnly)}
                         className={clsx(
-                            "flex items-center gap-2 px-6 py-3 rounded-xl border font-bold transition-all whitespace-nowrap",
+                            "flex items-center justify-center gap-2 px-6 py-3 rounded-xl border font-bold transition-all whitespace-nowrap w-full md:w-auto",
                             showAdvancedOnly
                                 ? "bg-secondary/10 border-secondary/30 text-secondary shadow-lg shadow-secondary/10"
                                 : "bg-muted border-border text-muted-foreground hover:text-foreground hover:bg-muted/80"
@@ -182,11 +181,8 @@ export default function StatsTable({ data }: StatsTableProps) {
                     </thead>
                     <tbody className="divide-y divide-border/50">
                         {filteredData.map((team, index) => (
-                            <motion.tr
+                            <tr
                                 key={team.teamNumber}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: index * 0.05 }}
                                 className={clsx(
                                     "transition-colors group",
                                     team.hasAdvanced ? "bg-secondary/5 hover:bg-secondary/10" : "hover:bg-muted/30"
@@ -242,7 +238,7 @@ export default function StatsTable({ data }: StatsTableProps) {
                                         ))}
                                     </div>
                                 </td>
-                            </motion.tr>
+                            </tr>
                         ))}
                     </tbody>
                 </table>

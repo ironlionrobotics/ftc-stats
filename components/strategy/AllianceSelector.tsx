@@ -1,19 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AggregatedTeamStats, MatchScouting } from "@/types/ftc";
+import { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
 import { Card } from "@/components/ui/Card";
 import { Search, Plus, X, Trash2, Filter, Star, Zap, Sparkles, Bot } from "lucide-react";
 import { listenToMatchScouting } from "@/lib/scouting-service";
-import { useSeason } from "@/context/SeasonContext";
+import { useProgram } from "@/lib/stores/program-store";
+import { FTCMatchScouting } from "@/types/scouting";
 import clsx from "clsx";
+import { toast } from "sonner";
 
 interface AllianceSelectorProps {
     teams: AggregatedTeamStats[];
 }
 
 export default function AllianceSelector({ teams }: AllianceSelectorProps) {
-    const { season } = useSeason();
+    const { season } = useProgram();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedTeams, setSelectedTeams] = useState<AggregatedTeamStats[]>([]);
     const [scoutingEntries, setScoutingEntries] = useState<MatchScouting[]>([]);
@@ -33,8 +35,11 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
         const teamEntries = scoutingEntries.filter(e => e.teamNumber === teamNumber);
         if (teamEntries.length === 0) return null;
 
-        const avgSkill = teamEntries.reduce((acc, e) => acc + e.driverSkill, 0) / teamEntries.length;
-        const avgSamples = teamEntries.reduce((acc, e) => acc + ((e.teleopPurpleArtifacts + e.teleopGreenArtifacts) + (e.autoPurpleArtifacts + e.autoGreenArtifacts)), 0) / teamEntries.length;
+        const avgSkill = teamEntries.reduce((acc, e) => acc + (e.driverSkill ?? 3), 0) / teamEntries.length;
+        const avgSamples = teamEntries.reduce((acc, match) => {
+            const e = match as FTCMatchScouting;
+            return acc + ((e.teleopPurpleArtifacts || 0) + (e.teleopGreenArtifacts || 0)) + ((e.autoPurpleArtifacts || 0) + (e.autoGreenArtifacts || 0))
+        }, 0) / teamEntries.length;
 
         return {
             avgSkill,
@@ -60,7 +65,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
 
     const addToAlliance = (team: AggregatedTeamStats) => {
         if (selectedTeams.length >= 3) {
-            alert("Alliance full (Top 3)");
+            toast.warning("Alliance full (Top 3)");
             return;
         }
         setSelectedTeams([...selectedTeams, team]);

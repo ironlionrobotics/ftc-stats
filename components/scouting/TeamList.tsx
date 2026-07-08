@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AggregatedTeamStats, ScoutingData } from "@/types/ftc";
+import { AggregatedTeamStats, ScoutingData } from "@/types/scouting";
 import { Search } from "lucide-react";
 import clsx from "clsx";
 

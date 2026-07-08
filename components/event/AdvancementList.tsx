@@ -1,4 +1,4 @@
-import { AdvancementResponse, AdvancementPoints, TeamRanking } from "@/types/ftc";
+import { AdvancementResponse, AdvancementPoints, TeamRanking } from "@/types/scouting";
 import { MoveRight, Star, AlertCircle, TrendingUp, Award, Play } from "lucide-react";
 
 interface AdvancementListProps {

@@ -6,9 +6,9 @@ export default async function StrategyPage() {
     const cookieStore = await cookies();
     const season = Number(cookieStore.get("ftc_season")?.value || 2024);
 
-    const teams = await getAggregatedStats(season);
+    const { teamStats } = await getAggregatedStats(season);
 
     return (
-        <StrategyClient teams={teams} />
+        <StrategyClient teams={teamStats} />
     );
 }

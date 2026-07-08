@@ -1,11 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { FTCEvent } from "@/types/ftc";
+import dynamic from "next/dynamic";
+import { FTCEvent } from "@/types/scouting";
 import { analyzeMultipleEvents, EventAnalysisData, TeamEvolution } from "@/app/actions/analytics";
 import EventSelector from "./EventSelector";
-import ComparisonView from "./ComparisonView";
 import { Loader2, Play } from "lucide-react";
+
+// ComparisonView pulls Recharts (~200KB raw). Lazy-load it so the Data Lab
+// entry page is cheap; chart only downloads when the user picks events and
+// hits "Run Analysis".
+const ComparisonView = dynamic(() => import("./ComparisonView"), {
+    ssr: false,
+    loading: () => (
+        <div className="p-12 text-center text-gray-400 text-sm">Cargando análisis...</div>
+    ),
+});
 
 interface AnalyticsDashboardProps {
     initialEvents: FTCEvent[];

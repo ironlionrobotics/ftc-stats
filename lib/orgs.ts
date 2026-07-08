@@ -1,0 +1,238 @@
+import type { User } from "firebase/auth";
+import {
+    collection,
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    serverTimestamp,
+    increment,
+    Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { Org, AppUser, OrgInvite, OrgProgram } from "@/types/orgs";
+
+// Until the user document is loaded from Firestore we fall back to this org.
+// Production users always have a real orgId via users/{uid}.orgId; this
+// default exists for (a) non-React server contexts that don't carry a user
+// doc, and (b) brand-new auth states that haven't completed onboarding yet
+// (in which case writes should be blocked at the UI layer, but the cache
+// would otherwise return undefined).
+export const DEFAULT_ORG_ID = "30311";
+
+// Email → orgId overrides, useful in dev so multiple Gmail accounts can simulate
+// distinct orgs without going through the onboarding flow. Keys are lowercased.
+const EMAIL_ORG_OVERRIDES: Record<string, string> = {
+    // populated as needed for testing federated scenarios
+};
+
+const USERS_COLLECTION = "users";
+const ORGS_COLLECTION = "orgs";
+const INVITES_COLLECTION = "org_invites";
+
+// ---------------------------------------------------------------------------
+// Synchronous helpers — operate on the Firebase Auth user object only.
+// Forms in client components should prefer useAuth().orgId (Sprint 1.6+),
+// but server actions and non-React code can use this as a fallback.
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns a best-effort org id derived from the Firebase Auth user only.
+ * Used when no Firestore-loaded user doc is available (server actions,
+ * pre-onboarding writes). Once the user has completed onboarding their
+ * canonical orgId lives in users/{uid}.orgId — clients should read that
+ * via useAuth() instead of this helper.
+ */
+export function getCurrentOrgId(user: User | null | undefined): string {
+    if (!user) return DEFAULT_ORG_ID;
+    const email = user.email?.toLowerCase();
+    if (email && EMAIL_ORG_OVERRIDES[email]) return EMAIL_ORG_OVERRIDES[email];
+    return DEFAULT_ORG_ID;
+}
+
+export function scoutIdFromUser(user: User): string {
+    return user.uid;
+}
+
+export function scoutNameFromUser(user: User): string {
+    return user.displayName || user.email || "Anonymous";
+}
+
+// ---------------------------------------------------------------------------
+// User document lifecycle
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads users/{uid}, creating the doc on first sight. The created doc has
+ * `orgId: null` so the AuthContext can trigger onboarding.
+ *
+ * This function is idempotent — calling it on every auth state change is safe
+ * and only writes when the doc doesn't already exist.
+ */
+export async function loadOrCreateUserDoc(user: User): Promise<AppUser> {
+    const ref = doc(db, USERS_COLLECTION, user.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+        return { id: user.uid, ...(snap.data() as Omit<AppUser, "id">) };
+    }
+    // First-time login — create the bare doc.
+    const seed: Omit<AppUser, "id"> = {
+        email: user.email ?? "",
+        displayName: user.displayName ?? user.email ?? "Anonymous",
+        orgId: null,
+        role: "scout",
+        reliability: 1.0,
+        matchesScouted: 0,
+        createdAt: Timestamp.now(),
+    };
+    await setDoc(ref, seed);
+    return { id: user.uid, ...seed };
+}
+
+/** Re-reads the user doc from Firestore. Used after onboarding mutations. */
+export async function refreshUserDoc(uid: string): Promise<AppUser | null> {
+    const snap = await getDoc(doc(db, USERS_COLLECTION, uid));
+    if (!snap.exists()) return null;
+    return { id: uid, ...(snap.data() as Omit<AppUser, "id">) };
+}
+
+// ---------------------------------------------------------------------------
+// Org creation / membership
+// ---------------------------------------------------------------------------
+
+export interface CreateOrgInput {
+    teamNumber: number;
+    displayName: string;
+    program: OrgProgram;
+    region?: string;
+}
+
+/**
+ * Creates an org if it doesn't already exist and assigns the creating user to
+ * it as `admin`. Org ids are the team number stringified, which makes lookups
+ * intuitive and prevents two competing "Iron Lions" orgs from forming.
+ *
+ * If the org already exists, the caller is added as a `scout` member (you can
+ * still join an existing team by typing its team number, which is friendly).
+ */
+export async function createOrJoinOrgByTeamNumber(
+    user: User,
+    input: CreateOrgInput,
+): Promise<Org> {
+    const orgId = String(input.teamNumber);
+    const orgRef = doc(db, ORGS_COLLECTION, orgId);
+    const existing = await getDoc(orgRef);
+
+    if (!existing.exists()) {
+        const org: Omit<Org, "id"> = {
+            teamNumber: input.teamNumber,
+            displayName: input.displayName,
+            program: input.program,
+            region: input.region,
+            createdAt: Timestamp.now(),
+            createdBy: user.uid,
+        };
+        await setDoc(orgRef, org);
+        await setUserOrg(user.uid, orgId, "admin");
+        return { id: orgId, ...org };
+    }
+
+    // Existing org — join as a regular scout.
+    await setUserOrg(user.uid, orgId, "scout");
+    return { id: orgId, ...(existing.data() as Omit<Org, "id">) };
+}
+
+/** Assigns the user to an org with a specific role. */
+export async function setUserOrg(uid: string, orgId: string, role: AppUser["role"]): Promise<void> {
+    const userRef = doc(db, USERS_COLLECTION, uid);
+    await updateDoc(userRef, { orgId, role });
+}
+
+// ---------------------------------------------------------------------------
+// Invites
+// ---------------------------------------------------------------------------
+
+// 6-char alphanumeric code, omitting visually ambiguous characters (0/O, 1/I/L).
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const CODE_LENGTH = 6;
+
+function generateCode(): string {
+    let out = "";
+    for (let i = 0; i < CODE_LENGTH; i++) {
+        out += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+    }
+    return out;
+}
+
+export interface CreateInviteInput {
+    /** Days until the invite expires. Defaults to 7. */
+    expiresInDays?: number;
+    /** Max number of uses. Null = unlimited. Defaults to null. */
+    maxUses?: number | null;
+}
+
+/**
+ * Generates a short-code invite for an org. Retries a few times on the
+ * astronomically unlikely event of a collision with an existing code.
+ */
+export async function createInvite(
+    user: User,
+    orgId: string,
+    input: CreateInviteInput = {},
+): Promise<OrgInvite> {
+    const days = input.expiresInDays ?? 7;
+    const maxUses = input.maxUses ?? null;
+    const expiresAt = Timestamp.fromMillis(Date.now() + days * 24 * 60 * 60 * 1000);
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const code = generateCode();
+        const ref = doc(db, INVITES_COLLECTION, code);
+        const existing = await getDoc(ref);
+        if (existing.exists()) continue;
+        const invite: Omit<OrgInvite, "code"> = {
+            orgId,
+            createdBy: user.uid,
+            createdAt: Timestamp.now(),
+            expiresAt,
+            uses: 0,
+            maxUses,
+        };
+        await setDoc(ref, invite);
+        return { code, ...invite };
+    }
+    throw new Error("No se pudo generar código único después de varios intentos");
+}
+
+/**
+ * Looks up an invite by its short code and, if valid (exists, not expired,
+ * within max uses), assigns the user to the invite's org and bumps the use
+ * counter atomically(-ish — we do increment + assign in two calls; under
+ * concurrent abuse the maxUses cap can be exceeded by 1, which is acceptable).
+ */
+export async function redeemInvite(user: User, rawCode: string): Promise<Org> {
+    const code = rawCode.trim().toUpperCase();
+    const ref = doc(db, INVITES_COLLECTION, code);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+        throw new Error("Código de invitación no encontrado");
+    }
+    const invite = snap.data() as Omit<OrgInvite, "code">;
+
+    const expiresAt = invite.expiresAt?.seconds ?? 0;
+    if (expiresAt > 0 && expiresAt * 1000 < Date.now()) {
+        throw new Error("Este código de invitación ya expiró");
+    }
+    if (invite.maxUses !== null && invite.uses >= invite.maxUses) {
+        throw new Error("Este código de invitación alcanzó el límite de usos");
+    }
+
+    const orgSnap = await getDoc(doc(db, ORGS_COLLECTION, invite.orgId));
+    if (!orgSnap.exists()) {
+        throw new Error("El equipo asociado a esta invitación ya no existe");
+    }
+
+    await updateDoc(ref, { uses: increment(1) });
+    await setUserOrg(user.uid, invite.orgId, "scout");
+
+    return { id: invite.orgId, ...(orgSnap.data() as Omit<Org, "id">) };
+}

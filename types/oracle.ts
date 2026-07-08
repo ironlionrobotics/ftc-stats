@@ -10,6 +10,12 @@ export interface Alliance {
     totalTele: number;
     totalEndgame: number;
     projectedScore: number;
+    /**
+     * Per-alliance score sigma for Monte Carlo simulation. Computed as
+     * sqrt(Σ σ_team²) assuming independent team contributions.
+     * Replaces the previous σ=30 global default.
+     */
+    totalSigma: number;
 }
 
 export type PlayoffMatchType = 'Winner' | 'Loser' | 'Final';
