@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { chatWithAssistant } from "@/app/actions/ai";
+import { useAuth } from "@/context/AuthContext";
 import { Bot, Send, X, MessageSquare, ChevronDown, Sparkles, RefreshCcw } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export default function AssistantChat() {
+    const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
         { role: 'assistant', content: "Hello! I'm your FTC Strategy Assistant. I can help you analyze matches or pick alliance partners." }
@@ -33,13 +35,25 @@ export default function AssistantChat() {
         setLoading(true);
 
         try {
+            // The assistant action now requires a verified Firebase ID token.
+            if (!user) {
+                setMessages(prev => [...prev, { role: 'assistant', content: "Inicia sesión para usar el asistente de estrategia." }]);
+                return;
+            }
+            const idToken = await user.getIdToken();
+
             const contextData = {
                 page: pathname,
                 timestamp: new Date().toISOString(),
             };
 
             // Pass the existing conversation history to maintain context
-            const response = await chatWithAssistant(userMsg, contextData, currentHistory);
+            const response = await chatWithAssistant({
+                idToken,
+                message: userMsg,
+                contextData,
+                history: currentHistory,
+            });
             setMessages(prev => [...prev, { role: 'assistant', content: response.content }]);
         } catch (error) {
             console.error("Chat Error:", error);
@@ -47,7 +61,7 @@ export default function AssistantChat() {
         } finally {
             setLoading(false);
         }
-    }, [loading, pathname, messages]);
+    }, [loading, pathname, messages, user]);
 
     useEffect(() => {
         const handleOpenChat = (e: CustomEvent<{ message?: string, context?: any }>) => {
