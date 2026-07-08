@@ -150,6 +150,15 @@ Este documento registra el "por qué" detrás de las elecciones técnicas para e
 - **Decisión**: Colecciones separadas: `orgs/{orgId}` (público entre authed), `org_secrets/{orgId}` (admin/lead-only). Pit scouting: `notes` privado por docId scoped al org, `publicSummary` opt-in para cross-org.
 - **Razón**: Estructural en lugar de UI-level — un cliente malicioso no puede leer secretos ni con queries arbitrarias.
 
+## 35. Fix M4 + M5: hardening de RBAC de orgs y DoS de analytics
+- **Fecha**: 08 Jul 2026
+- **M4 (membresía de orgs)**: `users/{uid}` era `allow read, write: if request.auth.uid == uid` → un cliente podía auto-asignarse cualquier `orgId`/`role` (hacerse admin/lead de org rival, inflar su propia `reliability`). Dos capas de fix:
+    - **Reglas** (`firestore.rules`): `update` de `users/{uid}` ahora exige rol *sin cambio* O `admin` solo de una org que creaste (`orgs/{id}.createdBy == uid`); `lead` nunca auto-asignable; `reliability`/`matchesScouted` congelados para el cliente (los escribe el flujo ground-truth vía Admin SDK). Razonado que ambos flujos de onboarding pasan (crear org → admin; redimir invitación → rol scout sin cambio). **DEBE testearse post `firebase deploy --only firestore:rules`** en proyecto dev (no hay emulador en el entorno de dev de esta sesión).
+    - **Código**: `createOrJoinOrgByTeamNumber` ahora es create-only; unirse a org existente por número lanza error y dirige a invitación.
+    - **Residual (fuera de alcance, follow-up)**: unirse como *scout* a una org ajena escribiendo tu propio `orgId` sigue permitido por la rama "rol sin cambio" — para cerrarlo, la redención de invitación debe migrar a un server-action Admin-SDK y la regla prohibir client-set de `orgId` a org ajena. Cierra el vector 2 (leer picklists/estrategia rival). El vector 1 (escalación de privilegios) y el tampering de reliability ya quedan cerrados.
+- **M5 (analytics DoS)**: `analyzeMultipleEvents` tenía `forceRefresh` controlado por cliente → saltaba caché y forzaba el fan-out completo a la FTC API en cada llamada. Removido de la firma (ningún cliente lo usaba). `eventCodes` ahora se sanea (dedup + cap 30 + drop de vacíos) vía `lib/analytics-guards.ts`. `getAvailableEvents` des-exportado (dejaba de ser endpoint RPC callable). Data Lab sigue siendo ruta pública por diseño (CLAUDE.md) — no se añadió auth; el cierre del bypass de caché + acotar input basta para el DoS.
+- **Tests**: `analytics-guards.test.ts` (5), `orgs.membership.test.ts` (2, con regresión verificada del bare-join). Reglas: solo validación de sintaxis/razonamiento — requieren emulador para test real.
+
 ## 34. Fix C5: escrituras de match scouting idempotentes (id determinista)
 - **Fecha**: 08 Jul 2026
 - **Contexto**: `saveMatchScouting` usaba `addDoc` (id auto de Firestore, no idempotente). En `OnlineSync.drain` la secuencia era `saveMatchScouting` → `markAsSynced`; si el proceso se interrumpía entre ambos (tab cerrada, crash, red que cae tras el commit pero antes del ack), la fila Dexie seguía pendiente y se re-drenaba → **documento duplicado**. Mismo riesgo en re-escaneo de QR y retry de TanStack.

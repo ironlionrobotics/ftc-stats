@@ -34,10 +34,44 @@ service cloud.firestore {
             return myRole() == 'admin' || myRole() == 'lead';
         }
 
-        // Users: a user reads/writes their own profile only. The orgId field
-        // is mutable so onboarding (setUserOrg) and invite redemption work.
+        // Users: a user reads/writes their own profile only.
+        //
+        // M4 hardening. `users/{uid}` is self-writable (onboarding needs it),
+        // which previously let a client self-assign any orgId/role — becoming
+        // admin/lead of a rival org, or inflating their own reliability weight.
+        // Updates are now constrained:
+        //   - role: unchanged, OR become `admin` ONLY of an org you created
+        //     (verified via orgs/{orgId}.createdBy). `lead` can never be
+        //     self-assigned. This blocks privilege escalation.
+        //   - reliability / matchesScouted: owned by the ground-truth server
+        //     flow (Admin SDK, which bypasses rules); the client may never edit
+        //     them, so a scout can't self-inflate their aggregation weight.
+        // The legit onboarding paths still pass:
+        //   - Create org → setUserOrg(admin): role scout→admin + orgs/{id}.createdBy==uid ✓
+        //   - Redeem invite → setUserOrg(scout): role unchanged (scout→scout) ✓
+        //
+        // NOTE (residual): joining an existing org as a plain `scout` by writing
+        // your own orgId is still permitted by the "role unchanged" branch. That
+        // path must move to an Admin-SDK server action (invite redemption) so the
+        // rule can forbid client-set orgId to a foreign org — see decisions.md.
+        // MUST be tested after `firebase deploy --only firestore:rules`: run both
+        // onboarding paths (create org, redeem invite) on a dev project.
         match /users/{uid} {
-            allow read, write: if request.auth.uid == uid;
+            allow read: if request.auth.uid == uid;
+            allow create: if request.auth.uid == uid;
+            allow update: if request.auth.uid == uid
+                && (
+                    request.resource.data.role == resource.data.role
+                    || (
+                        request.resource.data.role == 'admin'
+                        && request.resource.data.orgId != null
+                        && exists(/databases/$(database)/documents/orgs/$(request.resource.data.orgId))
+                        && get(/databases/$(database)/documents/orgs/$(request.resource.data.orgId)).data.createdBy == request.auth.uid
+                    )
+                )
+                && request.resource.data.reliability == resource.data.reliability
+                && request.resource.data.matchesScouted == resource.data.matchesScouted;
+            allow delete: if false;
         }
 
         // Orgs: any authed user can read (to look up team names in UI). Org

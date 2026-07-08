@@ -108,12 +108,15 @@ export interface CreateOrgInput {
 }
 
 /**
- * Creates an org if it doesn't already exist and assigns the creating user to
- * it as `admin`. Org ids are the team number stringified, which makes lookups
- * intuitive and prevents two competing "Iron Lions" orgs from forming.
+ * Creates a NEW org for the given team number and makes the caller its `admin`.
+ * Org ids are the team number stringified, so lookups are intuitive and two
+ * competing "Iron Lions" orgs can't form.
  *
- * If the org already exists, the caller is added as a `scout` member (you can
- * still join an existing team by typing its team number, which is friendly).
+ * M4: this function only CREATES. Joining an *existing* org must go through an
+ * invite code (redeemInvite), never a bare team number — otherwise anyone could
+ * enroll into a rival team's org and read its private strategy (picklists, pit
+ * notes). The Firestore rule on users/{uid} is the real boundary (a client
+ * can't self-elevate role there); this keeps the UI aligned with that model.
  */
 export async function createOrJoinOrgByTeamNumber(
     user: User,
@@ -123,23 +126,23 @@ export async function createOrJoinOrgByTeamNumber(
     const orgRef = doc(db, ORGS_COLLECTION, orgId);
     const existing = await getDoc(orgRef);
 
-    if (!existing.exists()) {
-        const org: Omit<Org, "id"> = {
-            teamNumber: input.teamNumber,
-            displayName: input.displayName,
-            program: input.program,
-            region: input.region,
-            createdAt: Timestamp.now(),
-            createdBy: user.uid,
-        };
-        await setDoc(orgRef, org);
-        await setUserOrg(user.uid, orgId, "admin");
-        return { id: orgId, ...org };
+    if (existing.exists()) {
+        throw new Error(
+            "Ese equipo ya tiene un espacio. Pide un código de invitación a un admin o lead del equipo para unirte.",
+        );
     }
 
-    // Existing org — join as a regular scout.
-    await setUserOrg(user.uid, orgId, "scout");
-    return { id: orgId, ...(existing.data() as Omit<Org, "id">) };
+    const org: Omit<Org, "id"> = {
+        teamNumber: input.teamNumber,
+        displayName: input.displayName,
+        program: input.program,
+        region: input.region,
+        createdAt: Timestamp.now(),
+        createdBy: user.uid,
+    };
+    await setDoc(orgRef, org);
+    await setUserOrg(user.uid, orgId, "admin");
+    return { id: orgId, ...org };
 }
 
 /** Assigns the user to an org with a specific role. */

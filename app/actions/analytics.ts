@@ -4,6 +4,7 @@ import { fetchMatches, fetchRankings, fetchEvents, fetchEventAwards, fetchMatchS
 import { FTCMatch, TeamRanking, FTCAward } from "@/types/scouting";
 import { allianceScoreComponents, inferTeamRpProbability } from "@/lib/rp-inference";
 import { getRpModelAction } from "./train-rp-models";
+import { sanitizeEventCodes } from "@/lib/analytics-guards";
 
 export interface EventAnalysisData {
     eventCode: string;
@@ -52,14 +53,24 @@ export interface TeamEvolution {
     rpPattern?: number; // 0-1 probability
 }
 
-export async function getAvailableEvents(season: number) {
+// Internal helper — deliberately NOT exported (M5). Exporting it from a
+// "use server" module would make it a callable RPC endpoint (an unauthenticated
+// amplifier against our FTC_API_KEY). It's only used to resolve the event list
+// for an analysis run.
+async function getAvailableEvents(season: number) {
     const events = await fetchEvents(season);
     return events.sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime());
 }
 
-export async function analyzeMultipleEvents(season: number, eventCodes: string[], maxMatchesPerTeam?: number, forceRefresh = false) {
-    const sortedCodes = [...eventCodes].sort().join('_');
-    // Using a hash if strings get too long? Firestore limit is 1500 bytes for ID. 
+export async function analyzeMultipleEvents(season: number, eventCodes: string[], maxMatchesPerTeam?: number) {
+    // M5 hardening. `forceRefresh` was removed from the signature: it let any
+    // caller bypass the cache and force the full multi-event FTC-API fan-out on
+    // every request (compute/quota DoS). eventCodes is deduped and length-capped
+    // so a single request can't fan out unbounded; junk codes are already inert
+    // because the fan-out only iterates events that exist in `allEvents`.
+    const codes = sanitizeEventCodes(eventCodes);
+    const sortedCodes = [...codes].sort().join('_');
+    // Using a hash if strings get too long? Firestore limit is 1500 bytes for ID.
     // 20 events * 10 chars = 200 chars. Totally fine.
     const cacheKey = `analytics_v2_${season}_${sortedCodes}_${maxMatchesPerTeam || 'all'}`;
 
@@ -71,7 +82,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
 
     // If ANY event is active or very recent (last 3 days), use short TTL
     const isAnyActive = allEvents.some(e => {
-        if (!eventCodes.includes(e.code)) return false;
+        if (!codes.includes(e.code)) return false;
 
         const start = new Date(e.dateStart);
         const end = new Date(e.dateEnd || e.dateStart);
@@ -88,12 +99,10 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
         ttl = 60; // 60s for active events
     }
 
-    if (!forceRefresh) {
-        const cachedResult = await getCachedData<any>(cacheKey, ttl);
-        if (cachedResult) {
-            console.log(`[Analytics] Serving cached analysis for ${sortedCodes} (TTL: ${ttl}s)`);
-            return cachedResult;
-        }
+    const cachedResult = await getCachedData<any>(cacheKey, ttl);
+    if (cachedResult) {
+        console.log(`[Analytics] Serving cached analysis for ${sortedCodes} (TTL: ${ttl}s)`);
+        return cachedResult;
     }
 
     console.log(`[Analytics] Cache miss. Computing for ${sortedCodes} (TTL: ${ttl}s)`);
@@ -114,7 +123,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
 
 
     const selectedEvents = allEvents
-        .filter(e => eventCodes.includes(e.code))
+        .filter(e => codes.includes(e.code))
         .sort((a, b) => {
             const dateA = new Date(a.dateStart || 0).getTime();
             const dateB = new Date(b.dateStart || 0).getTime();
