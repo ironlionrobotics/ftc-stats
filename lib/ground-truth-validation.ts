@@ -194,7 +194,7 @@ export function computeAllianceSignals(
 /**
  * Runs ground-truth validation for an event using per-scout own-entry accuracy.
  *
- *   1. Pulls all match_scouting entries for (season, eventCode).
+ *   1. Pulls the caller org's match_scouting entries for (season, eventCode).
  *   2. Pulls official matches from the FTC API (via cached fetchMatches).
  *   3. For each played match × each alliance with objective scout coverage,
  *      computes each scout's own-entry reconstruction error vs the official
@@ -203,19 +203,35 @@ export function computeAllianceSignals(
  *      A scout whose observations track the official scores converges toward
  *      1.0; a scout whose observations are consistently off converges toward 0.
  *
+ * SECURITY (C4). Scoped to a single `orgId` — the caller's own org. The query
+ * is filtered by orgId so only that org's entries are read, and the user-doc
+ * update is additionally gated on the target user's CURRENT orgId matching.
+ * Without this, an admin/lead of one org could pass any eventCode and overwrite
+ * the reliability of scouts in OTHER orgs (cross-tenant integrity / IDOR), since
+ * reliability feeds every org's federated aggregation weighting. Because the M6
+ * reliability signal is own-entry accuracy (independent of other orgs' data),
+ * org-scoping changes no scout's computed signal — it only bounds who is read
+ * and written.
+ *
  * FTC scoring formula remains approximate (RP-only mechanics not counted).
  */
 export async function runGroundTruthValidation(
     season: number,
     eventCode: string,
+    orgId: string,
 ): Promise<ValidationReport> {
     const db = getAdminDb();
 
-    // 1. Pull scouting entries.
+    // 1. Pull THIS ORG's scouting entries only. Equality-only multi-field
+    // query — Firestore serves it via single-field index merge, no composite
+    // index required. Entries missing orgId (pre-Sprint-1 legacy) are excluded
+    // by the equality filter, which is the safe default: an un-attributed entry
+    // must not let any org trigger reliability writes.
     const scoutingSnap = await db
         .collection("match_scouting")
         .where("season", "==", season)
         .where("eventCode", "==", eventCode)
+        .where("orgId", "==", orgId)
         .get();
     const entries: MatchScouting[] = scoutingSnap.docs.map(
         d => ({ id: d.id, ...d.data() }) as MatchScouting,
@@ -281,6 +297,12 @@ export async function runGroundTruthValidation(
         if (!userSnap.exists) continue;
 
         const data = userSnap.data() ?? {};
+        // Defensive cross-tenant guard: never write a user doc whose CURRENT
+        // org differs from the org being validated. The query already scopes
+        // entries to `orgId`, but a scout who has since moved orgs would still
+        // have old entries under this org — updating their now-foreign user doc
+        // would be a cross-org write. Skip them.
+        if (data.orgId !== orgId) continue;
         const reliabilityBefore = typeof data.reliability === "number" ? data.reliability : 1.0;
         const matchesScoutedBefore = typeof data.matchesScouted === "number" ? data.matchesScouted : 0;
 

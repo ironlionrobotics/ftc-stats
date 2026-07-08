@@ -150,6 +150,15 @@ Este documento registra el "por qué" detrás de las elecciones técnicas para e
 - **Decisión**: Colecciones separadas: `orgs/{orgId}` (público entre authed), `org_secrets/{orgId}` (admin/lead-only). Pit scouting: `notes` privado por docId scoped al org, `publicSummary` opt-in para cross-org.
 - **Razón**: Estructural en lugar de UI-level — un cliente malicioso no puede leer secretos ni con queries arbitrarias.
 
+## 33. Fix C4: ground-truth validation scopeada por org (IDOR cross-tenant)
+- **Fecha**: 08 Jul 2026
+- **Contexto**: `validateGroundTruthAction` verificaba rol (admin/lead) pero llamaba `runGroundTruthValidation(season, eventCode)` sin scope de org. La función escribía `users/{scoutId}.reliability` de TODO scout que apareciera en (season, eventCode), cross-org. Un admin/lead de la org A podía pasar cualquier eventCode y sobrescribir la reliability de scouts de orgs B, C… — y la reliability pondera la agregación federada de todos, así que envenenaba analítica ajena.
+- **Decisión**: `runGroundTruthValidation` ahora recibe `orgId` (tercer parámetro obligatorio). Dos capas:
+    1. La query de `match_scouting` filtra por `orgId` (solo-igualdad de 3 campos → merge de índices de campo único, sin índice compuesto nuevo). Entradas sin orgId (legacy pre-Sprint-1) quedan excluidas — un dato no atribuible no debe permitir writes de reliability a ninguna org.
+    2. Guard defensivo en el update: solo escribe el user doc si su `orgId` ACTUAL coincide — bloquea el caso de un scout que cambió de org (sus entradas viejas siguen bajo la org anterior).
+    Como la señal de reliability es precisión de entradas propias (M6, decisión #30), el scope no cambia ninguna señal calculada; solo acota qué se lee y escribe.
+- **Razón**: aislamiento cross-tenant. Tests de integración en `ground-truth-validation.orgscope.test.ts` con Firestore falso (2 tests; ambos fallan contra la versión sin scope, verificado).
+
 ## 32. Unificación de win-probability: un modelo, dos entradas (lib/win-probability.ts)
 - **Fecha**: 08 Jul 2026
 - **Contexto**: Coexistían dos fórmulas para la misma cantidad: logística k=1.5 normalizada por avgScore (`projections.ts`, decisión #23) y Elo base-10 con divisor fijo 80 (`alliance-utils.ts`). El mismo matchup mostraba probabilidades distintas en tabs distintos (ej. spread 30 con σ=20: 0.86 vs 0.70), y el divisor 80 no escala con el nivel de puntaje de la temporada. Además el bracket analítico del Oracle contradecía a su propio Monte Carlo.

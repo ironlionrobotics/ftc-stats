@@ -34,13 +34,18 @@ export async function validateGroundTruthAction(input: {
 
     const userSnap = await getAdminDb().collection("users").doc(uid).get();
     if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
-    const role = userSnap.data()?.role;
+    const userData = userSnap.data() ?? {};
+    const role = userData.role;
     if (role !== "admin" && role !== "lead") {
         return { ok: false, error: "Solo admins/leads pueden ejecutar validación" };
     }
+    // Scope the run to the caller's own org (C4): reliability writes must never
+    // reach scouts of other orgs. runGroundTruthValidation filters by this orgId.
+    const orgId = userData.orgId as string | undefined;
+    if (!orgId) return { ok: false, error: "Sin equipo asignado" };
 
     try {
-        const report = await runGroundTruthValidation(season, eventCode);
+        const report = await runGroundTruthValidation(season, eventCode, orgId);
         return { ok: true, report };
     } catch (e) {
         const message = e instanceof Error ? e.message : "Error desconocido";
