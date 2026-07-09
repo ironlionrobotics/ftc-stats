@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { FTCEvent } from "@/types/scouting";
 import { Calendar, MapPin, ChevronRight, Filter } from "lucide-react";
-import clsx from "clsx";
 
 interface EventListProps {
     events: (FTCEvent & { abbr?: string })[];

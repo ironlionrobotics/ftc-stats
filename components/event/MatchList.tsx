@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting } from "@/types/scouting";
 import clsx from "clsx";
-import { Trophy, Zap, Star, Hash, Info, Target, MousePointer2, AlertTriangle } from "lucide-react";
+import { Trophy, Zap, Star, Info, Target, MousePointer2, AlertTriangle } from "lucide-react";
 
 interface MatchListProps {
     matches: FTCMatch[];
@@ -59,7 +59,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
         });
 
         // Solve Ax = B using Gauss-Seidel (In-place updates for convergence)
-        let x = new Float64Array(n).fill(0);
+        const x = new Float64Array(n).fill(0);
         for (let iter = 0; iter < 100; iter++) {
             for (let i = 0; i < n; i++) {
                 let sum = 0;
@@ -132,8 +132,6 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
             else stats.ties++;
         });
     }
-
-    const winRate = stats.count > 0 ? (stats.wins / stats.count) * 100 : 0;
 
     // Derived OPR Stats
     const opr = filterTeam ? (oprData.overall.get(filterTeam) || 0) : 0;
@@ -460,7 +458,7 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
         try {
             const date = new Date(timeStr);
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
+        } catch {
             return null;
         }
     };

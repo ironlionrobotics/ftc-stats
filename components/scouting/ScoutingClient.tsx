@@ -27,7 +27,7 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
     );
     const [pitData, setPitData] = useState<PitScouting | null>(null);
     const [matchScoutingEntries, setMatchScoutingEntries] = useState<MatchScouting[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [, setLoading] = useState(false);
 
     // Load this org's pit scouting record for the selected team. Other orgs'
     // public summaries (if any) are surfaced inside ScoutingForm via the

@@ -1,11 +1,9 @@
 import type { User } from "firebase/auth";
 import {
-    collection,
     doc,
     getDoc,
     setDoc,
     updateDoc,
-    serverTimestamp,
     increment,
     Timestamp,
 } from "firebase/firestore";

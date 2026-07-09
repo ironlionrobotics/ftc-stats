@@ -2,7 +2,7 @@
 
 import { TeamSeasonStats } from "@/app/actions/pro-scouting";
 import { generateSpyLinks } from "@/lib/utils";
-import { ExternalLink, Youtube, Instagram, Database, BarChart2, TrendingUp, AlertTriangle } from "lucide-react";
+import { Youtube, Instagram, Database } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 
@@ -12,7 +12,7 @@ interface TeamAnalysisCardProps {
 }
 
 export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps) {
-    const spyLinks = generateSpyLinks((stats as any).teamNumber, (stats as any).teamName);
+    const spyLinks = generateSpyLinks(stats.teamNumber, stats.teamName);
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
@@ -28,11 +28,11 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                             </span>
                         )}
                         <h3 className="text-lg font-black text-slate-800 leading-none">
-                            {(stats as any).teamNumber}
+                            {stats.teamNumber}
                         </h3>
                     </div>
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wide truncate max-w-[180px]">
-                        {(stats as any).teamName}
+                        {stats.teamName}
                     </div>
                 </div>
 

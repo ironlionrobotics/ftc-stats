@@ -11,23 +11,15 @@ import {
     Legend,
     ResponsiveContainer,
 } from "recharts";
-import { Card } from "@/components/ui/Card";
 import { EventAnalysisData, TeamEvolution } from "@/app/actions/analytics";
 import {
     TrendingUp,
-    ArrowUpRight,
-    ArrowDownRight,
-    Minus,
-    Trophy,
-    Star,
-    Zap,
     ChevronDown,
     ChevronRight,
     Sparkles,
     BarChart3
 } from "lucide-react";
 import clsx from "clsx";
-import Link from "next/link";
 import AlliancePredictor from "./AlliancePredictor";
 
 interface ComparisonViewProps {
@@ -188,7 +180,7 @@ export default function ComparisonView({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
-                            {sortedTeams.map((team, idx) => {
+                            {sortedTeams.map((team) => {
                                 const bestScore = Math.max(...team.events.map(e => e.maxPoints), 0);
                                 return (
                                     <React.Fragment key={team.teamNumber}>
@@ -307,7 +299,7 @@ export default function ComparisonView({
                                                                     <div className="text-4xl font-black text-foreground font-display tracking-tight">{team.powerScore.toFixed(1)}</div>
                                                                 </div>
                                                                 <div className="mt-4 text-xs text-muted-foreground italic">
-                                                                    "Proyección Nacional: #{team.projectedNationalRank ?? 'N/A'}. El equipo {team.teamNumber} muestra un desempeño sólido."
+                                                                    &quot;Proyección Nacional: #{team.projectedNationalRank ?? 'N/A'}. El equipo {team.teamNumber} muestra un desempeño sólido.&quot;
                                                                 </div>
                                                             </div>
                                                         </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { AggregatedTeamStats, MatchScouting, PitScouting } from "@/types/scouting";
 import { Card } from "@/components/ui/Card";
-import { Search, Plus, X, Swords, AlertTriangle, Zap, Percent } from "lucide-react";
+import { X, Swords, AlertTriangle, Zap, Percent } from "lucide-react";
 import { listenToMatchScouting, getPitScouting } from "@/lib/scouting-service";
 import { useProgram } from "@/lib/stores/program-store";
 import { calculateTeamProjection, predictMatch, MatchProjection, TeamProjection } from "@/lib/projections";
@@ -303,8 +303,8 @@ function AllianceBox({
             <div className="space-y-3">
                 {[0, 1].map(idx => {
                     const id = teams[idx];
-                    const team = id ? allTeams.find((t: any) => t.teamNumber === id) : null;
-                    const teamProj = projection?.teams.find((t: any) => t.teamNumber === id);
+                    const team = id ? allTeams.find((t: AggregatedTeamStats) => t.teamNumber === id) : null;
+                    const teamProj = projection?.teams.find((t: TeamProjection) => t.teamNumber === id);
 
                     return (
                         <div key={idx} className={clsx(

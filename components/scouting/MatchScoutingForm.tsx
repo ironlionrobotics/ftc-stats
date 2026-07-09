@@ -71,7 +71,7 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
             await clearPending();
             setPendingData([]);
             toast.success("Sincronización completada");
-        } catch (e) {
+        } catch {
             toast.error("Error al sincronizar", {
                 description: "Revisa tu conexión a internet",
             });

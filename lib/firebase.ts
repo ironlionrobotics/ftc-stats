@@ -44,7 +44,7 @@ let db: ReturnType<typeof getFirestore>;
 
 if (typeof window === "undefined") {
     // SERVER SIDE: Force long-polling to avoid gRPC connection issues in Node/NextJS environments
-    const { initializeFirestore, terminate } = require("firebase/firestore");
+    const { initializeFirestore } = require("firebase/firestore");
     db = initializeFirestore(app, {
         experimentalForceLongPolling: true,
     });

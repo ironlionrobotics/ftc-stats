@@ -1,10 +1,15 @@
 "use server";
 
 import { fetchMatches, fetchRankings, fetchEvents, fetchEventAwards, fetchMatchScores, getCachedData, setCachedData } from "@/lib/ftc-api";
-import { FTCMatch, TeamRanking, FTCAward } from "@/types/scouting";
+import { FTCMatch, TeamRanking, FTCAward, FTCEvent } from "@/types/scouting";
 import { allianceScoreComponents, inferTeamRpProbability } from "@/lib/rp-inference";
 import { getRpModelAction } from "./train-rp-models";
 import { sanitizeEventCodes } from "@/lib/analytics-guards";
+
+export interface EventAnalysisResult {
+    eventStats: EventAnalysisData[];
+    teamEvolution: TeamEvolution[];
+}
 
 export interface EventAnalysisData {
     eventCode: string;
@@ -99,7 +104,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
         ttl = 60; // 60s for active events
     }
 
-    const cachedResult = await getCachedData<any>(cacheKey, ttl);
+    const cachedResult = await getCachedData<EventAnalysisResult>(cacheKey, ttl);
     if (cachedResult) {
         console.log(`[Analytics] Serving cached analysis for ${sortedCodes} (TTL: ${ttl}s)`);
         return cachedResult;
@@ -140,7 +145,8 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
 
         const chunkResults = await Promise.all(chunk.map(async (event) => {
             const code = event.code;
-            const rawName = event.name || (event as any).eventName || (event as any).nameShort || code;
+            const eventWithLegacyNames = event as FTCEvent & { eventName?: string; nameShort?: string };
+            const rawName = event.name || eventWithLegacyNames.eventName || eventWithLegacyNames.nameShort || code;
 
             const eventName = rawName.replace("Torneo Regional ", "")
                 .replace("FTC ", "")
@@ -166,8 +172,23 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                 const redScoreData = matchScores.find(s => s.alliance.toLowerCase() === "red")?.scoreBreakdown || {};
                 const blueScoreData = matchScores.find(s => s.alliance.toLowerCase() === "blue")?.scoreBreakdown || {};
 
-                // Intelligent field extraction for different seasons
-                const getEndgame = (data: any) => {
+                // Intelligent field extraction for different seasons. The raw
+                // scoreBreakdown shape varies by season (CenterStage/IntoTheDeep/etc),
+                // so every field is optional here.
+                interface SeasonScoreBreakdown {
+                    endgamePoints?: number;
+                    endGamePoints?: number;
+                    parkingPoints?: number;
+                    dronePoints?: number;
+                    stagePoints?: number;
+                    ascentPoints?: number;
+                    hangPoints?: number;
+                    teleopPoints?: number;
+                    teleOpPoints?: number;
+                    dcPoints?: number;
+                }
+
+                const getEndgame = (data: SeasonScoreBreakdown) => {
                     // Try direct fields first
                     if (data.endgamePoints !== undefined) return data.endgamePoints;
                     if (data.endGamePoints !== undefined) return data.endGamePoints;
@@ -180,7 +201,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                         (data.hangPoints || 0);
                 };
 
-                const getTeleop = (data: any) => {
+                const getTeleop = (data: SeasonScoreBreakdown) => {
                     return data.teleopPoints ?? data.teleOpPoints ?? data.dcPoints ?? 0;
                 };
 
@@ -284,7 +305,6 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
             // RP Accumulators
             let rpMovCount = 0;
             let rpArtCount = 0;
-            let rpPatCount = 0;
 
             teamMatches.forEach(m => {
                 if (m.tournamentLevel === 'QUALIFICATION') {

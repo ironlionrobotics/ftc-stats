@@ -43,7 +43,7 @@ interface CalibrationDashboardProps {
  * user to the relevant setup step.
  */
 export default function CalibrationDashboard({ initialEventCode }: CalibrationDashboardProps) {
-    const { user, userDoc, orgId } = useAuth();
+    const { user, userDoc } = useAuth();
     const { season } = useProgram();
     const [snapshot, setSnapshot] = useState<CalibrationSnapshot | null>(null);
     const [scouts, setScouts] = useState<Array<{
@@ -110,7 +110,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
     return (
         <div className="space-y-4">
             <Tip id="calibration-intro-v1" title="¿Qué tan bueno es el modelo?">
-                Brier mide error cuadrático medio: lower = better, 0.25 = adivinanza, &lt;0.15 = excelente. El reliability diagram muestra si "70% prob" realmente acierta ~70% del tiempo. Necesita predicciones generadas (briefings) + matches jugados + ground-truth validation corriendo.
+                Brier mide error cuadrático medio: lower = better, 0.25 = adivinanza, &lt;0.15 = excelente. El reliability diagram muestra si &quot;70% prob&quot; realmente acierta ~70% del tiempo. Necesita predicciones generadas (briefings) + matches jugados + ground-truth validation corriendo.
             </Tip>
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
@@ -297,7 +297,7 @@ function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
         <Card className="p-4 bg-white/[0.02] border-white/10">
             <h3 className="text-sm font-bold text-white mb-1">Reliability diagram</h3>
             <p className="text-[10px] text-gray-500 mb-3">
-                Cada barra = bucket de predicciones. La altura empírica debe acercarse a la línea diagonal "perfecta".
+                Cada barra = bucket de predicciones. La altura empírica debe acercarse a la línea diagonal &quot;perfecta&quot;.
             </p>
             <div className="relative h-48 flex items-end gap-1 px-2 border-l border-b border-white/10">
                 {bins.map(b => {
@@ -375,13 +375,13 @@ function Explainer() {
                         <strong className="text-gray-200">Brier score</strong> = error cuadrático promedio entre probabilidad predicha y resultado (0/1). Un modelo que siempre predice 0.5 obtiene 0.25; un modelo perfecto obtiene 0. Statbotics reporta ~0.18 para FRC.
                     </p>
                     <p>
-                        <strong className="text-gray-200">Log loss</strong> = penalización por confianza en respuestas equivocadas. Más sensible que Brier a "100% seguro pero perdió". Menor = mejor.
+                        <strong className="text-gray-200">Log loss</strong> = penalización por confianza en respuestas equivocadas. Más sensible que Brier a &quot;100% seguro pero perdió&quot;. Menor = mejor.
                     </p>
                     <p>
                         <strong className="text-gray-200">Accuracy</strong> = % de matches donde la alianza con probabilidad ≥50% efectivamente ganó. Mide poder predictivo binario; ignora confianza.
                     </p>
                     <p>
-                        <strong className="text-gray-200">Reliability diagram</strong> = si dices "70% prob", deberías acertar ~70% de las veces. Barras altas en buckets bajos = subconfianza; barras bajas en buckets altos = sobreconfianza.
+                        <strong className="text-gray-200">Reliability diagram</strong> = si dices &quot;70% prob&quot;, deberías acertar ~70% de las veces. Barras altas en buckets bajos = subconfianza; barras bajas en buckets altos = sobreconfianza.
                     </p>
                 </div>
             )}

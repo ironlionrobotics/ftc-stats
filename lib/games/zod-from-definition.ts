@@ -50,6 +50,6 @@ function zodForField(field: GameField): ZodTypeAny {
  * shape. Use the type as a generic to useForm<FormValues>(...) to keep the
  * rest of the form callsite typed.
  */
-export type DefinitionFormValues<_T extends GameDefinition> = z.infer<
-    ReturnType<typeof zodSchemaFromDefinition>
->;
+export type DefinitionFormValues<T extends GameDefinition> = T extends GameDefinition
+    ? z.infer<ReturnType<typeof zodSchemaFromDefinition>>
+    : never;

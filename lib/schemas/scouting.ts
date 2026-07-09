@@ -19,7 +19,6 @@ import { z } from "zod";
 const matchNumber = z.coerce.number().int().positive("Match # debe ser positivo");
 const teamNumber = z.coerce.number().int().positive();
 const season = z.coerce.number().int().min(2000).max(2100);
-const eventCode = z.string().min(1, "Falta evento").max(20);
 const likert = z.coerce.number().int().min(1, "1-5").max(5, "1-5");
 const counter = z.coerce.number().int().min(0).max(999);
 

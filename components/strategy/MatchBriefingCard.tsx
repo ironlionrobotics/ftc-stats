@@ -9,7 +9,7 @@ import { buildBriefingData, type BriefingData } from "@/lib/briefings/briefing-d
 import { logPredictionAction } from "@/app/actions/calibration";
 import type { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
 import { Card } from "@/components/ui/Card";
-import { Printer, Loader2, FileText, AlertCircle } from "lucide-react";
+import { Printer, FileText, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 
 interface MatchBriefingCardProps {
@@ -383,7 +383,7 @@ function AllianceColumn({
                         )}
                         {t.recentNotes.length > 0 && (
                             <div className="text-[10px] text-gray-700 italic mt-1 line-clamp-2">
-                                "{t.recentNotes[0]}"
+                                &quot;{t.recentNotes[0]}&quot;
                             </div>
                         )}
                     </li>

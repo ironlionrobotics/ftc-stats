@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { Home, ClipboardList, MapPin, Trophy, Menu, X, BarChart2, Sun, Moon } from "lucide-react";
+import { Home, ClipboardList, Menu, X, BarChart2, Sun, Moon } from "lucide-react";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 import Image from "next/image";

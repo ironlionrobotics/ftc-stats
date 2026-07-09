@@ -115,7 +115,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
         setNotes("");
     };
 
-    const Counter = ({ label, value, setter, color = "primary" }: any) => (
+    const Counter = ({ label, value, setter, color = "primary" }: { label: string; value: number; setter: (v: number) => void; color?: string }) => (
         <div className="flex flex-col gap-1 items-center">
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</label>
             <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner">
@@ -126,7 +126,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
         </div>
     );
 
-    const Checkbox = ({ label, checked, setter }: any) => (
+    const Checkbox = ({ label, checked, setter }: { label: string; checked: boolean; setter: (v: boolean) => void }) => (
         <label className={clsx(
             "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group flex-1",
             checked ? "bg-cyan-500/20 border-cyan-500/50" : "bg-white/5 border-white/10 hover:border-white/20"

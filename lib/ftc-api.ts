@@ -5,6 +5,55 @@ import { getRedis } from "@/lib/redis";
 
 const BASE_URL = "https://ftc-api.firstinspires.org/v2.0";
 
+// Per-alliance point breakdown nested inside a match score entry. Fields vary
+// by season/game (e.g. "endgamePoints" vs "endGamePoints" naming changed
+// between seasons), so every field is optional and callers pick what applies.
+export interface FTCAllianceScoreBreakdown {
+    endgamePoints?: number;
+    endGamePoints?: number;
+    parkingPoints?: number;
+    dronePoints?: number;
+    stagePoints?: number;
+    ascentPoints?: number;
+    hangPoints?: number;
+    teleopPoints?: number;
+    teleOpPoints?: number;
+    dcPoints?: number;
+}
+
+// Match score entry from the FIRST API `/scores` endpoint.
+export interface FTCMatchScoreEntry {
+    matchNumber: number;
+    matchLevel: string;
+    alliance: string;
+    scoreBreakdown: Record<string, FTCAllianceScoreBreakdown>;
+}
+
+// Team metadata from the FIRST API `/teams` endpoint.
+export interface FTCTeamInfo {
+    teamNumber: number;
+    nameFull: string;
+    nameShort: string;
+    schoolName?: string;
+    city?: string;
+    stateProv?: string;
+    country?: string;
+    website?: string;
+    rookieYear?: number;
+    robotName?: string;
+}
+
+// Per-event ranking + derived KPIs for a team across a season, built by
+// fetchTeamRankingsInSeason.
+export interface TeamSeasonRanking extends TeamRanking {
+    eventCode: string;
+    eventName: string;
+    avgNP: number;
+    avgAuto: number;
+    highScore: number;
+    winRate: number;
+}
+
 // Credentials from environment variables
 const USERNAME = process.env.FTC_API_USERNAME;
 const API_KEY = process.env.FTC_API_KEY;
@@ -49,7 +98,8 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3, ba
 // signature for backward compatibility but Redis manages expiration natively
 // via SET ... EX, so we no longer need to compare timestamps client-side.
 // Returns null on cache miss, cache disabled, or read error.
-export async function getCachedData<T>(key: string, _ttlSeconds: number): Promise<T | null> {
+export async function getCachedData<T>(key: string, ttlSeconds: number): Promise<T | null> {
+    void ttlSeconds; // retained for call-site compatibility; Redis enforces TTL natively
     const redis = getRedis();
     if (!redis) return null;
 
@@ -68,7 +118,7 @@ export async function getCachedData<T>(key: string, _ttlSeconds: number): Promis
 // Writes payload to Upstash Redis with an explicit TTL so expired entries are
 // reclaimed automatically. Callers MUST pass a sensible ttlSeconds — defaults
 // to 5 minutes if omitted to avoid permanently stale data.
-export async function setCachedData(key: string, payload: any, ttlSeconds: number = 300) {
+export async function setCachedData<T>(key: string, payload: T, ttlSeconds: number = 300) {
     const redis = getRedis();
     if (!redis) return;
 
@@ -278,10 +328,10 @@ export async function fetchMatches(season: number, eventCode: string): Promise<F
     }
 }
 
-export async function fetchMatchScores(season: number, eventCode: string): Promise<any[]> {
+export async function fetchMatchScores(season: number, eventCode: string): Promise<FTCMatchScoreEntry[]> {
     const cacheKey = `scores_v4_${season}_${eventCode}`;
     const ttl = await getSmartTTL(season, eventCode);
-    const cached = await getCachedData<any[]>(cacheKey, ttl);
+    const cached = await getCachedData<FTCMatchScoreEntry[]>(cacheKey, ttl);
     if (cached) return cached;
 
     // Use PascalCase for the level as per some documentation variants
@@ -311,9 +361,9 @@ export async function fetchMatchScores(season: number, eventCode: string): Promi
     }
 }
 
-export async function fetchTeam(season: number, teamNumber: number): Promise<any | null> {
+export async function fetchTeam(season: number, teamNumber: number): Promise<FTCTeamInfo | null> {
     const cacheKey = `team_${season}_${teamNumber}`;
-    const cached = await getCachedData<any>(cacheKey, 86400); // Cache for 24 hours (metadata changes rarely)
+    const cached = await getCachedData<FTCTeamInfo>(cacheKey, 86400); // Cache for 24 hours (metadata changes rarely)
     if (cached) return cached;
 
     try {
@@ -337,9 +387,9 @@ export async function fetchTeam(season: number, teamNumber: number): Promise<any
     }
 }
 
-export async function fetchTeamEvents(season: number, teamNumber: number): Promise<any[]> {
+export async function fetchTeamEvents(season: number, teamNumber: number): Promise<FTCEvent[]> {
     const cacheKey = `team_events_${season}_${teamNumber}`;
-    const cached = await getCachedData<any[]>(cacheKey, 3600);
+    const cached = await getCachedData<FTCEvent[]>(cacheKey, 3600);
     if (cached) return cached;
 
     try {
@@ -353,14 +403,14 @@ export async function fetchTeamEvents(season: number, teamNumber: number): Promi
         const events = data.events || [];
         await setCachedData(cacheKey, events, 3600);
         return events;
-    } catch (error) {
+    } catch {
         return [];
     }
 }
 
-export async function fetchTeamRankingsInSeason(season: number, teamNumber: number): Promise<any[]> {
+export async function fetchTeamRankingsInSeason(season: number, teamNumber: number): Promise<TeamSeasonRanking[]> {
     const events = await fetchTeamEvents(season, teamNumber);
-    const results: any[] = [];
+    const results: TeamSeasonRanking[] = [];
 
     await Promise.all(events.map(async (event) => {
         try {
@@ -417,7 +467,7 @@ export async function fetchTeamRankingsInSeason(season: number, teamNumber: numb
 // reference it. This eliminates ~32 redundant Firestore RTTs per page load.
 export const fetchEvents = cache(async (season: number): Promise<FTCEvent[]> => {
     const cacheKey = `events_${season}`;
-    const cached = await getCachedData<any[]>(cacheKey, 86400); // 24h cache
+    const cached = await getCachedData<FTCEvent[]>(cacheKey, 86400); // 24h cache
     if (cached) return cached;
 
     try {
@@ -454,7 +504,7 @@ export async function fetchEventAwards(season: number, eventCode: string): Promi
         const awards = data.awards || [];
         await setCachedData(cacheKey, awards, ttl);
         return awards;
-    } catch (error) {
+    } catch {
         return [];
     }
 }
@@ -476,7 +526,7 @@ export async function fetchEventAwardsForTeam(season: number, eventCode: string,
         const awards = data.awards || [];
         await setCachedData(cacheKey, awards, ttl);
         return awards;
-    } catch (error) {
+    } catch {
         return [];
     }
 }

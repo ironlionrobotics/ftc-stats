@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FTCEvent } from "@/types/scouting";
 import clsx from "clsx";
 import { Calendar, MapPin, Search, CheckSquare, Square } from "lucide-react";
-import { getCurrentSeason } from "@/lib/constants";
 
 interface EventFilterProps {
     currentSeason: number;

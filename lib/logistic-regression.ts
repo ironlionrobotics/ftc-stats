@@ -127,7 +127,7 @@ export function trainLogistic(
 
     const { x, means, stddevs } = standardize(features);
 
-    let weights = Array(nFeatures).fill(0);
+    const weights = Array(nFeatures).fill(0);
     let bias = 0;
     let prevLoss = Infinity;
     let loss = 0;

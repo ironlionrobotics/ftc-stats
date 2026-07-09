@@ -182,8 +182,6 @@ function deriveStrategicFocus(
 
     const redAuto = red.reduce((a, b) => a + b.breakdownAuto, 0);
     const blueAuto = blue.reduce((a, b) => a + b.breakdownAuto, 0);
-    const redTele = red.reduce((a, b) => a + b.breakdownTeleop, 0);
-    const blueTele = blue.reduce((a, b) => a + b.breakdownTeleop, 0);
     const redEnd = red.reduce((a, b) => a + b.breakdownEndgame, 0);
     const blueEnd = blue.reduce((a, b) => a + b.breakdownEndgame, 0);
 

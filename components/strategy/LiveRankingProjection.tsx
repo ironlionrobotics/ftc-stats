@@ -27,7 +27,7 @@ interface LiveRankingProjectionProps {
  * day shouldn't hammer the API.
  */
 export default function LiveRankingProjection({ teams }: LiveRankingProjectionProps) {
-    const { user, orgId } = useAuth();
+    const { orgId } = useAuth();
     const { season } = useProgram();
 
     // Unique event codes from the loaded teams. Defaults to the most-frequent

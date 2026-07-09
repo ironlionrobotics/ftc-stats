@@ -3,6 +3,14 @@
 import { FTCMatch, TeamRanking } from "@/types/scouting";
 import { Trophy, Zap, BarChart3, Users, Target } from "lucide-react";
 import { useMemo } from "react";
+import type { ElementType } from "react";
+
+interface HighlightData {
+    score: number;
+    match: FTCMatch | null;
+    teams: number[];
+    alliance: "Red" | "Blue";
+}
 
 interface EventStatsProps {
     matches: FTCMatch[];
@@ -125,7 +133,13 @@ export default function EventStats({ matches, rankings }: EventStatsProps) {
 
     if (!stats) return null;
 
-    const StatCard = ({ title, value, subValue, icon: Icon, colorClass }: any) => (
+    const StatCard = ({ title, value, subValue, icon: Icon, colorClass }: {
+        title: string;
+        value: string | number;
+        subValue?: string;
+        icon: ElementType;
+        colorClass: string;
+    }) => (
         <div className="relative overflow-hidden p-6 rounded-3xl border border-border bg-card transition-all duration-300 hover:bg-muted/50 group shadow-sm">
             <div className={`absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 blur-3xl opacity-10 dark:opacity-20 bg-gradient-to-br ${colorClass} group-hover:opacity-40 transition-opacity`} />
             <div className="relative flex flex-col gap-4">
@@ -143,7 +157,7 @@ export default function EventStats({ matches, rankings }: EventStatsProps) {
         </div>
     );
 
-    const MatchHighlight = ({ data, label, icon: Icon, color }: { data: any, label: string, icon: any, color: string }) => (
+    const MatchHighlight = ({ data, label, icon: Icon, color }: { data: HighlightData, label: string, icon: ElementType, color: string }) => (
         <div className="p-6 rounded-3xl border border-border bg-card space-y-4 hover:border-primary/30 transition-all duration-300 shadow-sm hover:shadow-md">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

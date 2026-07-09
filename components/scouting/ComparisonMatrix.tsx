@@ -9,8 +9,18 @@ interface ComparisonMatrixProps {
     opponentStats: TeamSeasonStats;
 }
 
+type NumericStatKey = "avgOPR" | "maxScore" | "avgAuto" | "avgTele" | "avgEnd" | "consistency";
+
+interface Metric {
+    label: string;
+    key: NumericStatKey;
+    icon: typeof Trophy;
+    format: (v: number) => string;
+    inverse?: boolean;
+}
+
 export default function ComparisonMatrix({ heroStats, opponentStats }: ComparisonMatrixProps) {
-    const metrics = [
+    const metrics: Metric[] = [
         { label: "Est. OPR", key: "avgOPR", icon: Trophy, format: (v: number) => v.toFixed(1) },
         { label: "Max Score", key: "maxScore", icon: Zap, format: (v: number) => v.toFixed(0) },
         { label: "Auto Avg", key: "avgAuto", icon: Target, format: (v: number) => v.toFixed(1) },
@@ -41,8 +51,8 @@ export default function ComparisonMatrix({ heroStats, opponentStats }: Compariso
 
             <div className="divide-y divide-slate-100">
                 {metrics.map((m) => {
-                    const valA = (heroStats as any)[m.key];
-                    const valB = (opponentStats as any)[m.key];
+                    const valA = heroStats[m.key];
+                    const valB = opponentStats[m.key];
                     const diff = valA - valB;
 
                     // Logic for "better": usually higher is better, unless inverse (consistency/sigma)

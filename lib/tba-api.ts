@@ -52,7 +52,10 @@ export interface TBAMatch {
         };
     };
     winning_alliance: "red" | "blue" | "";
-    score_breakdown: any;
+    // TBA's per-game score breakdown JSON — shape varies by season/game and is
+    // not consumed elsewhere in this codebase, so there is no concrete type to
+    // narrow it to.
+    score_breakdown: Record<string, unknown>;
     actual_time: number;
 }
 

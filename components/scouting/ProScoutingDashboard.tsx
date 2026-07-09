@@ -5,7 +5,7 @@ import { fetchEventParticipants, fetchTeamSeasonHistory, TeamSeasonStats } from 
 import TeamAnalysisCard from "./TeamAnalysisCard";
 import ComparisonMatrix from "./ComparisonMatrix";
 import { TeamRanking } from "@/types/scouting";
-import { Loader2, Search, Filter, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 
 interface ProScoutingDashboardProps {
     eventCode: string;
@@ -137,7 +137,7 @@ export default function ProScoutingDashboard({ eventCode, season }: ProScoutingD
                     <select
                         className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as any)}
+                        onChange={(e) => setSortBy(e.target.value as 'rank' | 'opr' | 'max' | 'consistency')}
                     >
                         <option value="rank">Sort: Rank</option>
                         <option value="opr">Sort: Est. OPR</option>

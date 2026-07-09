@@ -172,7 +172,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
             });
 
             // Gauss-Seidel Solver (50 iterations for speed/responsiveness)
-            let x = new Float64Array(n).fill(0);
+            const x = new Float64Array(n).fill(0);
             for (let iter = 0; iter < 50; iter++) {
                 for (let i = 0; i < n; i++) {
                     let sum = 0;

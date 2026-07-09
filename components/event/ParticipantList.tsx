@@ -3,7 +3,6 @@
 import { TeamRanking } from "@/types/scouting";
 import { Users, Search, Building2, MapPin } from "lucide-react";
 import { useState, useMemo } from "react";
-import clsx from "clsx";
 
 interface ParticipantListProps {
     rankings: TeamRanking[];
@@ -89,7 +88,7 @@ export default function ParticipantList({ rankings, onTeamClick }: ParticipantLi
                     <div className="text-slate-400 mb-2">
                         <Search size={48} className="mx-auto opacity-20" />
                     </div>
-                    <p className="text-slate-500 font-medium">No teams found matching "{searchTerm}"</p>
+                    <p className="text-slate-500 font-medium">No teams found matching &quot;{searchTerm}&quot;</p>
                 </div>
             )}
         </div>

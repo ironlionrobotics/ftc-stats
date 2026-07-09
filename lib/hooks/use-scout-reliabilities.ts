@@ -21,13 +21,13 @@ import { fetchOrgReliabilityAction } from "@/app/actions/validate-ground-truth";
  */
 export function useScoutReliabilities(): Record<string, number> {
     const { user } = useAuth();
-    const [reliabilities, setReliabilities] = useState<Record<string, number>>({});
+    // Only holds the fetched-for-a-user case; the no-user case is derived
+    // below instead of set via effect (avoids a synchronous setState-in-effect
+    // on mount/logout, which the react-hooks compiler lint flags).
+    const [fetchedReliabilities, setFetchedReliabilities] = useState<Record<string, number>>({});
 
     useEffect(() => {
-        if (!user) {
-            setReliabilities({});
-            return;
-        }
+        if (!user) return;
         let cancelled = false;
         (async () => {
             try {
@@ -38,7 +38,7 @@ export function useScoutReliabilities(): Record<string, number> {
                 for (const s of result.scouts) {
                     map[s.scoutId] = s.reliability;
                 }
-                setReliabilities(map);
+                setFetchedReliabilities(map);
             } catch {
                 // best-effort; default to empty (all scouts weight 1.0)
             }
@@ -46,5 +46,5 @@ export function useScoutReliabilities(): Record<string, number> {
         return () => { cancelled = true; };
     }, [user]);
 
-    return reliabilities;
+    return user ? fetchedReliabilities : {};
 }

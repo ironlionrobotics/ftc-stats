@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type Control, type FieldPathByValue, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AggregatedTeamStats, PitScouting } from "@/types/scouting";
 import { pitScoutingFormSchema, type PitScoutingFormValues } from "@/lib/schemas/scouting";
@@ -36,9 +36,8 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
         handleSubmit,
         reset,
         formState: { errors, isSubmitting },
-        getValues,
     } = useForm<PitScoutingFormValues>({
-        resolver: zodResolver(pitScoutingFormSchema) as any,
+        resolver: zodResolver(pitScoutingFormSchema) as Resolver<PitScoutingFormValues>,
         defaultValues: initialDataToFormValues(team, initialData),
     });
 
@@ -256,9 +255,22 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
 // Controller + input boilerplate 20 times.
 // ---------------------------------------------------------------------------
 
+interface BaseFieldProps<TValue> {
+    control: Control<PitScoutingFormValues>;
+    name: FieldPathByValue<PitScoutingFormValues, TValue>;
+    label: string;
+    disabled?: boolean;
+}
+
+interface TextFieldProps extends BaseFieldProps<string> {
+    placeholder?: string;
+    error?: string;
+    hideLabel?: boolean;
+}
+
 function TextField({
     control, name, label, placeholder, disabled, error, hideLabel,
-}: any) {
+}: TextFieldProps) {
     return (
         <div>
             {!hideLabel && <label className="block text-sm font-medium text-gray-400 mb-1">{label}</label>}
@@ -280,7 +292,11 @@ function TextField({
     );
 }
 
-function NumberField({ control, name, label, disabled, error }: any) {
+interface NumberFieldProps extends BaseFieldProps<number> {
+    error?: string;
+}
+
+function NumberField({ control, name, label, disabled, error }: NumberFieldProps) {
     return (
         <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">{label}</label>
@@ -301,7 +317,11 @@ function NumberField({ control, name, label, disabled, error }: any) {
     );
 }
 
-function SelectField({ control, name, label, options, disabled }: any) {
+interface SelectFieldProps extends BaseFieldProps<string> {
+    options: string[];
+}
+
+function SelectField({ control, name, label, options, disabled }: SelectFieldProps) {
     return (
         <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">{label}</label>
@@ -324,7 +344,7 @@ function SelectField({ control, name, label, options, disabled }: any) {
     );
 }
 
-function BooleanField({ control, name, label, disabled }: any) {
+function BooleanField({ control, name, label, disabled }: BaseFieldProps<boolean>) {
     return (
         <Controller
             name={name}

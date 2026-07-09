@@ -12,7 +12,7 @@ interface TeamListProps {
     scoutingDataMap: Record<number, ScoutingData>;
 }
 
-export default function TeamList({ teams, selectedTeamId, onSelectTeam, scoutingDataMap }: TeamListProps) {
+export default function TeamList({ teams, selectedTeamId, onSelectTeam }: TeamListProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [showAdvancedOnly, setShowAdvancedOnly] = useState(false);
 
@@ -55,7 +55,6 @@ export default function TeamList({ teams, selectedTeamId, onSelectTeam, scouting
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
                 {filteredTeams.map((team) => {
-                    const hasData = scoutingDataMap[team.teamNumber] !== undefined;
                     const isAdvanced = team.hasAdvanced;
 
                     return (

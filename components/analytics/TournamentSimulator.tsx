@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { TeamEvolution } from "@/app/actions/analytics";
 import { Alliance, PlayoffMatch } from "@/types/oracle";
 import { generateAlliances, initializeBracket, updateBracket, runMonteCarloSimulation, SimulationResult } from "@/lib/alliance-utils";
-import { Play, RotateCcw, Trophy, Shield, Swords, Users, Crown, Edit2, Check, Save, FolderOpen, PieChart } from "lucide-react";
+import { Play, RotateCcw, Trophy, Shield, Edit2, Save, FolderOpen, PieChart } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
@@ -134,8 +134,8 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
         // Initialize empty alliances
         const empty: Alliance[] = Array.from({ length: allianceCount }, (_, i) => ({
             id: i + 1,
-            captain: null as any,
-            pick1: null as any,
+            captain: null as unknown as TeamEvolution, // placeholder until user assigns a captain
+            pick1: null,
             pick2: null,
             totalOPR: 0,
             totalAuto: 0,
@@ -443,7 +443,6 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                             </div>
                             <BracketVisual
                                 bracket={bracket}
-                                alliances={alliances}
                                 onMatchClick={handleMatchClick}
                                 type={allianceCount}
                             />
@@ -517,12 +516,11 @@ const MATCH_LAYOUTS: Record<number, Record<string, { col: number, row: number }>
 
 interface BracketVisualProps {
     bracket: PlayoffMatch[];
-    alliances: Alliance[];
     onMatchClick: (matchId: string, allianceId: number) => void;
     type: 2 | 4 | 6 | 8;
 }
 
-function BracketVisual({ bracket, alliances, onMatchClick, type }: BracketVisualProps) {
+function BracketVisual({ bracket, onMatchClick, type }: BracketVisualProps) {
     const layout = MATCH_LAYOUTS[type] || MATCH_LAYOUTS[4];
 
     // Helper to calculate pixel position
@@ -559,7 +557,7 @@ function BracketVisual({ bracket, alliances, onMatchClick, type }: BracketVisual
                         const startPt = { x: start.x + NODE_WIDTH, y: start.y + NODE_HEIGHT / 2 };
 
                         // Winner Path
-                        let paths = [];
+                        const paths = [];
                         if (match.nextMatchWinner) {
                             const end = getPos(match.nextMatchWinner);
                             const endPt = { x: end.x, y: end.y + NODE_HEIGHT / 2 };
@@ -616,7 +614,6 @@ function BracketVisual({ bracket, alliances, onMatchClick, type }: BracketVisual
                         >
                             <MatchNode
                                 match={match}
-                                alliances={alliances}
                                 onMatchClick={onMatchClick}
                             />
                         </div>
@@ -658,14 +655,10 @@ function BracketVisual({ bracket, alliances, onMatchClick, type }: BracketVisual
 
 interface MatchNodeProps {
     match: PlayoffMatch;
-    alliances: Alliance[];
     onMatchClick: (matchId: string, allianceId: number) => void;
 }
 
-function MatchNode({ match, alliances, onMatchClick }: MatchNodeProps) {
-    const red = alliances.find(a => a.id === match.redAllianceId);
-    const blue = alliances.find(a => a.id === match.blueAllianceId);
-
+function MatchNode({ match, onMatchClick }: MatchNodeProps) {
     const isRedWinner = match.winnerId === match.redAllianceId && match.winnerId !== null;
     const isBlueWinner = match.winnerId === match.blueAllianceId && match.winnerId !== null;
 

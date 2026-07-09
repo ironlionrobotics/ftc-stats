@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AggregatedTeamStats, MatchScouting, CURRENT_GAME_SCHEMA, FTCMatchScouting } from "@/types/scouting";
 import { useAuth } from "@/context/AuthContext";
@@ -50,10 +50,8 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
         handleSubmit,
         formState: { errors, isSubmitting },
         reset,
-        getValues,
-        setValue,
     } = useForm<SuperScoutingFormValues>({
-        resolver: zodResolver(superScoutingFormSchema) as any,
+        resolver: zodResolver(superScoutingFormSchema) as Resolver<SuperScoutingFormValues>,
         defaultValues: {
             matchNumber: 1,
             driverSkill: 3,
@@ -318,7 +316,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                         <div>
                             <p className="text-sm text-gray-400 font-medium">Sin observaciones cualitativas</p>
                             <p className="text-xs mt-0.5 opacity-70">
-                                Driver skill, defense y "would-pick" alimentan la lista de alianzas.
+                                Driver skill, defense y &quot;would-pick&quot; alimentan la lista de alianzas.
                             </p>
                         </div>
                         {!isAdding && (

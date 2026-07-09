@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BrowserQRCodeReader } from "@zxing/browser";
+import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
 import { MatchScouting } from "@/types/scouting";
 import { Camera, X } from "lucide-react";
 
@@ -16,7 +16,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 
     useEffect(() => {
         const codeReader = new BrowserQRCodeReader();
-        let controls: any;
+        let controls: IScannerControls | undefined;
 
         const startScanning = async () => {
             try {
@@ -24,7 +24,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
                 controls = await codeReader.decodeFromVideoDevice(
                     undefined,
                     videoRef.current,
-                    (result, err) => {
+                    (result) => {
                         if (result) {
                             try {
                                 const parsed = JSON.parse(result.getText());
@@ -36,13 +36,13 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
                                 } else {
                                     setError("Invalid QR format");
                                 }
-                            } catch (e) {
+                            } catch {
                                 setError("Failed to parse data");
                             }
                         }
                     }
                 );
-            } catch (err) {
+            } catch {
                 setError("Camera access denied.");
             }
         };

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, Info, X, Zap, Trophy, TrendingUp, TrendingDown, Minus, Bot, User, Check, AlertTriangle, Sparkles, Network } from "lucide-react";
+import { Search, Info, X, Trophy, Bot, User, Sparkles, Network } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import clsx from "clsx";
 import { TeamEvolution } from "@/app/actions/analytics";
@@ -43,21 +43,6 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
         if (!teamMatches.length) return { driverSkill: 0, reliability: 0, archetype: 'Unknown', endgameSuccess: 0, notes: [] };
 
         // Simple predictive calculation
-        const autoAvg = teamMatches.reduce((acc, match) => {
-            const entry = match as FTCMatchScouting;
-            return acc + ((entry.autoPurpleArtifacts || 0) * 3) + ((entry.autoGreenArtifacts || 0) * 3) + (entry.autoPoints || 0);
-        }, 0) / teamMatches.length;
-
-        const teleAvg = teamMatches.reduce((acc, match) => {
-            const entry = match as FTCMatchScouting;
-            return acc + ((entry.teleopPurpleArtifacts || 0) * 2) + ((entry.teleopGreenArtifacts || 0) * 2) + ((entry.patternsCompleted || 0) * 10);
-        }, 0) / teamMatches.length;
-
-        const endAvg = teamMatches.reduce((acc, match) => {
-            const entry = match as FTCMatchScouting;
-            const parkingPts = entry.endgameBaseParking === 'Full' ? 10 : entry.endgameBaseParking === 'Partial' ? 5 : 0;
-            return acc + parkingPts + (entry.dualParking ? 20 : 0);
-        }, 0) / teamMatches.length;
         const avgSkill = teamMatches.reduce((acc, m) => acc + (m.driverSkill ?? 3), 0) / teamMatches.length;
 
         const avgArtifacts = teamMatches.reduce((acc, match) => {
@@ -119,8 +104,6 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
         return teams
             .filter(t => t.teamNumber !== selectedTeam.teamNumber && !unavailableTeams.includes(t.teamNumber))
             .map(partner => {
-                const scouted = [calculateScoutingMetrics(partner.teamNumber)]; // Use array for extensibility or if we want multiple sources
-                // But wait, calculateScoutingMetrics returns a single object.
                 const scoutedMetrics = calculateScoutingMetrics(partner.teamNumber);
 
                 let synergyScore = 0;
@@ -206,7 +189,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 const rpFactor = (effPat + effArt + effMov) * 33 * 0.15; // Mean RP prob using EFFECTIVE values
                 const scoutingFactor = (scoutedMetrics.driverSkill * 20 * 0.15) + rpFactor;
 
-                let finalScore = oprFactor + scoutingFactor + synergyScore;
+                const finalScore = oprFactor + scoutingFactor + synergyScore;
 
                 return {
                     partner,
@@ -231,7 +214,6 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
 
     const triggerAI = (partner: TeamEvolution) => {
         if (!selectedTeam) return;
-        const partnerStats = calculateScoutingMetrics(partner.teamNumber);
 
         // ... existing AI prompt code ...
         const prompt = `Analyze alliance: Team ${selectedTeam.teamNumber} & Team ${partner.teamNumber}.
@@ -360,7 +342,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                             </div>
                                             <div className="text-lg font-black text-slate-900">{(selectedTeam.endgameOPR || 0).toFixed(1)}</div>
                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                                                Puntos promedio generados SOLO en Endgame (Ascenso + Parking). Diferente a "Disciplne".
+                                                Puntos promedio generados SOLO en Endgame (Ascenso + Parking). Diferente a &quot;Disciplne&quot;.
                                             </div>
                                         </div>
                                         <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100 relative group/tooltip">

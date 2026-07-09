@@ -1,6 +1,6 @@
 "use client";
 
-import { Controller, type Control, useController } from "react-hook-form";
+import { type Control, useController } from "react-hook-form";
 import type {
     GameDefinition,
     GameField,

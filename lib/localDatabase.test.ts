@@ -62,7 +62,7 @@ describe("saveToLocal + getPendingScouting", () => {
     });
 
     it("preserves a supplied id (e.g. on QR re-import)", async () => {
-        const id = await saveToLocal({ ...makeFTCEntry(), id: "from-qr-001" } as any);
+        const id = await saveToLocal({ ...makeFTCEntry(), id: "from-qr-001" });
         expect(id).toBe("from-qr-001");
     });
 

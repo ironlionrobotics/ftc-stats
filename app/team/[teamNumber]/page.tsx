@@ -1,5 +1,5 @@
-import { fetchTeam, fetchTeamRankingsInSeason, fetchTeamAwards } from "@/lib/ftc-api";
-import { ExtendedTeamRanking } from "@/types/scouting";
+import { fetchTeam, fetchTeamRankingsInSeason, fetchTeamAwards, TeamSeasonRanking } from "@/lib/ftc-api";
+import { FTCAward } from "@/types/scouting";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -149,7 +149,7 @@ export default async function TeamPage(props: TeamPageProps) {
                                     <div className="flex items-center gap-4">
                                         <div className="text-right hidden md:block">
                                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">Season Peak</span>
-                                            <span className="text-2xl font-black text-primary font-display">Rank #{Math.min(...year.rankings.map((r: any) => r.rank))}</span>
+                                            <span className="text-2xl font-black text-primary font-display">Rank #{Math.min(...year.rankings.map((r: TeamSeasonRanking) => r.rank))}</span>
                                         </div>
                                         <div className="w-14 h-14 rounded-2xl bg-primary shadow-xl shadow-primary/20 flex items-center justify-center text-white">
                                             <Trophy size={32} />
@@ -158,7 +158,7 @@ export default async function TeamPage(props: TeamPageProps) {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {year.rankings.map((rank: ExtendedTeamRanking, idx: number) => (
+                                    {year.rankings.map((rank: TeamSeasonRanking, idx: number) => (
                                         <div key={idx} className="group relative">
                                             <div className="absolute -inset-0.5 bg-linear-to-br from-border to-transparent rounded-2xl opacity-50 group-hover:opacity-100 transition-opacity" />
                                             <Card className="relative bg-card p-6 flex flex-col gap-6 hover:shadow-2xl transition-all duration-500 overflow-hidden border-border/50 min-h-[300px]">
@@ -208,8 +208,8 @@ export default async function TeamPage(props: TeamPageProps) {
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {year.awards.map((award: any, i: number) => {
-                                                const aName = award.awardName || (award as any).name || "Official Award";
+                                            {year.awards.map((award: FTCAward, i: number) => {
+                                                const aName = award.awardName || award.name || "Official Award";
                                                 return (
                                                     <div
                                                         key={i}

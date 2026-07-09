@@ -27,6 +27,14 @@ export function useTipDismissed(id: string): {
         if (typeof window === "undefined") return;
         try {
             const stored = localStorage.getItem(tipKey(id));
+            // Intentional effect-body setState: this reads an external system
+            // (localStorage) that isn't available during SSR, specifically to
+            // avoid a hydration mismatch (`ready` starts false so the tip
+            // never flashes on/off). A derived-during-render read isn't SSR-safe
+            // here — the correct effect-free fix is useSyncExternalStore, but
+            // that changes the dismiss()-update mechanism and needs browser
+            // verification before landing; tracked as a follow-up, not blind-fixed.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDismissed(stored === "1");
         } catch {
             // localStorage may be disabled (incognito on iOS) — treat as not dismissed.

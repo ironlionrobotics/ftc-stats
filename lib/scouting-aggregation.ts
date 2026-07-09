@@ -50,7 +50,7 @@ export interface SubjectiveConsensus<T = number> {
     kind: "subjective";
     // Per-org buckets — NOT merged across orgs by design.
     perOrg: Record<string, {
-        value: number;       // mean within the org
+        value: T;       // mean within the org
         count: number;
     }>;
 }

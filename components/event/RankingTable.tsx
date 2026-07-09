@@ -3,15 +3,23 @@
 import { useState, useMemo } from "react";
 import { TeamRanking, FTCMatch } from "@/types/scouting";
 import clsx from "clsx";
-import Link from "next/link";
 // Trophy and Star removed
-import { Users, Hash, ArrowUpDown, ArrowUp, ArrowDown, Info } from "lucide-react";
+import { Users, ArrowUpDown, ArrowUp, ArrowDown, Info } from "lucide-react";
 
 interface RankingTableProps {
     rankings: TeamRanking[];
     matches?: FTCMatch[];
     onTeamClick?: (teamNumber: number) => void;
 }
+
+interface OprStats {
+    opr: number;
+    autoOPR: number;
+    teleOPR: number;
+    netDiscipline: number;
+}
+
+type TableRow = TeamRanking & OprStats & { highScore: number; wlt: string };
 
 export default function RankingTable({ rankings, matches = [], onTeamClick }: RankingTableProps) {
     // State for sorting
@@ -20,7 +28,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
     // 1. Calculate OPR Metrics (Duplicated logic from MatchList for self-containment/consistency)
     // In a larger refactor, this should move to a shared hook/context.
     const oprData = useMemo(() => {
-        if (!matches.length || !rankings.length) return new Map<number, any>();
+        if (!matches.length || !rankings.length) return new Map<number, OprStats>();
 
         const calculateComponentOPR = (getValue: (m: FTCMatch, alliance: 'Red' | 'Blue') => number) => {
             const teamsList = rankings.map(r => r.teamNumber);
@@ -45,7 +53,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
             });
 
             // Gauss-Seidel Solver (100 iterations for convergence)
-            let x = new Float64Array(n).fill(0);
+            const x = new Float64Array(n).fill(0);
             for (let iter = 0; iter < 100; iter++) {
                 for (let i = 0; i < n; i++) {
                     let sum = 0;
@@ -101,8 +109,8 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
     const sortedData = useMemo(() => {
         const sorted = [...tableData];
         sorted.sort((a, b) => {
-            const aValue = (a as any)[sortConfig.key];
-            const bValue = (b as any)[sortConfig.key];
+            const aValue = (a as TableRow)[sortConfig.key as keyof TableRow];
+            const bValue = (b as TableRow)[sortConfig.key as keyof TableRow];
 
             if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
             if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -117,7 +125,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
         const result: Record<string, { max: number, min: number }> = {};
 
         keys.forEach(k => {
-            const values = tableData.map(d => (d as any)[k] as number);
+            const values = tableData.map(d => (d as TableRow)[k as keyof TableRow] as number);
             result[k] = {
                 max: Math.max(...values),
                 min: Math.min(...values)
@@ -227,7 +235,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
-                        {sortedData.map((rank: any) => (
+                        {sortedData.map((rank: TableRow) => (
                             <tr key={rank.teamNumber} className="hover:bg-muted/50 transition-colors group">
                                 <td className="p-4">
                                     <div className={clsx(

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
 import { Card } from "@/components/ui/Card";
-import { Search, Plus, X, Trash2, Filter, Star, Zap, Sparkles, Bot } from "lucide-react";
+import { Search, Plus, X, Trash2, Star, Zap, Sparkles, Bot } from "lucide-react";
 import { listenToMatchScouting } from "@/lib/scouting-service";
 import { useProgram } from "@/lib/stores/program-store";
 import { FTCMatchScouting } from "@/types/scouting";
@@ -12,6 +12,12 @@ import { toast } from "sonner";
 
 interface AllianceSelectorProps {
     teams: AggregatedTeamStats[];
+}
+
+interface ScoutingSummary {
+    avgSkill: number;
+    avgSamples: number;
+    count: number;
 }
 
 export default function AllianceSelector({ teams }: AllianceSelectorProps) {
@@ -251,7 +257,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
     );
 }
 
-function SelectedTeamCard({ team, onRemove, scouting }: { team: AggregatedTeamStats, onRemove: () => void, scouting: any }) {
+function SelectedTeamCard({ team, onRemove, scouting }: { team: AggregatedTeamStats, onRemove: () => void, scouting: ScoutingSummary | null }) {
     return (
         <div className="w-full flex justify-between items-center group animate-in slide-in-from-right-4 duration-200">
             <div className="space-y-1">

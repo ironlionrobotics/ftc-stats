@@ -111,10 +111,10 @@ export async function getAggregatedStats(season: number = 2024, filters?: { regi
             try {
                 // Inner calls are parallel
                 const [rankings, advPoints, advancement, matches] = await Promise.all([
-                    fetchRankings(season, event.code).catch(e => { console.warn(`[Aggregation] Skipping rankings for ${event.code}`); return []; }),
-                    fetchAdvancementPoints(season, event.code).catch(e => { console.warn(`[Aggregation] Skipping points for ${event.code}`); return []; }),
-                    fetchAdvancement(season, event.code).catch(e => { console.warn(`[Aggregation] Skipping advancement for ${event.code}`); return null; }),
-                    fetchMatches(season, event.code).catch(e => { console.warn(`[Aggregation] Skipping matches for ${event.code}`); return []; }),
+                    fetchRankings(season, event.code).catch(() => { console.warn(`[Aggregation] Skipping rankings for ${event.code}`); return []; }),
+                    fetchAdvancementPoints(season, event.code).catch(() => { console.warn(`[Aggregation] Skipping points for ${event.code}`); return []; }),
+                    fetchAdvancement(season, event.code).catch(() => { console.warn(`[Aggregation] Skipping advancement for ${event.code}`); return null; }),
+                    fetchMatches(season, event.code).catch(() => { console.warn(`[Aggregation] Skipping matches for ${event.code}`); return []; }),
                 ]);
                 results.push({ event: eventWithAbbr, rankings, advPoints, advancement, matches });
             } catch (error) {

@@ -20,7 +20,7 @@ export default function EventSelector({ events, selectedCodes, onToggle, onToggl
             const month = String(d.getUTCMonth() + 1).padStart(2, '0');
             const year = d.getUTCFullYear();
             return `${day}/${month}/${year}`;
-        } catch (e) {
+        } catch {
             return dateStr;
         }
     };

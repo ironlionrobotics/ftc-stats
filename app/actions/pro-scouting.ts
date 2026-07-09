@@ -3,6 +3,22 @@
 import { fetchTeamEvents, fetchRankings, fetchMatches, fetchMatchScores, getCachedData, setCachedData, fetchTeam } from "@/lib/ftc-api";
 import { TeamRanking, FTCMatch } from "@/types/scouting";
 
+interface AllianceScoreBreakdown {
+    endgamePoints?: number;
+    endGamePoints?: number;
+    parkingPoints?: number;
+    ascentPoints?: number;
+    teleopPoints?: number;
+    teleOpPoints?: number;
+    dcPoints?: number;
+}
+
+interface MatchScoreEntry {
+    matchNumber: number;
+    matchLevel: string;
+    scoreBreakdown?: Record<string, AllianceScoreBreakdown>;
+}
+
 export interface TeamSeasonStats {
     teamNumber: number;
     teamName: string;
@@ -39,8 +55,8 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
     const events = await fetchTeamEvents(season, teamNumber);
     const completedEvents = events.filter(e => new Date(e.dateEnd || e.dateStart) < new Date());
 
-    let allMatches: FTCMatch[] = [];
-    let allScores: any[] = [];
+    const allMatches: FTCMatch[] = [];
+    const allScores: MatchScoreEntry[] = [];
 
     // 3. Aggregate Matches & Scores from all events
     // Parallelize for speed, but limit concurrency if needed
@@ -82,19 +98,19 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
             s.matchLevel === m.tournamentLevel
         );
 
-        let auto = isRed ? m.scoreRedAuto : m.scoreBlueAuto;
+        const auto = isRed ? m.scoreRedAuto : m.scoreBlueAuto;
         let tele = 0;
         let end = 0;
 
         if (matchScore) {
-            const allianceData = (matchScore.scoreBreakdown as any)?.[isRed ? 'red' : 'blue'] ||
-                (matchScore.scoreBreakdown as any)?.[isRed ? 'Red' : 'Blue']; // Handle case variance
+            const allianceData = matchScore.scoreBreakdown?.[isRed ? 'red' : 'blue'] ||
+                matchScore.scoreBreakdown?.[isRed ? 'Red' : 'Blue']; // Handle case variance
 
             if (allianceData) {
                 // Robust extraction logic similar to analytics.ts
-                const getEndgame = (data: any) => data.endgamePoints ?? data.endGamePoints ??
+                const getEndgame = (data: AllianceScoreBreakdown) => data.endgamePoints ?? data.endGamePoints ??
                     ((data.parkingPoints || 0) + (data.ascentPoints || 0));
-                const getTeleop = (data: any) => data.teleopPoints ?? data.teleOpPoints ?? data.dcPoints ?? 0;
+                const getTeleop = (data: AllianceScoreBreakdown) => data.teleopPoints ?? data.teleOpPoints ?? data.dcPoints ?? 0;
 
                 tele = getTeleop(allianceData);
                 end = getEndgame(allianceData);
@@ -116,8 +132,8 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
     });
 
     // Populate Last 5 (approximate by taking last 5 processed)
-    const sortedMatches = allMatches.sort((a, b) => {
-        // We assume newer matches are later in the array if fetched chronologically, 
+    const sortedMatches = allMatches.sort(() => {
+        // We assume newer matches are later in the array if fetched chronologically,
         // but robust sorting requires event dates. For MVP, take slice from end.
         return 0;
     });

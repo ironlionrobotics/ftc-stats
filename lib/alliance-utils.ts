@@ -289,10 +289,6 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[]): P
             }
         });
 
-        // Determine Champion
-        const wins1 = updatedMatches.filter(m => m.winnerId === 1).length;
-        const wins2 = updatedMatches.filter(m => m.winnerId === 2).length;
-
         // If someone has 2 wins, they are the champion.
         // But the simulator logic usually looks at the "last match winner".
         // For BO3, we can consider M3 as the "Decider" if needed, or M2 if 2-0.
@@ -478,7 +474,7 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 |
         // For type 2 (Best of 3), M2 or M3 determines the winner, but our `initializeBracket` creates 3 matches.
         // In this simple boolean simulation, if M1 and M2 same winner, series over. If split, M3 winner is champion.
         // Or simpler: count match wins.
-        let finalMatchId = type === 2 ? 'M2' : type === 4 ? 'M6' : type === 6 ? 'M10' : 'M14';
+        const finalMatchId = type === 2 ? 'M2' : type === 4 ? 'M6' : type === 6 ? 'M10' : 'M14';
 
         if (type === 2) {
             const m1 = matchMap.get('M1');
@@ -486,7 +482,7 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 |
             const m3 = matchMap.get('M3');
 
             // Count wins
-            let wins: Record<number, number> = {};
+            const wins: Record<number, number> = {};
             [m1, m2, m3].forEach(m => {
                 if (m?.winnerId) wins[m.winnerId] = (wins[m.winnerId] || 0) + 1;
             });

@@ -1,5 +1,5 @@
 import { AdvancementResponse, AdvancementPoints, TeamRanking } from "@/types/scouting";
-import { MoveRight, Star, AlertCircle, TrendingUp, Award, Play } from "lucide-react";
+import { Star, AlertCircle, Award, Play } from "lucide-react";
 
 interface AdvancementListProps {
     advancement: AdvancementResponse | null;

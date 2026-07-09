@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, Controller, useController, type Control } from "react-hook-form";
+import { useForm, Controller, useController, type Control, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AggregatedTeamStats, MatchScouting, CURRENT_GAME_SCHEMA } from "@/types/scouting";
 import { useAuth } from "@/context/AuthContext";
@@ -53,15 +53,14 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
     const [isAdding, setIsAdding] = useState(false);
     const saveMutation = useSaveMatchScouting();
 
-    // See SuperScoutingForm for the `as any` rationale (Zod coerce TInput/TOutput mismatch).
+    // See SuperScoutingForm for the resolver-cast rationale (Zod coerce TInput/TOutput mismatch).
     const {
         control,
         handleSubmit,
         formState: { errors, isSubmitting },
         reset,
-        getValues,
     } = useForm<FTCIntoTheDeepFormValues>({
-        resolver: zodResolver(ftcIntoTheDeepFormSchema) as any,
+        resolver: zodResolver(ftcIntoTheDeepFormSchema) as Resolver<FTCIntoTheDeepFormValues>,
         defaultValues: DEFAULTS,
     });
 
@@ -453,7 +452,7 @@ function Counter({
     label: string;
     color?: "primary" | "purple" | "green";
 }) {
-    const { field } = useController({ control, name: name as any });
+    const { field } = useController({ control, name });
     const value = (field.value as number) ?? 0;
     return (
         <div className="flex flex-col gap-1">
@@ -493,7 +492,7 @@ function BooleanCheckbox({
     name: keyof FTCIntoTheDeepFormValues;
     label: string;
 }) {
-    const { field } = useController({ control, name: name as any });
+    const { field } = useController({ control, name });
     const checked = !!field.value;
     return (
         <label className={clsx(

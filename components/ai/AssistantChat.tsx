@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { chatWithAssistant } from "@/app/actions/ai";
 import { useAuth } from "@/context/AuthContext";
-import { Bot, Send, X, MessageSquare, ChevronDown, Sparkles, RefreshCcw } from "lucide-react";
+import { Bot, Send, MessageSquare, ChevronDown, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export default function AssistantChat() {
@@ -64,18 +64,19 @@ export default function AssistantChat() {
     }, [loading, pathname, messages, user]);
 
     useEffect(() => {
-        const handleOpenChat = (e: CustomEvent<{ message?: string, context?: any }>) => {
+        const handleOpenChat = (e: Event) => {
+            const { detail } = e as CustomEvent<{ message?: string }>;
             setIsOpen(true);
-            if (e.detail.message) {
+            if (detail.message) {
                 // Trigger analysis automatically when coming from the Oracle
                 setTimeout(() => {
-                    processMessage(e.detail.message!);
+                    processMessage(detail.message!);
                 }, 300); // Slight delay for the opening animation
             }
         };
 
-        window.addEventListener('open-ai-chat' as any, handleOpenChat as any);
-        return () => window.removeEventListener('open-ai-chat' as any, handleOpenChat as any);
+        window.addEventListener('open-ai-chat', handleOpenChat);
+        return () => window.removeEventListener('open-ai-chat', handleOpenChat);
     }, [processMessage]);
 
     const handleSend = () => {

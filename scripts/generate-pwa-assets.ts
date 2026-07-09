@@ -16,7 +16,7 @@
  */
 
 import sharp from "sharp";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
 const SOURCE = "public/icon.png";
