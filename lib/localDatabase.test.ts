@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
     saveToLocal,
     getPendingScouting,
+    getPendingScoutingRows,
     getPendingByScout,
     getEntriesForTeamMatch,
     getPendingForEvent,
@@ -18,6 +19,7 @@ import {
     clearPending,
     recordSyncFailure,
     pruneSyncedOlderThan,
+    MAX_SYNC_ATTEMPTS,
     __resetLocalDbForTests,
 } from "./localDatabase";
 import type { FTCMatchScouting } from "@/types/scouting";
@@ -130,6 +132,45 @@ describe("sync failure tracking", () => {
         // The error/counter live on the row itself, not the MatchScouting payload,
         // so we'd need a getter to inspect them — but for v1 we just verify
         // the entry is still pending after failures.
+    });
+});
+
+describe("getPendingScoutingRows (M2 poison-pill support)", () => {
+    it("exposes syncAttempts/lastError so callers can decide whether to keep retrying", async () => {
+        const id = await saveToLocal(makeFTCEntry());
+        await recordSyncFailure(id, "Firestore offline");
+        await recordSyncFailure(id, "Firestore offline");
+
+        const rows = await getPendingScoutingRows();
+        expect(rows).toHaveLength(1);
+        expect(rows[0].id).toBe(id);
+        expect(rows[0].syncAttempts).toBe(2);
+        expect(rows[0].lastError).toBe("Firestore offline");
+        expect(rows[0].data.teamNumber).toBe(30311);
+    });
+
+    it("excludes synced entries, same as getPendingScouting", async () => {
+        const id1 = await saveToLocal(makeFTCEntry({ matchNumber: 1 }));
+        await saveToLocal(makeFTCEntry({ matchNumber: 2 }));
+        await markAsSynced(id1);
+
+        const rows = await getPendingScoutingRows();
+        expect(rows).toHaveLength(1);
+        expect(rows[0].data.matchNumber).toBe(2);
+    });
+
+    it("a poison-pill entry's syncAttempts can reach MAX_SYNC_ATTEMPTS without wiping the row", async () => {
+        const id = await saveToLocal(makeFTCEntry());
+        for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+            await recordSyncFailure(id, `attempt ${i}`);
+        }
+
+        const rows = await getPendingScoutingRows();
+        // Still present (and still pending) — OnlineSync's drain loop is what
+        // decides to stop retrying via the syncAttempts >= MAX_SYNC_ATTEMPTS
+        // check, not the data layer silently dropping it.
+        expect(rows).toHaveLength(1);
+        expect(rows[0].syncAttempts).toBe(MAX_SYNC_ATTEMPTS);
     });
 });
 

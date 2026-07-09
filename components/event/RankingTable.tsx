@@ -17,14 +17,6 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
     // State for sorting
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'rank', direction: 'asc' });
 
-    if (!rankings || rankings.length === 0) {
-        return (
-            <div className="text-muted-foreground italic text-center py-8 bg-muted rounded-2xl border border-border">
-                No ranking data available for this event yet.
-            </div>
-        );
-    }
-
     // 1. Calculate OPR Metrics (Duplicated logic from MatchList for self-containment/consistency)
     // In a larger refactor, this should move to a shared hook/context.
     const oprData = useMemo(() => {
@@ -133,6 +125,14 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
         });
         return result;
     }, [tableData]);
+
+    if (!rankings || rankings.length === 0) {
+        return (
+            <div className="text-muted-foreground italic text-center py-8 bg-muted rounded-2xl border border-border">
+                No ranking data available for this event yet.
+            </div>
+        );
+    }
 
     const handleSort = (key: string) => {
         setSortConfig((current: { key: string, direction: 'asc' | 'desc' }) => ({

@@ -192,6 +192,23 @@ export async function getPendingForEvent(eventCode: string): Promise<MatchScouti
     return rows.map(r => r.data);
 }
 
+/**
+ * Above this many failed attempts, OnlineSync stops retrying an entry (it's
+ * likely a poison pill — malformed payload, permission error, etc. — and
+ * would otherwise block every other pending entry behind it forever).
+ */
+export const MAX_SYNC_ATTEMPTS = 5;
+
+/**
+ * Pending rows including sync metadata (syncAttempts, lastError) that
+ * `getPendingScouting` strips out. OnlineSync's drain loop needs this to
+ * skip entries that have exhausted their retry budget.
+ */
+export async function getPendingScoutingRows(): Promise<PendingMatchRow[]> {
+    await migrateLegacyKeysOnce();
+    return db().pendingMatches.where("syncedAt").equals(0).toArray();
+}
+
 /** Records a sync failure so we can implement backoff later. */
 export async function recordSyncFailure(id: string, error: string): Promise<void> {
     await migrateLegacyKeysOnce();

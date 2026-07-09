@@ -73,12 +73,19 @@ export function listenToPicklist(
 }
 
 /**
- * Persists changes to the picklist. Performs an atomic overwrite of the
- * tracked fields (teams / doNotPick / selected / declined) with the updater's
- * timestamp + uid, so the audit trail shows who last touched it.
+ * Persists changes to the picklist. Merges only the whitelisted patch fields
+ * (teams / doNotPick / selected / declined) plus the updater's timestamp/uid —
+ * every other field (orgId, eventCode, createdBy, ...) is left untouched by
+ * Firestore's `merge: true`.
+ *
+ * M7: this used to spread the entire client-held `picklist` object into the
+ * write. Since `picklist` is client state (loaded from a real-time listener),
+ * that let a stale or tampered local copy silently overwrite fields like
+ * `orgId` — including the stray `id` field the client object carries, which
+ * doesn't belong in the Firestore document at all.
  */
 export async function updatePicklist(
-    picklist: Picklist,
+    picklist: Pick<Picklist, "id">,
     updaterUid: string,
     patch: Partial<Pick<Picklist, "teams" | "doNotPick" | "selected" | "declined">>,
 ): Promise<void> {
@@ -86,7 +93,6 @@ export async function updatePicklist(
     await setDoc(
         ref,
         {
-            ...picklist,
             ...patch,
             updatedAt: Timestamp.now(),
             updatedBy: updaterUid,

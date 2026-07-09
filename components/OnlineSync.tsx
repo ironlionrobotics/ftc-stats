@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
     getPendingScouting,
+    getPendingScoutingRows,
     markAsSynced,
     recordSyncFailure,
+    MAX_SYNC_ATTEMPTS,
 } from "@/lib/localDatabase";
 import { saveMatchScouting } from "@/lib/scouting-service";
 import { notifyDiscordAction } from "@/app/actions/notify-discord";
@@ -50,10 +52,21 @@ export default function OnlineSync() {
     const [lastError, setLastError] = useState<string | null>(null);
     const consecutiveFailuresRef = useRef(0);
     const notifiedForCurrentStreakRef = useRef(false);
+    // Real mutual-exclusion lock for drain(). `syncing` state alone isn't
+    // enough — setSyncing(true) doesn't take effect until the next render,
+    // so two calls fired in the same tick (e.g. the online-event handler and
+    // a user tap-to-retry) both pass the `!syncing` check and drain
+    // concurrently, racing on the same Dexie rows. A ref is synchronous.
+    const drainingRef = useRef(false);
+    // Mirrors pendingCount without being a dependency of drain() — pendingCount
+    // changes every 5s poll, and having drain() depend on it would recreate
+    // the callback (and re-run the effects that depend on it) on every tick.
+    const pendingCountRef = useRef(0);
 
     const refreshPendingCount = useCallback(async () => {
         try {
             const items = await getPendingScouting();
+            pendingCountRef.current = items.length;
             setPendingCount(items.length);
         } catch {
             // Dexie not ready yet; ignore.
@@ -61,35 +74,38 @@ export default function OnlineSync() {
     }, []);
 
     const drain = useCallback(async () => {
-        if (!user || syncing) return;
+        if (!user || drainingRef.current) return;
+        drainingRef.current = true;
         setSyncing(true);
         setLastError(null);
         let failed = false;
         try {
-            const items = await getPendingScouting();
-            for (const entry of items) {
-                if (!entry.id) continue;
+            const rows = await getPendingScoutingRows();
+            for (const row of rows) {
+                // Dead-letter: this entry has failed repeatedly (malformed
+                // payload, permission error, etc). Skip it permanently instead
+                // of retrying forever and blocking everything queued behind it.
+                if (row.syncAttempts >= MAX_SYNC_ATTEMPTS) continue;
                 try {
                     // Use the stable Dexie local id as the Firestore document id
                     // so an interrupted drain (write committed, markAsSynced not
                     // yet run) re-converges to the SAME doc instead of creating a
                     // duplicate. saveMatchScouting is create-if-not-exists.
-                    await saveMatchScouting(entry, entry.id);
-                    await markAsSynced(entry.id);
+                    await saveMatchScouting(row.data, row.id);
+                    await markAsSynced(row.id);
                 } catch (e) {
                     const msg = e instanceof Error ? e.message : String(e);
-                    await recordSyncFailure(entry.id, msg);
+                    await recordSyncFailure(row.id, msg);
                     setLastError(msg);
                     failed = true;
-                    // Stop on first failure — likely a connectivity blip; we'll
-                    // retry on the next online event rather than burn through
-                    // every entry against the same broken connection.
-                    break;
+                    // Keep draining the rest of the queue — one bad entry
+                    // (poison pill) shouldn't block every other pending entry.
                 }
             }
             await refreshPendingCount();
         } finally {
             setSyncing(false);
+            drainingRef.current = false;
         }
 
         // Track consecutive-failure streak so we only ping Discord after
@@ -107,7 +123,7 @@ export default function OnlineSync() {
                         idToken,
                         title: "Sync de scouting bloqueado",
                         description:
-                            `Hay ${pendingCount} entradas pendientes que llevan ${consecutiveFailuresRef.current} intentos fallidos. ` +
+                            `Hay ${pendingCountRef.current} entradas pendientes que llevan ${consecutiveFailuresRef.current} intentos fallidos. ` +
                             "Revisa la conexión del scout o el estado de Firestore.",
                         severity: "error",
                     });
@@ -119,7 +135,7 @@ export default function OnlineSync() {
             consecutiveFailuresRef.current = 0;
             notifiedForCurrentStreakRef.current = false;
         }
-    }, [user, syncing, refreshPendingCount, pendingCount]);
+    }, [user, refreshPendingCount]);
 
     // Initial count + connectivity listeners.
     useEffect(() => {
