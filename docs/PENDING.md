@@ -1,9 +1,20 @@
 # Pendientes — FTC Stats México
 
-**Última actualización:** 24 mayo 2026 (cierre de sesión 9)
+**Última actualización:** 16 jul 2026 (cierre de auditoría + remediación 2026-07-08/09)
 **Premier Event objetivo:** julio 2026
 
 Este documento es la **fuente autoritativa** de qué falta. Leer al iniciar cualquier sesión nueva. Después de hacer trabajo, actualizar moviendo items entre secciones.
+
+---
+
+## ✅ Completado desde el cierre de sesión 9 (auditoría 2026-07-08/09)
+
+Auditoría completa del repo (algoritmos, seguridad, datos/offline) seguida de remediación por tareas, cada una con tests de regresión y commit propio. Detalle completo por fix en `docs/memory/decisions.md` #29-#38. Todo en rama `feat/oracle-alliance_maker-260210`, 211 tests verdes, typecheck limpio.
+
+- **Correctness estadística**: blend bayesiano (proyecciones), reliability de scouts (ground-truth), descomposición train/serve de features RP (**modelo RP cache bump a v2 — ver acción de usuario abajo**), unificación de win-probability (un solo modelo Φ/logística en vez de dos fórmulas divergentes).
+- **Seguridad**: `app/actions/ai.ts` hardening (auth + rate-limit + input caps), IDOR en ground-truth validation (scopeado por org), escrituras de scouting idempotentes (elimina duplicados en red inestable), RBAC de membresía de orgs (reglas Firestore bloquean auto-escalación de rol), DoS de analytics (cap + saneo de `eventCodes`).
+- **Bugs mecánicos**: crash de hooks en `RankingTable.tsx`, poison-pill + race condition en `OnlineSync`'s drain queue, `updatePicklist` filtrando campos del cliente hacia Firestore.
+- **Lint**: barrido completo de `no-explicit-any`/`no-unused-vars`/`no-unescaped-entities` (213→0), `public/sw.js` excluido de ESLint (generado).
 
 ---
 
@@ -16,7 +27,7 @@ Ninguno de estos los puede hacer Claude. Son setup operativo:
 | Var | Dónde se obtiene | Sin esto |
 |---|---|---|
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | console.upstash.com → Create Redis DB (REST API enabled) | Cache analítico no-op → app más lenta pero funcional |
-| `FIREBASE_SERVICE_ACCOUNT_KEY` (JSON one-line) | Firebase Console → Project Settings → Service Accounts → Generate new private key | **Bloquea** ground-truth validation, calibration log, RP model training |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` (JSON one-line) | Firebase Console → Project Settings → Service Accounts → Generate new private key | **Bloquea** ground-truth validation, calibration log, RP model training. **Además**: el fix M8 (2026-07-08) bumpeó la cache key de modelos RP a `v2` — cualquier modelo entrenado antes de esa fecha ya no se sirve; hay que reentrenar desde cero una vez configurada esta variable |
 | `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_ORG` + `SENTRY_PROJECT` + `SENTRY_AUTH_TOKEN` | sentry.io → crear proyecto Next.js | Sin error tracking en prod (no crítico para julio) |
 
 ### Deploy de Firestore rules + indexes
@@ -30,6 +41,8 @@ Sin esto:
 - Picklists no persisten
 - Calibration log no persiste
 - Org secrets (Discord webhook) inaccesible
+
+**Además (fix M4, 2026-07-08)**: las reglas de `users/{uid}` se endurecieron para bloquear auto-escalación de rol/orgId (no se pudo testear con emulador en el entorno de desarrollo de esa sesión). **Tras este deploy, correr ambos flujos de onboarding en el proyecto dev antes de dar por buenas las reglas**: (1) crear org nueva → debe quedar `admin`, (2) redimir código de invitación → debe quedar `scout` sin poder tocar su propio `orgId`/`role` de otra forma. Detalle en `docs/memory/decisions.md` #35.
 
 ### Códigos oficiales de eventos Premier
 
@@ -85,6 +98,22 @@ Actualizar `lib/constants.ts` con los `eventCode` reales del:
    - Después de validación 1, correr ground-truth validator (sidebar admin) para settle outcomes
    - Calibration dashboard en /analytics empieza a mostrar Brier real
 
+### De la auditoría 2026-07-08/09 (código, no revisado aún)
+
+7. **M1 — Cache stampede / single-flight en `lib/ftc-api.ts`**
+   - Requests concurrentes a la misma key (ej. varios scouts abriendo el mismo evento a la vez) disparan N fetches idénticos a la API de FIRST en vez de compartir uno
+   - Robustez bajo carga real de evento → recomendado antes de Premier
+   - **Modelo: Opus** (patrón nuevo, no mecánico)
+
+8. **Residual M4 (vector 2) — unirse a org ajena como scout**
+   - La rama "rol sin cambio" de la regla `users/{uid}` todavía permite que un usuario se auto-asigne el `orgId` de una org ajena como `scout` (lee picklists/estrategia de otro equipo)
+   - Fix: migrar redención de invitación a server-action Admin-SDK + regla que prohíba client-set de `orgId` a org ajena
+   - **Modelo: Opus + emulador de Firestore** (seguridad, no se pudo testear en este entorno)
+
+9. **React Compiler — 2 hallazgos con riesgo real de bug** (del barrido de lint, decisión #38 en `decisions.md`)
+   - `components/analytics/AlliancePredictor.tsx:34-35` — `setState` llamado dentro de un `useMemo`; el lint de React Compiler lo marca como riesgo de loop infinito, no diagnosticado a fondo. **Modelo: Opus** (hay que leer el memo completo)
+   - `components/scouting/ScoutingForm.tsx:74` — `Date.now()` llamado durante el render (impuro, rompe memoización del compilador). **Modelo: Sonnet/Opus**, riesgo bajo pero requiere revisar qué depende de ese valor
+
 ---
 
 ## 🟡 Encontrado en QA
@@ -139,6 +168,11 @@ Solo después de A. Dirección guardada en memoria: **Modern technical (Linear /
 - README.md actualizar (lleva info desactualizada de pre-Sprint 0)
 - Diagrama de arquitectura (Mermaid) en `docs/architecture/overview.md`
 - Tutorial scout en 1 página (puede ser un PDF generado desde la app misma)
+
+### Limpieza react-hooks / React Compiler (de la auditoría, decisión #38 — bajo riesgo, no bloquea Premier)
+
+- **`static-components`** (24 hallazgos, `RankingTable.tsx` + `FRC_ReefscapeForm.tsx`): componentes (`SortIcon`, `HeaderWithTooltip`, `HighlightValue`, `Counter`, `Checkbox`) declarados dentro del render — se recrean cada render, reseteando su estado y rompiendo la optimización del compilador. Fix: sacarlos a scope de módulo y pasar lo que hoy capturan por closure como props explícitas. Mecánico pero superficie de UI amplia → **Sonnet, con dev server abierto para verificar visualmente** (no se hizo en la sesión de auditoría por no tener navegador disponible)
+- **`set-state-in-effect`** (6 restantes: `Sidebar.tsx`, `TournamentSimulator.tsx` x2, `MatchScoutingForm.tsx`, `ScoutingClient.tsx`, `MatchSimulator.tsx`), **`exhaustive-deps`** (5), **`preserve-manual-memoization`** (4, `MatchList.tsx`) — sin evaluar caso por caso; algunos pueden ser el mismo patrón SSR-safe legítimo documentado en `lib/hooks/use-tip-dismissed.ts`, otros bugs reales → **Sonnet** para el triage inicial, escalar a Opus si alguno resulta ser comportamiento real
 
 ---
 
