@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { TeamRanking, AdvancementResponse, AdvancementPoints, FTCMatch, FTCAward, FTCEvent } from "@/types/scouting";
 import { getRedis } from "@/lib/redis";
+import { singleFlight } from "@/lib/single-flight";
 
 const BASE_URL = "https://ftc-api.firstinspires.org/v2.0";
 
@@ -132,6 +133,34 @@ export async function setCachedData<T>(key: string, payload: T, ttlSeconds: numb
     }
 }
 
+// Read-through cache with single-flight stampede protection.
+//
+// Fast path (warm Redis entry): one cache read, return — the single-flight Map
+// is never touched, so cache hits pay zero coordination overhead.
+//
+// Cold path (miss): concurrent callers for the same key share ONE `work()`
+// execution via singleFlight instead of each hammering the FIRST API. Inside
+// the flight we re-check the cache first, in case a prior flight for the same
+// key populated it in the gap between our outer miss and acquiring the slot.
+//
+// `work()` owns the fetch AND which results get written to cache — each fetcher
+// caches successful responses but returns an *uncached* fallback ([]/null) on
+// error, so failures are never memoised and the next request retries cleanly.
+async function readThrough<T>(
+    cacheKey: string,
+    ttlSeconds: number,
+    work: () => Promise<T>,
+): Promise<T> {
+    const cached = await getCachedData<T>(cacheKey, ttlSeconds);
+    if (cached) return cached;
+
+    return singleFlight(cacheKey, async () => {
+        const recheck = await getCachedData<T>(cacheKey, ttlSeconds);
+        if (recheck) return recheck;
+        return work();
+    });
+}
+
 // Helper to determine cache TTL based on event status.
 // Wrapped with React.cache so that within a single SSR request, multiple
 // fetchRankings/fetchMatches/etc. calls for the same (season, eventCode) reuse
@@ -179,233 +208,232 @@ export async function fetchRankings(season: number, eventCode: string): Promise<
     const cacheKey = `rankings_${season}_${eventCode}`;
     const ttl = await getSmartTTL(season, eventCode);
 
-    // console.log(`[Cache] Checking ${cacheKey} with TTL: ${ttl}s`);
-    const cached = await getCachedData<TeamRanking[]>(cacheKey, ttl);
-    if (cached) return cached;
+    return readThrough(cacheKey, ttl, async () => {
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/rankings/${eventCode}`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: ttl < 60 ? 60 : ttl }, // NextJS revalidate
+            });
 
-    try {
-        const response = await fetchWithRetry(`${BASE_URL}/${season}/rankings/${eventCode}`, {
-            headers: AUTH_HEADER,
-            next: { revalidate: ttl < 60 ? 60 : ttl }, // NextJS revalidate
-        });
-
-        if (!response.ok) {
-            if (response.status !== 404) {
-                console.error(`Status: ${response.status} ${response.statusText} for ${eventCode} (${season})`);
+            if (!response.ok) {
+                if (response.status !== 404) {
+                    console.error(`Status: ${response.status} ${response.statusText} for ${eventCode} (${season})`);
+                }
+                return [];
             }
+
+            const data = await response.json();
+            const rankings = data.rankings || [];
+            await setCachedData(cacheKey, rankings, ttl);
+            return rankings;
+        } catch (error) {
+            console.error(`Error fetching rankings for ${eventCode}:`, error);
             return [];
         }
-
-        const data = await response.json();
-        const rankings = data.rankings || [];
-        await setCachedData(cacheKey, rankings, ttl);
-        return rankings;
-    } catch (error) {
-        console.error(`Error fetching rankings for ${eventCode}:`, error);
-        return [];
-    }
+    });
 }
 
 export async function fetchAdvancement(season: number, eventCode: string): Promise<AdvancementResponse | null> {
     const cacheKey = `advancement_${season}_${eventCode}`;
     const ttl = await getSmartTTL(season, eventCode);
-    const cached = await getCachedData<AdvancementResponse>(cacheKey, ttl);
-    if (cached) return cached;
 
-    try {
-        const response = await fetchWithRetry(`${BASE_URL}/${season}/advancement/${eventCode}`, {
-            headers: AUTH_HEADER,
-            next: { revalidate: ttl < 60 ? 60 : ttl },
-        }, 1);
+    return readThrough(cacheKey, ttl, async () => {
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/advancement/${eventCode}`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: ttl < 60 ? 60 : ttl },
+            }, 1);
 
-        if (!response.ok) {
-            if (response.status !== 404) {
-                console.error(`Failed to fetch advancement for ${eventCode}: ${response.status} ${response.statusText}`);
+            if (!response.ok) {
+                if (response.status !== 404) {
+                    console.error(`Failed to fetch advancement for ${eventCode}: ${response.status} ${response.statusText}`);
+                }
+                return null;
             }
+
+            const data = await response.json();
+            await setCachedData(cacheKey, data, ttl);
+            return data;
+        } catch (error) {
+            console.error(`Error fetching advancement for ${eventCode}:`, error);
             return null;
         }
-
-        const data = await response.json();
-        await setCachedData(cacheKey, data, ttl);
-        return data;
-    } catch (error) {
-        console.error(`Error fetching advancement for ${eventCode}:`, error);
-        return null;
-    }
+    });
 }
 
 export async function fetchAdvancementPoints(season: number, eventCode: string): Promise<AdvancementPoints[]> {
     const cacheKey = `advancement_points_${season}_${eventCode}`;
     const ttl = await getSmartTTL(season, eventCode);
-    const cached = await getCachedData<AdvancementPoints[]>(cacheKey, ttl);
-    if (cached) return cached;
 
-    try {
-        const response = await fetchWithRetry(`${BASE_URL}/${season}/advancement/${eventCode}/points`, {
-            headers: AUTH_HEADER,
-            next: { revalidate: ttl < 60 ? 60 : ttl },
-        }, 1);
+    return readThrough(cacheKey, ttl, async () => {
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/advancement/${eventCode}/points`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: ttl < 60 ? 60 : ttl },
+            }, 1);
 
-        if (!response.ok) {
-            if (response.status !== 404) {
-                console.warn(`[ftc-api] Could not fetch advancement points for ${eventCode}: ${response.status} ${response.statusText}. Using empty data.`);
+            if (!response.ok) {
+                if (response.status !== 404) {
+                    console.warn(`[ftc-api] Could not fetch advancement points for ${eventCode}: ${response.status} ${response.statusText}. Using empty data.`);
+                }
+                return [];
             }
+
+            const data = await response.json();
+            const points = data || [];
+            await setCachedData(cacheKey, points, ttl);
+            return points;
+        } catch (error) {
+            console.error(`Error fetching advancement points for ${eventCode}:`, error);
             return [];
         }
-
-        const data = await response.json();
-        const points = data || [];
-        await setCachedData(cacheKey, points, ttl);
-        return points;
-    } catch (error) {
-        console.error(`Error fetching advancement points for ${eventCode}:`, error);
-        return [];
-    }
+    });
 }
 
 export async function fetchMatches(season: number, eventCode: string): Promise<FTCMatch[]> {
     const cacheKey = `matches_v2_${season}_${eventCode}`;
     const ttl = await getSmartTTL(season, eventCode);
-    const cached = await getCachedData<FTCMatch[]>(cacheKey, ttl);
-    if (cached) return cached;
 
-    const qualUrl = `${BASE_URL}/${season}/matches/${eventCode}?tournamentLevel=qual`;
-    const playoffUrl = `${BASE_URL}/${season}/matches/${eventCode}?tournamentLevel=playoff`;
+    return readThrough(cacheKey, ttl, async () => {
+        const qualUrl = `${BASE_URL}/${season}/matches/${eventCode}?tournamentLevel=qual`;
+        const playoffUrl = `${BASE_URL}/${season}/matches/${eventCode}?tournamentLevel=playoff`;
 
-    // Debug logging
-    console.log(`[fetchMatches] Fetching for ${eventCode} (Season: ${season})`);
-    if (!AUTH_HEADER.Authorization || AUTH_HEADER.Authorization.includes("undefined")) {
-        console.warn("[fetchMatches] Warning: Auth header appears invalid or missing credentials.");
-    }
-
-    try {
-        const [qualResult, playoffResult] = await Promise.all([
-            fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(async r => {
-                if (!r.ok) {
-                    if (r.status !== 404) console.warn(`[fetchMatches] Quals fetch failed: ${r.status} ${r.statusText}`);
-                    return { matches: [] };
-                }
-                return r.json().catch(e => {
-                    console.error("[fetchMatches] Error parsing Quals JSON:", e);
-                    return { matches: [] };
-                });
-            }),
-            fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(async r => {
-                if (!r.ok) {
-                    if (r.status !== 404) console.warn(`[fetchMatches] Playoffs fetch failed: ${r.status} ${r.statusText}`);
-                    return { matches: [] };
-                }
-                return r.json().catch(e => {
-                    console.error("[fetchMatches] Error parsing Playoffs JSON:", e);
-                    return { matches: [] };
-                });
-            })
-        ]);
-
-        const qualMatches = qualResult.matches || [];
-        const playoffMatches = playoffResult.matches || [];
-        const allMatches = [...qualMatches, ...playoffMatches].sort((a, b) => a.matchNumber - b.matchNumber);
-
-        console.log(`[fetchMatches] Found ${allMatches.length} matches for ${eventCode}`);
-
-        await setCachedData(cacheKey, allMatches, ttl);
-        return allMatches;
-    } catch (error) {
-        console.error(`[fetchMatches] Critical error fetching matches for ${eventCode}:`, error);
-
-        // Fallback
-        try {
-            const fallbackUrl = `${BASE_URL}/${season}/matches/${eventCode}`;
-            console.log(`[fetchMatches] Attempting fallback: ${fallbackUrl}`);
-            const resp = await fetch(fallbackUrl, { headers: AUTH_HEADER });
-            if (!resp.ok) throw new Error(`Fallback failed: ${resp.status}`);
-            const data = await resp.json();
-            return data.matches || [];
-        } catch (e) {
-            console.error(`[fetchMatches] Fallback also failed:`, e);
-            return [];
+        // Debug logging
+        console.log(`[fetchMatches] Fetching for ${eventCode} (Season: ${season})`);
+        if (!AUTH_HEADER.Authorization || AUTH_HEADER.Authorization.includes("undefined")) {
+            console.warn("[fetchMatches] Warning: Auth header appears invalid or missing credentials.");
         }
-    }
+
+        try {
+            const [qualResult, playoffResult] = await Promise.all([
+                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(async r => {
+                    if (!r.ok) {
+                        if (r.status !== 404) console.warn(`[fetchMatches] Quals fetch failed: ${r.status} ${r.statusText}`);
+                        return { matches: [] };
+                    }
+                    return r.json().catch(e => {
+                        console.error("[fetchMatches] Error parsing Quals JSON:", e);
+                        return { matches: [] };
+                    });
+                }),
+                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(async r => {
+                    if (!r.ok) {
+                        if (r.status !== 404) console.warn(`[fetchMatches] Playoffs fetch failed: ${r.status} ${r.statusText}`);
+                        return { matches: [] };
+                    }
+                    return r.json().catch(e => {
+                        console.error("[fetchMatches] Error parsing Playoffs JSON:", e);
+                        return { matches: [] };
+                    });
+                })
+            ]);
+
+            const qualMatches = qualResult.matches || [];
+            const playoffMatches = playoffResult.matches || [];
+            const allMatches = [...qualMatches, ...playoffMatches].sort((a, b) => a.matchNumber - b.matchNumber);
+
+            console.log(`[fetchMatches] Found ${allMatches.length} matches for ${eventCode}`);
+
+            await setCachedData(cacheKey, allMatches, ttl);
+            return allMatches;
+        } catch (error) {
+            console.error(`[fetchMatches] Critical error fetching matches for ${eventCode}:`, error);
+
+            // Fallback
+            try {
+                const fallbackUrl = `${BASE_URL}/${season}/matches/${eventCode}`;
+                console.log(`[fetchMatches] Attempting fallback: ${fallbackUrl}`);
+                const resp = await fetch(fallbackUrl, { headers: AUTH_HEADER });
+                if (!resp.ok) throw new Error(`Fallback failed: ${resp.status}`);
+                const data = await resp.json();
+                return data.matches || [];
+            } catch (e) {
+                console.error(`[fetchMatches] Fallback also failed:`, e);
+                return [];
+            }
+        }
+    });
 }
 
 export async function fetchMatchScores(season: number, eventCode: string): Promise<FTCMatchScoreEntry[]> {
     const cacheKey = `scores_v4_${season}_${eventCode}`;
     const ttl = await getSmartTTL(season, eventCode);
-    const cached = await getCachedData<FTCMatchScoreEntry[]>(cacheKey, ttl);
-    if (cached) return cached;
 
-    // Use PascalCase for the level as per some documentation variants
-    const qualUrl = `${BASE_URL}/${season}/scores/${eventCode}/Qual`;
-    const playoffUrl = `${BASE_URL}/${season}/scores/${eventCode}/Playoff`;
+    return readThrough(cacheKey, ttl, async () => {
+        // Use PascalCase for the level as per some documentation variants
+        const qualUrl = `${BASE_URL}/${season}/scores/${eventCode}/Qual`;
+        const playoffUrl = `${BASE_URL}/${season}/scores/${eventCode}/Playoff`;
 
-    try {
-        const [qualResult, playoffResult] = await Promise.all([
-            fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(r => r.ok ? r.json() : { scores: [] }),
-            fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(r => r.ok ? r.json() : { scores: [] })
-        ]);
+        try {
+            const [qualResult, playoffResult] = await Promise.all([
+                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(r => r.ok ? r.json() : { scores: [] }),
+                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(r => r.ok ? r.json() : { scores: [] })
+            ]);
 
-        const allScores = [...(qualResult.scores || []), ...(playoffResult.scores || [])];
+            const allScores = [...(qualResult.scores || []), ...(playoffResult.scores || [])];
 
-        // Log to console for debugging on server-side
-        if (allScores.length > 0) {
-            console.log(`[fetchMatchScores] Successfully fetched ${allScores.length} score breakdowns for ${eventCode}`);
-        } else {
-            console.warn(`[fetchMatchScores] No scores found for ${eventCode} at ${qualUrl}`);
+            // Log to console for debugging on server-side
+            if (allScores.length > 0) {
+                console.log(`[fetchMatchScores] Successfully fetched ${allScores.length} score breakdowns for ${eventCode}`);
+            } else {
+                console.warn(`[fetchMatchScores] No scores found for ${eventCode} at ${qualUrl}`);
+            }
+
+            await setCachedData(cacheKey, allScores, ttl);
+            return allScores;
+        } catch (error) {
+            console.error(`[fetchMatchScores] Error for ${eventCode}:`, error);
+            return [];
         }
-
-        await setCachedData(cacheKey, allScores, ttl);
-        return allScores;
-    } catch (error) {
-        console.error(`[fetchMatchScores] Error for ${eventCode}:`, error);
-        return [];
-    }
+    });
 }
 
 export async function fetchTeam(season: number, teamNumber: number): Promise<FTCTeamInfo | null> {
     const cacheKey = `team_${season}_${teamNumber}`;
-    const cached = await getCachedData<FTCTeamInfo>(cacheKey, 86400); // Cache for 24 hours (metadata changes rarely)
-    if (cached) return cached;
 
-    try {
-        const response = await fetchWithRetry(`${BASE_URL}/${season}/teams?teamNumber=${teamNumber}`, {
-            headers: AUTH_HEADER,
-            next: { revalidate: 86400 },
-        });
+    // Cache for 24 hours (metadata changes rarely)
+    return readThrough(cacheKey, 86400, async () => {
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/teams?teamNumber=${teamNumber}`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: 86400 },
+            });
 
-        if (!response.ok) {
-            console.error(`Status: ${response.status} ${response.statusText} for team ${teamNumber}`);
+            if (!response.ok) {
+                console.error(`Status: ${response.status} ${response.statusText} for team ${teamNumber}`);
+                return null;
+            }
+
+            const data = await response.json();
+            const team = data.teams?.[0] || null;
+            await setCachedData(cacheKey, team, 86400);
+            return team;
+        } catch (error) {
+            console.error(`Error fetching team ${teamNumber}:`, error);
             return null;
         }
-
-        const data = await response.json();
-        const team = data.teams?.[0] || null;
-        await setCachedData(cacheKey, team, 86400);
-        return team;
-    } catch (error) {
-        console.error(`Error fetching team ${teamNumber}:`, error);
-        return null;
-    }
+    });
 }
 
 export async function fetchTeamEvents(season: number, teamNumber: number): Promise<FTCEvent[]> {
     const cacheKey = `team_events_${season}_${teamNumber}`;
-    const cached = await getCachedData<FTCEvent[]>(cacheKey, 3600);
-    if (cached) return cached;
 
-    try {
-        const response = await fetchWithRetry(`${BASE_URL}/${season}/events?teamNumber=${teamNumber}`, {
-            headers: AUTH_HEADER,
-            next: { revalidate: 3600 },
-        });
+    return readThrough(cacheKey, 3600, async () => {
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/events?teamNumber=${teamNumber}`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: 3600 },
+            });
 
-        if (!response.ok) return [];
-        const data = await response.json();
-        const events = data.events || [];
-        await setCachedData(cacheKey, events, 3600);
-        return events;
-    } catch {
-        return [];
-    }
+            if (!response.ok) return [];
+            const data = await response.json();
+            const events = data.events || [];
+            await setCachedData(cacheKey, events, 3600);
+            return events;
+        } catch {
+            return [];
+        }
+    });
 }
 
 export async function fetchTeamRankingsInSeason(season: number, teamNumber: number): Promise<TeamSeasonRanking[]> {
@@ -467,68 +495,68 @@ export async function fetchTeamRankingsInSeason(season: number, teamNumber: numb
 // reference it. This eliminates ~32 redundant Firestore RTTs per page load.
 export const fetchEvents = cache(async (season: number): Promise<FTCEvent[]> => {
     const cacheKey = `events_${season}`;
-    const cached = await getCachedData<FTCEvent[]>(cacheKey, 86400); // 24h cache
-    if (cached) return cached;
 
-    try {
-        const response = await fetchWithRetry(`${BASE_URL}/${season}/events`, {
-            headers: AUTH_HEADER,
-            next: { revalidate: 86400 },
-        });
+    return readThrough(cacheKey, 86400, async () => { // 24h cache
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/events`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: 86400 },
+            });
 
-        if (!response.ok) return [];
-        const data = await response.json();
-        const events = data.events || [];
-        await setCachedData(cacheKey, events, 86400);
-        return events;
-    } catch (error) {
-        console.error("Error fetching events:", error);
-        return [];
-    }
+            if (!response.ok) return [];
+            const data = await response.json();
+            const events = data.events || [];
+            await setCachedData(cacheKey, events, 86400);
+            return events;
+        } catch (error) {
+            console.error("Error fetching events:", error);
+            return [];
+        }
+    });
 });
 
 export async function fetchEventAwards(season: number, eventCode: string): Promise<FTCAward[]> {
     const cacheKey = `event_awards_${season}_${eventCode}`;
     const ttl = await getSmartTTL(season, eventCode);
-    const cached = await getCachedData<FTCAward[]>(cacheKey, ttl);
-    if (cached) return cached;
 
-    try {
-        const response = await fetchWithRetry(`${BASE_URL}/${season}/awards/${eventCode}`, {
-            headers: AUTH_HEADER,
-            next: { revalidate: ttl < 60 ? 60 : ttl },
-        });
+    return readThrough(cacheKey, ttl, async () => {
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/awards/${eventCode}`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: ttl < 60 ? 60 : ttl },
+            });
 
-        if (!response.ok) return [];
-        const data = await response.json();
-        const awards = data.awards || [];
-        await setCachedData(cacheKey, awards, ttl);
-        return awards;
-    } catch {
-        return [];
-    }
+            if (!response.ok) return [];
+            const data = await response.json();
+            const awards = data.awards || [];
+            await setCachedData(cacheKey, awards, ttl);
+            return awards;
+        } catch {
+            return [];
+        }
+    });
 }
 
 export async function fetchEventAwardsForTeam(season: number, eventCode: string, teamNumber: number): Promise<FTCAward[]> {
     const cacheKey = `awards_${season}_${eventCode}_${teamNumber}`;
     const ttl = await getSmartTTL(season, eventCode);
-    const cached = await getCachedData<FTCAward[]>(cacheKey, ttl);
-    if (cached) return cached;
 
-    try {
-        const response = await fetchWithRetry(`${BASE_URL}/${season}/awards/${eventCode}/${teamNumber}`, {
-            headers: AUTH_HEADER,
-            next: { revalidate: ttl < 60 ? 60 : ttl },
-        });
+    return readThrough(cacheKey, ttl, async () => {
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/awards/${eventCode}/${teamNumber}`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: ttl < 60 ? 60 : ttl },
+            });
 
-        if (!response.ok) return [];
-        const data = await response.json();
-        const awards = data.awards || [];
-        await setCachedData(cacheKey, awards, ttl);
-        return awards;
-    } catch {
-        return [];
-    }
+            if (!response.ok) return [];
+            const data = await response.json();
+            const awards = data.awards || [];
+            await setCachedData(cacheKey, awards, ttl);
+            return awards;
+        } catch {
+            return [];
+        }
+    });
 }
 
 export async function fetchTeamAwards(season: number, teamNumber: number): Promise<FTCAward[]> {
