@@ -153,3 +153,24 @@ Transformación de un script de automatización en Python (`ftc_event_advancemen
     - **Win-prob unificada** (`lib/win-probability.ts`): un modelo, dos entradas (probit Φ con σ para el Oracle — ahora consistente con su Monte Carlo; logística k=1.5 para proyecciones). Fix Box-Muller u1=0. Decisión #32.
 - **Métricas**: tests 125 → 177 (todos verdes); typecheck limpio; cada fix con regresión verificada contra el código viejo (re-introducción temporal del bug).
 - **Pendiente señalado**: discrepancia comentario/código en `driverSkillImpact` (±7.5% vs ±15%) — decisión de calibración abierta; resto de hallazgos de auditoría (seguridad, offline, git) sin atacar aún.
+
+### Sesión 10 (cont.): Remediación de seguridad/arquitectura (08 Jul 2026, Opus 4.8)
+Tras el clúster estadístico, se ejecutó la remediación de los hallazgos de seguridad/arquitectura de la auditoría, cada fix con tests de regresión verificados contra el código viejo y commit propio:
+- **C1** — commit del working tree completo (~163 archivos que vivían solo en disco). `4be5ad8`.
+- **C3** — `app/actions/ai.ts` hardening: auth vía verifyIdToken + allow-list de model + rate-limit Redis + input caps. Lógica en `lib/ai-guards.ts`. `2ab98ad`. Decisión #33 (C4).
+- **C4** — IDOR: `runGroundTruthValidation` scopeada por `orgId` (query filter + guard defensivo). `a5d6ea7`.
+- **C5** — escrituras de match scouting idempotentes (id determinista + create-if-not-exists, respeta reglas inmutables). `649ec40`. Decisión #34.
+- **M4+M5** — RBAC de orgs (reglas `users/{uid}` bloquean escalación de rol + freeze reliability; `createOrJoinOrgByTeamNumber` create-only) y DoS de analytics (quitar forceRefresh, sanear eventCodes). `1d388e0`. Decisión #35.
+
+### Sesión 11: Bugs mecánicos + barrido de lint + catalogación react-hooks (09 Jul 2026, Sonnet 5)
+- **C2+M2+M3+M7** — crash de hooks en `RankingTable` (early-return tras 4 useMemo), poison-pill de `OnlineSync.drain` (continue + dead-letter), race de drain (ref-lock), `updatePicklist` filtrando campos del cliente. `2a00b98`. Decisión #36.
+- **Barrido de lint** — `public/sw.js` excluido de ESLint; 213→0 en no-unused-vars/no-explicit-any/no-unescaped-entities vía 5 agentes paralelos por archivo. `5a31930`. Decisión #37.
+- **Descubrimiento**: el linter reveló 42 hallazgos `react-hooks/*` orientados a React Compiler (no estaban en el alcance original) — catalogados como backlog en decisión #38 (2 resueltos, resto priorizado por riesgo).
+
+### Sesión 12: Cierre de la auditoría — M1, M4 vector 2, backlog react-hooks (16 Jul 2026, Opus 4.8)
+- **M1** — single-flight (request coalescing) contra cache stampede en `lib/ftc-api.ts`. Nuevo `lib/single-flight.ts` (Map de promesas en vuelo) + helper `readThrough`; 9 fetchers refactorizados preservando semántica exacta. In-process, no lock distribuido (justificado). `d5186a5`. Decisión #39. Verificado en navegador.
+- **M4 vector 2** — redención de invitación movida a server-action Admin-SDK (`app/actions/redeem-invite.ts`, transacción — cierra también el race de maxUses) + regla `users/{uid}` endurecida (rama "rol sin cambio" ahora exige orgId sin cambio → ningún cliente escribe orgId hacia org que no creó, cerrando la lectura cross-tenant de estrategia rival). Validación pura en `lib/invite-redemption.ts`. `3f42662`. Decisión #40.
+- **Backlog react-hooks (42→0)** — todos resueltos y verificados en navegador. Judgment calls en Opus (AlliancePredictor prop-sync compare-during-render, MatchSimulator/TournamentSimulator estado derivado→useMemo, Sidebar useSyncExternalStore, ScoutingClient dead state, etc.); `static-components` mecánicos en Sonnet paralelo (RankingTable, FRC_ReefscapeForm). **Bug real encontrado y arreglado**: `MatchSimulator` no recalculaba la proyección al ajustar puntos manualmente (`manualAdjustments` faltaba en deps). `deab1f6`. Decisión #41.
+- **Hallazgo de infra**: un `next-server` zombi (Next 15.5.15, 7.6 GB RAM, ~8 días corriendo) ocupaba el puerto 3000 — probable causa del síntoma reportado de "saturación de RAM"; terminado.
+- **Estado**: TODA la auditoría cerrada (C1–C6, M1–M8, lint, react-hooks; decisiones #29–#41). 224 tests verdes, typecheck limpio, único lint restante el `no-require-imports` preexistente de firebase.ts.
+- **Pendiente usuario** (no código): testear reglas Firestore M4/M4v2 post-deploy; reentrenar modelos RP v2; decidir driverSkillImpact ±7.5% vs ±15%.
