@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { createOrJoinOrgByTeamNumber, redeemInvite } from "@/lib/orgs";
+import { createOrJoinOrgByTeamNumber } from "@/lib/orgs";
+import { redeemInviteAction } from "@/app/actions/redeem-invite";
 import type { OrgProgram } from "@/types/orgs";
 import { Users, KeyRound, Loader2, X, AlertCircle } from "lucide-react";
 import clsx from "clsx";
@@ -66,7 +67,14 @@ export default function OnboardingModal() {
         }
         setBusy(true);
         try {
-            await redeemInvite(user, code);
+            // Redemption runs server-side (Admin SDK): the client is not allowed
+            // to set its own orgId to an org it didn't create (M4 vector 2).
+            const idToken = await user.getIdToken();
+            const result = await redeemInviteAction({ idToken, code });
+            if (!result.ok) {
+                setError(result.error);
+                return;
+            }
             await reloadUserDoc();
         } catch (e) {
             setError(e instanceof Error ? e.message : "Error al usar el código");

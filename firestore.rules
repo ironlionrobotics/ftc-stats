@@ -40,28 +40,34 @@ service cloud.firestore {
         // which previously let a client self-assign any orgId/role — becoming
         // admin/lead of a rival org, or inflating their own reliability weight.
         // Updates are now constrained:
-        //   - role: unchanged, OR become `admin` ONLY of an org you created
-        //     (verified via orgs/{orgId}.createdBy). `lead` can never be
-        //     self-assigned. This blocks privilege escalation.
+        //   - role + orgId: EITHER both unchanged (normal profile edit / no-op),
+        //     OR become `admin` of an org you created (verified via
+        //     orgs/{orgId}.createdBy == uid). `lead` can never be self-assigned,
+        //     and a client can NEVER point its own orgId at an org it didn't
+        //     create — that blocks both privilege escalation AND self-joining a
+        //     rival org to read its strategy (M4 vector 2).
         //   - reliability / matchesScouted: owned by the ground-truth server
         //     flow (Admin SDK, which bypasses rules); the client may never edit
         //     them, so a scout can't self-inflate their aggregation weight.
         // The legit onboarding paths still pass:
-        //   - Create org → setUserOrg(admin): role scout→admin + orgs/{id}.createdBy==uid ✓
-        //   - Redeem invite → setUserOrg(scout): role unchanged (scout→scout) ✓
+        //   - Create org → setUserOrg(admin): role scout→admin, orgId→org you
+        //     just created (orgs/{id}.createdBy == uid) ✓ (second branch)
+        //   - Redeem invite: joins an EXISTING (foreign) org, so it runs
+        //     server-side via redeemInviteAction (Admin SDK, bypasses rules) —
+        //     the client never writes this orgId itself.
         //
-        // NOTE (residual): joining an existing org as a plain `scout` by writing
-        // your own orgId is still permitted by the "role unchanged" branch. That
-        // path must move to an Admin-SDK server action (invite redemption) so the
-        // rule can forbid client-set orgId to a foreign org — see decisions.md.
         // MUST be tested after `firebase deploy --only firestore:rules`: run both
-        // onboarding paths (create org, redeem invite) on a dev project.
+        // onboarding paths (create org, redeem invite) on a dev project, and
+        // confirm a direct client write of orgId→a foreign org is REJECTED.
         match /users/{uid} {
             allow read: if request.auth.uid == uid;
             allow create: if request.auth.uid == uid;
             allow update: if request.auth.uid == uid
                 && (
-                    request.resource.data.role == resource.data.role
+                    (
+                        request.resource.data.role == resource.data.role
+                        && request.resource.data.orgId == resource.data.orgId
+                    )
                     || (
                         request.resource.data.role == 'admin'
                         && request.resource.data.orgId != null

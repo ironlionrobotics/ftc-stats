@@ -4,7 +4,6 @@ import {
     getDoc,
     setDoc,
     updateDoc,
-    increment,
     Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -204,36 +203,10 @@ export async function createInvite(
     throw new Error("No se pudo generar código único después de varios intentos");
 }
 
-/**
- * Looks up an invite by its short code and, if valid (exists, not expired,
- * within max uses), assigns the user to the invite's org and bumps the use
- * counter atomically(-ish — we do increment + assign in two calls; under
- * concurrent abuse the maxUses cap can be exceeded by 1, which is acceptable).
- */
-export async function redeemInvite(user: User, rawCode: string): Promise<Org> {
-    const code = rawCode.trim().toUpperCase();
-    const ref = doc(db, INVITES_COLLECTION, code);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-        throw new Error("Código de invitación no encontrado");
-    }
-    const invite = snap.data() as Omit<OrgInvite, "code">;
-
-    const expiresAt = invite.expiresAt?.seconds ?? 0;
-    if (expiresAt > 0 && expiresAt * 1000 < Date.now()) {
-        throw new Error("Este código de invitación ya expiró");
-    }
-    if (invite.maxUses !== null && invite.uses >= invite.maxUses) {
-        throw new Error("Este código de invitación alcanzó el límite de usos");
-    }
-
-    const orgSnap = await getDoc(doc(db, ORGS_COLLECTION, invite.orgId));
-    if (!orgSnap.exists()) {
-        throw new Error("El equipo asociado a esta invitación ya no existe");
-    }
-
-    await updateDoc(ref, { uses: increment(1) });
-    await setUserOrg(user.uid, invite.orgId, "scout");
-
-    return { id: invite.orgId, ...(orgSnap.data() as Omit<Org, "id">) };
-}
+// Invite REDEMPTION lives server-side in app/actions/redeem-invite.ts
+// (redeemInviteAction), NOT here. Joining an existing org sets
+// users/{uid}.orgId to an org the caller didn't create; the Firestore rule
+// forbids a client from doing that (it would let a scout self-join a rival org
+// and read its strategy — M4 vector 2), so the write must go through the Admin
+// SDK. Only invite *creation* (createInvite, above) stays client-side, since a
+// lead/admin generating a code for their OWN org is not a cross-tenant risk.
