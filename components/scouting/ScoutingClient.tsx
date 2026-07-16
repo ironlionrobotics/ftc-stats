@@ -27,18 +27,16 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
     );
     const [pitData, setPitData] = useState<PitScouting | null>(null);
     const [matchScoutingEntries, setMatchScoutingEntries] = useState<MatchScouting[]>([]);
-    const [, setLoading] = useState(false);
 
     // Load this org's pit scouting record for the selected team. Other orgs'
     // public summaries (if any) are surfaced inside ScoutingForm via the
-    // getPublicPitSummaries helper.
+    // getPublicPitSummaries helper. (No loading flag — nothing rendered off it;
+    // pitData going from null to a value is the only observable state here.)
     useEffect(() => {
         if (selectedTeamId) {
-            setLoading(true);
             const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
             getPitScouting(season, selectedTeamId, effectiveOrgId).then(data => {
                 setPitData(data);
-                setLoading(false);
             });
         }
     }, [selectedTeamId, season, orgId]);

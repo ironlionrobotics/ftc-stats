@@ -21,9 +21,70 @@ interface OprStats {
 
 type TableRow = TeamRanking & OprStats & { highScore: number; wlt: string };
 
+type SortConfig = { key: string; direction: 'asc' | 'desc' };
+
+interface SortIconProps {
+    column: string;
+    sortConfig: SortConfig;
+}
+
+function SortIcon({ column, sortConfig }: SortIconProps) {
+    if (sortConfig.key !== column) return <ArrowUpDown size={12} className="ml-1 text-muted-foreground/30" />;
+    return sortConfig.direction === 'asc'
+        ? <ArrowUp size={12} className="ml-1 text-primary" />
+        : <ArrowDown size={12} className="ml-1 text-primary" />;
+}
+
+interface HeaderWithTooltipProps {
+    label: string;
+    column?: string;
+    tooltip: React.ReactNode;
+    sortConfig: SortConfig;
+    handleSort: (key: string) => void;
+}
+
+function HeaderWithTooltip({ label, column, tooltip, sortConfig, handleSort }: HeaderWithTooltipProps) {
+    return (
+        <th className={clsx("p-4 font-bold relative group/head", column && "cursor-pointer hover:bg-muted/50 transition-colors")} onClick={() => column && handleSort(column)}>
+            <div className={clsx("flex items-center gap-1 uppercase tracking-widest", column && "justify-center")}>
+                <span className={clsx(column === 'opr' && "text-primary")}>{label}</span>
+                {column && <SortIcon column={column} sortConfig={sortConfig} />}
+                <div className="group/tip relative inline-block ml-1">
+                    <Info size={10} className="text-muted-foreground/50 hover:text-primary transition-colors cursor-help" />
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-slate-900 border border-slate-700 text-slate-100 text-[10px] rounded-lg shadow-xl opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 pointer-events-none text-left leading-relaxed font-normal normal-case tracking-normal">
+                        {tooltip}
+                    </div>
+                </div>
+            </div>
+        </th>
+    );
+}
+
+interface HighlightValueProps {
+    value: number;
+    column: string;
+    formatted: string;
+    extremes: Record<string, { max: number; min: number }>;
+}
+
+function HighlightValue({ value, column, formatted, extremes }: HighlightValueProps) {
+    const isMax = value === extremes[column]?.max && value > 0;
+    const isMin = value === extremes[column]?.min && value < 0;
+
+    return (
+        <span className={clsx(
+            "transition-all",
+            isMax && "text-yellow-600 dark:text-yellow-400 font-black scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.2)]",
+            isMin && "text-red-600 dark:text-red-400 font-black scale-110"
+        )}>
+            {formatted}
+        </span>
+    );
+}
+
 export default function RankingTable({ rankings, matches = [], onTeamClick }: RankingTableProps) {
     // State for sorting
-    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'rank', direction: 'asc' });
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'rank', direction: 'asc' });
 
     // 1. Calculate OPR Metrics (Duplicated logic from MatchList for self-containment/consistency)
     // In a larger refactor, this should move to a shared hook/context.
@@ -143,47 +204,10 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
     }
 
     const handleSort = (key: string) => {
-        setSortConfig((current: { key: string, direction: 'asc' | 'desc' }) => ({
+        setSortConfig((current: SortConfig) => ({
             key,
             direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
         }));
-    };
-
-    const SortIcon = ({ column }: { column: string }) => {
-        if (sortConfig.key !== column) return <ArrowUpDown size={12} className="ml-1 text-muted-foreground/30" />;
-        return sortConfig.direction === 'asc'
-            ? <ArrowUp size={12} className="ml-1 text-primary" />
-            : <ArrowDown size={12} className="ml-1 text-primary" />;
-    };
-
-    const HeaderWithTooltip = ({ label, column, tooltip }: { label: string, column?: string, tooltip: React.ReactNode }) => (
-        <th className={clsx("p-4 font-bold relative group/head", column && "cursor-pointer hover:bg-muted/50 transition-colors")} onClick={() => column && handleSort(column)}>
-            <div className={clsx("flex items-center gap-1 uppercase tracking-widest", column && "justify-center")}>
-                <span className={clsx(column === 'opr' && "text-primary")}>{label}</span>
-                {column && <SortIcon column={column} />}
-                <div className="group/tip relative inline-block ml-1">
-                    <Info size={10} className="text-muted-foreground/50 hover:text-primary transition-colors cursor-help" />
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-slate-900 border border-slate-700 text-slate-100 text-[10px] rounded-lg shadow-xl opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 pointer-events-none text-left leading-relaxed font-normal normal-case tracking-normal">
-                        {tooltip}
-                    </div>
-                </div>
-            </div>
-        </th>
-    );
-
-    const HighlightValue = ({ value, column, formatted }: { value: number, column: string, formatted: string }) => {
-        const isMax = value === extremes[column]?.max && value > 0;
-        const isMin = value === extremes[column]?.min && value < 0;
-
-        return (
-            <span className={clsx(
-                "transition-all",
-                isMax && "text-yellow-600 dark:text-yellow-400 font-black scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.2)]",
-                isMin && "text-red-600 dark:text-red-400 font-black scale-110"
-            )}>
-                {formatted}
-            </span>
-        );
     };
 
     return (
@@ -193,7 +217,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                     <thead>
                         <tr className="text-muted-foreground border-b border-border text-[10px] uppercase tracking-widest bg-muted/30">
                             <th className="p-4 font-bold cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('rank')}>
-                                <div className="flex items-center gap-1">Rank <SortIcon column="rank" /></div>
+                                <div className="flex items-center gap-1">Rank <SortIcon column="rank" sortConfig={sortConfig} /></div>
                             </th>
                             <th className="p-4 font-bold">
                                 <span className="flex items-center gap-1"><Users size={12} className="inline mr-1 text-secondary" /> Team</span>
@@ -201,36 +225,43 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                             <HeaderWithTooltip
                                 label="RS" column="sortOrder1"
                                 tooltip={<><strong>Ranking Score:</strong> Principal métrica oficial (RP). <br /> <span className="text-green-400">(+) Alto:</span> Mejor posición competitiva.</>}
+                                sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="NP Avg" column="sortOrder2"
                                 tooltip={<><strong>Match Points (Avg):</strong> Promedio de puntos sin penalizaciones. <br /> <span className="text-green-400">(+) Alto:</span> Potencia bruta de la alianza.</>}
+                                sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="Base" column="sortOrder3"
                                 tooltip={<><strong>Base Points:</strong> Puntos promedio de juego manual. <br /> <span className="text-green-400">(+) Alto:</span> Consistencia en TeleOp.</>}
+                                sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="Auto" column="sortOrder4"
                                 tooltip={<><strong>Auto Pts:</strong> Puntos promedio en autónomo oficial. <br /> <span className="text-green-400">(+) Alto:</span> Capacidad de inicio.</>}
+                                sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="High" column="highScore"
                                 tooltip={<><strong>High Score:</strong> Puntaje más alto logrado en el evento.</>}
+                                sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="OPR" column="opr"
                                 tooltip={<><strong>Offensive Power Rating:</strong> Contribución ofensiva individual estimada. <br /> <span className="text-green-400">(+) Alto:</span> Máxima anotación propia.</>}
+                                sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="Disc" column="netDiscipline"
                                 tooltip={<><strong>Net Discipline:</strong> Diferencia entre faltas provocadas y cometidas. <br /> <span className="text-green-400">(+) Mastermind</span></>}
+                                sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <th className="p-4 font-bold text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('wins')}>
-                                <div className="flex items-center justify-center gap-1">W-L-T <SortIcon column="wins" /></div>
+                                <div className="flex items-center justify-center gap-1">W-L-T <SortIcon column="wins" sortConfig={sortConfig} /></div>
                             </th>
                             <th className="p-4 font-bold text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('matchesPlayed')}>
-                                <div className="flex items-center justify-center gap-1">Plays <SortIcon column="matchesPlayed" /></div>
+                                <div className="flex items-center justify-center gap-1">Plays <SortIcon column="matchesPlayed" sortConfig={sortConfig} /></div>
                             </th>
                         </tr>
                     </thead>
@@ -255,28 +286,29 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                                     </button>
                                 </td>
                                 <td className="p-4 text-center text-sm font-bold">
-                                    <HighlightValue value={rank.sortOrder1} column="sortOrder1" formatted={rank.sortOrder1.toFixed(2)} />
+                                    <HighlightValue value={rank.sortOrder1} column="sortOrder1" formatted={rank.sortOrder1.toFixed(2)} extremes={extremes} />
                                 </td>
                                 <td className="p-4 text-center text-sm text-muted-foreground">
-                                    <HighlightValue value={rank.sortOrder2} column="sortOrder2" formatted={rank.sortOrder2.toFixed(1)} />
+                                    <HighlightValue value={rank.sortOrder2} column="sortOrder2" formatted={rank.sortOrder2.toFixed(1)} extremes={extremes} />
                                 </td>
                                 <td className="p-4 text-center text-sm text-muted-foreground">
-                                    <HighlightValue value={rank.sortOrder3} column="sortOrder3" formatted={rank.sortOrder3.toFixed(1)} />
+                                    <HighlightValue value={rank.sortOrder3} column="sortOrder3" formatted={rank.sortOrder3.toFixed(1)} extremes={extremes} />
                                 </td>
                                 <td className="p-4 text-center text-sm text-muted-foreground">
-                                    <HighlightValue value={rank.sortOrder4} column="sortOrder4" formatted={rank.sortOrder4.toFixed(1)} />
+                                    <HighlightValue value={rank.sortOrder4} column="sortOrder4" formatted={rank.sortOrder4.toFixed(1)} extremes={extremes} />
                                 </td>
                                 <td className="p-4 text-center text-sm">
-                                    <HighlightValue value={rank.highScore} column="highScore" formatted={rank.highScore.toString()} />
+                                    <HighlightValue value={rank.highScore} column="highScore" formatted={rank.highScore.toString()} extremes={extremes} />
                                 </td>
                                 <td className="p-4 text-center font-mono text-primary font-bold">
-                                    <HighlightValue value={rank.opr} column="opr" formatted={rank.opr.toFixed(1)} />
+                                    <HighlightValue value={rank.opr} column="opr" formatted={rank.opr.toFixed(1)} extremes={extremes} />
                                 </td>
                                 <td className="p-4 text-center font-mono text-xs">
                                     <HighlightValue
                                         value={rank.netDiscipline}
                                         column="netDiscipline"
                                         formatted={(rank.netDiscipline > 0 ? "+" : "") + rank.netDiscipline.toFixed(1)}
+                                        extremes={extremes}
                                     />
                                 </td>
                                 <td className="p-4 text-center">

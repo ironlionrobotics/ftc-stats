@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AggregatedTeamStats, MatchScouting, PitScouting } from "@/types/scouting";
 import { Card } from "@/components/ui/Card";
 import { X, Swords, AlertTriangle, Zap, Percent } from "lucide-react";
@@ -22,7 +22,6 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
     const [blueAlliance, setBlueAlliance] = useState<number[]>([]);
     const [scoutingData, setScoutingData] = useState<MatchScouting[]>([]);
     const [pitData, setPitData] = useState<Record<number, PitScouting>>({});
-    const [projection, setProjection] = useState<MatchProjection | null>(null);
     const [manualAdjustments, setManualAdjustments] = useState<Record<number, number>>({});
 
     // Listen for live scouting data
@@ -45,32 +44,25 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
         });
     }, [redAlliance, blueAlliance, season, pitData]);
 
-    // Calculate projection whenever picks or scouting change
-    useEffect(() => {
-        if (redAlliance.length === 2 && blueAlliance.length === 2) {
-            const redProjections = redAlliance.map(id => {
-                const team = teams.find(t => t.teamNumber === id)!;
-                const proj = calculateTeamProjection(team, scoutingData.filter(e => e.teamNumber === id), pitData[id]);
-                if (manualAdjustments[id]) {
-                    proj.projectedPoints += manualAdjustments[id];
-                }
-                return proj;
-            });
+    // Projection is pure derived state — a function of the picks, scouting,
+    // pit data and the manual adjustments. useMemo (not an effect + setState)
+    // so it recomputes synchronously with its inputs. This also fixes a stale
+    // bug: `manualAdjustments` was read but missing from the old effect's deps,
+    // so nudging a team's points didn't refresh the prediction.
+    const projection = useMemo<MatchProjection | null>(() => {
+        if (redAlliance.length !== 2 || blueAlliance.length !== 2) return null;
 
-            const blueProjections = blueAlliance.map(id => {
-                const team = teams.find(t => t.teamNumber === id)!;
-                const proj = calculateTeamProjection(team, scoutingData.filter(e => e.teamNumber === id), pitData[id]);
-                if (manualAdjustments[id]) {
-                    proj.projectedPoints += manualAdjustments[id];
-                }
-                return proj;
-            });
+        const project = (id: number) => {
+            const team = teams.find(t => t.teamNumber === id)!;
+            const proj = calculateTeamProjection(team, scoutingData.filter(e => e.teamNumber === id), pitData[id]);
+            if (manualAdjustments[id]) {
+                proj.projectedPoints += manualAdjustments[id];
+            }
+            return proj;
+        };
 
-            setProjection(predictMatch(redProjections, blueProjections));
-        } else {
-            setProjection(null);
-        }
-    }, [redAlliance, blueAlliance, scoutingData, pitData, teams]);
+        return predictMatch(redAlliance.map(project), blueAlliance.map(project));
+    }, [redAlliance, blueAlliance, scoutingData, pitData, teams, manualAdjustments]);
 
     const addToAlliance = (teamNumber: number, alliance: 'red' | 'blue') => {
         if (alliance === 'red') {

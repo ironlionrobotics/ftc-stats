@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { Home, ClipboardList, Menu, X, BarChart2, Sun, Moon } from "lucide-react";
 import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/lib/stores/theme-store";
@@ -15,22 +15,26 @@ import GroundTruthValidator from "@/components/auth/GroundTruthValidator";
 import DiscordSettings from "@/components/auth/DiscordSettings";
 import RpModelTrainer from "@/components/auth/RpModelTrainer";
 
-interface SidebarProps { }
+// Returns false during SSR + the initial (hydrating) client render, true after
+// hydration — the standard useSyncExternalStore idiom. Replaces the
+// useState(false) + setState-in-effect "mounted" flag (which the React Compiler
+// flags as a cascading-render hazard) with no behavior change: theme-dependent
+// UI still stays inert until the client has hydrated, avoiding a mismatch.
+const emptySubscribe = () => () => {};
+function useHydrated(): boolean {
+    return useSyncExternalStore(emptySubscribe, () => true, () => false);
+}
 
-export default function Sidebar({ }: SidebarProps) {
+export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const { user, userDoc, signInWithGoogle, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const { program, setProgram } = useProgram();
 
-    const [mounted, setMounted] = useState(false);
+    const mounted = useHydrated();
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     // const currentSeason = Number(searchParams.get("season") || "2024");
     // const currentRegion = searchParams.get("region") || "MX";

@@ -14,6 +14,29 @@ interface ScoutingFormProps {
     onSave: (data: PitScouting) => Promise<void> | void;
 }
 
+// Module-level so the impure `Date.now()` lives outside the component's render
+// scope. It's only ever called from the submit handler (an event, not render),
+// but the React Compiler can't prove that for a function assigned in the body,
+// so it would flag the inline Date.now() as a purity violation. Relocating the
+// impurity here keeps the behavior (a submit-time "shared at" stamp) identical.
+function nowFirestoreTimestamp(): { seconds: number; nanoseconds: number } {
+    return { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 };
+}
+
+// Presentational helpers hoisted to module scope. Defined inside the component
+// they'd be re-created every render (React Compiler `static-components`), which
+// remounts them and drops any child state. They capture nothing from the
+// component, so hoisting is behavior-neutral.
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+    <h3 className="text-xl font-bold text-white mt-4 mb-4 border-b border-white/10 pb-2 flex items-center gap-2">
+        {children}
+    </h3>
+);
+
+const Label = ({ children }: { children: React.ReactNode }) => (
+    <label className="block text-sm font-medium text-gray-400 mb-1">{children}</label>
+);
+
 /**
  * Pit scouting form (RHF + Zod).
  *
@@ -41,11 +64,17 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
         defaultValues: initialDataToFormValues(team, initialData),
     });
 
-    // Re-initialize the form when the selected team or initialData changes.
+    // Re-initialize the form when the selected team or its pit data changes.
+    // `team` is a stable reference per selected team (ScoutingClient derives it
+    // from a fixed initialTeams array and remounts this form via a per-team
+    // `key`), so depending on the whole object doesn't cause spurious resets —
+    // in practice the live trigger is `initialData` arriving from its async load.
+    // Only the imperative RHF form sync lives here; edit-mode is reset by the
+    // per-team remount and by onSubmit after save (so no setState in this
+    // effect — which the React Compiler flags as a cascading-render hazard).
     useEffect(() => {
         reset(initialDataToFormValues(team, initialData));
-        setIsEditing(false);
-    }, [team.teamNumber, initialData, reset]);
+    }, [team, initialData, reset]);
 
     const onSubmit = async (values: PitScoutingFormValues) => {
         // Merge values back into PitScouting shape, preserving fields that the
@@ -70,7 +99,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
             notes: values.notes,
             publicSummary: values.publicSummary,
             publicSummarySharedAt: values.publicSummary?.trim().length
-                ? { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 }
+                ? nowFirestoreTimestamp()
                 : initialData?.publicSummarySharedAt ?? null,
             // Preserved from initialData (read-only in form):
             orgId: initialData?.orgId,
@@ -80,16 +109,6 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
         await onSave(merged);
         setIsEditing(false);
     };
-
-    const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-        <h3 className="text-xl font-bold text-white mt-4 mb-4 border-b border-white/10 pb-2 flex items-center gap-2">
-            {children}
-        </h3>
-    );
-
-    const Label = ({ children }: { children: React.ReactNode }) => (
-        <label className="block text-sm font-medium text-gray-400 mb-1">{children}</label>
-    );
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 bg-white/5 border border-white/10 rounded-xl overflow-hidden flex flex-col h-full">

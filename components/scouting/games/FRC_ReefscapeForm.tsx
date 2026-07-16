@@ -17,6 +17,44 @@ interface FRC_ReefscapeFormProps {
     onSaveSuccess: () => void;
 }
 
+interface CounterProps {
+    label: string;
+    value: number;
+    setter: (v: number) => void;
+    color?: string;
+}
+
+function Counter({ label, value, setter, color = "primary" }: CounterProps) {
+    return (
+        <div className="flex flex-col gap-1 items-center">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</label>
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner">
+                <button onClick={() => setter(Math.max(0, value - 1))} className="p-2 sm:p-3 bg-white/5 rounded-lg hover:bg-white/10 active:bg-white/20 transition text-gray-400"><Minus size={14} /></button>
+                <span className={clsx("text-xl font-black w-8 text-center", color === 'cyan' ? 'text-cyan-400' : 'text-white')}>{value}</span>
+                <button onClick={() => setter(value + 1)} className="p-2 sm:p-3 bg-white/5 rounded-lg hover:bg-white/10 active:bg-white/20 transition text-gray-400"><Plus size={14} /></button>
+            </div>
+        </div>
+    );
+}
+
+interface CheckboxProps {
+    label: string;
+    checked: boolean;
+    setter: (v: boolean) => void;
+}
+
+function Checkbox({ label, checked, setter }: CheckboxProps) {
+    return (
+        <label className={clsx(
+            "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group flex-1",
+            checked ? "bg-cyan-500/20 border-cyan-500/50" : "bg-white/5 border-white/10 hover:border-white/20"
+        )}>
+            <input type="checkbox" checked={checked} onChange={e => setter(e.target.checked)} className="w-4 h-4 accent-cyan-500" />
+            <span className={clsx("text-sm font-medium transition", checked ? "text-white" : "text-gray-400 group-hover:text-gray-300")}>{label}</span>
+        </label>
+    );
+}
+
 export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_ReefscapeFormProps) {
     const { user, orgId } = useAuth();
     const { season } = useProgram();
@@ -114,27 +152,6 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
         setTeleopAlgaeProcessor(0); setTeleopAlgaeNet(0);
         setNotes("");
     };
-
-    const Counter = ({ label, value, setter, color = "primary" }: { label: string; value: number; setter: (v: number) => void; color?: string }) => (
-        <div className="flex flex-col gap-1 items-center">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</label>
-            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner">
-                <button onClick={() => setter(Math.max(0, value - 1))} className="p-2 sm:p-3 bg-white/5 rounded-lg hover:bg-white/10 active:bg-white/20 transition text-gray-400"><Minus size={14} /></button>
-                <span className={clsx("text-xl font-black w-8 text-center", color === 'cyan' ? 'text-cyan-400' : 'text-white')}>{value}</span>
-                <button onClick={() => setter(value + 1)} className="p-2 sm:p-3 bg-white/5 rounded-lg hover:bg-white/10 active:bg-white/20 transition text-gray-400"><Plus size={14} /></button>
-            </div>
-        </div>
-    );
-
-    const Checkbox = ({ label, checked, setter }: { label: string; checked: boolean; setter: (v: boolean) => void }) => (
-        <label className={clsx(
-            "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group flex-1",
-            checked ? "bg-cyan-500/20 border-cyan-500/50" : "bg-white/5 border-white/10 hover:border-white/20"
-        )}>
-            <input type="checkbox" checked={checked} onChange={e => setter(e.target.checked)} className="w-4 h-4 accent-cyan-500" />
-            <span className={clsx("text-sm font-medium transition", checked ? "text-white" : "text-gray-400 group-hover:text-gray-300")}>{label}</span>
-        </label>
-    );
 
     return (
         <div className="space-y-6">

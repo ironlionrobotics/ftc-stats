@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { TeamEvolution } from "@/app/actions/analytics";
 import { Alliance, PlayoffMatch } from "@/types/oracle";
 import { generateAlliances, initializeBracket, updateBracket, runMonteCarloSimulation, SimulationResult } from "@/lib/alliance-utils";
@@ -15,22 +15,37 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
     const [step, setStep] = useState<'config' | 'building' | 'bracket'>('config');
     const [allianceCount, setAllianceCount] = useState<2 | 4 | 6 | 8>(4);
     const [alliances, setAlliances] = useState<Alliance[]>([]);
-    const [bracket, setBracket] = useState<PlayoffMatch[]>([]);
     const [overrides, setOverrides] = useState<Record<string, number>>({});
     const [simResults, setSimResults] = useState<SimulationResult[] | null>(null);
-    const [scenarios, setScenarios] = useState<{ name: string, date: string, allianceCount: 2 | 4 | 6 | 8, alliances: Alliance[], overrides: Record<string, number> }[]>([]);
-
-    // Load scenarios on mount
-    useEffect(() => {
-        const saved = localStorage.getItem('tournament_scenarios');
-        if (saved) {
-            try {
-                setScenarios(JSON.parse(saved));
-            } catch (e) {
-                console.error("Failed to parse scenarios", e);
-            }
+    // Seed scenarios from localStorage via a lazy initializer instead of a
+    // mount effect. This component only mounts on a client click (the Tournament
+    // toggle, default mode is "analysis"), so it never server-renders — the
+    // window guard means no hydration mismatch and no setState-in-effect.
+    const [scenarios, setScenarios] = useState<{ name: string, date: string, allianceCount: 2 | 4 | 6 | 8, alliances: Alliance[], overrides: Record<string, number> }[]>(() => {
+        if (typeof window === "undefined") return [];
+        try {
+            const saved = localStorage.getItem('tournament_scenarios');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            console.error("Failed to parse scenarios", e);
+            return [];
         }
-    }, []);
+    });
+
+    // The bracket is pure derived state: initialize the structure for the chosen
+    // size, apply the user's manual winner overrides, then propagate + compute
+    // win probabilities. useMemo (not an effect + setState) — resetting alliances
+    // to [] in handleReset makes this collapse back to [] on its own.
+    const bracket = useMemo<PlayoffMatch[]>(() => {
+        if (alliances.length === 0) return [];
+        const matches = initializeBracket(allianceCount);
+        matches.forEach(m => {
+            if (overrides[m.id]) {
+                m.overriddenWinnerId = overrides[m.id];
+            }
+        });
+        return updateBracket(matches, alliances);
+    }, [alliances, overrides, allianceCount]);
 
     const handleRunMonteCarlo = () => {
         const results = runMonteCarloSimulation(alliances, allianceCount);
@@ -81,26 +96,6 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
         setScenarios(updated);
         localStorage.setItem('tournament_scenarios', JSON.stringify(updated));
     };
-
-    // Effect to keep bracket updated whenever alliances or overrides change.
-    // This ensures propagation is always calculated from a fresh state.
-    useEffect(() => {
-        if (alliances.length === 0) return;
-
-        // 1. Start with fresh bracket structure (clears previous derived data)
-        const matches = initializeBracket(allianceCount);
-
-        // 2. Apply Match Overrides
-        matches.forEach(m => {
-            if (overrides[m.id]) {
-                m.overriddenWinnerId = overrides[m.id];
-            }
-        });
-
-        // 3. Propagate & Calculate Probabilities
-        const updated = updateBracket(matches, alliances);
-        setBracket(updated);
-    }, [alliances, overrides, allianceCount]);
 
     // Available teams for selection (filtered by usage)
     const getAvailableTeams = (currentAllianceId: number, isCaptain: boolean) => {
@@ -181,8 +176,7 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
     };
 
     const handleReset = () => {
-        setAlliances([]);
-        setBracket([]);
+        setAlliances([]); // bracket is derived, so this clears it too
         setOverrides({});
         setStep('config');
     };

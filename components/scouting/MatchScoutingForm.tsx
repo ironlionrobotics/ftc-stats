@@ -25,15 +25,24 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
     const [showScanner, setShowScanner] = useState(false);
     const [showExport, setShowExport] = useState(false);
 
+    // Kept as a callable for the FRC form's onSaveSuccess (an event, where
+    // setState is fine). The mount/program-change load lives in the effect below.
     const loadPending = async () => {
         const data = await getPendingScouting();
         setPendingData(data);
     };
 
+    // Load pending entries from Dexie (external store) when FRC mode is active.
+    // setState happens in the promise-resolution callback (the sanctioned effect
+    // pattern), with a cancellation guard so a fast program switch can't write
+    // state after unmount.
     useEffect(() => {
-        if (program === "FRC") {
-            loadPending();
-        }
+        if (program !== "FRC") return;
+        let cancelled = false;
+        getPendingScouting().then(data => {
+            if (!cancelled) setPendingData(data);
+        });
+        return () => { cancelled = true; };
     }, [program]);
 
     const handleScannedData = async (data: MatchScouting[]) => {

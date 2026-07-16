@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Search, Info, X, Trophy, Bot, User, Sparkles, Network } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import clsx from "clsx";
@@ -28,17 +28,28 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
     const [selectedTeam, setSelectedTeam] = useState<TeamEvolution | null>(null);
     const [mode, setMode] = useState<"analysis" | "simulator">("analysis");
 
-    // Sync with external selection (e.g. from the table)
-    useMemo(() => {
-        if (initialTeam) {
-            setSelectedTeam(initialTeam);
-            setSearchTerm(initialTeam.teamNumber.toString());
+    // Sync with external selection (e.g. from the table). This is the React
+    // "adjusting state when a prop changes" pattern: compare the prop against
+    // its previous value during render and push it into local state only on a
+    // change. `selectedTeam` stays locally mutable (search / clear) between
+    // changes of `initialTeam`. Replaces a setState-inside-useMemo, which the
+    // React Compiler flags as a set-state-in-render hazard.
+    // Normalize the optional prop (undefined) to null so the change-comparison
+    // below can't oscillate undefined↔null and loop.
+    const normalizedInitial = initialTeam ?? null;
+    const [prevInitialTeam, setPrevInitialTeam] = useState<TeamEvolution | null>(null);
+    if (normalizedInitial !== prevInitialTeam) {
+        setPrevInitialTeam(normalizedInitial);
+        if (normalizedInitial) {
+            setSelectedTeam(normalizedInitial);
+            setSearchTerm(normalizedInitial.teamNumber.toString());
         }
-    }, [initialTeam]);
+    }
 
-    // ... (keep scouting metrics helpers) ...
-    // Helper to calculate scouting metrics
-    const calculateScoutingMetrics = (teamNumber: number): ScoutedMetrics => {
+    // Helper to calculate scouting metrics. useCallback so its identity is
+    // stable across renders where scoutingData is unchanged — the two useMemos
+    // below depend on it, so an unstable identity would defeat their memoization.
+    const calculateScoutingMetrics = useCallback((teamNumber: number): ScoutedMetrics => {
         const teamMatches = scoutingData.filter(m => m.teamNumber === teamNumber);
         if (!teamMatches.length) return { driverSkill: 0, reliability: 0, archetype: 'Unknown', endgameSuccess: 0, notes: [] };
 
@@ -64,12 +75,12 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
             endgameSuccess,
             notes: teamMatches.filter(m => m.notes).map(m => m.notes).slice(0, 3)
         };
-    };
+    }, [scoutingData]);
 
     const targetStats = useMemo(() => {
         if (!selectedTeam) return null;
         return calculateScoutingMetrics(selectedTeam.teamNumber);
-    }, [selectedTeam, scoutingData]);
+    }, [selectedTeam, calculateScoutingMetrics]);
 
     const handleUnavailableAdd = () => {
         const teamNum = parseInt(unavailableInput);
@@ -207,7 +218,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 };
             })
             .sort((a, b) => b.combinedScore - a.combinedScore);
-    }, [teams, selectedTeam, unavailableTeams, targetStats, scoutingData]);
+    }, [teams, selectedTeam, unavailableTeams, targetStats, calculateScoutingMetrics]);
 
     const topRecommendations = (allScoredTeams || []).slice(0, 6);
     const otherTeams = (allScoredTeams || []).slice(6);

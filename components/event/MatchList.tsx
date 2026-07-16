@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting } from "@/types/scouting";
 import clsx from "clsx";
 import { Trophy, Zap, Star, Info, Target, MousePointer2, AlertTriangle } from "lucide-react";
@@ -29,8 +29,11 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
 
     const teamNamesMap = new Map(rankings.map(r => [r.teamNumber, r.teamName]));
 
-    // Generic OPR Calculation Helper
-    const calculateComponentOPR = (getValue: (m: FTCMatch, alliance: 'Red' | 'Blue') => number) => {
+    // Generic OPR Calculation Helper. useCallback so its identity is stable
+    // across renders where matches/rankings are unchanged — the oprData useMemo
+    // below depends on it, so an unstable identity would defeat that memoization
+    // (React Compiler `preserve-manual-memoization`).
+    const calculateComponentOPR = useCallback((getValue: (m: FTCMatch, alliance: 'Red' | 'Blue') => number) => {
         if (!matches.length || !rankings.length) return new Map<number, number>();
 
         const teamsList = rankings.map(r => r.teamNumber);
@@ -73,7 +76,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
         }
 
         return new Map(teamsList.map((t, i) => [t, x[i]]));
-    };
+    }, [matches, rankings]);
 
     // Calculate Extended OPR Metrics
     const oprData = useMemo(() => {
@@ -100,7 +103,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
         );
 
         return { overall, auto, drawnFoul, committedFoul };
-    }, [matches, rankings]);
+    }, [calculateComponentOPR]);
 
     // Calculate Dynamic KPIs for filtered team
     const stats = {
