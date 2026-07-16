@@ -104,9 +104,7 @@ Actualizar `lib/constants.ts` con los `eventCode` reales del:
 
 8. ~~**Residual M4 (vector 2) — unirse a org ajena como scout**~~ ✅ HECHO 16 jul (commit `3f42662`, decisión #40). Redención movida a server-action Admin-SDK + regla `users/{uid}` endurecida. **⚠️ FALTA acción usuario**: testear reglas post `firebase deploy --only firestore:rules` en dev (ambos flujos onboarding + confirmar que write directo de orgId→org ajena es rechazado). Sin `FIREBASE_SERVICE_ACCOUNT_KEY` el action no corre e2e en dev.
 
-9. **React Compiler — 2 hallazgos con riesgo real de bug** (del barrido de lint, decisión #38 en `decisions.md`)
-   - `components/analytics/AlliancePredictor.tsx:34-35` — `setState` llamado dentro de un `useMemo`; el lint de React Compiler lo marca como riesgo de loop infinito, no diagnosticado a fondo. **Modelo: Opus** (hay que leer el memo completo)
-   - `components/scouting/ScoutingForm.tsx:74` — `Date.now()` llamado durante el render (impuro, rompe memoización del compilador). **Modelo: Sonnet/Opus**, riesgo bajo pero requiere revisar qué depende de ese valor
+9. ~~**React Compiler — backlog react-hooks (42 hallazgos)**~~ ✅ HECHO 16 jul (commit `deab1f6`, decisión #41). Los 42 → 0. Verificado en navegador (Oracle prop-sync, bracket derivado, RankingTable sorting). De paso se arregló un bug real: `MatchSimulator` no recalculaba la proyección al ajustar puntos manualmente (`manualAdjustments` faltaba en deps). Sin cambios de comportamiento en el resto.
 
 ---
 
