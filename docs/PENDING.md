@@ -98,17 +98,11 @@ Actualizar `lib/constants.ts` con los `eventCode` reales del:
    - Después de validación 1, correr ground-truth validator (sidebar admin) para settle outcomes
    - Calibration dashboard en /analytics empieza a mostrar Brier real
 
-### De la auditoría 2026-07-08/09 (código, no revisado aún)
+### De la auditoría 2026-07-08/09 (código)
 
-7. **M1 — Cache stampede / single-flight en `lib/ftc-api.ts`**
-   - Requests concurrentes a la misma key (ej. varios scouts abriendo el mismo evento a la vez) disparan N fetches idénticos a la API de FIRST en vez de compartir uno
-   - Robustez bajo carga real de evento → recomendado antes de Premier
-   - **Modelo: Opus** (patrón nuevo, no mecánico)
+7. ~~**M1 — Cache stampede / single-flight en `lib/ftc-api.ts`**~~ ✅ HECHO 16 jul (commit `d5186a5`, decisión #39). Single-flight in-process (`lib/single-flight.ts` + `readThrough`), 9 fetchers refactorizados. Verificado en navegador.
 
-8. **Residual M4 (vector 2) — unirse a org ajena como scout**
-   - La rama "rol sin cambio" de la regla `users/{uid}` todavía permite que un usuario se auto-asigne el `orgId` de una org ajena como `scout` (lee picklists/estrategia de otro equipo)
-   - Fix: migrar redención de invitación a server-action Admin-SDK + regla que prohíba client-set de `orgId` a org ajena
-   - **Modelo: Opus + emulador de Firestore** (seguridad, no se pudo testear en este entorno)
+8. ~~**Residual M4 (vector 2) — unirse a org ajena como scout**~~ ✅ HECHO 16 jul (commit `3f42662`, decisión #40). Redención movida a server-action Admin-SDK + regla `users/{uid}` endurecida. **⚠️ FALTA acción usuario**: testear reglas post `firebase deploy --only firestore:rules` en dev (ambos flujos onboarding + confirmar que write directo de orgId→org ajena es rechazado). Sin `FIREBASE_SERVICE_ACCOUNT_KEY` el action no corre e2e en dev.
 
 9. **React Compiler — 2 hallazgos con riesgo real de bug** (del barrido de lint, decisión #38 en `decisions.md`)
    - `components/analytics/AlliancePredictor.tsx:34-35` — `setState` llamado dentro de un `useMemo`; el lint de React Compiler lo marca como riesgo de loop infinito, no diagnosticado a fondo. **Modelo: Opus** (hay que leer el memo completo)
