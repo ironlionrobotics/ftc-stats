@@ -51,7 +51,7 @@ function HeaderWithTooltip({ label, column, tooltip, sortConfig, handleSort }: H
                 {column && <SortIcon column={column} sortConfig={sortConfig} />}
                 <div className="group/tip relative inline-block ml-1">
                     <Info size={10} className="text-muted-foreground/50 hover:text-primary transition-colors cursor-help" />
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-slate-900 border border-slate-700 text-slate-100 text-[10px] rounded-lg shadow-xl opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 pointer-events-none text-left leading-relaxed font-normal normal-case tracking-normal">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-card border border-border text-foreground text-[10px] rounded-lg shadow-sm opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 pointer-events-none text-left leading-relaxed font-normal normal-case tracking-normal">
                         {tooltip}
                     </div>
                 </div>
@@ -74,8 +74,8 @@ function HighlightValue({ value, column, formatted, extremes }: HighlightValuePr
     return (
         <span className={clsx(
             "transition-all",
-            isMax && "text-yellow-600 dark:text-yellow-400 font-black scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.2)]",
-            isMin && "text-red-600 dark:text-red-400 font-black scale-110"
+            isMax && "text-warning font-black scale-110",
+            isMin && "text-danger font-black scale-110"
         )}>
             {formatted}
         </span>
@@ -211,7 +211,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
     };
 
     return (
-        <div className="bg-card border border-border rounded-2xl shadow-xl">
+        <div className="bg-card border border-border rounded-2xl shadow-sm">
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
@@ -224,22 +224,22 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                             </th>
                             <HeaderWithTooltip
                                 label="RS" column="sortOrder1"
-                                tooltip={<><strong>Ranking Score:</strong> Principal métrica oficial (RP). <br /> <span className="text-green-400">(+) Alto:</span> Mejor posición competitiva.</>}
+                                tooltip={<><strong>Ranking Score:</strong> Principal métrica oficial (RP). <br /> <span className="text-success">(+) Alto:</span> Mejor posición competitiva.</>}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="NP Avg" column="sortOrder2"
-                                tooltip={<><strong>Match Points (Avg):</strong> Promedio de puntos sin penalizaciones. <br /> <span className="text-green-400">(+) Alto:</span> Potencia bruta de la alianza.</>}
+                                tooltip={<><strong>Match Points (Avg):</strong> Promedio de puntos sin penalizaciones. <br /> <span className="text-success">(+) Alto:</span> Potencia bruta de la alianza.</>}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="Base" column="sortOrder3"
-                                tooltip={<><strong>Base Points:</strong> Puntos promedio de juego manual. <br /> <span className="text-green-400">(+) Alto:</span> Consistencia en TeleOp.</>}
+                                tooltip={<><strong>Base Points:</strong> Puntos promedio de juego manual. <br /> <span className="text-success">(+) Alto:</span> Consistencia en TeleOp.</>}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="Auto" column="sortOrder4"
-                                tooltip={<><strong>Auto Pts:</strong> Puntos promedio en autónomo oficial. <br /> <span className="text-green-400">(+) Alto:</span> Capacidad de inicio.</>}
+                                tooltip={<><strong>Auto Pts:</strong> Puntos promedio en autónomo oficial. <br /> <span className="text-success">(+) Alto:</span> Capacidad de inicio.</>}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
@@ -249,12 +249,12 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                             />
                             <HeaderWithTooltip
                                 label="OPR" column="opr"
-                                tooltip={<><strong>Offensive Power Rating:</strong> Contribución ofensiva individual estimada. <br /> <span className="text-green-400">(+) Alto:</span> Máxima anotación propia.</>}
+                                tooltip={<><strong>Offensive Power Rating:</strong> Contribución ofensiva individual estimada. <br /> <span className="text-success">(+) Alto:</span> Máxima anotación propia.</>}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
                                 label="Disc" column="netDiscipline"
-                                tooltip={<><strong>Net Discipline:</strong> Diferencia entre faltas provocadas y cometidas. <br /> <span className="text-green-400">(+) Mastermind</span></>}
+                                tooltip={<><strong>Net Discipline:</strong> Diferencia entre faltas provocadas y cometidas. <br /> <span className="text-success">(+) Mastermind</span></>}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <th className="p-4 font-bold text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('wins')}>
@@ -271,9 +271,9 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                                 <td className="p-4">
                                     <div className={clsx(
                                         "w-8 h-8 rounded-lg flex items-center justify-center font-bold font-display text-sm",
-                                        rank.rank === 1 ? "bg-yellow-500/20 text-yellow-600 border border-yellow-500/20" :
-                                            rank.rank === 2 ? "bg-slate-400/20 text-slate-600 border border-slate-400/20" :
-                                                rank.rank === 3 ? "bg-amber-700/20 text-amber-700 border border-amber-700/20" :
+                                        rank.rank === 1 ? "bg-warning/20 text-warning border border-warning/20" :
+                                            rank.rank === 2 ? "bg-muted-foreground/20 text-muted-foreground border border-muted-foreground/20" :
+                                                rank.rank === 3 ? "bg-warning/20 text-warning border border-warning/20" :
                                                     "bg-muted text-muted-foreground"
                                     )}>
                                         {rank.rank}
@@ -313,11 +313,11 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                                 </td>
                                 <td className="p-4 text-center">
                                     <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted font-mono text-[10px]">
-                                        <span className="text-green-600 dark:text-green-500 font-bold">{rank.wins}</span>
+                                        <span className="text-success font-bold">{rank.wins}</span>
                                         <span className="text-muted-foreground/30">/</span>
-                                        <span className="text-red-600 dark:text-red-500 font-bold">{rank.losses}</span>
+                                        <span className="text-danger font-bold">{rank.losses}</span>
                                         <span className="text-muted-foreground/30">/</span>
-                                        <span className="text-blue-600 dark:text-blue-500 font-bold">{rank.ties}</span>
+                                        <span className="text-secondary font-bold">{rank.ties}</span>
                                     </div>
                                 </td>
                                 <td className="p-4 text-center text-sm text-muted-foreground">

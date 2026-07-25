@@ -86,13 +86,13 @@ export default function GroundTruthValidator() {
     };
 
     return (
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
-            <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+        <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
                 <ShieldCheck size={11} />
                 Validación ground-truth
             </div>
 
-            <p className="text-[10px] text-gray-500 leading-relaxed">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
                 Compara scouting capturado vs scores oficiales y actualiza la
                 confiabilidad de cada scout.
             </p>
@@ -102,42 +102,42 @@ export default function GroundTruthValidator() {
                     value={eventCode}
                     onChange={e => setEventCode(e.target.value.toUpperCase())}
                     placeholder="MXTOL"
-                    className="flex-1 px-2 py-1.5 bg-black/40 border border-white/10 rounded text-white text-xs font-mono uppercase"
+                    className="flex-1 px-2 py-1.5 bg-muted border border-border rounded text-foreground text-xs font-mono uppercase"
                 />
                 <button
                     onClick={runValidation}
                     disabled={busy}
-                    className="px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white text-xs font-bold rounded flex items-center gap-1"
+                    className="px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground text-xs font-bold rounded flex items-center gap-1"
                 >
                     {busy ? <Loader2 size={11} className="animate-spin" /> : "Validar"}
                 </button>
             </div>
 
             {error && (
-                <div className="flex items-start gap-1.5 text-[10px] text-red-400">
+                <div className="flex items-start gap-1.5 text-[10px] text-danger">
                     <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />
                     <span>{error}</span>
                 </div>
             )}
 
             {report && (
-                <div className="space-y-1.5 pt-1 border-t border-white/5">
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400">
+                <div className="space-y-1.5 pt-1 border-t border-border">
+                    <div className="flex items-center gap-1.5 text-[10px] text-success">
                         <CheckCircle2 size={11} />
                         <span>
                             {report.coveredMatches}/{report.eligibleMatches} matches con cobertura
                             · {report.scoutsUpdated} scouts actualizados
                         </span>
                     </div>
-                    <div className="text-[9px] text-gray-500">
+                    <div className="text-[9px] text-muted-foreground">
                         {new Date(report.ranAt).toLocaleString()}
                     </div>
                 </div>
             )}
 
             {scouts.length > 0 && (
-                <div className="space-y-1 pt-1 border-t border-white/5">
-                    <div className="text-[9px] text-gray-500 uppercase tracking-wider">
+                <div className="space-y-1 pt-1 border-t border-border">
+                    <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
                         Confiabilidad scouts
                     </div>
                     <ul className="space-y-0.5">
@@ -146,17 +146,17 @@ export default function GroundTruthValidator() {
                                 key={s.scoutId}
                                 className="flex items-center justify-between text-[10px]"
                             >
-                                <span className="truncate text-gray-400">
+                                <span className="truncate text-muted-foreground">
                                     {s.displayName}
                                 </span>
                                 <span
                                     className={clsx(
                                         "font-mono font-bold ml-2",
                                         s.reliability > 0.8
-                                            ? "text-emerald-400"
+                                            ? "text-success"
                                             : s.reliability > 0.5
-                                                ? "text-amber-400"
-                                                : "text-red-400",
+                                                ? "text-warning"
+                                                : "text-danger",
                                     )}
                                 >
                                     {(s.reliability * 100).toFixed(0)}%

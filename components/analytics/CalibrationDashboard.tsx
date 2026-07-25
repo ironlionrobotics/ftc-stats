@@ -93,7 +93,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
 
     if (!user) {
         return (
-            <Card className="p-8 text-center text-gray-400">
+            <Card className="p-8 text-center text-muted-foreground">
                 Inicia sesión para ver métricas de calibración.
             </Card>
         );
@@ -101,7 +101,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
 
     if (!canView) {
         return (
-            <Card className="p-8 text-center text-gray-400">
+            <Card className="p-8 text-center text-muted-foreground">
                 Sección visible solo para admins/leads del equipo.
             </Card>
         );
@@ -115,11 +115,11 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                         <Target className="text-primary" size={22} />
                         Calibración del modelo
                     </h2>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                         Qué tan confiables son las predicciones del simulador y los scouts.
                     </p>
                 </div>
@@ -128,13 +128,13 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
                         value={eventCode}
                         onChange={e => setEventCode(e.target.value.toUpperCase())}
                         placeholder="Todos los eventos"
-                        className="px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white text-xs font-mono uppercase w-40"
+                        className="px-3 py-1.5 bg-muted border border-border rounded-lg text-foreground text-xs font-mono uppercase w-40"
                     />
                     <button
                         type="button"
                         onClick={refresh}
                         disabled={loading}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-white text-xs font-bold rounded-lg"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground text-xs font-bold rounded-lg"
                     >
                         {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                         Actualizar
@@ -143,7 +143,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
             </div>
 
             {error && (
-                <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-xs">
+                <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-xs">
                     <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
                     <span>{error}</span>
                 </div>
@@ -193,37 +193,37 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
 
             {/* Scout reliability leaderboard */}
             {scouts.length > 0 && (
-                <Card className="p-0 bg-white/[0.02] border-white/10 overflow-hidden">
-                    <div className="p-4 border-b border-white/5">
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                            <Award className="text-amber-400" size={16} />
+                <Card className="p-0 bg-muted/30 border-border overflow-hidden">
+                    <div className="p-4 border-b border-border">
+                        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                            <Award className="text-warning" size={16} />
                             Confiabilidad de scouts (org)
                         </h3>
-                        <p className="text-[10px] text-gray-500 mt-1">
+                        <p className="text-[10px] text-muted-foreground mt-1">
                             Calculada por ground-truth validation contra scores oficiales.
                             Actualizar corriendo el validador en sidebar.
                         </p>
                     </div>
-                    <ul className="divide-y divide-white/5">
+                    <ul className="divide-y divide-border">
                         {scouts.map(s => (
                             <li key={s.scoutId} className="flex items-center justify-between px-4 py-2 text-sm">
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <span className="text-gray-300 truncate">{s.displayName}</span>
-                                    <span className="text-[10px] text-gray-500">{s.matchesScouted} obs</span>
+                                    <span className="text-foreground truncate">{s.displayName}</span>
+                                    <span className="text-[10px] text-muted-foreground">{s.matchesScouted} obs</span>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
                                         <div
                                             className={clsx(
                                                 "h-full transition-all",
-                                                s.reliability > 0.8 ? "bg-emerald-400" : s.reliability > 0.5 ? "bg-amber-400" : "bg-red-400",
+                                                s.reliability > 0.8 ? "bg-success" : s.reliability > 0.5 ? "bg-warning" : "bg-danger",
                                             )}
                                             style={{ width: `${s.reliability * 100}%` }}
                                         />
                                     </div>
                                     <span className={clsx(
                                         "text-xs font-mono font-bold w-12 text-right",
-                                        s.reliability > 0.8 ? "text-emerald-400" : s.reliability > 0.5 ? "text-amber-400" : "text-red-400",
+                                        s.reliability > 0.8 ? "text-success" : s.reliability > 0.5 ? "text-warning" : "text-danger",
                                     )}>
                                         {(s.reliability * 100).toFixed(0)}%
                                     </span>
@@ -257,19 +257,19 @@ function MetricCard({
     accent?: "good" | "warning" | "bad" | "neutral";
 }) {
     const accentMap = {
-        good: "border-emerald-500/30 bg-emerald-500/5",
-        warning: "border-amber-500/30 bg-amber-500/5",
-        bad: "border-red-500/30 bg-red-500/5",
-        neutral: "border-white/10 bg-white/[0.02]",
+        good: "border-success/30 bg-success/5",
+        warning: "border-warning/30 bg-warning/5",
+        bad: "border-danger/30 bg-danger/5",
+        neutral: "border-border bg-muted/30",
     };
     return (
         <Card className={clsx("p-4", accentMap[accent])}>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-gray-400 flex items-center gap-1.5">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1.5">
                 {icon}
                 {label}
             </div>
-            <div className="text-2xl font-black font-mono text-white mt-1">{value}</div>
-            <div className="text-[10px] text-gray-500 mt-0.5 leading-tight">{sub}</div>
+            <div className="text-2xl font-black font-mono text-foreground mt-1">{value}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{sub}</div>
         </Card>
     );
 }
@@ -294,12 +294,12 @@ function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
         return null;
     }
     return (
-        <Card className="p-4 bg-white/[0.02] border-white/10">
-            <h3 className="text-sm font-bold text-white mb-1">Reliability diagram</h3>
-            <p className="text-[10px] text-gray-500 mb-3">
+        <Card className="p-4 bg-muted/30 border-border">
+            <h3 className="text-sm font-bold text-foreground mb-1">Reliability diagram</h3>
+            <p className="text-[10px] text-muted-foreground mb-3">
                 Cada barra = bucket de predicciones. La altura empírica debe acercarse a la línea diagonal &quot;perfecta&quot;.
             </p>
-            <div className="relative h-48 flex items-end gap-1 px-2 border-l border-b border-white/10">
+            <div className="relative h-48 flex items-end gap-1 px-2 border-l border-b border-border">
                 {bins.map(b => {
                     const empiricalHeight = b.empirical * 100;
                     const predictedHeight = b.predicted * 100;
@@ -310,31 +310,31 @@ function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
                                 title={populated ? `${b.count} preds · pred ${(b.predicted * 100).toFixed(0)}% · real ${(b.empirical * 100).toFixed(0)}%` : "Sin datos"}
                                 className={clsx(
                                     "w-full rounded-t transition-all relative",
-                                    populated ? "bg-primary/40 hover:bg-primary/60" : "bg-white/5",
+                                    populated ? "bg-primary/40 hover:bg-primary/60" : "bg-muted",
                                 )}
                                 style={{ height: `${empiricalHeight}%` }}
                             >
                                 {/* Predicted marker (small dash) */}
                                 {populated && (
                                     <div
-                                        className="absolute left-0 right-0 h-0.5 bg-white"
+                                        className="absolute left-0 right-0 h-0.5 bg-foreground"
                                         style={{ bottom: `${predictedHeight - b.empirical * 100}%` }}
                                     />
                                 )}
                             </div>
-                            <div className="text-[8px] text-gray-600 font-mono">
+                            <div className="text-[8px] text-muted-foreground font-mono">
                                 {Math.round(b.binLow * 100)}
                             </div>
                         </div>
                     );
                 })}
             </div>
-            <div className="text-[10px] text-gray-500 mt-2 flex items-center gap-3">
+            <div className="text-[10px] text-muted-foreground mt-2 flex items-center gap-3">
                 <span className="flex items-center gap-1">
                     <span className="w-3 h-2 bg-primary/40 rounded-sm" /> Empírico
                 </span>
                 <span className="flex items-center gap-1">
-                    <span className="w-3 h-0.5 bg-white" /> Predicho
+                    <span className="w-3 h-0.5 bg-foreground" /> Predicho
                 </span>
             </div>
         </Card>
@@ -343,8 +343,8 @@ function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
 
 function EmptyState() {
     return (
-        <Card className="p-8 text-center text-gray-400 space-y-2">
-            <div className="text-sm font-bold text-gray-300">Sin predicciones registradas todavía</div>
+        <Card className="p-8 text-center text-muted-foreground space-y-2">
+            <div className="text-sm font-bold text-foreground">Sin predicciones registradas todavía</div>
             <p className="text-xs leading-relaxed max-w-md mx-auto">
                 Las métricas de calibración aparecen cuando:
             </p>
@@ -360,28 +360,28 @@ function EmptyState() {
 function Explainer() {
     const [open, setOpen] = useState(false);
     return (
-        <Card className="p-3 bg-white/[0.02] border-white/10">
+        <Card className="p-3 bg-muted/30 border-border">
             <button
                 onClick={() => setOpen(o => !o)}
-                className="w-full flex items-center gap-2 text-xs text-gray-400 hover:text-gray-200"
+                className="w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
             >
                 <HelpCircle size={12} />
                 ¿Qué significan estas métricas?
                 <span className="ml-auto text-[10px]">{open ? "▼" : "▶"}</span>
             </button>
             {open && (
-                <div className="mt-3 space-y-2 text-[11px] text-gray-400 leading-relaxed">
+                <div className="mt-3 space-y-2 text-[11px] text-muted-foreground leading-relaxed">
                     <p>
-                        <strong className="text-gray-200">Brier score</strong> = error cuadrático promedio entre probabilidad predicha y resultado (0/1). Un modelo que siempre predice 0.5 obtiene 0.25; un modelo perfecto obtiene 0. Statbotics reporta ~0.18 para FRC.
+                        <strong className="text-foreground">Brier score</strong> = error cuadrático promedio entre probabilidad predicha y resultado (0/1). Un modelo que siempre predice 0.5 obtiene 0.25; un modelo perfecto obtiene 0. Statbotics reporta ~0.18 para FRC.
                     </p>
                     <p>
-                        <strong className="text-gray-200">Log loss</strong> = penalización por confianza en respuestas equivocadas. Más sensible que Brier a &quot;100% seguro pero perdió&quot;. Menor = mejor.
+                        <strong className="text-foreground">Log loss</strong> = penalización por confianza en respuestas equivocadas. Más sensible que Brier a &quot;100% seguro pero perdió&quot;. Menor = mejor.
                     </p>
                     <p>
-                        <strong className="text-gray-200">Accuracy</strong> = % de matches donde la alianza con probabilidad ≥50% efectivamente ganó. Mide poder predictivo binario; ignora confianza.
+                        <strong className="text-foreground">Accuracy</strong> = % de matches donde la alianza con probabilidad ≥50% efectivamente ganó. Mide poder predictivo binario; ignora confianza.
                     </p>
                     <p>
-                        <strong className="text-gray-200">Reliability diagram</strong> = si dices &quot;70% prob&quot;, deberías acertar ~70% de las veces. Barras altas en buckets bajos = subconfianza; barras bajas en buckets altos = sobreconfianza.
+                        <strong className="text-foreground">Reliability diagram</strong> = si dices &quot;70% prob&quot;, deberías acertar ~70% de las veces. Barras altas en buckets bajos = subconfianza; barras bajas en buckets altos = sobreconfianza.
                     </p>
                 </div>
             )}

@@ -304,64 +304,35 @@ export default function EventViewManager({ matches, rankings, advancement, award
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex p-1 bg-white border border-slate-200 rounded-2xl w-full md:w-fit shadow-sm">
-                    <button
-                        onClick={() => setActiveTab("teams")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "teams" ? "bg-orange-600 text-white shadow-md shadow-orange-100" : "text-slate-500 hover:text-slate-900"
-                        )}
-                    >
-                        <LucideUsers size={18} /> Teams
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("rankings")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "rankings" ? "bg-primary text-white shadow-md" : "text-slate-500 hover:text-slate-900"
-                        )}
-                    >
-                        <Trophy size={18} /> Rankings
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("matches")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "matches" ? "bg-secondary text-white shadow-md" : "text-slate-500 hover:text-slate-900"
-                        )}
-                    >
-                        <LayoutList size={18} /> Matches
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("oracle")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "oracle" ? "bg-blue-600 text-white shadow-md" : "text-slate-500 hover:text-blue-600"
-                        )}
-                    >
-                        <Sparkles size={18} /> Oracle
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("advancement")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "advancement" ? "bg-purple-600 text-white shadow-md" : "text-slate-500 hover:text-purple-600"
-                        )}
-                    >
-                        <Target size={18} /> Advancement
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("awards")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "awards" ? "bg-yellow-500 text-white shadow-md" : "text-slate-500 hover:text-yellow-600"
-                        )}
-                    >
-                        <Medal size={18} /> Awards
-                    </button>
+                {/* Tab bar scrolls inside itself on mobile — 7 fixed-width
+                    buttons used to force the whole page to pan sideways. */}
+                <div className="flex p-1 bg-card border border-border rounded-xl w-full md:w-fit shadow-sm overflow-x-auto max-w-full">
+                    {/* One accent for active state (modern-technical: a single
+                        violet, not a rainbow per tab). */}
+                    {([
+                        { key: "teams", label: "Teams", icon: <LucideUsers size={18} /> },
+                        { key: "rankings", label: "Rankings", icon: <Trophy size={18} /> },
+                        { key: "matches", label: "Matches", icon: <LayoutList size={18} /> },
+                        { key: "oracle", label: "Oracle", icon: <Sparkles size={18} /> },
+                        { key: "advancement", label: "Advancement", icon: <Target size={18} /> },
+                        { key: "awards", label: "Awards", icon: <Medal size={18} /> },
+                    ] as const).map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={clsx(
+                                "shrink-0 flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200",
+                                activeTab === tab.key
+                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                        >
+                            {tab.icon} {tab.label}
+                        </button>
+                    ))}
                     <Link
                         href={`/event/${eventCode}/pro`}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-200 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100"
+                        className="shrink-0 flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-sm font-black whitespace-nowrap transition-all duration-200 text-secondary hover:bg-secondary/10 border border-transparent hover:border-secondary/20"
                     >
                         <LucideZap size={18} /> PRO
                     </Link>
@@ -370,15 +341,15 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 {activeTab !== "matches" && (
                     <div className="flex flex-col gap-1 w-full md:w-auto min-w-[240px]">
                         <div className="flex justify-between items-center px-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                                 <History size={12} /> Historia por Ronda
                             </label>
                             <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
                                 {selectedRound === totalRounds ? "FINAL" : `Ronda ${selectedRound}`}
                             </span>
                         </div>
-                        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                            <span className="text-[10px] font-bold text-slate-400">R1</span>
+                        <div className="flex items-center gap-3 bg-card p-2 rounded-xl border border-border shadow-sm">
+                            <span className="text-[10px] font-bold text-muted-foreground">R1</span>
                             <input
                                 type="range"
                                 min="1"
@@ -386,9 +357,9 @@ export default function EventViewManager({ matches, rankings, advancement, award
                                 step="1"
                                 value={selectedRound}
                                 onChange={(e) => setSelectedRound(parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary"
+                                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                             />
-                            <span className="text-[10px] font-bold text-slate-400">Final</span>
+                            <span className="text-[10px] font-bold text-muted-foreground">Final</span>
                         </div>
                     </div>
                 )}

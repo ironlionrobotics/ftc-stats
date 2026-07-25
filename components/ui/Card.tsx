@@ -22,7 +22,7 @@ export function Card({ children, className }: CardProps) {
     return (
         <div
             className={clsx(
-                "bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-xl",
+                "bg-card border border-border rounded-xl p-6 shadow-sm",
                 "animate-in fade-in slide-in-from-bottom-1 duration-300",
                 className,
             )}

@@ -17,13 +17,16 @@ export default function QRExport({ data }: QRExportProps) {
     }, [data]);
 
     return (
-        <div className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.05)] border border-slate-100">
-            <h3 className="text-xl font-black text-slate-800 mb-6">Offline Sync QR</h3>
-            <div className="bg-white p-4 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.05)] border border-slate-100">
+        <div className="flex flex-col items-center justify-center p-6 bg-card rounded-2xl shadow-sm border border-border">
+            <h3 className="text-xl font-black text-foreground mb-6">Offline Sync QR</h3>
+            {/* Stays bg-white regardless of theme: the QRCode component renders dark
+                modules against a light backdrop, so this container's contrast is
+                functional (scannability), not decorative. */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                 <QRCode value={payload} size={256} className="h-auto max-w-full" />
             </div>
-            <p className="text-sm font-medium text-slate-500 mt-6 text-center max-w-xs">
-                Scan this code with the Lead Scouter device to transfer <strong className="text-slate-800">{data.length}</strong> records.
+            <p className="text-sm font-medium text-muted-foreground mt-6 text-center max-w-xs">
+                Scan this code with the Lead Scouter device to transfer <strong className="text-foreground">{data.length}</strong> records.
             </p>
         </div>
     );

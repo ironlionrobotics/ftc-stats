@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AggregatedTeamStats } from "@/types/scouting";
 import { Card } from "./ui/Card";
 import { ArrowUpDown, Search, Trophy, Star, Calculator } from "lucide-react";
@@ -20,6 +20,11 @@ export default function StatsTable({ data }: StatsTableProps) {
     const [sortDesc, setSortDesc] = useState(true);
     const [viewMode, setViewMode] = useState<ViewMode>('qualification');
     const [showAdvancedOnly, setShowAdvancedOnly] = useState(false);
+    // Rows rendered at once. Regional datasets (~50-400 teams) fit in one
+    // page; world-scale queries (region "All", ~7,000 teams) would otherwise
+    // freeze the main thread building thousands of <tr> nodes.
+    const PAGE_SIZE = 100;
+    const [visibleRows, setVisibleRows] = useState(PAGE_SIZE);
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -30,7 +35,9 @@ export default function StatsTable({ data }: StatsTableProps) {
         }
     };
 
-    const filteredData = data
+    // Memoized: without this every render (each search keystroke, any toggle)
+    // re-cloned and re-sorted the full dataset.
+    const filteredData = useMemo(() => data
         .filter(
             (team) => {
                 const matchesSearch = team.teamNumber.toString().includes(searchTerm) ||
@@ -64,7 +71,12 @@ export default function StatsTable({ data }: StatsTableProps) {
             }
 
             return sortDesc ? (valB > valA ? 1 : -1) : (valA > valB ? 1 : -1);
-        });
+        }), [data, searchTerm, showAdvancedOnly, sortField, sortDesc]);
+
+    const pagedData = useMemo(
+        () => filteredData.slice(0, visibleRows),
+        [filteredData, visibleRows],
+    );
 
     return (
         <Card className="w-full overflow-hidden p-0 bg-card border-border">
@@ -128,29 +140,29 @@ export default function StatsTable({ data }: StatsTableProps) {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-muted/50 border-b border-border text-muted-foreground text-[10px] uppercase tracking-widest">
-                            <th className="p-4 text-center w-12 font-bold">#</th>
-                            <th className="p-4 cursor-pointer hover:text-foreground transition-colors" onClick={() => handleSort('teamNumber')}>
+                            <th className="p-2.5 md:p-4 text-center w-12 font-bold">#</th>
+                            <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors" onClick={() => handleSort('teamNumber')}>
                                 <div className="flex items-center gap-2">Equipo <ArrowUpDown size={12} /></div>
                             </th>
 
                             {viewMode === 'qualification' && (
                                 <>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageRS')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageRS')}>
                                         <div className="flex items-center justify-center gap-1.5">RS <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageMatchPoints')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageMatchPoints')}>
                                         <div className="flex items-center justify-center gap-1.5">Match <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageBasePoints')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageBasePoints')}>
                                         <div className="flex items-center justify-center gap-1.5">Base <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageAutoPoints')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageAutoPoints')}>
                                         <div className="flex items-center justify-center gap-1.5">Auto <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageHighScore')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('averageHighScore')}>
                                         <div className="flex items-center justify-center gap-1.5">Máximo <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('totalWins')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('totalWins')}>
                                         <div className="flex items-center justify-center gap-1.5">W-L-T <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
                                 </>
@@ -158,29 +170,29 @@ export default function StatsTable({ data }: StatsTableProps) {
 
                             {viewMode === 'advancement' && (
                                 <>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('totalPoints')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('totalPoints')}>
                                         <div className="flex items-center justify-center gap-1.5">Total Pts <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('judging')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('judging')}>
                                         <div className="flex items-center justify-center gap-1.5">Judging <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('playoff')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('playoff')}>
                                         <div className="flex items-center justify-center gap-1.5">Playoff <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('selection')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('selection')}>
                                         <div className="flex items-center justify-center gap-1.5">Alianza <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
-                                    <th className="p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('qualification')}>
+                                    <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors text-center whitespace-nowrap" onClick={() => handleSort('qualification')}>
                                         <div className="flex items-center justify-center gap-1.5">Qual Pts <ArrowUpDown size={12} className="flex-shrink-0" /></div>
                                     </th>
                                 </>
                             )}
 
-                            <th className="p-4 text-center">Eventos</th>
+                            <th className="p-2.5 md:p-4 text-center">Eventos</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
-                        {filteredData.map((team, index) => (
+                        {pagedData.map((team, index) => (
                             <tr
                                 key={team.teamNumber}
                                 className={clsx(
@@ -188,13 +200,13 @@ export default function StatsTable({ data }: StatsTableProps) {
                                     team.hasAdvanced ? "bg-secondary/5 hover:bg-secondary/10" : "hover:bg-muted/30"
                                 )}
                             >
-                                <td className="p-4 text-center text-xs text-muted-foreground font-medium">
+                                <td className="p-2.5 md:p-4 text-center text-xs text-muted-foreground font-medium">
                                     {index + 1}
                                 </td>
-                                <td className="p-4">
+                                <td className="p-2.5 md:p-4">
                                     <Link href={`/team/${team.teamNumber}`} className="flex flex-col group/link">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-bold text-foreground text-lg font-display group-hover/link:text-primary transition-colors">{team.teamNumber}</span>
+                                            <span className="font-bold text-foreground text-base md:text-lg font-display group-hover/link:text-primary transition-colors">{team.teamNumber}</span>
                                         </div>
                                         <span className="text-muted-foreground text-xs group-hover/link:text-primary transition-colors">{team.teamName}</span>
                                     </Link>
@@ -202,12 +214,12 @@ export default function StatsTable({ data }: StatsTableProps) {
 
                                 {viewMode === 'qualification' && (
                                     <>
-                                        <td className="p-4 text-center text-primary font-bold text-lg">{team.averageRS.toFixed(2)}</td>
-                                        <td className="p-4 text-center text-foreground font-medium">{team.averageMatchPoints.toFixed(2)}</td>
-                                        <td className="p-4 text-center text-muted-foreground">{team.averageBasePoints.toFixed(2)}</td>
-                                        <td className="p-4 text-center text-muted-foreground">{team.averageAutoPoints.toFixed(2)}</td>
-                                        <td className="p-4 text-center text-foreground font-bold">{Math.round(team.averageHighScore)}</td>
-                                        <td className="p-4 text-center whitespace-nowrap">
+                                        <td className="p-2.5 md:p-4 text-center text-primary font-bold text-lg">{team.averageRS.toFixed(2)}</td>
+                                        <td className="p-2.5 md:p-4 text-center text-foreground font-medium">{team.averageMatchPoints.toFixed(2)}</td>
+                                        <td className="p-2.5 md:p-4 text-center text-muted-foreground">{team.averageBasePoints.toFixed(2)}</td>
+                                        <td className="p-2.5 md:p-4 text-center text-muted-foreground">{team.averageAutoPoints.toFixed(2)}</td>
+                                        <td className="p-2.5 md:p-4 text-center text-foreground font-bold">{Math.round(team.averageHighScore)}</td>
+                                        <td className="p-2.5 md:p-4 text-center whitespace-nowrap">
                                             <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[10px] font-mono">
                                                 <span className="text-green-600 dark:text-green-500">{team.totalWins}</span>
                                                 <span className="text-muted-foreground/30">-</span>
@@ -221,19 +233,19 @@ export default function StatsTable({ data }: StatsTableProps) {
 
                                 {viewMode === 'advancement' && (
                                     <>
-                                        <td className="p-4 text-center text-foreground font-bold text-lg">{team.advancementPoints.total}</td>
-                                        <td className="p-4 text-center text-muted-foreground">{team.advancementPoints.judging}</td>
-                                        <td className="p-4 text-center text-muted-foreground">{team.advancementPoints.playoff}</td>
-                                        <td className="p-4 text-center text-muted-foreground">{team.advancementPoints.selection}</td>
-                                        <td className="p-4 text-center text-muted-foreground">{team.advancementPoints.qualification}</td>
+                                        <td className="p-2.5 md:p-4 text-center text-foreground font-bold text-lg">{team.advancementPoints.total}</td>
+                                        <td className="p-2.5 md:p-4 text-center text-muted-foreground">{team.advancementPoints.judging}</td>
+                                        <td className="p-2.5 md:p-4 text-center text-muted-foreground">{team.advancementPoints.playoff}</td>
+                                        <td className="p-2.5 md:p-4 text-center text-muted-foreground">{team.advancementPoints.selection}</td>
+                                        <td className="p-2.5 md:p-4 text-center text-muted-foreground">{team.advancementPoints.qualification}</td>
                                     </>
                                 )}
 
-                                <td className="p-4 text-center">
+                                <td className="p-2.5 md:p-4 text-center">
                                     <div className="flex justify-center flex-wrap gap-2">
                                         {team.events.map((e) => (
                                             <span key={e.eventCode} className="px-2 py-1 rounded bg-muted text-[10px] border border-border text-muted-foreground">
-                                                {e.eventCode}
+                                                {e.abbr || e.eventCode}
                                             </span>
                                         ))}
                                     </div>
@@ -243,6 +255,17 @@ export default function StatsTable({ data }: StatsTableProps) {
                     </tbody>
                 </table>
             </div>
+
+            {filteredData.length > visibleRows && (
+                <div className="p-2.5 md:p-4 text-center border-t border-border">
+                    <button
+                        onClick={() => setVisibleRows(v => v + PAGE_SIZE)}
+                        className="px-6 py-2 rounded-md bg-muted hover:bg-muted/70 text-sm font-medium text-foreground transition-colors"
+                    >
+                        Mostrar más ({filteredData.length - visibleRows} equipos restantes)
+                    </button>
+                </div>
+            )}
 
             {filteredData.length === 0 && (
                 <div className="p-12 text-center text-muted-foreground italic">

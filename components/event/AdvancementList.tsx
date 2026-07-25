@@ -10,7 +10,7 @@ interface AdvancementListProps {
 export default function AdvancementList({ advancement, points, rankings }: AdvancementListProps) {
     if (!points || points.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted rounded-2xl border border-dashed border-border">
                 <AlertCircle size={48} className="mb-4 opacity-20" />
                 <p>No advancement data available yet.</p>
             </div>
@@ -47,16 +47,16 @@ export default function AdvancementList({ advancement, points, rankings }: Advan
                 <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Advancement Goal</h3>
-                        <p className="text-xl font-black text-slate-900">{advancement.advancesTo}</p>
+                        <p className="text-xl font-black text-foreground">{advancement.advancesTo}</p>
                     </div>
                     <div className="flex gap-4">
-                        <div className="text-center bg-white px-4 py-2 rounded-xl border border-primary/10 shadow-sm">
-                            <span className="block text-[10px] font-bold text-slate-400 uppercase">Available Slots</span>
+                        <div className="text-center bg-card px-4 py-2 rounded-xl border border-primary/10 shadow-sm">
+                            <span className="block text-[10px] font-bold text-muted-foreground uppercase">Available Slots</span>
                             <span className="text-lg font-black text-primary">{advancement.slots}</span>
                         </div>
-                        <div className="text-center bg-white px-4 py-2 rounded-xl border border-primary/10 shadow-sm">
-                            <span className="block text-[10px] font-bold text-slate-400 uppercase">Reserved FCMP</span>
-                            <span className="text-lg font-black text-slate-700">{advancement.fcmpReserved}</span>
+                        <div className="text-center bg-card px-4 py-2 rounded-xl border border-primary/10 shadow-sm">
+                            <span className="block text-[10px] font-bold text-muted-foreground uppercase">Reserved FCMP</span>
+                            <span className="text-lg font-black text-foreground">{advancement.fcmpReserved}</span>
                         </div>
                     </div>
                 </div>
@@ -72,19 +72,19 @@ export default function AdvancementList({ advancement, points, rankings }: Advan
                             className={`
                                 relative flex flex-col transition-all duration-300 border rounded-2xl overflow-hidden
                                 ${isAdvanced && !item.declined
-                                    ? "bg-emerald-50 border-emerald-200 ring-1 ring-emerald-100 shadow-md transform scale-[1.01] z-10"
-                                    : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"}
+                                    ? "bg-success/10 border-success/20 ring-1 ring-success/10 shadow-md transform scale-[1.01] z-10"
+                                    : "bg-card border-border hover:border-border shadow-sm"}
                                 ${item.declined ? "opacity-60 saturate-50 grayscale-[0.3]" : ""}
                             `}
                         >
                             {/* Left Accent Bar for Advanced Teams */}
                             {isAdvanced && !item.declined && (
-                                <div className="absolute top-0 left-0 bottom-0 w-1 bg-emerald-500 z-20" />
+                                <div className="absolute top-0 left-0 bottom-0 w-1 bg-success z-20" />
                             )}
 
                             {isAdvanced && !item.declined && (
                                 <div className="absolute top-0 right-0 p-2 overflow-hidden w-24 h-24 pointer-events-none z-20">
-                                    <div className="absolute top-[-5px] right-[-35px] bg-emerald-600 text-white text-[10px] font-black py-1 w-32 text-center rotate-45 shadow-md uppercase tracking-widest border-b border-emerald-400">
+                                    <div className="absolute top-[-5px] right-[-35px] bg-success text-primary-foreground text-[10px] font-black py-1 w-32 text-center rotate-45 shadow-md uppercase tracking-widest border-b border-success/70">
                                         Advanced
                                     </div>
                                 </div>
@@ -95,20 +95,20 @@ export default function AdvancementList({ advancement, points, rankings }: Advan
                                 <div className="flex items-center gap-4 md:w-1/4">
                                     <div className={`
                                         w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-sm border
-                                        ${isAdvanced ? "bg-green-600 text-white border-green-500" : "bg-slate-100 text-slate-400 border-slate-200"}
+                                        ${isAdvanced ? "bg-success text-primary-foreground border-success" : "bg-muted text-muted-foreground border-border"}
                                     `}>
                                         {item.slot || index + 1}
                                     </div>
                                     <div className="flex flex-col min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <span className={`text-2xl font-black tracking-tighter ${item.declined ? "line-through" : "text-slate-900"}`}>
+                                            <span className={`text-2xl font-black tracking-tighter ${item.declined ? "line-through" : "text-foreground"}`}>
                                                 {item.team}
                                             </span>
                                             {item.declined && (
-                                                <span className="text-[10px] font-black bg-red-100 text-red-600 px-1.5 py-0.5 rounded uppercase">Declined</span>
+                                                <span className="text-[10px] font-black bg-danger/10 text-danger px-1.5 py-0.5 rounded uppercase">Declined</span>
                                             )}
                                         </div>
-                                        <span className="text-xs font-bold text-slate-500 truncate uppercase mt-[-2px]">
+                                        <span className="text-xs font-bold text-muted-foreground truncate uppercase mt-[-2px]">
                                             {item.teamName}
                                         </span>
                                     </div>
@@ -116,44 +116,44 @@ export default function AdvancementList({ advancement, points, rankings }: Advan
 
                                 {/* Points Breakdown */}
                                 <div className="flex-1 grid grid-cols-2 md:grid-cols-6 gap-2">
-                                    <div className="bg-slate-50/80 p-2 rounded-xl border border-slate-100 flex flex-col items-center justify-center">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                    <div className="bg-muted p-2 rounded-xl border border-border flex flex-col items-center justify-center">
+                                        <span className="text-[9px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
                                             <Award size={10} /> Judging
                                         </span>
-                                        <span className="font-mono text-sm font-black text-slate-700">{item.judgingPoints}</span>
+                                        <span className="font-mono text-sm font-black text-foreground">{item.judgingPoints}</span>
                                     </div>
-                                    <div className="bg-slate-50/80 p-2 rounded-xl border border-slate-100 flex flex-col items-center justify-center">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                    <div className="bg-muted p-2 rounded-xl border border-border flex flex-col items-center justify-center">
+                                        <span className="text-[9px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
                                             <Play size={10} /> Playoff
                                         </span>
-                                        <span className="font-mono text-sm font-black text-slate-700">{item.playoffPoints}</span>
+                                        <span className="font-mono text-sm font-black text-foreground">{item.playoffPoints}</span>
                                     </div>
-                                    <div className="bg-slate-50/80 p-2 rounded-xl border border-slate-100 flex flex-col items-center justify-center">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                    <div className="bg-muted p-2 rounded-xl border border-border flex flex-col items-center justify-center">
+                                        <span className="text-[9px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
                                             <Star size={10} /> Alliance
                                         </span>
-                                        <span className="font-mono text-sm font-black text-slate-700">{item.selectionPoints}</span>
+                                        <span className="font-mono text-sm font-black text-foreground">{item.selectionPoints}</span>
                                     </div>
-                                    <div className="bg-slate-50/80 p-2 rounded-xl border border-slate-100 flex flex-col items-center justify-center">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">Quals</span>
-                                        <span className="font-mono text-sm font-black text-slate-700">{item.qualPoints}</span>
+                                    <div className="bg-muted p-2 rounded-xl border border-border flex flex-col items-center justify-center">
+                                        <span className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Quals</span>
+                                        <span className="font-mono text-sm font-black text-foreground">{item.qualPoints}</span>
                                     </div>
-                                    <div className="bg-slate-50/80 p-2 rounded-xl border border-slate-100 flex flex-col items-center justify-center group/tbp relative">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                    <div className="bg-muted p-2 rounded-xl border border-border flex flex-col items-center justify-center group/tbp relative">
+                                        <span className="text-[9px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
                                             TBP <AlertCircle size={8} />
                                         </span>
-                                        <span className="font-mono text-[10px] font-bold text-slate-500">{item.tbp1.toFixed(0)} / {item.tbp2.toFixed(0)}</span>
+                                        <span className="font-mono text-[10px] font-bold text-muted-foreground">{item.tbp1.toFixed(0)} / {item.tbp2.toFixed(0)}</span>
 
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 p-2 bg-slate-900 text-[8px] text-white rounded shadow-xl opacity-0 invisible group-hover/tbp:opacity-100 group-hover/tbp:visible transition-all z-20 pointer-events-none">
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 p-2 bg-card text-[8px] text-foreground rounded shadow-sm opacity-0 invisible group-hover/tbp:opacity-100 group-hover/tbp:visible transition-all z-20 pointer-events-none">
                                             Tie-Break Points: Used to rank teams with identical total points.
                                         </div>
                                     </div>
                                     <div className={`
                                         p-2 rounded-xl border flex flex-col items-center justify-center min-w-[80px]
-                                        ${isAdvanced ? "bg-green-600/10 border-green-200" : "bg-slate-50 border-slate-200"}
+                                        ${isAdvanced ? "bg-success/10 border-success/20" : "bg-muted border-border"}
                                     `}>
-                                        <span className={`text-[9px] font-bold uppercase mb-0.5 ${isAdvanced ? "text-green-700" : "text-slate-500"}`}>Total</span>
-                                        <span className={`font-mono text-xl font-black ${isAdvanced ? "text-green-700" : "text-slate-900"}`}>{item.totalPoints}</span>
+                                        <span className={`text-[9px] font-bold uppercase mb-0.5 ${isAdvanced ? "text-success" : "text-muted-foreground"}`}>Total</span>
+                                        <span className={`font-mono text-xl font-black ${isAdvanced ? "text-success" : "text-foreground"}`}>{item.totalPoints}</span>
                                     </div>
                                 </div>
 
@@ -161,16 +161,16 @@ export default function AdvancementList({ advancement, points, rankings }: Advan
                                 <div className="md:w-1/5 flex flex-col items-end justify-center">
                                     {item.criteria ? (
                                         <div className="text-right">
-                                            <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Qualified Via</span>
+                                            <span className="block text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Qualified Via</span>
                                             <span className={`
                                                 px-3 py-1.5 rounded-lg text-xs font-black shadow-sm inline-block
-                                                ${isAdvanced ? "bg-green-600 text-white" : "bg-slate-100 text-slate-600 border border-slate-200"}
+                                                ${isAdvanced ? "bg-success text-primary-foreground" : "bg-muted text-muted-foreground border border-border"}
                                             `}>
                                                 {item.criteria}
                                             </span>
                                         </div>
                                     ) : (
-                                        <span className="text-[10px] font-bold text-slate-300 uppercase italic">Not Advanced</span>
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase italic">Not Advanced</span>
                                     )}
                                 </div>
                             </div>

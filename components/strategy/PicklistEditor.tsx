@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { guessActiveEventCode } from "@/lib/active-event";
 import {
     computeWeightedScores,
     sortTeamsByWeightedScore,
@@ -78,7 +79,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const confirmDialog = useConfirm();
-    const eventCode = eventCodeProp ?? teams[0]?.events[0]?.eventCode ?? "MXTOL";
+    const eventCode = eventCodeProp ?? guessActiveEventCode(teams) ?? "MXTOL";
 
     const [picklist, setPicklist] = useState<Picklist | null>(null);
     const [loading, setLoading] = useState(true);
@@ -143,13 +144,21 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
 
         (async () => {
             setLoading(true);
-            await loadOrCreatePicklist({
-                orgId: effectiveOrgId,
-                eventCode,
-                season,
-                creatorUid: user.uid,
-                initialTeamOrder: initialOrder,
-            });
+            try {
+                await loadOrCreatePicklist({
+                    orgId: effectiveOrgId,
+                    eventCode,
+                    season,
+                    creatorUid: user.uid,
+                    initialTeamOrder: initialOrder,
+                });
+            } catch (e) {
+                // Offline / permission error: without this catch the promise
+                // rejected unhandled and the UI stayed on "Cargando…" forever.
+                console.error("[picklist] loadOrCreatePicklist failed:", e);
+                if (!cancelled) setLoading(false);
+                return;
+            }
             if (cancelled) return;
             unsub = listenToPicklist(effectiveOrgId, eventCode, p => {
                 if (!cancelled) {
@@ -266,7 +275,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
 
     if (!user) {
         return (
-            <Card className="p-8 text-center text-gray-400">
+            <Card className="p-8 text-center text-muted-foreground">
                 Inicia sesión para usar el picklist editor.
             </Card>
         );
@@ -274,7 +283,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
 
     if (loading || !picklist) {
         return (
-            <Card className="p-8 text-center text-gray-400 flex items-center justify-center gap-2">
+            <Card className="p-8 text-center text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="animate-spin" size={16} />
                 Cargando picklist...
             </Card>
@@ -292,14 +301,14 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
             {/* Header / status */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-white">Picklist Editor</h2>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <h2 className="text-2xl font-bold text-foreground">Picklist Editor</h2>
+                    <p className="text-xs text-muted-foreground mt-1">
                         Arrastra para reordenar · Click derecho/long-press para mover entre listas · Cambios sincronizan en vivo con tu equipo
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-gray-400">
-                        <Wifi size={12} className={picklist.updatedBy ? "text-emerald-400" : "text-gray-500"} />
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted border border-border rounded-lg text-xs text-muted-foreground">
+                        <Wifi size={12} className={picklist.updatedBy ? "text-success" : "text-muted-foreground"} />
                         <span>Equipo #{picklist.orgId} · {picklist.eventCode}</span>
                     </div>
                     {saving && <Loader2 size={14} className="animate-spin text-primary" />}
@@ -310,7 +319,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                             "min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors",
                             weightsOpen
                                 ? "bg-primary/20 text-primary border border-primary/30"
-                                : "bg-white/5 hover:bg-white/10 text-gray-400 border border-white/10",
+                                : "bg-muted hover:bg-muted/70 text-muted-foreground border border-border",
                         )}
                         title="Ajustar pesos del ranking"
                     >
@@ -320,7 +329,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                         type="button"
                         onClick={applyWeightsToOrder}
                         disabled={picklist.teams.length === 0}
-                        className="min-h-[36px] px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 active:scale-[0.98] transition-all"
+                        className="min-h-[36px] px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground rounded-lg text-xs font-bold flex items-center gap-1.5 active:scale-[0.98] transition-all"
                         title="Reordenar la picklist por score ponderado"
                     >
                         <Wand2 size={12} /> Auto-sort
@@ -328,7 +337,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                     <button
                         type="button"
                         onClick={resetAll}
-                        className="min-h-[36px] px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 rounded-lg text-xs font-bold flex items-center gap-1.5"
+                        className="min-h-[36px] px-3 py-1.5 bg-muted hover:bg-muted/70 text-muted-foreground rounded-lg text-xs font-bold flex items-center gap-1.5"
                         title="Reiniciar marcado de selected/declined"
                     >
                         <RotateCcw size={12} /> Reset estado
@@ -337,13 +346,13 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
             </div>
 
             {weightsOpen && (
-                <Card className="p-4 bg-white/[0.02] border-primary/20 space-y-3">
+                <Card className="p-4 bg-muted border-primary/20 space-y-3">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                             <Sliders size={14} className="text-primary" />
                             Pesos del ranking
                         </h3>
-                        <p className="text-[10px] text-gray-500">
+                        <p className="text-[10px] text-muted-foreground">
                             Cambian solo tu vista del score. Pulsa <strong>Auto-sort</strong> para aplicarlo a la picklist.
                         </p>
                     </div>
@@ -351,10 +360,10 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                         {WEIGHT_KEYS.map(key => (
                             <div key={key} className="space-y-1">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-xs font-medium text-gray-300">
+                                    <label className="text-xs font-medium text-foreground">
                                         {WEIGHT_LABELS[key]}
                                     </label>
-                                    <span className="text-[10px] text-gray-500 font-mono">
+                                    <span className="text-[10px] text-muted-foreground font-mono">
                                         {weights[key]}
                                     </span>
                                 </div>
@@ -451,7 +460,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
 
             {/* Footer audit */}
             {picklist.updatedAt?.seconds && (
-                <div className="text-[10px] text-gray-500 flex items-center gap-2 justify-end">
+                <div className="text-[10px] text-muted-foreground flex items-center gap-2 justify-end">
                     <User size={10} />
                     Última edición: {new Date(picklist.updatedAt.seconds * 1000).toLocaleString()}
                 </div>
@@ -478,14 +487,14 @@ function Bucket({
     children: React.ReactNode;
 }) {
     const accentColor = {
-        emerald: "border-emerald-500/30 bg-emerald-500/5",
-        blue: "border-blue-500/30 bg-blue-500/5",
-        red: "border-red-500/30 bg-red-500/5",
+        emerald: "border-success/30 bg-success/5",
+        blue: "border-secondary/30 bg-secondary/5",
+        red: "border-danger/30 bg-danger/5",
     }[accent];
     const accentText = {
-        emerald: "text-emerald-300",
-        blue: "text-blue-300",
-        red: "text-red-300",
+        emerald: "text-success",
+        blue: "text-secondary",
+        red: "text-danger",
     }[accent];
     return (
         <Card className={clsx("p-4 flex flex-col gap-2 min-h-[400px] max-h-[75vh]", accentColor)}>
@@ -493,9 +502,9 @@ function Bucket({
                 <h3 className={clsx("text-sm font-black uppercase tracking-wider", accentText)}>
                     {title}
                 </h3>
-                <span className="text-xs font-bold text-gray-400">{count}</span>
+                <span className="text-xs font-bold text-muted-foreground">{count}</span>
             </div>
-            <p className="text-[10px] text-gray-500 mb-2">{helpText}</p>
+            <p className="text-[10px] text-muted-foreground mb-2">{helpText}</p>
             <div className="space-y-1.5 overflow-y-auto flex-1 custom-scrollbar">{children}</div>
         </Card>
     );
@@ -503,7 +512,7 @@ function Bucket({
 
 function EmptyState({ text }: { text: string }) {
     return (
-        <div className="text-center text-gray-600 text-xs italic py-12">{text}</div>
+        <div className="text-center text-muted-foreground text-xs italic py-12">{text}</div>
     );
 }
 
@@ -544,8 +553,8 @@ function SortableTeamCard({
             ref={setNodeRef}
             style={style}
             className={clsx(
-                "flex items-center gap-2 p-2 rounded-lg border bg-black/20 hover:bg-black/30 transition-colors",
-                selected && "ring-2 ring-emerald-500/50",
+                "flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-card/80 transition-colors",
+                selected && "ring-2 ring-success/50",
                 declined && "opacity-50",
             )}
         >
@@ -554,21 +563,21 @@ function SortableTeamCard({
                 {...listeners}
                 // 32px touch target so the grip is grabbable on tablet without
                 // accidentally tapping the team card.
-                className="text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing min-w-[32px] min-h-[32px] flex items-center justify-center"
+                className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing min-w-[32px] min-h-[32px] flex items-center justify-center"
                 aria-label="Reordenar"
             >
                 <GripVertical size={16} />
             </button>
-            <div className="w-7 text-center text-[10px] font-mono font-black text-gray-400">
+            <div className="w-7 text-center text-[10px] font-mono font-black text-muted-foreground">
                 {rank}
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white">{teamNumber}</span>
+                    <span className="text-sm font-bold text-foreground">{teamNumber}</span>
                     {score !== undefined && <ScoreBadge score={score} />}
                 </div>
                 {team && (
-                    <div className="text-[10px] text-gray-500 truncate">
+                    <div className="text-[10px] text-muted-foreground truncate">
                         {team.teamName} · RS {team.averageRS?.toFixed(1) ?? "—"} · NP {team.averageNP?.toFixed(1) ?? "—"}
                     </div>
                 )}
@@ -613,13 +622,13 @@ function AvailableTeamCard({
     onAddToDNP: () => void;
 }) {
     return (
-        <div className="flex items-center gap-2 p-2 rounded-lg border bg-black/20 hover:bg-black/30">
+        <div className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-card/80">
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white">{team.teamNumber}</span>
+                    <span className="text-sm font-bold text-foreground">{team.teamNumber}</span>
                     {score !== undefined && <ScoreBadge score={score} />}
                 </div>
-                <div className="text-[10px] text-gray-500 truncate">
+                <div className="text-[10px] text-muted-foreground truncate">
                     {team.teamName} · RS {team.averageRS?.toFixed(1) ?? "—"}
                 </div>
             </div>
@@ -641,9 +650,9 @@ function AvailableTeamCard({
 function ScoreBadge({ score }: { score: number }) {
     const pct = Math.round(score * 100);
     const color =
-        pct >= 67 ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-        : pct >= 34 ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-        : "bg-white/5 text-gray-400 border-white/10";
+        pct >= 67 ? "bg-success/15 text-success border-success/30"
+        : pct >= 34 ? "bg-warning/15 text-warning border-warning/30"
+        : "bg-muted text-muted-foreground border-border";
     return (
         <span
             className={clsx("px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider border font-mono", color)}
@@ -664,12 +673,12 @@ function DNPTeamCard({
     onMoveToAvailable: () => void;
 }) {
     return (
-        <div className="flex items-center gap-2 p-2 rounded-lg border bg-black/20 hover:bg-black/30 opacity-70">
+        <div className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-card/80 opacity-70">
             <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white line-through decoration-red-500/50">
+                <div className="text-sm font-bold text-foreground line-through decoration-danger/50">
                     {teamNumber}
                 </div>
-                <div className="text-[10px] text-gray-500 truncate">
+                <div className="text-[10px] text-muted-foreground truncate">
                     {team?.teamName ?? "—"}
                 </div>
             </div>
@@ -694,10 +703,10 @@ function IconBtn({
     children: React.ReactNode;
 }) {
     const colorMap = {
-        emerald: active ? "bg-emerald-500/30 text-emerald-300" : "hover:bg-emerald-500/20 text-gray-500 hover:text-emerald-300",
-        amber: active ? "bg-amber-500/30 text-amber-300" : "hover:bg-amber-500/20 text-gray-500 hover:text-amber-300",
-        red: active ? "bg-red-500/30 text-red-300" : "hover:bg-red-500/20 text-gray-500 hover:text-red-300",
-        blue: active ? "bg-blue-500/30 text-blue-300" : "hover:bg-blue-500/20 text-gray-500 hover:text-blue-300",
+        emerald: active ? "bg-success/30 text-success" : "hover:bg-success/20 text-muted-foreground hover:text-success",
+        amber: active ? "bg-warning/30 text-warning" : "hover:bg-warning/20 text-muted-foreground hover:text-warning",
+        red: active ? "bg-danger/30 text-danger" : "hover:bg-danger/20 text-muted-foreground hover:text-danger",
+        blue: active ? "bg-secondary/30 text-secondary" : "hover:bg-secondary/20 text-muted-foreground hover:text-secondary",
     };
     return (
         <button

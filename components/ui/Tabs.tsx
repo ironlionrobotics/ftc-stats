@@ -22,7 +22,7 @@ export function TabsList({ children, className }: { children: React.ReactNode, c
         <div
             role="tablist"
             className={clsx(
-                "flex p-1 bg-white/5 rounded-lg border border-white/10 overflow-x-auto",
+                "flex p-1 bg-muted rounded-lg border border-border overflow-x-auto",
                 className,
             )}
         >
@@ -43,11 +43,13 @@ export function TabsTrigger({ value, children, className }: { value: string, chi
             onClick={() => onValueChange(value)}
             className={clsx(
                 // WCAG 2.1 AA touch target: 44px min height for tablet/mobile use.
-                "min-h-[44px] px-4 py-2 rounded-md text-sm font-bold transition-all whitespace-nowrap",
+                // shrink-0: inside the scrollable TabsList, triggers must keep
+                // their width so the list scrolls instead of crushing labels.
+                "min-h-[44px] shrink-0 px-4 py-2 rounded-md text-sm font-bold transition-all whitespace-nowrap",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                 isActive
-                    ? "bg-primary text-white shadow-lg"
-                    : "text-gray-400 hover:text-white hover:bg-white/5 active:bg-white/10",
+                    ? "bg-primary text-primary-foreground shadow-lg"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted active:bg-muted",
                 className,
             )}
         >

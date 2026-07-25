@@ -11,6 +11,7 @@ import type { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
 import { Card } from "@/components/ui/Card";
 import { Printer, FileText, AlertCircle } from "lucide-react";
 import clsx from "clsx";
+import { guessActiveEventCode } from "@/lib/active-event";
 
 interface MatchBriefingCardProps {
     teams: AggregatedTeamStats[];
@@ -29,7 +30,7 @@ interface MatchBriefingCardProps {
 export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
     const { user, orgId } = useAuth();
     const { season } = useProgram();
-    const eventCode = teams[0]?.events[0]?.eventCode ?? "MXTOL";
+    const eventCode = guessActiveEventCode(teams) ?? "MXTOL";
     const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
 
     const [matchNumber, setMatchNumber] = useState(1);
@@ -95,13 +96,13 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
     return (
         <div className="space-y-6">
             {/* SETUP — hidden when printing */}
-            <Card className="p-6 bg-white/[0.02] border-white/10 space-y-4 print:hidden">
+            <Card className="p-6 bg-muted border-border space-y-4 print:hidden">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                             <FileText className="text-primary" size={22} /> Match Briefing
                         </h2>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             Hoja imprimible para el drive coach. Selecciona match + 2 teams por alianza.
                         </p>
                     </div>
@@ -109,7 +110,7 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
                         type="button"
                         onClick={handlePrint}
                         disabled={!ready}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 text-white font-bold rounded-lg text-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground font-bold rounded-lg text-sm"
                     >
                         <Printer size={14} /> Imprimir briefing
                     </button>
@@ -117,7 +118,7 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1 block">
+                        <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1 block">
                             Match #
                         </label>
                         <input
@@ -125,7 +126,7 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
                             min={1}
                             value={matchNumber}
                             onChange={e => setMatchNumber(parseInt(e.target.value) || 1)}
-                            className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white font-bold text-lg"
+                            className="w-full px-3 py-2 bg-card border border-border rounded-lg text-foreground font-bold text-lg"
                         />
                     </div>
                     <AllianceTeamPicker
@@ -147,7 +148,7 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
                 </div>
 
                 {!ready && (
-                    <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-xs">
+                    <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-lg text-warning text-xs">
                         <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
                         <span>Selecciona exactamente 2 teams por alianza para generar el briefing.</span>
                     </div>
@@ -175,8 +176,8 @@ function AllianceTeamPicker({
     otherSelected: number[];
     onChange: (next: number[]) => void;
 }) {
-    const accentRing = accent === "red" ? "ring-red-500/50" : "ring-blue-500/50";
-    const accentBg = accent === "red" ? "bg-red-500/10 border-red-500/30" : "bg-blue-500/10 border-blue-500/30";
+    const accentRing = accent === "red" ? "ring-danger/50" : "ring-secondary/50";
+    const accentBg = accent === "red" ? "bg-danger/10 border-danger/30" : "bg-secondary/10 border-secondary/30";
 
     const otherSet = new Set(otherSelected);
     const selectedSet = new Set(selected);
@@ -191,10 +192,10 @@ function AllianceTeamPicker({
 
     return (
         <div>
-            <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1 block">
+            <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1 block">
                 {label}
             </label>
-            <div className={clsx("max-h-40 overflow-y-auto rounded-lg border bg-black/20 p-1 space-y-0.5", accentBg)}>
+            <div className={clsx("max-h-40 overflow-y-auto rounded-lg border bg-card p-1 space-y-0.5", accentBg)}>
                 {teams.map(t => {
                     const isSelected = selectedSet.has(t.teamNumber);
                     const inOther = otherSet.has(t.teamNumber);
@@ -207,12 +208,12 @@ function AllianceTeamPicker({
                             className={clsx(
                                 "w-full flex items-center justify-between px-2 py-1 text-xs rounded transition-colors text-left",
                                 inOther && "opacity-30 cursor-not-allowed",
-                                !inOther && !isSelected && "text-gray-400 hover:bg-white/5",
-                                isSelected && `ring-1 ${accentRing} text-white bg-white/5 font-bold`,
+                                !inOther && !isSelected && "text-muted-foreground hover:bg-muted",
+                                isSelected && `ring-1 ${accentRing} text-foreground bg-muted font-bold`,
                             )}
                         >
                             <span>{t.teamNumber}</span>
-                            <span className="text-[9px] text-gray-500 truncate ml-2 max-w-[100px]">
+                            <span className="text-[9px] text-muted-foreground truncate ml-2 max-w-[100px]">
                                 {t.teamName}
                             </span>
                         </button>

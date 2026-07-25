@@ -46,14 +46,14 @@ export default function InviteGenerator() {
     };
 
     return (
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
-            <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+        <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
                 <KeyRound size={11} />
                 Invitar a otro equipo
             </div>
 
             {!canGenerate && (
-                <p className="text-[10px] text-gray-500 leading-relaxed">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
                     Solo admins/leads pueden generar códigos.
                 </p>
             )}
@@ -62,7 +62,7 @@ export default function InviteGenerator() {
                 <button
                     onClick={handleGenerate}
                     disabled={busy}
-                    className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-white/5 hover:bg-white/10 disabled:opacity-50 rounded-lg text-xs font-bold text-white transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-muted hover:bg-muted/80 disabled:opacity-50 rounded-lg text-xs font-bold text-foreground transition-colors"
                 >
                     {busy ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                     Generar código
@@ -71,25 +71,25 @@ export default function InviteGenerator() {
 
             {invite && (
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-lg p-2">
+                    <div className="flex items-center gap-2 bg-muted border border-border rounded-lg p-2">
                         <code className="flex-1 text-center text-lg font-mono font-black text-primary tracking-widest">
                             {invite.code}
                         </code>
                         <button
                             onClick={handleCopy}
-                            className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
+                            className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
                             title="Copiar"
                         >
-                            {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                            {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
                         </button>
                     </div>
-                    <p className="text-[10px] text-gray-500">
+                    <p className="text-[10px] text-muted-foreground">
                         Expira en 7 días. Compártelo con el scout o lead del otro equipo.
                     </p>
                     <button
                         onClick={handleGenerate}
                         disabled={busy}
-                        className="text-[10px] text-gray-500 hover:text-gray-300 underline"
+                        className="text-[10px] text-muted-foreground hover:text-foreground underline"
                     >
                         Generar otro código
                     </button>
@@ -97,7 +97,7 @@ export default function InviteGenerator() {
             )}
 
             {error && (
-                <p className="text-[10px] text-red-400">{error}</p>
+                <p className="text-[10px] text-danger">{error}</p>
             )}
         </div>
     );

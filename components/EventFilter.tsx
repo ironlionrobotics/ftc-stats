@@ -2,13 +2,27 @@
 
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FTCEvent } from "@/types/scouting";
+import { useProgramStore } from "@/lib/stores/program-store";
+
+// Slim projection of FTCEvent with only the fields this filter renders.
+// The season catalog is ~1,850 events worldwide and every prop passed from
+// the Server Component is serialized into the RSC payload (page HTML) — the
+// full 25-field API objects weighed ~1.2 MB, this cuts it to ~1/6th.
+// Keep this list in sync with what the component actually reads.
+export interface EventFilterOption {
+    code: string;
+    name: string;
+    dateStart: string;
+    stateProv?: string;
+    country?: string;
+    typeName?: string;
+}
 import clsx from "clsx";
 import { Calendar, MapPin, Search, CheckSquare, Square } from "lucide-react";
 
 interface EventFilterProps {
     currentSeason: number;
-    allEvents: FTCEvent[];
+    allEvents: EventFilterOption[];
     latestAvailableSeason: number;
 }
 
@@ -53,12 +67,19 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
         return Array.from(types).sort();
     }, [allEvents]);
 
-    // Filtered list for the "Selection" tab
-    const visibleEventsForSelection = useMemo(() => {
-        return allEvents.filter(e =>
+    // Filtered list for the "Selection" tab. Capped: without a search term
+    // this would render the ~1,850-event world catalog as DOM nodes, which
+    // locks up the main thread on tablets. Users narrow it via the search box.
+    const MAX_VISIBLE_EVENTS = 150;
+    const { visibleEventsForSelection, hiddenEventCount } = useMemo(() => {
+        const matches = allEvents.filter(e =>
             e.name.toLowerCase().includes(eventSearch.toLowerCase()) ||
             e.code.toLowerCase().includes(eventSearch.toLowerCase())
         );
+        return {
+            visibleEventsForSelection: matches.slice(0, MAX_VISIBLE_EVENTS),
+            hiddenEventCount: Math.max(0, matches.length - MAX_VISIBLE_EVENTS),
+        };
     }, [allEvents, eventSearch]);
 
     const handleApply = () => {
@@ -77,6 +98,9 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
         }
 
         document.cookie = `ftc_season=${season}; path=/; max-age=31536000`; // 1 year
+        // Keep the client store in sync so scouting/strategy tabs open in this
+        // session read the same season the server pages render with.
+        useProgramStore.setState({ season });
         router.push(`/?${params.toString()}`);
     };
 
@@ -95,7 +119,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
     };
 
     return (
-        <div className="bg-card p-6 rounded-xl shadow-sm mb-8 border border-border/50 backdrop-blur-sm relative z-20">
+        <div className="bg-card p-4 md:p-6 rounded-xl shadow-sm mb-8 border border-border relative z-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h3 className="text-lg font-semibold text-foreground">Filter Data Source</h3>
 
@@ -124,7 +148,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
 
             {/* Common Season Selector */}
             <div className="mb-6">
-                <label className="text-sm font-medium text-muted-foreground block mb-2">Season</label>
+                <label className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground block mb-2">Season</label>
                 <select
                     value={season}
                     onChange={(e) => setSeason(Number(e.target.value))}
@@ -138,13 +162,15 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
                     {/* Region Selector */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">Region</label>
+                        <label className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Region</label>
                         <select
                             value={region}
                             onChange={(e) => setRegion(e.target.value)}
                             className="w-full p-2.5 rounded-md bg-background border border-input focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                         >
-                            <option value="All">All Regions</option>
+                            {/* "All Regions" removed on purpose: aggregating the
+                                world catalog fans out ~7,200 API calls and ships
+                                every FTC team on Earth to the browser. */}
                             <option value="MX">Mexico (Default)</option>
                             <option value="US">USA (Generic)</option>
                             <optgroup label="Detected Regions">
@@ -155,7 +181,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
 
                     {/* Event Type Selector */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">Event Type</label>
+                        <label className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Event Type</label>
                         <select
                             value={eventType}
                             onChange={(e) => setEventType(e.target.value)}
@@ -168,7 +194,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
 
                     {/* Date Range */}
                     <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium text-muted-foreground">Date Range</label>
+                        <label className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Date Range</label>
                         <div className="flex gap-2">
                             <input
                                 type="date"
@@ -233,6 +259,11 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
                                         </div>
                                     </div>
                                 ))}
+                                {hiddenEventCount > 0 && (
+                                    <p className="text-xs text-muted-foreground text-center py-2">
+                                        +{hiddenEventCount} eventos más — usa el buscador para encontrarlos
+                                    </p>
+                                )}
                             </>
                         )}
                     </div>
@@ -245,7 +276,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
             <div className="mt-6 flex justify-end">
                 <button
                     onClick={handleApply}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 py-2.5 rounded-md transition-colors shadow-lg shadow-primary/20"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 py-2.5 rounded-md transition-colors shadow-sm"
                 >
                     Apply Filters
                 </button>

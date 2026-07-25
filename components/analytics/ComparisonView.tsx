@@ -75,7 +75,7 @@ export default function ComparisonView({
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Event Comparison Charts */}
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                         <BarChart3 className="text-primary" /> Promedio de Alianza
                     </h3>
@@ -97,9 +97,9 @@ export default function ComparisonView({
                     </div>
                 </div>
 
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                        <TrendingUp className="text-green-500" /> Máximos Scores
+                        <TrendingUp className="text-success" /> Máximos Scores
                     </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -129,7 +129,7 @@ export default function ComparisonView({
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                     <div>
                         <h2 className="text-2xl font-bold flex items-center gap-2 text-foreground">
-                            <TrendingUp className="text-yellow-500" /> Evolución de Equipos
+                            <TrendingUp className="text-warning" /> Evolución de Equipos
                         </h2>
                         <p className="text-muted-foreground mt-1">Progresión detallada y estabilidad de rendimiento en la temporada.</p>
                     </div>
@@ -143,12 +143,12 @@ export default function ComparisonView({
                 </div>
 
                 <div className="text-right mb-2">
-                    <span className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest flex items-center justify-end gap-1">
+                    <span className="text-[10px] text-warning font-bold uppercase tracking-widest flex items-center justify-end gap-1">
                         <Sparkles size={10} /> Click en fila para ver detalle
                     </span>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-border shadow-2xl bg-card">
+                <div className="overflow-x-auto rounded-xl border border-border shadow-sm bg-card">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-muted text-muted-foreground uppercase text-[10px] tracking-wider font-bold">
@@ -196,7 +196,7 @@ export default function ComparisonView({
                                                     {expandedTeam === team.teamNumber ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                                     {team.teamNumber}
                                                     {team.projectedNationalRank && team.projectedNationalRank <= 10 && (
-                                                        <span className="text-[9px] bg-yellow-500/10 text-yellow-600 px-1.5 py-0.5 rounded border border-yellow-500/20 font-bold uppercase tracking-wider">Top {team.projectedNationalRank}</span>
+                                                        <span className="text-[9px] bg-warning/10 text-warning px-1.5 py-0.5 rounded border border-warning/20 font-bold uppercase tracking-wider">Top {team.projectedNationalRank}</span>
                                                     )}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground font-medium">{team.teamName}</div>
@@ -209,7 +209,7 @@ export default function ComparisonView({
                                                         {stat ? (
                                                             <div className="flex flex-col items-center">
                                                                 <span className="font-bold text-foreground text-base">{stat.avgPoints.toFixed(1)} <span className="text-[10px] font-normal text-muted-foreground">AVG</span></span>
-                                                                <span className="text-[10px] font-bold text-orange-500">#{stat.rank}</span>
+                                                                <span className="text-[10px] font-bold text-primary">#{stat.rank}</span>
                                                             </div>
                                                         ) : (
                                                             <span className="text-muted-foreground/20 text-xl font-bold">-</span>
@@ -222,9 +222,9 @@ export default function ComparisonView({
                                                 <div className="font-black text-2xl text-foreground font-display">{team.powerScore.toFixed(1)} <span className="text-[10px] font-bold text-muted-foreground block">PTS</span></div>
                                                 <div className="flex justify-center mt-1">
                                                     <span className={clsx("text-[9px] px-1.5 py-0.5 rounded font-bold uppercase",
-                                                        team.trend === 'up' ? "bg-green-500/10 text-green-500" :
-                                                            team.trend === 'down' ? "bg-red-500/10 text-red-500" :
-                                                                "bg-blue-500/10 text-blue-500"
+                                                        team.trend === 'up' ? "bg-success/10 text-success" :
+                                                            team.trend === 'down' ? "bg-danger/10 text-danger" :
+                                                                "bg-secondary/10 text-secondary"
                                                     )}>
                                                         {team.trend === 'up' ? 'Ascenso' : team.trend === 'down' ? 'Descenso' : 'Estable'}
                                                     </span>
@@ -232,10 +232,10 @@ export default function ComparisonView({
                                             </td>
 
                                             <td className="p-4 text-center">
-                                                <div className="font-black text-xl text-yellow-600 font-display">
+                                                <div className="font-black text-xl text-warning font-display">
                                                     {(team.consistencyScore * 100).toFixed(0)}%
                                                 </div>
-                                                <div className="text-[10px] font-bold text-yellow-600/70 uppercase">Estabilidad</div>
+                                                <div className="text-[10px] font-bold text-warning/70 uppercase">Estabilidad</div>
                                             </td>
 
                                             <td className="p-4 text-center">
@@ -269,7 +269,7 @@ export default function ComparisonView({
                                                                             e.stopPropagation();
                                                                             handleOracleAnalysis(team);
                                                                         }}
-                                                                        className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                                                                        className="w-full py-3 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-primary-foreground rounded-xl font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
                                                                     >
                                                                         <Sparkles size={16} /> Predecir Alianzas
                                                                     </button>
@@ -280,16 +280,16 @@ export default function ComparisonView({
                                                         {/* Robot Config & Insights */}
                                                         <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                             <div className="flex flex-col gap-2">
-                                                                <div className="bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20">
-                                                                    <div className="text-[10px] font-bold text-yellow-600 uppercase mb-1">Favorito Al Podio</div>
+                                                                <div className="bg-warning/10 p-3 rounded-lg border border-warning/20">
+                                                                    <div className="text-[10px] font-bold text-warning uppercase mb-1">Favorito Al Podio</div>
                                                                     <p className="text-xs text-muted-foreground leading-relaxed">Este equipo mantiene un Power Score superior a 85 pts en los últimos 2 eventos.</p>
                                                                 </div>
-                                                                <div className="bg-green-500/10 p-3 rounded-lg border border-green-500/20">
-                                                                    <div className="text-[10px] font-bold text-green-600 uppercase mb-1">Candidato Fuerte</div>
+                                                                <div className="bg-success/10 p-3 rounded-lg border border-success/20">
+                                                                    <div className="text-[10px] font-bold text-success uppercase mb-1">Candidato Fuerte</div>
                                                                     <p className="text-xs text-muted-foreground leading-relaxed">Muestra una tendencia de {team.trend === 'up' ? 'crecimiento constante' : 'estabilidad sólida'} en el ciclo autónomo.</p>
                                                                 </div>
-                                                                <div className="bg-orange-500/10 p-3 rounded-lg border border-orange-500/20">
-                                                                    <div className="text-[10px] font-bold text-orange-600 uppercase mb-1">Ya Clasificado</div>
+                                                                <div className="bg-primary/10 p-3 rounded-lg border border-primary/20">
+                                                                    <div className="text-[10px] font-bold text-primary uppercase mb-1">Ya Clasificado</div>
                                                                     <p className="text-xs text-muted-foreground leading-relaxed">Probabilidad matemática de avance al nacional &gt; 95%.</p>
                                                                 </div>
                                                             </div>

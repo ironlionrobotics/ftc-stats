@@ -84,13 +84,13 @@ export default function OnboardingModal() {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="w-full max-w-md bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80">
+            <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-white/10 flex items-start justify-between gap-4">
+                <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-xl font-black text-white mb-1">Bienvenido a FTC Stats</h2>
-                        <p className="text-xs text-gray-400 leading-relaxed">
+                        <h2 className="text-xl font-black text-foreground mb-1">Bienvenido a FTC Stats</h2>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                             Para empezar, dinos a qué equipo perteneces. Tu scouting se atribuye a ese
                             equipo y puede compartirse con otros equipos en eventos en los que estén
                             inscritos.
@@ -98,7 +98,7 @@ export default function OnboardingModal() {
                     </div>
                     <button
                         onClick={() => logout()}
-                        className="p-1.5 text-gray-500 hover:text-gray-300"
+                        className="p-1.5 text-muted-foreground hover:text-foreground"
                         title="Cerrar sesión"
                     >
                         <X size={18} />
@@ -106,7 +106,7 @@ export default function OnboardingModal() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-white/10">
+                <div className="flex border-b border-border">
                     <TabButton active={tab === "create"} onClick={() => setTab("create")}>
                         <Users size={14} /> Crear / unirme
                     </TabButton>
@@ -125,7 +125,7 @@ export default function OnboardingModal() {
                                     value={teamNumber}
                                     onChange={e => setTeamNumber(e.target.value)}
                                     placeholder="30311"
-                                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white font-mono"
+                                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground font-mono"
                                 />
                             </Field>
                             <Field label="Nombre del equipo">
@@ -133,7 +133,7 @@ export default function OnboardingModal() {
                                     value={displayName}
                                     onChange={e => setDisplayName(e.target.value)}
                                     placeholder="Iron Lions"
-                                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white"
+                                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground"
                                 />
                             </Field>
                             <Field label="Programa">
@@ -146,7 +146,7 @@ export default function OnboardingModal() {
                                                 "flex-1 py-2 rounded-lg border font-bold text-sm",
                                                 program === p
                                                     ? "bg-primary/20 border-primary/50 text-primary"
-                                                    : "bg-black/20 border-white/10 text-gray-500",
+                                                    : "bg-muted border-border text-muted-foreground",
                                             )}
                                         >
                                             {p}
@@ -154,7 +154,7 @@ export default function OnboardingModal() {
                                     ))}
                                 </div>
                             </Field>
-                            <p className="text-[10px] text-gray-500 leading-relaxed">
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">
                                 Si el equipo ya existe te unirás como <strong>scout</strong>. Si no
                                 existe lo creas y quedas como <strong>admin</strong>.
                             </p>
@@ -170,10 +170,10 @@ export default function OnboardingModal() {
                                     onChange={e => setCode(e.target.value.toUpperCase())}
                                     placeholder="ABC234"
                                     maxLength={8}
-                                    className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white font-mono tracking-widest text-center text-lg uppercase"
+                                    className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground font-mono tracking-widest text-center text-lg uppercase"
                                 />
                             </Field>
-                            <p className="text-[10px] text-gray-500 leading-relaxed">
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">
                                 Pídele al admin de tu equipo que genere un código de invitación desde su sesión.
                             </p>
                             <ActionButton busy={busy} onClick={handleRedeem}>
@@ -183,7 +183,7 @@ export default function OnboardingModal() {
                     )}
 
                     {error && (
-                        <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-xs">
+                        <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-xs">
                             <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
                             <span>{error}</span>
                         </div>
@@ -210,7 +210,7 @@ function TabButton({
                 "flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors",
                 active
                     ? "text-primary border-b-2 border-primary"
-                    : "text-gray-500 hover:text-gray-300",
+                    : "text-muted-foreground hover:text-foreground",
             )}
         >
             {children}
@@ -221,7 +221,7 @@ function TabButton({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="space-y-1.5">
-            <label className="block text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+            <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                 {label}
             </label>
             {children}
@@ -242,7 +242,7 @@ function ActionButton({
         <button
             onClick={onClick}
             disabled={busy}
-            className="w-full py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-colors"
+            className="w-full py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-bold rounded-lg flex items-center justify-center gap-2 transition-colors"
         >
             {busy && <Loader2 size={14} className="animate-spin" />}
             {children}

@@ -7,7 +7,7 @@ import { AggregatedTeamStats, MatchScouting, CURRENT_GAME_SCHEMA, FTCMatchScouti
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID, scoutIdFromUser, scoutNameFromUser } from "@/lib/orgs";
-import { useSaveMatchScouting } from "@/lib/hooks/use-scouting-mutations";
+import { useSaveMatchScouting, type MatchScoutingSaveResult } from "@/lib/hooks/use-scouting-mutations";
 import { superScoutingFormSchema, type SuperScoutingFormValues } from "@/lib/schemas/scouting";
 import { Card } from "@/components/ui/Card";
 import SourceBadge from "@/components/scouting/SourceBadge";
@@ -15,6 +15,7 @@ import { useScoutReliabilities } from "@/lib/hooks/use-scout-reliabilities";
 import { Save, Star, Shield, Wrench, ThumbsUp, ThumbsDown, Eye, User, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
+import { guessActiveEventCode } from "@/lib/active-event";
 
 interface SuperScoutingFormProps {
     team: AggregatedTeamStats;
@@ -70,7 +71,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
         const scoutId = scoutIdFromUser(user);
         const scoutName = scoutNameFromUser(user);
         const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
-        const eventCode = team.events[0]?.eventCode || "MXTOL";
+        const eventCode = guessActiveEventCode([team]) ?? "MXTOL";
 
         // Super entry: numeric/categorical counters intentionally left undefined.
         const payload: Partial<FTCMatchScouting> & {
@@ -103,8 +104,19 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
             timestamp: null,
         };
 
-        await saveMutation.mutateAsync(payload as MatchScouting);
-        toast.success(`Observación M#${values.matchNumber} guardada`);
+        let result: MatchScoutingSaveResult;
+        try {
+            result = await saveMutation.mutateAsync(payload as MatchScouting);
+        } catch (e) {
+            console.error("[super-scouting] save failed completely:", e);
+            toast.error(`No se pudo guardar la observación M#${values.matchNumber} — revisa e intenta de nuevo`);
+            return;
+        }
+        if (result.savedTo === "local") {
+            toast.success(`Observación M#${values.matchNumber} guardada offline — se sincronizará al volver la conexión`);
+        } else {
+            toast.success(`Observación M#${values.matchNumber} guardada`);
+        }
 
         // Reset for next observation, auto-increment match number
         const nextMatch = values.matchNumber + 1;
@@ -123,24 +135,24 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
 
     return (
         <div className="space-y-6">
-            <Card className="p-6 bg-gradient-to-br from-purple-950/30 to-black border-purple-500/20">
+            <Card className="p-6 bg-muted border-primary/20">
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <Eye className="text-purple-400" size={20} />
-                            <h2 className="text-2xl font-black text-white">Super Scouting</h2>
-                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-[10px] font-black uppercase tracking-wider border border-purple-500/30">
+                            <Eye className="text-primary" size={20} />
+                            <h2 className="text-2xl font-black text-foreground">Super Scouting</h2>
+                            <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-black uppercase tracking-wider border border-primary/30">
                                 Subjetivo
                             </span>
                         </div>
-                        <p className="text-xs text-purple-200/60 max-w-md leading-relaxed">
+                        <p className="text-xs text-primary/60 max-w-md leading-relaxed">
                             Captura impresiones cualitativas. Tus valoraciones <strong>quedan dentro de tu equipo</strong>; otros equipos ven sus propias escalas por separado.
                         </p>
                     </div>
                     {!isAdding && (
                         <button
                             onClick={() => setIsAdding(true)}
-                            className="min-h-[44px] px-4 py-2 bg-purple-500 hover:bg-purple-400 active:scale-[0.98] text-white font-bold rounded-lg flex items-center gap-2 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/40"
+                            className="min-h-[44px] px-4 py-2 bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground font-bold rounded-lg flex items-center gap-2 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         >
                             <Star size={16} /> Nueva observación
                         </button>
@@ -152,9 +164,9 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
 
             {isAdding && (
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <Card className="p-6 bg-white/[0.03] border-white/10 space-y-6">
+                    <Card className="p-6 bg-muted border-border space-y-6">
                         <div className="flex items-center gap-4">
-                            <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                            <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                                 Match #
                             </label>
                             <Controller
@@ -165,12 +177,12 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                         {...field}
                                         type="number"
                                         min={1}
-                                        className="w-20 px-3 py-1.5 bg-black/40 border border-white/10 rounded text-white text-center font-bold"
+                                        className="w-20 px-3 py-1.5 bg-muted border border-border rounded text-foreground text-center font-bold"
                                     />
                                 )}
                             />
                             {errors.matchNumber && (
-                                <span className="text-xs text-red-400">{errors.matchNumber.message}</span>
+                                <span className="text-xs text-danger">{errors.matchNumber.message}</span>
                             )}
                         </div>
 
@@ -215,7 +227,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                         />
 
                         <div className="space-y-2">
-                            <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                            <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                                 ¿Lo escogerías en alliance selection?
                             </div>
                             <Controller
@@ -229,8 +241,8 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                             className={clsx(
                                                 "flex-1 py-3 rounded-lg border font-bold flex items-center justify-center gap-2 transition-all",
                                                 field.value === true
-                                                    ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
-                                                    : "bg-black/20 border-white/10 text-gray-500 hover:border-emerald-500/30",
+                                                    ? "bg-success/20 border-success/50 text-success"
+                                                    : "bg-muted border-border text-muted-foreground hover:border-success/30",
                                             )}
                                         >
                                             <ThumbsUp size={16} /> Sí
@@ -241,8 +253,8 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                             className={clsx(
                                                 "flex-1 py-3 rounded-lg border font-bold flex items-center justify-center gap-2 transition-all",
                                                 field.value === false
-                                                    ? "bg-red-500/20 border-red-500/50 text-red-300"
-                                                    : "bg-black/20 border-white/10 text-gray-500 hover:border-red-500/30",
+                                                    ? "bg-danger/20 border-danger/50 text-danger"
+                                                    : "bg-muted border-border text-muted-foreground hover:border-danger/30",
                                             )}
                                         >
                                             <ThumbsDown size={16} /> No
@@ -251,12 +263,12 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                 )}
                             />
                             {errors.wouldPick && (
-                                <span className="text-xs text-red-400">{errors.wouldPick.message}</span>
+                                <span className="text-xs text-danger">{errors.wouldPick.message}</span>
                             )}
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                            <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                                 Notas
                             </label>
                             <Controller
@@ -266,17 +278,17 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                     <textarea
                                         {...field}
                                         placeholder="Ej: 'Driver tarda en reaccionar pero el robot tiene buen ciclo'"
-                                        className="w-full h-24 px-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 placeholder:text-gray-600"
+                                        className="w-full h-24 px-4 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
                                     />
                                 )}
                             />
                             {errors.notes && (
-                                <span className="text-xs text-red-400">{errors.notes.message}</span>
+                                <span className="text-xs text-danger">{errors.notes.message}</span>
                             )}
                         </div>
 
                         {saveMutation.isError && (
-                            <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-xs">
+                            <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-xs">
                                 <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
                                 <span>
                                     Error al guardar: {String((saveMutation.error as Error)?.message ?? saveMutation.error)}
@@ -288,14 +300,14 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                             <button
                                 type="button"
                                 onClick={() => setIsAdding(false)}
-                                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-400 rounded-lg font-bold text-sm"
+                                className="px-4 py-2 bg-muted hover:bg-border text-muted-foreground rounded-lg font-bold text-sm"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting || saveMutation.isPending}
-                                className="flex-1 min-h-[44px] py-2.5 bg-purple-500 hover:bg-purple-400 active:scale-[0.98] disabled:opacity-50 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/40"
+                                className="flex-1 min-h-[44px] py-2.5 bg-primary hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 text-primary-foreground font-bold rounded-lg flex items-center justify-center gap-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                             >
                                 {isSubmitting || saveMutation.isPending ? (
                                     <Loader2 size={16} className="animate-spin" />
@@ -311,10 +323,10 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
 
             <div className="space-y-3">
                 {superEntries.length === 0 ? (
-                    <div className="text-center py-12 bg-white/[0.02] rounded-xl border border-dashed border-white/10 text-gray-500 flex flex-col items-center gap-3">
+                    <div className="text-center py-12 bg-muted rounded-xl border border-dashed border-border text-muted-foreground flex flex-col items-center gap-3">
                         <Eye size={32} className="opacity-20" />
                         <div>
-                            <p className="text-sm text-gray-400 font-medium">Sin observaciones cualitativas</p>
+                            <p className="text-sm text-muted-foreground font-medium">Sin observaciones cualitativas</p>
                             <p className="text-xs mt-0.5 opacity-70">
                                 Driver skill, defense y &quot;would-pick&quot; alimentan la lista de alianzas.
                             </p>
@@ -323,7 +335,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                             <button
                                 type="button"
                                 onClick={() => setIsAdding(true)}
-                                className="px-4 py-1.5 bg-purple-500 hover:bg-purple-400 text-white text-xs font-bold rounded-lg flex items-center gap-2"
+                                className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg flex items-center gap-2"
                             >
                                 <Star size={12} /> Primera observación
                             </button>
@@ -335,18 +347,18 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                         .map((raw, i) => {
                             const e = raw as FTCMatchScouting;
                             return (
-                                <Card key={i} className="p-4 bg-white/[0.02] border-white/5">
+                                <Card key={i} className="p-4 bg-muted border-border">
                                     <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                         <div className="flex items-center gap-3">
-                                            <div className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-[10px] font-black tracking-tighter">
+                                            <div className="px-2 py-1 bg-primary/20 text-primary rounded text-[10px] font-black tracking-tighter">
                                                 M#{e.matchNumber}
                                             </div>
                                             {e.orgId && (
-                                                <div className="px-2 py-0.5 bg-white/5 border border-white/10 text-gray-400 rounded text-[10px] font-black tracking-wider uppercase">
+                                                <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-[10px] font-black tracking-wider uppercase">
                                                     #{e.orgId}
                                                 </div>
                                             )}
-                                            <span className="text-xs text-gray-500">
+                                            <span className="text-xs text-muted-foreground">
                                                 {e.scoutName ?? e.scouterName}
                                             </span>
                                         </div>
@@ -355,8 +367,8 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                                 className={clsx(
                                                     "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider",
                                                     e.wouldPick
-                                                        ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                                                        : "bg-red-500/15 text-red-300 border border-red-500/30",
+                                                        ? "bg-success/15 text-success border border-success/30"
+                                                        : "bg-danger/15 text-danger border border-danger/30",
                                                 )}
                                             >
                                                 {e.wouldPick ? "Pick" : "Skip"}
@@ -369,7 +381,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                         <RatingBadge label="Reliability" value={e.reliability} icon={<Wrench size={12} />} />
                                     </div>
                                     {e.notes && e.notes.trim().length > 0 && (
-                                        <p className="mt-3 text-xs text-gray-400 italic leading-relaxed border-l-2 border-purple-500/30 pl-3">
+                                        <p className="mt-3 text-xs text-muted-foreground italic leading-relaxed border-l-2 border-primary/30 pl-3">
                                             {e.notes}
                                         </p>
                                     )}
@@ -398,12 +410,12 @@ function StarPicker({
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <label className="text-[10px] text-gray-400 uppercase font-bold tracking-wider flex items-center gap-2">
+                <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-2">
                     {icon}
                     {label}
                 </label>
                 {helperText && (
-                    <span className="text-[10px] text-gray-600 italic">{helperText}</span>
+                    <span className="text-[10px] text-muted-foreground italic">{helperText}</span>
                 )}
             </div>
             <div className="flex gap-1">
@@ -415,8 +427,8 @@ function StarPicker({
                         className={clsx(
                             "flex-1 py-3 rounded-lg border font-black text-lg transition-all",
                             star <= value
-                                ? "bg-purple-500/20 border-purple-500/50 text-purple-200"
-                                : "bg-black/20 border-white/10 text-gray-600 hover:border-purple-500/30",
+                                ? "bg-primary/20 border-primary/50 text-primary"
+                                : "bg-muted border-border text-muted-foreground hover:border-primary/30",
                         )}
                     >
                         {star}
@@ -438,7 +450,7 @@ function RatingBadge({
 }) {
     if (value === undefined) {
         return (
-            <div className="p-2 bg-black/40 rounded-lg border border-white/5 text-gray-600 flex items-center gap-2">
+            <div className="p-2 bg-muted rounded-lg border border-border text-muted-foreground flex items-center gap-2">
                 {icon}
                 <div>
                     <div className="text-[9px] uppercase tracking-wider">{label}</div>
@@ -448,11 +460,11 @@ function RatingBadge({
         );
     }
     return (
-        <div className="p-2 bg-black/40 rounded-lg border border-white/5 flex items-center gap-2">
+        <div className="p-2 bg-muted rounded-lg border border-border flex items-center gap-2">
             {icon}
             <div>
-                <div className="text-[9px] text-gray-500 uppercase tracking-wider">{label}</div>
-                <div className="text-sm font-bold text-white">{value}/5</div>
+                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{label}</div>
+                <div className="text-sm font-bold text-foreground">{value}/5</div>
             </div>
         </div>
     );

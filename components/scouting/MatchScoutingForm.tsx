@@ -87,7 +87,7 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
         }
     };
 
-    let FormComponent = <div className="text-white p-6">Programa no soportado</div>;
+    let FormComponent = <div className="text-foreground p-6">Programa no soportado</div>;
 
     const programEntries = entries.filter(e => e.program === program);
 
@@ -100,18 +100,18 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
     return (
         <div className="space-y-8">
             {program === "FRC" && (
-                <div className="flex flex-col gap-6 bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-[2rem] relative overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+                <div className="flex flex-col gap-6 bg-card border border-border p-6 md:p-8 rounded-[2rem] relative overflow-hidden shadow-sm">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
 
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 z-10 relative">
                         <div className="flex items-center gap-5">
-                            <div className="p-4 bg-cyan-500/20 text-cyan-400 rounded-2xl border border-cyan-500/30">
+                            <div className="p-4 bg-secondary/20 text-secondary rounded-2xl border border-secondary/30">
                                 <Database size={28} />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-black text-white tracking-wide">FRC Offline Hub</h2>
-                                <p className="text-xs text-cyan-400 font-bold tracking-widest uppercase mt-1 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                                <h2 className="text-2xl font-black text-foreground tracking-wide">FRC Offline Hub</h2>
+                                <p className="text-xs text-secondary font-bold tracking-widest uppercase mt-1 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
                                     {pendingData.length} Registros sin Sincronizar
                                 </p>
                             </div>
@@ -122,13 +122,13 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
                                 <>
                                     <button
                                         onClick={() => setShowExport(!showExport)}
-                                        className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl border border-white/10 transition flex-1 md:flex-none"
+                                        className="flex items-center justify-center gap-2 px-6 py-3.5 bg-muted hover:bg-border text-foreground font-bold rounded-xl border border-border transition flex-1 md:flex-none"
                                     >
                                         <QrCode size={18} /> {showExport ? "Ocultar QR" : "Exportar QR"}
                                     </button>
                                     <button
                                         onClick={handleSyncLocalToCloud}
-                                        className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl border border-white/10 transition flex-1 md:flex-none text-nowrap"
+                                        className="flex items-center justify-center gap-2 px-6 py-3.5 bg-muted hover:bg-border text-foreground font-bold rounded-xl border border-border transition flex-1 md:flex-none text-nowrap"
                                     >
                                         <Send size={18} /> Sync Wi-Fi
                                     </button>
@@ -136,7 +136,7 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
                             )}
                             <button
                                 onClick={() => setShowScanner(true)}
-                                className="flex items-center justify-center gap-2 px-8 py-3.5 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-black rounded-xl shadow-[0_0_30px_rgba(6,182,212,0.3)] transition flex-1 md:flex-none uppercase tracking-wider"
+                                className="flex items-center justify-center gap-2 px-8 py-3.5 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-black rounded-xl transition flex-1 md:flex-none uppercase tracking-wider"
                             >
                                 <Scan size={18} /> Lector QR
                             </button>

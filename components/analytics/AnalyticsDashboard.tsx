@@ -13,7 +13,7 @@ import { Loader2, Play } from "lucide-react";
 const ComparisonView = dynamic(() => import("./ComparisonView"), {
     ssr: false,
     loading: () => (
-        <div className="p-12 text-center text-gray-400 text-sm">Cargando análisis...</div>
+        <div className="p-12 text-center text-muted-foreground text-sm">Cargando análisis...</div>
     ),
 });
 
@@ -89,7 +89,7 @@ export default function AnalyticsDashboard({ initialEvents, season }: AnalyticsD
                     <button
                         onClick={runAnalysis}
                         disabled={selectedCodes.length < 1 || isLoading}
-                        className="px-8 py-3 bg-primary hover:bg-primary/80 disabled:bg-muted disabled:text-muted-foreground text-white rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-primary/20 disabled:shadow-none"
+                        className="px-8 py-3 bg-primary hover:bg-primary/80 disabled:bg-muted disabled:text-muted-foreground text-primary-foreground rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-primary/20 disabled:shadow-none"
                     >
                         {isLoading ? (
                             <>

@@ -67,7 +67,7 @@ export default function PWAInstallPrompt() {
 
     return (
         <div
-            className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 max-w-sm bg-slate-900/95 backdrop-blur-md border border-primary/30 rounded-xl shadow-2xl p-3 flex items-start gap-3 animate-in slide-in-from-bottom-2 fade-in-0"
+            className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 max-w-sm bg-card border border-primary/30 rounded-xl shadow-sm p-3 flex items-start gap-3 animate-in slide-in-from-bottom-2 fade-in-0"
             role="region"
             aria-label="Instalar la app"
         >
@@ -75,22 +75,22 @@ export default function PWAInstallPrompt() {
                 <Download size={18} />
             </div>
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white">Instala FTC Stats</p>
-                <p className="text-[11px] text-gray-400 leading-snug mt-0.5">
+                <p className="text-sm font-bold text-foreground">Instala FTC Stats</p>
+                <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
                     Acceso rápido + funciona offline en venue.
                 </p>
                 <div className="mt-2 flex gap-2">
                     <button
                         type="button"
                         onClick={handleInstall}
-                        className="px-3 py-1.5 bg-primary hover:bg-primary/90 active:scale-[0.98] text-white text-xs font-bold rounded-md transition-all"
+                        className="px-3 py-1.5 bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground text-xs font-bold rounded-md transition-all"
                     >
                         Instalar
                     </button>
                     <button
                         type="button"
                         onClick={handleDismiss}
-                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-200 text-xs font-bold rounded-md transition-all"
+                        className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-xs font-bold rounded-md transition-all"
                     >
                         Después
                     </button>
@@ -100,7 +100,7 @@ export default function PWAInstallPrompt() {
                 type="button"
                 onClick={handleDismiss}
                 aria-label="Cerrar"
-                className="text-gray-500 hover:text-gray-300 p-1 -mr-1 -mt-1"
+                className="text-muted-foreground hover:text-foreground p-1 -mr-1 -mt-1"
             >
                 <X size={14} />
             </button>

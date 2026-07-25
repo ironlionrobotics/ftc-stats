@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Archivo } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/context/AuthContext";
@@ -20,6 +20,14 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Display face for headings and big numbers: a grotesque with a technical,
+// slightly condensed voice that separates titles from Geist body text.
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -78,7 +86,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} antialiased bg-background text-foreground`}
       >
         <ThemeSync />
         <QueryProvider>

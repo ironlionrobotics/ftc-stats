@@ -10,6 +10,7 @@ import {
     MAX_SYNC_ATTEMPTS,
 } from "@/lib/localDatabase";
 import { saveMatchScouting } from "@/lib/scouting-service";
+import { cachePruneOlderThan } from "@/lib/client-cache";
 import { notifyDiscordAction } from "@/app/actions/notify-discord";
 import { Cloud, CloudOff, Loader2, AlertTriangle } from "lucide-react";
 import clsx from "clsx";
@@ -140,6 +141,10 @@ export default function OnlineSync() {
     // Initial count + connectivity listeners.
     useEffect(() => {
         refreshPendingCount();
+        // Housekeeping: drop SWR cache entries older than the default max age.
+        // OnlineSync mounts once per session (root layout), so this is the one
+        // place that keeps FTCStatsClientCache from growing without bound.
+        cachePruneOlderThan().catch(() => { /* Dexie unavailable — ignore */ });
         const onOnline = () => {
             setOnline(true);
             drain();
@@ -176,14 +181,14 @@ export default function OnlineSync() {
             disabled={syncing || !online}
             className={clsx(
                 "fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40",
-                "flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold shadow-2xl border backdrop-blur-md transition-all",
+                "flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold shadow-sm border transition-all",
                 online
                     ? lastError
-                        ? "bg-amber-500/20 border-amber-500/40 text-amber-200 hover:bg-amber-500/30"
+                        ? "bg-warning/20 border-warning/40 text-warning hover:bg-warning/30"
                         : pendingCount > 0
-                            ? "bg-blue-500/20 border-blue-500/40 text-blue-200 hover:bg-blue-500/30"
-                            : "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
-                    : "bg-gray-700/30 border-gray-500/30 text-gray-300",
+                            ? "bg-secondary/20 border-secondary/40 text-secondary hover:bg-secondary/30"
+                            : "bg-success/15 border-success/30 text-success"
+                    : "bg-muted border-border text-muted-foreground",
             )}
             title={
                 online

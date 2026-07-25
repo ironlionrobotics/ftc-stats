@@ -13,7 +13,7 @@ import LiveRankingProjection from "./LiveRankingProjection";
 const PicklistEditor = dynamic(() => import("./PicklistEditor"), {
     ssr: false,
     loading: () => (
-        <div className="p-12 text-center text-gray-400 text-sm">Cargando picklist...</div>
+        <div className="p-12 text-center text-muted-foreground text-sm">Cargando picklist...</div>
     ),
 });
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
@@ -29,13 +29,13 @@ export default function StrategyClient({ teams }: StrategyClientProps) {
         <div className="container mx-auto px-4 py-6">
             <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-4xl font-bold text-white font-display tracking-tight">Estrategia de Alianzas</h1>
-                    <p className="text-gray-500 text-sm mt-1">Análisis de datos híbridos (API + Scouting) para toma de decisiones.</p>
+                    <h1 className="text-4xl font-bold text-foreground font-display tracking-tight">Estrategia de Alianzas</h1>
+                    <p className="text-muted-foreground text-sm mt-1">Análisis de datos híbridos (API + Scouting) para toma de decisiones.</p>
                 </div>
             </header>
 
             <Tabs defaultValue="picklist" className="space-y-6">
-                <TabsList className="bg-white/5 border-white/10">
+                <TabsList className="bg-muted border-border">
                     <TabsTrigger value="picklist" className="flex items-center gap-2">
                         <ListOrdered size={16} /> Picklist
                     </TabsTrigger>

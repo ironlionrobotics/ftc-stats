@@ -62,21 +62,24 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             {children}
             <AlertDialog.Root open={open} onOpenChange={o => !o && handleResult(false)}>
                 <AlertDialog.Portal>
-                    <AlertDialog.Overlay className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+                    {/* Scrim stays literal bg-black/opacity — matches the rest of the app's
+                        modal/drawer overlays (Sidebar, OnboardingModal), which intentionally
+                        don't tokenize the backdrop. */}
+                    <AlertDialog.Overlay className="fixed inset-0 z-[110] bg-black/70 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
                     <AlertDialog.Content
                         className={clsx(
                             "fixed left-1/2 top-1/2 z-[111] -translate-x-1/2 -translate-y-1/2",
-                            "w-full max-w-md p-6 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl",
+                            "w-full max-w-md p-6 bg-card border border-border rounded-2xl shadow-sm",
                             "data-[state=open]:animate-in data-[state=closed]:animate-out",
                             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
                         )}
                     >
-                        <AlertDialog.Title className="text-lg font-bold text-white">
+                        <AlertDialog.Title className="text-lg font-bold text-foreground">
                             {opts.title}
                         </AlertDialog.Title>
                         {opts.description && (
-                            <AlertDialog.Description className="mt-2 text-sm text-gray-400 leading-relaxed">
+                            <AlertDialog.Description className="mt-2 text-sm text-muted-foreground leading-relaxed">
                                 {opts.description}
                             </AlertDialog.Description>
                         )}
@@ -85,7 +88,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                                 <button
                                     type="button"
                                     onClick={() => handleResult(false)}
-                                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-bold rounded-lg min-h-[44px]"
+                                    className="px-4 py-2.5 bg-muted hover:bg-border text-foreground text-sm font-bold rounded-lg min-h-[44px]"
                                 >
                                     {opts.cancelText ?? "Cancelar"}
                                 </button>
@@ -97,7 +100,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                                     className={clsx(
                                         "px-4 py-2.5 text-white text-sm font-bold rounded-lg min-h-[44px]",
                                         opts.variant === "danger"
-                                            ? "bg-red-500 hover:bg-red-600"
+                                            ? "bg-danger hover:bg-danger/90"
                                             : "bg-primary hover:bg-primary/90",
                                     )}
                                 >

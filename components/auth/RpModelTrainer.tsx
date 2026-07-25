@@ -63,12 +63,12 @@ export default function RpModelTrainer() {
     };
 
     return (
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
-            <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+        <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
                 <Brain size={11} />
                 Modelos RP
             </div>
-            <p className="text-[10px] text-gray-500 leading-relaxed">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
                 Entrena predicción logística para Movement / Artifact / Pattern
                 RP usando datos de la temporada {season}.
             </p>
@@ -76,20 +76,20 @@ export default function RpModelTrainer() {
                 type="button"
                 onClick={train}
                 disabled={busy}
-                className="w-full min-h-[36px] px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
+                className="w-full min-h-[36px] px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
             >
                 {busy ? <Loader2 size={12} className="animate-spin" /> : <Brain size={12} />}
                 {busy ? "Entrenando..." : "Entrenar modelos"}
             </button>
 
             {report && (
-                <div className="space-y-1.5 pt-1 border-t border-white/5">
-                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400">
+                <div className="space-y-1.5 pt-1 border-t border-border">
+                    <div className="flex items-center gap-1.5 text-[10px] text-success">
                         <CheckCircle2 size={11} />
                         <span>{report.eventsProcessed} eventos procesados</span>
                     </div>
                     {report.models.length === 0 ? (
-                        <div className="flex items-start gap-1.5 text-[10px] text-amber-400">
+                        <div className="flex items-start gap-1.5 text-[10px] text-warning">
                             <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />
                             <span>Sin datos suficientes (necesita 10+ pos y 10+ neg per RP).</span>
                         </div>
@@ -100,8 +100,8 @@ export default function RpModelTrainer() {
                                     key={m.target}
                                     className="flex items-center justify-between text-[10px]"
                                 >
-                                    <span className="text-gray-400 capitalize">{m.target}</span>
-                                    <span className="font-mono text-gray-500">
+                                    <span className="text-muted-foreground capitalize">{m.target}</span>
+                                    <span className="font-mono text-muted-foreground">
                                         n={m.sampleSize} · loss {m.finalLoss.toFixed(3)}
                                     </span>
                                 </li>

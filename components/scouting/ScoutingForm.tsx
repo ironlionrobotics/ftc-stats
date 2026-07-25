@@ -28,13 +28,13 @@ function nowFirestoreTimestamp(): { seconds: number; nanoseconds: number } {
 // remounts them and drops any child state. They capture nothing from the
 // component, so hoisting is behavior-neutral.
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <h3 className="text-xl font-bold text-white mt-4 mb-4 border-b border-white/10 pb-2 flex items-center gap-2">
+    <h3 className="text-xl font-bold text-foreground mt-4 mb-4 border-b border-border pb-2 flex items-center gap-2">
         {children}
     </h3>
 );
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-    <label className="block text-sm font-medium text-gray-400 mb-1">{children}</label>
+    <label className="block text-sm font-medium text-muted-foreground mb-1">{children}</label>
 );
 
 /**
@@ -111,20 +111,20 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 bg-white/5 border border-white/10 rounded-xl overflow-hidden flex flex-col h-full">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 bg-muted border border-border rounded-xl overflow-hidden flex flex-col h-full">
             {/* Header */}
-            <div className="px-6 py-3 border-b border-white/10 flex justify-between items-center bg-black/20">
-                <div className="flex items-center gap-4">
-                    <div className="flex flex-col">
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                            <span className="text-primary font-display text-3xl">{team.teamNumber}</span>
-                            {team.teamName}
+            <div className="px-4 md:px-6 py-3 border-b border-border flex flex-wrap justify-between items-center gap-3 bg-muted">
+                <div className="flex items-center gap-4 min-w-0">
+                    <div className="flex flex-col min-w-0">
+                        <h2 className="text-lg md:text-2xl font-bold text-foreground flex items-center gap-2 md:gap-3 min-w-0">
+                            <span className="text-primary font-display text-2xl md:text-3xl shrink-0">{team.teamNumber}</span>
+                            <span className="truncate">{team.teamName}</span>
                         </h2>
-                        <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Temporada 2025: DECODE</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Temporada 2025: DECODE</span>
                     </div>
                     <span className={clsx(
                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
-                        !isEditing ? "bg-blue-500/10 border-blue-500/30 text-blue-400" : "bg-green-500/10 border-green-500/30 text-green-400"
+                        !isEditing ? "bg-secondary/10 border-secondary/30 text-secondary" : "bg-success/10 border-success/30 text-success"
                     )}>
                         {!isEditing ? "Lectura" : "Edición"}
                     </span>
@@ -134,7 +134,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="min-h-[44px] px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg bg-green-600 hover:bg-green-500 active:scale-[0.98] text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40"
+                        className="min-h-[44px] px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg bg-success hover:bg-success/90 active:scale-[0.98] text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/40"
                     >
                         {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                         {isSubmitting ? "Guardando..." : "Guardar Pit Data"}
@@ -143,7 +143,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                     <button
                         type="button"
                         onClick={() => setIsEditing(true)}
-                        className="px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg bg-primary hover:bg-primary/80 text-white"
+                        className="px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                         <Edit2 size={18} /> Editar Pit Data
                     </button>
@@ -175,7 +175,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                 <section>
                     <SectionTitle>Capacidades de Juego & Visión</SectionTitle>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                        <div className="space-y-4 bg-muted p-4 rounded-xl border border-border">
                             <BooleanField control={control} name="motifDetection" label="¿Detecta Motif (Visión)?" disabled={!isEditing} />
                             <BooleanField control={control} name="canDualPark" label="¿Permite Dual Parking (18x18)?" disabled={!isEditing} />
                         </div>
@@ -195,15 +195,15 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
 
                 {/* Private notes — never leaves the org. */}
                 <section>
-                    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 space-y-3">
+                    <div className="rounded-2xl border border-warning/30 bg-warning/5 p-5 space-y-3">
                         <div className="flex items-center gap-2">
-                            <Lock size={16} className="text-amber-400" />
-                            <h3 className="text-lg font-bold text-amber-100">Notas privadas</h3>
-                            <span className="ml-auto px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded text-[10px] font-black uppercase tracking-wider border border-amber-500/30">
+                            <Lock size={16} className="text-warning" />
+                            <h3 className="text-lg font-bold text-warning">Notas privadas</h3>
+                            <span className="ml-auto px-2 py-0.5 bg-warning/20 text-warning rounded text-[10px] font-black uppercase tracking-wider border border-warning/30">
                                 Solo mi equipo
                             </span>
                         </div>
-                        <p className="text-xs text-amber-200/70 leading-relaxed">
+                        <p className="text-xs text-warning/70 leading-relaxed">
                             Estas notas son <strong>internas de tu equipo</strong>. Otros equipos NUNCA verán este campo.
                             Útil para anotar debilidades estratégicas, planes de defensa, especulaciones.
                         </p>
@@ -214,26 +214,26 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                                 <textarea
                                     {...field}
                                     disabled={!isEditing}
-                                    className="w-full h-32 px-4 py-3 bg-black/30 border border-amber-500/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 disabled:opacity-50 placeholder:text-amber-200/30"
+                                    className="w-full h-32 px-4 py-3 bg-muted border border-warning/20 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-warning/50 disabled:opacity-50 placeholder:text-warning/30"
                                     placeholder="Ej: 'Su intake se atora con artifacts verdes', 'Driver coach poco experimentado'..."
                                 />
                             )}
                         />
-                        {errors.notes && <p className="text-xs text-red-400">{errors.notes.message}</p>}
+                        {errors.notes && <p className="text-xs text-danger">{errors.notes.message}</p>}
                     </div>
                 </section>
 
                 {/* Public summary — opt-in cross-org sharing. */}
                 <section>
-                    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
+                    <div className="rounded-2xl border border-success/30 bg-success/5 p-5 space-y-3">
                         <div className="flex items-center gap-2">
-                            <Share2 size={16} className="text-emerald-400" />
-                            <h3 className="text-lg font-bold text-emerald-100">Resumen público</h3>
-                            <span className="ml-auto px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded text-[10px] font-black uppercase tracking-wider border border-emerald-500/30 flex items-center gap-1.5">
+                            <Share2 size={16} className="text-success" />
+                            <h3 className="text-lg font-bold text-success">Resumen público</h3>
+                            <span className="ml-auto px-2 py-0.5 bg-success/20 text-success rounded text-[10px] font-black uppercase tracking-wider border border-success/30 flex items-center gap-1.5">
                                 <Globe size={10} /> Visible a otros equipos
                             </span>
                         </div>
-                        <p className="text-xs text-emerald-200/70 leading-relaxed">
+                        <p className="text-xs text-success/70 leading-relaxed">
                             Resumen <strong>opt-in</strong> que otros equipos en eventos compartidos podrán ver.
                             Déjalo vacío para no compartir nada.
                         </p>
@@ -244,14 +244,14 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                                 <textarea
                                     {...field}
                                     disabled={!isEditing}
-                                    className="w-full h-24 px-4 py-3 bg-black/30 border border-emerald-500/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50 placeholder:text-emerald-200/30"
+                                    className="w-full h-24 px-4 py-3 bg-muted border border-success/20 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-success/50 disabled:opacity-50 placeholder:text-success/30"
                                     placeholder="Ej: 'Robot con tracción mecanno, intake de fricción, lanzador para meta. Climb tipo Full.'"
                                 />
                             )}
                         />
-                        {errors.publicSummary && <p className="text-xs text-red-400">{errors.publicSummary.message}</p>}
+                        {errors.publicSummary && <p className="text-xs text-danger">{errors.publicSummary.message}</p>}
                         {initialData?.publicSummarySharedAt?.seconds && (
-                            <div className="text-[10px] text-emerald-300/60 font-medium">
+                            <div className="text-[10px] text-success/60 font-medium">
                                 Compartido por última vez:{" "}
                                 {new Date(initialData.publicSummarySharedAt.seconds * 1000).toLocaleString()}
                             </div>
@@ -260,7 +260,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                 </section>
 
                 {initialData?.lastUpdatedBy && (
-                    <p className="text-xs text-gray-500 italic">
+                    <p className="text-xs text-muted-foreground italic">
                         Última actualización por {initialData.lastUpdatedBy}
                     </p>
                 )}
@@ -292,7 +292,7 @@ function TextField({
 }: TextFieldProps) {
     return (
         <div>
-            {!hideLabel && <label className="block text-sm font-medium text-gray-400 mb-1">{label}</label>}
+            {!hideLabel && <label className="block text-sm font-medium text-muted-foreground mb-1">{label}</label>}
             <Controller
                 name={name}
                 control={control}
@@ -302,11 +302,11 @@ function TextField({
                         type="text"
                         disabled={disabled}
                         placeholder={placeholder}
-                        className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     />
                 )}
             />
-            {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+            {error && <p className="text-xs text-danger mt-1">{error}</p>}
         </div>
     );
 }
@@ -318,7 +318,7 @@ interface NumberFieldProps extends BaseFieldProps<number> {
 function NumberField({ control, name, label, disabled, error }: NumberFieldProps) {
     return (
         <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">{label}</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">{label}</label>
             <Controller
                 name={name}
                 control={control}
@@ -327,11 +327,11 @@ function NumberField({ control, name, label, disabled, error }: NumberFieldProps
                         {...field}
                         type="number"
                         disabled={disabled}
-                        className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="w-full px-4 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     />
                 )}
             />
-            {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+            {error && <p className="text-xs text-danger mt-1">{error}</p>}
         </div>
     );
 }
@@ -343,7 +343,7 @@ interface SelectFieldProps extends BaseFieldProps<string> {
 function SelectField({ control, name, label, options, disabled }: SelectFieldProps) {
     return (
         <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">{label}</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">{label}</label>
             <Controller
                 name={name}
                 control={control}
@@ -351,10 +351,10 @@ function SelectField({ control, name, label, options, disabled }: SelectFieldPro
                     <select
                         {...field}
                         disabled={disabled}
-                        className="px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed appearance-none w-full"
+                        className="px-4 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed appearance-none w-full"
                     >
                         {options.map((opt: string) => (
-                            <option key={opt} value={opt} className="bg-gray-900">{opt}</option>
+                            <option key={opt} value={opt} className="bg-card">{opt}</option>
                         ))}
                     </select>
                 )}
@@ -377,7 +377,7 @@ function BooleanField({ control, name, label, disabled }: BaseFieldProps<boolean
                         disabled={disabled}
                         className="w-5 h-5 accent-primary"
                     />
-                    <span className="text-white font-medium">{label}</span>
+                    <span className="text-foreground font-medium">{label}</span>
                 </label>
             )}
         />

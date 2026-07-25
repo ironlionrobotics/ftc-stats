@@ -93,7 +93,7 @@ export default function SourceBadge({
         return (
             <div
                 className={clsx(
-                    "inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-500/10 text-gray-400 text-[10px] font-bold uppercase tracking-wider",
+                    "inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-wider",
                     className,
                 )}
                 title="No hay observaciones de scouting para este equipo en este match"
@@ -107,8 +107,8 @@ export default function SourceBadge({
     const hasFlags = summary.flaggedFieldCount > 0;
 
     const chipColor = hasFlags
-        ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-        : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+        ? "bg-warning/15 text-warning border-warning/30"
+        : "bg-success/10 text-success border-success/20";
 
     return (
         <div className={clsx("relative inline-block", className)}>
@@ -239,10 +239,10 @@ function SourcePopover({
 function ConfidenceDot({ confidence }: { confidence: "high" | "medium" | "low" }) {
     const color =
         confidence === "high"
-            ? "bg-emerald-500"
+            ? "bg-success"
             : confidence === "medium"
-                ? "bg-amber-500"
-                : "bg-red-500";
+                ? "bg-warning"
+                : "bg-danger";
     return (
         <span
             className={clsx("inline-block w-1.5 h-1.5 rounded-full", color)}

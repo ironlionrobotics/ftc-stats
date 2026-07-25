@@ -36,7 +36,7 @@ export default function EventSelector({ events, selectedCodes, onToggle, onToggl
                 </button>
                 <button
                     onClick={() => onToggleAll(false)}
-                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-muted-foreground text-xs font-bold transition-colors"
+                    className="px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/70 text-muted-foreground text-xs font-bold transition-colors"
                 >
                     Deselect All
                 </button>
@@ -57,13 +57,13 @@ export default function EventSelector({ events, selectedCodes, onToggle, onToggl
                         >
                             <div className={clsx(
                                 "w-5 h-5 rounded-md border flex items-center justify-center mt-0.5 transition-colors",
-                                isSelected ? "bg-primary border-primary text-white" : "border-muted-foreground/30 group-hover:border-primary/50"
+                                isSelected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30 group-hover:border-primary/50"
                             )}>
                                 {isSelected && <Check size={12} strokeWidth={4} />}
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <h3 className={clsx("font-bold text-sm truncate pr-2", isSelected ? "text-primary dark:text-white" : "text-muted-foreground group-hover:text-foreground")}>
+                                <h3 className={clsx("font-bold text-sm truncate pr-2", isSelected ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
                                     {event.name}
                                 </h3>
                                 <div className="flex items-center gap-2 mt-1">

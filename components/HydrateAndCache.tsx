@@ -85,7 +85,7 @@ export function OfflineFallback({ cacheKey, render, rendererMeta }: OfflineFallb
 
     if (state.kind === "loading") {
         return (
-            <div className="p-12 text-center text-gray-500 text-sm">
+            <div className="p-12 text-center text-muted-foreground text-sm">
                 Buscando datos cacheados...
             </div>
         );
@@ -93,7 +93,7 @@ export function OfflineFallback({ cacheKey, render, rendererMeta }: OfflineFallb
 
     if (state.kind === "missing") {
         return (
-            <div className="p-8 bg-red-500/10 border border-red-500/30 rounded-xl text-red-200 text-sm">
+            <div className="p-8 bg-danger/10 border border-danger/30 rounded-xl text-danger text-sm">
                 Sin conexión al servidor y sin datos cacheados localmente. Conéctate al menos una vez para que la app guarde los datos para uso offline.
             </div>
         );
@@ -110,7 +110,7 @@ export function OfflineFallback({ cacheKey, render, rendererMeta }: OfflineFallb
 function OfflineBanner({ cachedAt }: { cachedAt: number }) {
     const when = new Date(cachedAt).toLocaleString();
     return (
-        <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-200 text-xs">
+        <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-warning/10 border border-warning/30 rounded-lg text-warning text-xs">
             <CloudOff size={14} className="flex-shrink-0" />
             <span>Mostrando datos cacheados ({when}) — sin conexión al servidor.</span>
         </div>

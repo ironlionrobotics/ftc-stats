@@ -19,7 +19,7 @@ export function Skeleton({ className }: { className?: string }) {
     return (
         <div
             className={clsx(
-                "animate-pulse rounded bg-white/5 dark:bg-white/10",
+                "animate-pulse rounded bg-muted",
                 className,
             )}
             aria-hidden="true"
@@ -50,7 +50,7 @@ export function SkeletonCard({ className }: { className?: string }) {
     return (
         <div
             className={clsx(
-                "p-4 bg-white/[0.02] border border-white/10 rounded-xl space-y-3",
+                "p-4 bg-muted border border-border rounded-xl space-y-3",
                 className,
             )}
         >

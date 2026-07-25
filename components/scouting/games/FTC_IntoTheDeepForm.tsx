@@ -7,12 +7,13 @@ import { AggregatedTeamStats, MatchScouting, CURRENT_GAME_SCHEMA } from "@/types
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID, scoutIdFromUser, scoutNameFromUser } from "@/lib/orgs";
-import { useSaveMatchScouting } from "@/lib/hooks/use-scouting-mutations";
+import { useSaveMatchScouting, type MatchScoutingSaveResult } from "@/lib/hooks/use-scouting-mutations";
 import { ftcIntoTheDeepFormSchema, type FTCIntoTheDeepFormValues } from "@/lib/schemas/scouting";
 import { Card } from "@/components/ui/Card";
 import { Save, Plus, User, Trophy, Minus, ClipboardList, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
+import { guessActiveEventCode } from "@/lib/active-event";
 
 interface MatchScoutingFormProps {
     team: AggregatedTeamStats;
@@ -69,12 +70,12 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
             toast.error("Debes iniciar sesión");
             return;
         }
-        const eventCode = team.events[0]?.eventCode || "MXTOL";
+        const eventCode = guessActiveEventCode([team]) ?? "MXTOL";
         const scoutId = scoutIdFromUser(user);
         const scoutName = scoutNameFromUser(user);
         const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
 
-        await saveMutation.mutateAsync({
+        const entry = {
             teamNumber: team.teamNumber,
             eventCode,
             program: "FTC",
@@ -106,9 +107,22 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
             patternRP: values.patternRP,
             notes: values.notes,
             timestamp: null,
-        } as MatchScouting);
+        } as MatchScouting;
 
-        toast.success(`Match #${values.matchNumber} guardado`);
+        let result: MatchScoutingSaveResult;
+        try {
+            result = await saveMutation.mutateAsync(entry);
+        } catch (e) {
+            console.error("[scouting] save failed completely:", e);
+            toast.error(`No se pudo guardar el match #${values.matchNumber} — revisa e intenta de nuevo`);
+            return;
+        }
+
+        if (result.savedTo === "local") {
+            toast.success(`Match #${values.matchNumber} guardado offline — se sincronizará al volver la conexión`);
+        } else {
+            toast.success(`Match #${values.matchNumber} guardado`);
+        }
         setIsAdding(false);
         // Reset for next observation, auto-increment match number
         reset({ ...DEFAULTS, matchNumber: values.matchNumber + 1 });
@@ -118,17 +132,17 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div className="flex flex-col">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
                         <Trophy className="text-primary" /> Match Scouting: DECODE
                     </h3>
-                    <p className="text-xs text-gray-500">Temporada 2025-2026 • Artifacts & Patterns</p>
+                    <p className="text-xs text-muted-foreground">Temporada 2025-2026 • Artifacts & Patterns</p>
                 </div>
                 <button
                     type="button"
                     onClick={() => setIsAdding(!isAdding)}
                     className={clsx(
                         "flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all shadow-lg",
-                        isAdding ? "bg-red-500/20 text-red-400 border border-red-500/50" : "bg-primary text-white"
+                        isAdding ? "bg-danger/20 text-danger border border-danger/50" : "bg-primary text-primary-foreground"
                     )}
                 >
                     {isAdding ? "Cancelar" : <><Plus size={18} /> Nuevo Registro</>}
@@ -137,12 +151,12 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
 
             {isAdding && (
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <Card className="p-6 bg-white/[0.02] border-primary/20 animate-in slide-in-from-top duration-300 shadow-2xl">
+                    <Card className="p-6 bg-muted border-primary/20 animate-in slide-in-from-top duration-300 shadow-sm">
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                             {/* Config & Auto */}
-                            <div className="space-y-6 lg:col-span-1 border-r border-white/5 pr-6">
-                                <div className="pb-4 border-b border-white/5">
-                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Match Number</label>
+                            <div className="space-y-6 lg:col-span-1 border-r border-border pr-6">
+                                <div className="pb-4 border-b border-border">
+                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Match Number</label>
                                     <Controller
                                         name="matchNumber"
                                         control={control}
@@ -150,12 +164,12 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                             <input
                                                 {...field}
                                                 type="number"
-                                                className="w-full px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white font-bold text-xl focus:ring-2 focus:ring-primary outline-none"
+                                                className="w-full px-4 py-2 bg-muted border border-border rounded-lg text-foreground font-bold text-xl focus:ring-2 focus:ring-primary outline-none"
                                             />
                                         )}
                                     />
                                     {errors.matchNumber && (
-                                        <p className="text-xs text-red-400 mt-1">{errors.matchNumber.message}</p>
+                                        <p className="text-xs text-danger mt-1">{errors.matchNumber.message}</p>
                                     )}
                                 </div>
 
@@ -183,7 +197,7 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <BooleanCheckbox control={control} name="gatesUsed" label="Usó Gates (Limpieza Rampa)" />
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Driver Skill (1-5)</label>
+                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Driver Skill (1-5)</label>
                                         <Controller
                                             name="driverSkill"
                                             control={control}
@@ -197,8 +211,8 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                                             className={clsx(
                                                                 "flex-1 py-2 rounded-lg font-bold transition-all border",
                                                                 field.value === s
-                                                                    ? "bg-primary border-primary text-white"
-                                                                    : "bg-white/5 border-white/10 text-gray-500 hover:border-white/30"
+                                                                    ? "bg-primary border-primary text-primary-foreground"
+                                                                    : "bg-muted border-border text-muted-foreground hover:border-foreground/20"
                                                             )}
                                                         >
                                                             {s}
@@ -211,14 +225,14 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                 </div>
 
                                 <div className="mt-6">
-                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Notas Críticas del Partido</label>
+                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Notas Críticas del Partido</label>
                                     <Controller
                                         name="notes"
                                         control={control}
                                         render={({ field }) => (
                                             <textarea
                                                 {...field}
-                                                className="w-full h-32 px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-primary outline-none"
+                                                className="w-full h-32 px-4 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:ring-2 focus:ring-primary outline-none"
                                                 placeholder="Ej: Problemas de conexión en el minuto 1:20, defensa muy agresiva..."
                                             />
                                         )}
@@ -227,11 +241,11 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                             </div>
 
                             {/* Endgame */}
-                            <div className="space-y-6 lg:col-span-1 border-l border-white/5 pl-6">
+                            <div className="space-y-6 lg:col-span-1 border-l border-border pl-6">
                                 <h4 className="text-xs font-bold text-primary uppercase tracking-widest">Endgame & Rankings</h4>
 
                                 <div className="space-y-3">
-                                    <label className="block text-[10px] font-bold text-gray-500 uppercase">Base Parking</label>
+                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase">Base Parking</label>
                                     <Controller
                                         name="endgameBaseParking"
                                         control={control}
@@ -245,8 +259,8 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                                         className={clsx(
                                                             "py-2 text-[10px] font-bold rounded border transition-all",
                                                             field.value === p
-                                                                ? "bg-white text-black border-white"
-                                                                : "bg-white/5 border-white/10 text-gray-500"
+                                                                ? "bg-primary text-primary-foreground border-primary"
+                                                                : "bg-muted border-border text-muted-foreground"
                                                         )}
                                                     >
                                                         {p === 'None' ? 'N/A' : p === 'Partial' ? 'Parc.' : 'Full'}
@@ -262,8 +276,8 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                     <BooleanCheckbox control={control} name="motifCompleted" label="Motif Final Completado" />
                                 </div>
 
-                                <div className="pt-4 space-y-3 border-t border-white/5">
-                                    <label className="text-[10px] font-bold text-yellow-500/70 uppercase">Potential RP Tracker</label>
+                                <div className="pt-4 space-y-3 border-t border-border">
+                                    <label className="text-[10px] font-bold text-warning/70 uppercase">Potential RP Tracker</label>
                                     <BooleanCheckbox control={control} name="goalRP" label="Possible Goal RP" />
                                     <BooleanCheckbox control={control} name="patternRP" label="Possible Pattern RP" />
                                 </div>
@@ -271,17 +285,17 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                         </div>
 
                         {saveMutation.isError && (
-                            <div className="mt-4 flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-xs">
+                            <div className="mt-4 flex items-start gap-2 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-xs">
                                 <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
                                 <span>Error al guardar: {String((saveMutation.error as Error)?.message ?? saveMutation.error)}</span>
                             </div>
                         )}
 
-                        <div className="mt-8 pt-6 border-t border-white/10 sticky bottom-0 bg-background/80 backdrop-blur-md p-4 -mx-6 -mb-6 rounded-b-xl z-20 border-t-0 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)]">
+                        <div className="mt-8 pt-6 border-t border-border sticky bottom-0 bg-background/80 p-4 -mx-6 -mb-6 rounded-b-xl z-20 border-t-0">
                             <button
                                 type="submit"
                                 disabled={isSubmitting || saveMutation.isPending}
-                                className="w-full py-4 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-3 shadow-2xl transition-all text-lg group active:scale-[0.98]"
+                                className="w-full py-4 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-3 shadow-sm transition-all text-lg group active:scale-[0.98]"
                             >
                                 {isSubmitting || saveMutation.isPending ? (
                                     <Loader2 size={22} className="animate-spin" />
@@ -297,12 +311,12 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
 
             <div className="grid grid-cols-1 gap-4">
                 {entries.length === 0 ? (
-                    <div className="text-center py-16 bg-white/[0.02] rounded-2xl border border-dashed border-white/10 text-gray-500 flex flex-col items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                    <div className="text-center py-16 bg-muted rounded-2xl border border-dashed border-border text-muted-foreground flex flex-col items-center gap-4">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
                             <ClipboardList size={32} className="opacity-30" />
                         </div>
                         <div>
-                            <p className="font-medium text-gray-400">
+                            <p className="font-medium text-muted-foreground">
                                 Sin observaciones para este equipo
                             </p>
                             <p className="text-xs mt-1 opacity-70">
@@ -313,7 +327,7 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                             <button
                                 type="button"
                                 onClick={() => setIsAdding(true)}
-                                className="px-5 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg flex items-center gap-2 transition-colors"
+                                className="px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold rounded-lg flex items-center gap-2 transition-colors"
                             >
                                 <Plus size={14} /> Capturar primera observación
                             </button>
@@ -323,7 +337,7 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                     entries.sort((a, b) => b.matchNumber - a.matchNumber).map((item, idx) => {
                         const entry = item as import("@/types/scouting").FTCMatchScouting;
                         return (
-                            <div key={idx} className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 hover:bg-white/[0.05] transition-all relative overflow-hidden group">
+                            <div key={idx} className="bg-muted border border-border rounded-2xl p-6 hover:bg-border/60 transition-all relative overflow-hidden group">
                                 <div className="absolute top-0 left-0 w-1 h-full bg-primary/30 group-hover:bg-primary transition-colors" />
 
                                 <div className="flex flex-col md:flex-row justify-between gap-6">
@@ -333,11 +347,11 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                                 MATCH #{entry.matchNumber}
                                             </div>
                                             {entry.orgId && (
-                                                <div className="px-2 py-0.5 bg-white/5 border border-white/10 text-gray-400 rounded text-[10px] font-black tracking-wider uppercase">
+                                                <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-[10px] font-black tracking-wider uppercase">
                                                     #{entry.orgId}
                                                 </div>
                                             )}
-                                            <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
+                                            <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium">
                                                 <User size={14} className="opacity-50" />
                                                 {entry.scoutName ?? entry.scouterName}
                                                 <span className="opacity-30">•</span>
@@ -355,7 +369,7 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                                 if (otherEntries.length === 0) return null;
                                                 return (
                                                     <div
-                                                        className="px-2 py-0.5 bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded text-[10px] font-bold uppercase tracking-wider"
+                                                        className="px-2 py-0.5 bg-warning/15 text-warning border border-warning/30 rounded text-[10px] font-bold uppercase tracking-wider"
                                                         title={`Otra(s) ${otherEntries.length} observación(es) existen para este match-equipo`}
                                                     >
                                                         +{otherEntries.length} obs
@@ -365,40 +379,40 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                         </div>
 
                                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                            <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-                                                <span className="block text-[9px] text-gray-500 font-bold uppercase mb-1">Auto Pts (Est)</span>
+                                            <div className="bg-muted p-3 rounded-xl border border-border">
+                                                <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">Auto Pts (Est)</span>
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-xl font-black text-white">{(entry.autoPurpleArtifacts ?? 0) + (entry.autoGreenArtifacts ?? 0) > 0 ? '✓' : '0'}</span>
+                                                    <span className="text-xl font-black text-foreground">{(entry.autoPurpleArtifacts ?? 0) + (entry.autoGreenArtifacts ?? 0) > 0 ? '✓' : '0'}</span>
                                                     {entry.autoMotifStarted && <span className="text-[10px] text-primary font-bold">MOTIF</span>}
                                                 </div>
                                             </div>
-                                            <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-                                                <span className="block text-[9px] text-gray-500 font-bold uppercase mb-1">Artifacts Total</span>
+                                            <div className="bg-muted p-3 rounded-xl border border-border">
+                                                <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">Artifacts Total</span>
                                                 <div className="flex items-end gap-2">
-                                                    <span className="text-xl font-black text-white">{(entry.teleopPurpleArtifacts ?? 0) + (entry.teleopGreenArtifacts ?? 0)}</span>
-                                                    <span className="text-[10px] text-purple-400 font-bold">P:{entry.teleopPurpleArtifacts ?? 0}</span>
-                                                    <span className="text-[10px] text-green-400 font-bold">G:{entry.teleopGreenArtifacts ?? 0}</span>
+                                                    <span className="text-xl font-black text-foreground">{(entry.teleopPurpleArtifacts ?? 0) + (entry.teleopGreenArtifacts ?? 0)}</span>
+                                                    <span className="text-[10px] text-primary font-bold">P:{entry.teleopPurpleArtifacts ?? 0}</span>
+                                                    <span className="text-[10px] text-success font-bold">G:{entry.teleopGreenArtifacts ?? 0}</span>
                                                 </div>
                                             </div>
-                                            <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-                                                <span className="block text-[9px] text-gray-500 font-bold uppercase mb-1">Patterns</span>
-                                                <span className="text-xl font-black text-white">{entry.patternsCompleted ?? 0}</span>
+                                            <div className="bg-muted p-3 rounded-xl border border-border">
+                                                <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">Patterns</span>
+                                                <span className="text-xl font-black text-foreground">{entry.patternsCompleted ?? 0}</span>
                                             </div>
-                                            <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-                                                <span className="block text-[9px] text-gray-500 font-bold uppercase mb-1">Endgame</span>
+                                            <div className="bg-muted p-3 rounded-xl border border-border">
+                                                <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">Endgame</span>
                                                 <div className="flex items-center gap-2">
-                                                    <span className={clsx("text-xs font-bold", (entry.endgameBaseParking ?? 'None') !== 'None' ? "text-green-400" : "text-red-400")}>
+                                                    <span className={clsx("text-xs font-bold", (entry.endgameBaseParking ?? 'None') !== 'None' ? "text-success" : "text-danger")}>
                                                         {entry.endgameBaseParking ?? 'None'}
                                                     </span>
-                                                    {entry.dualParking && <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-500 rounded text-[8px] font-black">DUAL</span>}
+                                                    {entry.dualParking && <span className="px-1.5 py-0.5 bg-warning/20 text-warning rounded text-[8px] font-black">DUAL</span>}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="md:w-64 flex flex-col gap-3">
-                                        <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex-1">
-                                            <label className="block text-[9px] text-gray-500 font-bold uppercase mb-2">Driver Performance</label>
+                                        <div className="bg-muted rounded-xl p-4 border border-border flex-1">
+                                            <label className="block text-[9px] text-muted-foreground font-bold uppercase mb-2">Driver Performance</label>
                                             <div className="flex gap-1.5">
                                                 {[1, 2, 3, 4, 5].map(star => {
                                                     const skill = entry.driverSkill ?? 3;
@@ -408,21 +422,21 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
                                                             className={clsx(
                                                                 "h-2 flex-1 rounded-full",
                                                                 star <= skill
-                                                                    ? (skill >= 4 ? "bg-green-500" : skill >= 2 ? "bg-primary" : "bg-red-500")
-                                                                    : "bg-white/5"
+                                                                    ? (skill >= 4 ? "bg-success" : skill >= 2 ? "bg-primary" : "bg-danger")
+                                                                    : "bg-muted"
                                                             )}
                                                         />
                                                     );
                                                 })}
                                             </div>
-                                            <p className="text-[10px] text-gray-400 mt-2 italic line-clamp-3">
+                                            <p className="text-[10px] text-muted-foreground mt-2 italic line-clamp-3">
                                                 {entry.notes || "Sin notas adicionales."}
                                             </p>
                                         </div>
                                         <div className="flex gap-2">
-                                            {entry.movementRP && <div className="flex-1 bg-blue-500/10 text-blue-400 text-[8px] font-black p-1 rounded text-center border border-blue-500/20">MOVE RP</div>}
-                                            {entry.goalRP && <div className="flex-1 bg-orange-500/10 text-orange-400 text-[8px] font-black p-1 rounded text-center border border-orange-500/20">GOAL RP</div>}
-                                            {entry.patternRP && <div className="flex-1 bg-purple-500/10 text-purple-400 text-[8px] font-black p-1 rounded text-center border border-purple-500/20">PATT RP</div>}
+                                            {entry.movementRP && <div className="flex-1 bg-secondary/10 text-secondary text-[8px] font-black p-1 rounded text-center border border-secondary/20">MOVE RP</div>}
+                                            {entry.goalRP && <div className="flex-1 bg-primary/10 text-primary text-[8px] font-black p-1 rounded text-center border border-primary/20">GOAL RP</div>}
+                                            {entry.patternRP && <div className="flex-1 bg-warning/10 text-warning text-[8px] font-black p-1 rounded text-center border border-warning/20">PATT RP</div>}
                                         </div>
                                     </div>
                                 </div>
@@ -456,25 +470,25 @@ function Counter({
     const value = (field.value as number) ?? 0;
     return (
         <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase">{label}</label>
-            <div className="flex items-center gap-3 bg-black/40 p-1 rounded-lg border border-white/5">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase">{label}</label>
+            <div className="flex items-center gap-3 bg-muted p-1 rounded-lg border border-border">
                 <button
                     type="button"
                     onClick={() => field.onChange(Math.max(0, value - 1))}
-                    className="p-4 bg-white/5 rounded-md hover:bg-white/10 text-gray-400 active:bg-white/20 transition-colors"
+                    className="p-4 bg-muted rounded-md hover:bg-border text-muted-foreground active:bg-border transition-colors"
                 >
                     <Minus size={16} />
                 </button>
                 <span className={clsx(
                     "text-xl font-black w-12 text-center",
-                    color === "purple" ? "text-purple-400" : color === "green" ? "text-green-400" : "text-white"
+                    color === "purple" ? "text-primary" : color === "green" ? "text-success" : "text-foreground"
                 )}>
                     {value}
                 </span>
                 <button
                     type="button"
                     onClick={() => field.onChange(value + 1)}
-                    className="p-4 bg-white/5 rounded-md hover:bg-white/10 text-gray-400 active:bg-white/20 transition-colors"
+                    className="p-4 bg-muted rounded-md hover:bg-border text-muted-foreground active:bg-border transition-colors"
                 >
                     <Plus size={16} />
                 </button>
@@ -497,7 +511,7 @@ function BooleanCheckbox({
     return (
         <label className={clsx(
             "flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer group",
-            checked ? "bg-primary/20 border-primary/50" : "bg-white/5 border-white/10 hover:border-white/20"
+            checked ? "bg-primary/20 border-primary/50" : "bg-muted border-border hover:border-foreground/20"
         )}>
             <input
                 type="checkbox"
@@ -507,7 +521,7 @@ function BooleanCheckbox({
             />
             <span className={clsx(
                 "text-sm font-medium transition-colors",
-                checked ? "text-white" : "text-gray-400 group-hover:text-gray-300"
+                checked ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
             )}>
                 {label}
             </span>

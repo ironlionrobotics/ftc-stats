@@ -143,7 +143,7 @@ export default function EventStats({ matches, rankings }: EventStatsProps) {
         <div className="relative overflow-hidden p-6 rounded-3xl border border-border bg-card transition-all duration-300 hover:bg-muted/50 group shadow-sm">
             <div className={`absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 blur-3xl opacity-10 dark:opacity-20 bg-gradient-to-br ${colorClass} group-hover:opacity-40 transition-opacity`} />
             <div className="relative flex flex-col gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br ${colorClass} shadow-lg shadow-black/10`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br ${colorClass} shadow-sm`}>
                     <Icon className="text-white" size={24} />
                 </div>
                 <div>
@@ -157,16 +157,16 @@ export default function EventStats({ matches, rankings }: EventStatsProps) {
         </div>
     );
 
-    const MatchHighlight = ({ data, label, icon: Icon, color }: { data: HighlightData, label: string, icon: ElementType, color: string }) => (
+    const MatchHighlight = ({ data, label, icon: Icon }: { data: HighlightData, label: string, icon: ElementType }) => (
         <div className="p-6 rounded-3xl border border-border bg-card space-y-4 hover:border-primary/30 transition-all duration-300 shadow-sm hover:shadow-md">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-lg bg-${color}-500/10 text-${color}-600 dark:text-${color}-400`}>
+                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                         <Icon size={14} />
                     </div>
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">{label}</span>
                 </div>
-                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${data.alliance === 'Red' ? 'bg-red-500/10 text-red-600 dark:text-red-500 border border-red-500/10' : 'bg-blue-500/10 text-blue-600 dark:text-blue-500 border border-blue-500/10'
+                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${data.alliance === 'Red' ? 'bg-danger/10 text-danger border border-danger/10' : 'bg-secondary/10 text-secondary border border-secondary/10'
                     }`}>
                     {data.alliance} Alliance
                 </span>
@@ -197,34 +197,34 @@ export default function EventStats({ matches, rankings }: EventStatsProps) {
                     title="Avg Score"
                     value={stats.avgScore.toFixed(1)}
                     icon={BarChart3}
-                    colorClass="from-orange-500 to-amber-500"
+                    colorClass="from-primary to-primary/70"
                 />
                 <StatCard
                     title="Avg Auto"
                     value={stats.avgAuto.toFixed(1)}
                     icon={Zap}
-                    colorClass="from-purple-500 to-indigo-500"
+                    colorClass="from-secondary to-secondary/70"
                 />
                 <StatCard
                     title="Matches"
                     value={stats.qualMatchesCount + stats.playoffMatchesCount}
                     subValue={`${stats.qualMatchesCount}Q | ${stats.playoffMatchesCount}P`}
                     icon={Users}
-                    colorClass="from-emerald-500 to-teal-500"
+                    colorClass="from-primary to-primary/70"
                 />
                 <StatCard
                     title="Teams"
                     value={stats.totalTeams}
                     icon={Trophy}
-                    colorClass="from-pink-500 to-rose-500"
+                    colorClass="from-secondary to-secondary/70"
                 />
             </div>
 
             {/* Match Highlights Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <MatchHighlight data={stats.highFinal} label="Highest Score" icon={Trophy} color="amber" />
-                <MatchHighlight data={stats.highClean} label="Highest Clean" icon={Target} color="emerald" />
-                <MatchHighlight data={stats.highAuto} label="Highest Auto" icon={Zap} color="purple" />
+                <MatchHighlight data={stats.highFinal} label="Highest Score" icon={Trophy} />
+                <MatchHighlight data={stats.highClean} label="Highest Clean" icon={Target} />
+                <MatchHighlight data={stats.highAuto} label="Highest Auto" icon={Zap} />
             </div>
         </div>
     );

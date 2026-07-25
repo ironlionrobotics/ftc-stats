@@ -49,10 +49,10 @@ export default function DynamicGameForm({ definition, control, disabled }: Dynam
 
 const ACCENT_STYLES: Record<NonNullable<GameSection["accent"]>, string> = {
     primary: "text-primary",
-    purple: "text-purple-400",
-    green: "text-green-400",
-    amber: "text-amber-400",
-    cyan: "text-cyan-400",
+    purple: "text-primary",
+    green: "text-success",
+    amber: "text-warning",
+    cyan: "text-secondary",
 };
 
 function SectionCard({
@@ -64,9 +64,9 @@ function SectionCard({
     control: Control<Record<string, unknown>>;
     disabled?: boolean;
 }) {
-    const accent = section.accent ? ACCENT_STYLES[section.accent] : "text-white";
+    const accent = section.accent ? ACCENT_STYLES[section.accent] : "text-foreground";
     return (
-        <Card className="p-5 bg-white/[0.02] border-white/10">
+        <Card className="p-5 bg-muted border-border">
             <h3 className={clsx("text-xs font-bold uppercase tracking-widest mb-4", accent)}>
                 {section.label}
             </h3>
@@ -111,11 +111,11 @@ function FieldRenderer({
 function FieldLabel({ field }: { field: GameField }) {
     return (
         <div className="flex items-baseline justify-between mb-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 {field.label}
             </label>
             {field.helpText && (
-                <span className="text-[10px] text-gray-600 italic">{field.helpText}</span>
+                <span className="text-[10px] text-muted-foreground italic">{field.helpText}</span>
             )}
         </div>
     );
@@ -135,21 +135,21 @@ function CounterFieldRender({
     const min = field.min ?? 0;
     const max = field.max ?? 999;
     const colorClass = {
-        primary: "text-white",
-        purple: "text-purple-400",
-        green: "text-green-400",
-        cyan: "text-cyan-400",
-        amber: "text-amber-400",
+        primary: "text-foreground",
+        purple: "text-primary",
+        green: "text-success",
+        cyan: "text-secondary",
+        amber: "text-warning",
     }[field.color ?? "primary"];
     return (
         <div>
             <FieldLabel field={field} />
-            <div className="flex items-center gap-3 bg-black/40 p-1 rounded-lg border border-white/5">
+            <div className="flex items-center gap-3 bg-muted p-1 rounded-lg border border-border">
                 <button
                     type="button"
                     onClick={() => rhf.onChange(Math.max(min, value - 1))}
                     disabled={disabled}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/5 rounded-md hover:bg-white/10 text-gray-400 active:bg-white/20 disabled:opacity-50 transition-colors"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-muted rounded-md hover:bg-border text-muted-foreground active:bg-border disabled:opacity-50 transition-colors"
                     aria-label={`Decrementar ${field.label}`}
                 >
                     <Minus size={16} />
@@ -159,7 +159,7 @@ function CounterFieldRender({
                     type="button"
                     onClick={() => rhf.onChange(Math.min(max, value + 1))}
                     disabled={disabled}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/5 rounded-md hover:bg-white/10 text-gray-400 active:bg-white/20 disabled:opacity-50 transition-colors"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-muted rounded-md hover:bg-border text-muted-foreground active:bg-border disabled:opacity-50 transition-colors"
                     aria-label={`Incrementar ${field.label}`}
                 >
                     <Plus size={16} />
@@ -183,7 +183,7 @@ function BooleanFieldRender({
     return (
         <label className={clsx(
             "min-h-[44px] flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer group",
-            checked ? "bg-primary/20 border-primary/50" : "bg-white/5 border-white/10 hover:border-white/20",
+            checked ? "bg-primary/20 border-primary/50" : "bg-muted border-border hover:border-foreground/20",
             disabled && "opacity-60 cursor-not-allowed",
         )}>
             <input
@@ -195,7 +195,7 @@ function BooleanFieldRender({
             />
             <span className={clsx(
                 "text-sm font-medium transition-colors",
-                checked ? "text-white" : "text-gray-400 group-hover:text-gray-300",
+                checked ? "text-foreground" : "text-muted-foreground group-hover:text-foreground",
             )}>
                 {field.label}
             </span>
@@ -228,8 +228,8 @@ function StarsFieldRender({
                         className={clsx(
                             "min-h-[44px] flex-1 py-2 rounded-lg font-bold transition-all border disabled:opacity-50",
                             value === star
-                                ? "bg-primary border-primary text-white"
-                                : "bg-white/5 border-white/10 text-gray-500 hover:border-white/30",
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "bg-muted border-border text-muted-foreground hover:border-foreground/20",
                         )}
                         aria-label={`${field.label} ${star} de ${max}`}
                     >
@@ -264,8 +264,8 @@ function EnumFieldRender({
                         className={clsx(
                             "min-h-[44px] py-2 px-2 text-xs font-bold rounded border transition-all disabled:opacity-50",
                             rhf.value === option.value
-                                ? "bg-white text-black border-white"
-                                : "bg-white/5 border-white/10 text-gray-500 hover:border-white/30",
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-muted border-border text-muted-foreground hover:border-foreground/20",
                         )}
                     >
                         {option.label}
@@ -296,7 +296,7 @@ function TextFieldRender({
                     placeholder={field.placeholder}
                     disabled={disabled}
                     maxLength={field.maxLength}
-                    className="w-full h-24 px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
+                    className="w-full h-24 px-4 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
                 />
             </div>
         );
@@ -311,7 +311,7 @@ function TextFieldRender({
                 placeholder={field.placeholder}
                 disabled={disabled}
                 maxLength={field.maxLength}
-                className="w-full min-h-[44px] px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
+                className="w-full min-h-[44px] px-4 py-2 bg-muted border border-border rounded-lg text-foreground focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
             />
         </div>
     );

@@ -198,10 +198,10 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Step 1: Configuration */}
             {step === 'config' && (
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-6 text-center">
+                <div className="bg-muted border border-border rounded-2xl p-8 flex flex-col items-center justify-center gap-6 text-center">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Tournament Configuration</h3>
-                        <p className="text-slate-500 text-sm">Select the number of alliances for the playoff tournament.</p>
+                        <h3 className="text-xl font-bold text-foreground">Tournament Configuration</h3>
+                        <p className="text-muted-foreground text-sm">Select the number of alliances for the playoff tournament.</p>
                     </div>
 
                     <div className="flex gap-4">
@@ -212,8 +212,8 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                                 className={clsx(
                                     "w-16 h-16 rounded-2xl font-black text-2xl flex items-center justify-center transition-all border-2",
                                     allianceCount === count
-                                        ? "bg-white border-blue-600 text-blue-600 shadow-lg shadow-blue-100 scale-110"
-                                        : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
+                                        ? "bg-card border-secondary text-secondary shadow-sm scale-110"
+                                        : "bg-card border-border text-muted-foreground hover:border-border"
                                 )}
                             >
                                 {count}
@@ -224,13 +224,13 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                     <div className="flex gap-4">
                         <button
                             onClick={handleAutoGenerate}
-                            className="flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-xl shadow-blue-200 transition-all active:scale-95"
+                            className="flex items-center gap-2 px-8 py-4 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-xl font-bold text-lg shadow-sm transition-all active:scale-95"
                         >
                             <Play size={20} fill="currentColor" /> Auto Generate
                         </button>
                         <button
                             onClick={handleManualStart}
-                            className="flex items-center gap-2 px-8 py-4 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-600 rounded-xl font-bold text-lg transition-all active:scale-95"
+                            className="flex items-center gap-2 px-8 py-4 bg-card border-2 border-border hover:border-border text-muted-foreground rounded-xl font-bold text-lg transition-all active:scale-95"
                         >
                             <Edit2 size={20} /> Manual Build
                         </button>
@@ -242,19 +242,19 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
             {step === 'building' && (
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
-                        <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                            <Shield className="text-blue-600" /> Build Alliances
+                        <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                            <Shield className="text-secondary" /> Build Alliances
                         </h3>
                         <div className="flex gap-3">
                             <button
                                 onClick={handleReset}
-                                className="px-4 py-2 text-slate-400 hover:text-slate-600 font-bold text-sm"
+                                className="px-4 py-2 text-muted-foreground hover:text-foreground font-bold text-sm"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSimulate}
-                                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-lg shadow-purple-200 transition-all flex items-center gap-2"
+                                className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold shadow-sm transition-all flex items-center gap-2"
                             >
                                 <Play size={16} fill="currentColor" /> Run Simulation
                             </button>
@@ -267,15 +267,15 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                             const pick1Options = getAvailableTeams(alliance.id, false);
 
                             return (
-                                <div key={alliance.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative">
-                                    <div className="absolute top-0 left-0 bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-1 rounded-br-lg">
+                                <div key={alliance.id} className="bg-card border border-border rounded-xl p-4 shadow-sm relative">
+                                    <div className="absolute top-0 left-0 bg-muted text-muted-foreground text-[10px] font-black px-2 py-1 rounded-br-lg">
                                         ALLIANCE {alliance.id}
                                     </div>
                                     <div className="mt-6 space-y-3">
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Captain</label>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Captain</label>
                                             <select
-                                                className="w-full text-sm font-bold border border-slate-200 rounded-lg p-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full text-sm font-bold border border-border rounded-lg p-2 bg-muted focus:outline-none focus:ring-2 focus:ring-secondary"
                                                 value={alliance.captain?.teamNumber || ""}
                                                 onChange={(e) => updateAllianceMember(alliance.id, 'captain', e.target.value)}
                                             >
@@ -289,9 +289,9 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Partner</label>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Partner</label>
                                             <select
-                                                className="w-full text-sm font-bold border border-slate-200 rounded-lg p-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full text-sm font-bold border border-border rounded-lg p-2 bg-muted focus:outline-none focus:ring-2 focus:ring-secondary"
                                                 value={alliance.pick1?.teamNumber || ""}
                                                 onChange={(e) => updateAllianceMember(alliance.id, 'pick1', e.target.value)}
                                             >
@@ -305,9 +305,9 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                                             </select>
                                         </div>
                                     </div>
-                                    <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Est. OPR</span>
-                                        <span className="font-mono font-black text-slate-900">{alliance.totalOPR?.toFixed(0) || 0}</span>
+                                    <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Est. OPR</span>
+                                        <span className="font-mono font-black text-foreground">{alliance.totalOPR?.toFixed(0) || 0}</span>
                                     </div>
                                 </div>
                             );
@@ -320,31 +320,31 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
             {step === 'bracket' && (
                 <div className="space-y-6">
                     {/* Toolbar */}
-                    <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative z-20">
+                    <div className="flex justify-between items-center bg-card p-4 rounded-xl border border-border shadow-sm relative z-20">
                         <div className="flex gap-2">
-                            <button onClick={handleSaveScenario} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors">
+                            <button onClick={handleSaveScenario} className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/70 text-foreground rounded-lg text-xs font-bold transition-colors">
                                 <Save size={14} /> Save Scenario
                             </button>
                             <div className="relative group">
-                                <button className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors">
+                                <button className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/70 text-foreground rounded-lg text-xs font-bold transition-colors">
                                     <FolderOpen size={14} /> Load Scenario ({scenarios.length})
                                 </button>
-                                <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-2 hidden group-hover:block z-50">
-                                    {scenarios.length === 0 && <div className="text-xs text-slate-400 p-2">No saved scenarios</div>}
+                                <div className="absolute top-full left-0 mt-2 w-64 bg-card border border-border rounded-xl shadow-sm p-2 hidden group-hover:block z-50">
+                                    {scenarios.length === 0 && <div className="text-xs text-muted-foreground p-2">No saved scenarios</div>}
                                     {scenarios.map((s, i) => (
-                                        <div key={i} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-lg group/item cursor-pointer">
+                                        <div key={i} className="flex justify-between items-center p-2 hover:bg-muted rounded-lg group/item cursor-pointer">
                                             <div onClick={() => handleLoadScenario(s)} className="flex-1">
-                                                <div className="font-bold text-slate-700 text-xs truncate max-w-[150px]">{s.name}</div>
-                                                <div className="text-[10px] text-slate-400">{new Date(s.date).toLocaleDateString()}</div>
+                                                <div className="font-bold text-foreground text-xs truncate max-w-[150px]">{s.name}</div>
+                                                <div className="text-[10px] text-muted-foreground">{new Date(s.date).toLocaleDateString()}</div>
                                             </div>
-                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteScenario(i) }} className="text-slate-300 hover:text-red-500 p-1"><RotateCcw size={12} className="rotate-45" /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteScenario(i) }} className="text-muted-foreground hover:text-danger p-1"><RotateCcw size={12} className="rotate-45" /></button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        <button onClick={() => setStep('building')} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                        <button onClick={() => setStep('building')} className="text-xs font-bold text-secondary hover:underline flex items-center gap-1">
                             <Edit2 size={12} /> Edit Alliances
                         </button>
                     </div>
@@ -353,16 +353,16 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                         {/* Left Sidebar: Alliances & Analytics */}
                         <div className="lg:col-span-1 space-y-6">
                             {/* Monte Carlo Card */}
-                            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-4 text-white shadow-lg">
+                            <div className="bg-muted border border-border rounded-xl p-4 text-foreground shadow-sm">
                                 <h3 className="font-bold text-sm flex items-center gap-2 mb-3">
-                                    <PieChart size={16} className="text-purple-400" /> Win Probability
+                                    <PieChart size={16} className="text-primary" /> Win Probability
                                 </h3>
                                 {!simResults ? (
                                     <div className="text-center py-4">
-                                        <p className="text-xs text-slate-400 mb-4">Run 2,000 simulations with performance variance to see realistic championship odds.</p>
+                                        <p className="text-xs text-muted-foreground mb-4">Run 2,000 simulations with performance variance to see realistic championship odds.</p>
                                         <button
                                             onClick={handleRunMonteCarlo}
-                                            className="w-full py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-xs font-bold transition-colors shadow-lg shadow-purple-900/50"
+                                            className="w-full py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold transition-colors shadow-sm"
                                         >
                                             Run Monte Carlo
                                         </button>
@@ -372,17 +372,17 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                                         {simResults.slice(0, 5).map(res => (
                                             <div key={res.allianceId} className="relative">
                                                 <div className="flex justify-between text-xs font-bold mb-1">
-                                                    <span className="text-slate-200">Alliance {res.allianceId}</span>
-                                                    <span className="text-purple-300">{(res.championProbability * 100).toFixed(1)}%</span>
+                                                    <span className="text-foreground">Alliance {res.allianceId}</span>
+                                                    <span className="text-primary">{(res.championProbability * 100).toFixed(1)}%</span>
                                                 </div>
-                                                <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-purple-500 rounded-full" style={{ width: `${res.championProbability * 100}%` }} />
+                                                <div className="h-1.5 bg-border rounded-full overflow-hidden">
+                                                    <div className="h-full bg-primary rounded-full" style={{ width: `${res.championProbability * 100}%` }} />
                                                 </div>
                                             </div>
                                         ))}
                                         <button
                                             onClick={handleRunMonteCarlo}
-                                            className="w-full mt-2 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-[10px] font-bold text-slate-300 transition-colors"
+                                            className="w-full mt-2 py-1.5 bg-border hover:bg-border/70 rounded-lg text-[10px] font-bold text-muted-foreground transition-colors"
                                         >
                                             Rerun Simulation
                                         </button>
@@ -393,27 +393,27 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                             {/* Alliances List */}
                             <div className="space-y-2">
                                 {alliances.map((alliance) => (
-                                    <div key={alliance.id} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                                        <div className="bg-slate-100 text-slate-500 absolute top-0 left-0 w-8 h-8 flex items-center justify-center font-black text-xs rounded-br-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                    <div key={alliance.id} className="bg-card border border-border rounded-xl p-3 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                                        <div className="bg-muted text-muted-foreground absolute top-0 left-0 w-8 h-8 flex items-center justify-center font-black text-xs rounded-br-xl group-hover:bg-secondary group-hover:text-secondary-foreground transition-colors">
                                             #{alliance.id}
                                         </div>
                                         <div className="ml-10 space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0"></div>
-                                                <span className="font-black text-slate-900 text-lg">{alliance.captain.teamNumber}</span>
-                                                <span className="text-xs text-slate-400 font-bold uppercase">{alliance.captain.teamName}</span>
+                                                <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
+                                                <span className="font-black text-foreground text-lg">{alliance.captain.teamNumber}</span>
+                                                <span className="text-xs text-muted-foreground font-bold uppercase">{alliance.captain.teamName}</span>
                                             </div>
                                             {alliance.pick1 && (
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
-                                                    <span className="font-bold text-slate-700">{alliance.pick1.teamNumber}</span>
-                                                    <span className="text-xs text-slate-400 font-medium uppercase">{alliance.pick1.teamName}</span>
+                                                    <div className="w-2 h-2 rounded-full bg-secondary flex-shrink-0"></div>
+                                                    <span className="font-bold text-foreground">{alliance.pick1.teamNumber}</span>
+                                                    <span className="text-xs text-muted-foreground font-medium uppercase">{alliance.pick1.teamName}</span>
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center overflow-hidden">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Est. Score</div>
-                                            <div className="font-mono font-black text-slate-900">{alliance.totalOPR.toFixed(0)}</div>
+                                        <div className="mt-3 pt-2 border-t border-border flex justify-between items-center overflow-hidden">
+                                            <div className="text-[10px] font-bold text-muted-foreground uppercase">Est. Score</div>
+                                            <div className="font-mono font-black text-foreground">{alliance.totalOPR.toFixed(0)}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -422,15 +422,15 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
 
                         {/* Bracket Visual */}
                         <div className="lg:col-span-3 overflow-x-auto pb-8">
-                            <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                            <div className="flex justify-between items-center bg-muted p-4 rounded-xl border border-border mb-6">
                                 <div className="flex items-center gap-4">
-                                    <span className="text-sm font-bold text-slate-500">
+                                    <span className="text-sm font-bold text-muted-foreground">
                                         Click on a match team to manually override the winner.
                                     </span>
                                 </div>
                                 <button
                                     onClick={handleReset}
-                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg font-bold text-sm transition-all"
+                                    className="flex items-center gap-2 px-4 py-2 bg-card border border-border hover:bg-muted text-foreground rounded-lg font-bold text-sm transition-all"
                                 >
                                     <RotateCcw size={16} /> Reset
                                 </button>
@@ -626,17 +626,17 @@ function BracketVisual({ bracket, onMatchClick, type }: BracketVisualProps) {
 
                     return (
                         <div
-                            className="absolute z-10 flex flex-col items-center justify-center bg-yellow-50 border-2 border-yellow-300 rounded-2xl shadow-lg p-2"
+                            className="absolute z-10 flex flex-col items-center justify-center bg-warning/10 border-2 border-warning/30 rounded-2xl shadow-sm p-2"
                             style={{ left: trophyX, top: trophyY - 20, width: 140, height: 120 }}
                         >
-                            <Trophy size={32} className="text-yellow-500 mb-1" />
-                            <div className="text-[10px] font-bold text-yellow-600 uppercase tracking-widest mb-0.5">Champion</div>
+                            <Trophy size={32} className="text-warning mb-1" />
+                            <div className="text-[10px] font-bold text-warning uppercase tracking-widest mb-0.5">Champion</div>
                             {championId ? (
-                                <div className="text-2xl font-black text-slate-900">
+                                <div className="text-2xl font-black text-foreground">
                                     #{championId}
                                 </div>
                             ) : (
-                                <div className="text-2xl font-black text-slate-300">?</div>
+                                <div className="text-2xl font-black text-muted-foreground">?</div>
                             )}
                         </div>
                     );
@@ -657,10 +657,10 @@ function MatchNode({ match, onMatchClick }: MatchNodeProps) {
     const isBlueWinner = match.winnerId === match.blueAllianceId && match.winnerId !== null;
 
     return (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm w-full h-full text-[10px] flex flex-col">
-            <div className="bg-slate-50 px-2 py-1 font-bold text-slate-400 uppercase flex justify-between items-center border-b border-slate-100 h-6">
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm w-full h-full text-[10px] flex flex-col">
+            <div className="bg-muted px-2 py-1 font-bold text-muted-foreground uppercase flex justify-between items-center border-b border-border h-6">
                 <span className="truncate max-w-[120px]">{match.name}</span>
-                <span className="text-slate-300 text-[9px]">{match.id}</span>
+                <span className="text-muted-foreground text-[9px]">{match.id}</span>
             </div>
 
             <div className="flex-1 flex flex-col">
@@ -669,20 +669,20 @@ function MatchNode({ match, onMatchClick }: MatchNodeProps) {
                     onClick={() => match.redAllianceId && onMatchClick(match.id, match.redAllianceId)}
                     disabled={!match.redAllianceId}
                     className={clsx(
-                        "flex-1 px-2 flex justify-between items-center transition-colors text-left border-b border-slate-50",
-                        isRedWinner ? "bg-red-50 text-red-900" : "hover:bg-slate-50 text-slate-500",
+                        "flex-1 px-2 flex justify-between items-center transition-colors text-left border-b border-border",
+                        isRedWinner ? "bg-danger/10 text-danger" : "hover:bg-muted text-muted-foreground",
                         // Override indicator
-                        match.overriddenWinnerId === match.redAllianceId && "ring-1 ring-inset ring-red-500 bg-red-50"
+                        match.overriddenWinnerId === match.redAllianceId && "ring-1 ring-inset ring-danger bg-danger/10"
                     )}
                 >
                     <div className="flex items-center gap-1.5 overflow-hidden">
-                        <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isRedWinner ? "bg-red-600" : "bg-slate-300")} />
+                        <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isRedWinner ? "bg-danger" : "bg-muted-foreground")} />
                         <span className="font-bold truncate">
                             {match.redAllianceId ? `Alliance ${match.redAllianceId}` : "TBD"}
                         </span>
                     </div>
                     {match.winProbabilityRed !== 0.5 && match.redAllianceId && match.blueAllianceId && (
-                        <span className={clsx("font-mono font-black", isRedWinner ? "text-red-600" : "text-slate-300")}>
+                        <span className={clsx("font-mono font-black", isRedWinner ? "text-danger" : "text-muted-foreground")}>
                             {(match.winProbabilityRed * 100).toFixed(0)}%
                         </span>
                     )}
@@ -694,18 +694,18 @@ function MatchNode({ match, onMatchClick }: MatchNodeProps) {
                     disabled={!match.blueAllianceId}
                     className={clsx(
                         "flex-1 px-2 flex justify-between items-center transition-colors text-left",
-                        isBlueWinner ? "bg-blue-50 text-blue-900" : "hover:bg-slate-50 text-slate-500",
-                        match.overriddenWinnerId === match.blueAllianceId && "ring-1 ring-inset ring-blue-500 bg-blue-50"
+                        isBlueWinner ? "bg-secondary/10 text-secondary" : "hover:bg-muted text-muted-foreground",
+                        match.overriddenWinnerId === match.blueAllianceId && "ring-1 ring-inset ring-secondary bg-secondary/10"
                     )}
                 >
                     <div className="flex items-center gap-1.5 overflow-hidden">
-                        <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isBlueWinner ? "bg-blue-600" : "bg-slate-300")} />
+                        <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isBlueWinner ? "bg-secondary" : "bg-muted-foreground")} />
                         <span className="font-bold truncate">
                             {match.blueAllianceId ? `Alliance ${match.blueAllianceId}` : "TBD"}
                         </span>
                     </div>
                     {match.winProbabilityRed !== 0.5 && match.redAllianceId && match.blueAllianceId && (
-                        <span className={clsx("font-mono font-black", isBlueWinner ? "text-blue-600" : "text-slate-300")}>
+                        <span className={clsx("font-mono font-black", isBlueWinner ? "text-secondary" : "text-muted-foreground")}>
                             {((1 - match.winProbabilityRed) * 100).toFixed(0)}%
                         </span>
                     )}

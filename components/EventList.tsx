@@ -22,7 +22,7 @@ export default function EventList({ events, season }: EventListProps) {
     );
 
     return (
-        <div className="bg-card p-6 rounded-xl shadow-sm mb-8 border border-border/50 backdrop-blur-sm">
+        <div className="bg-card p-4 md:p-6 rounded-xl shadow-sm mb-8 border border-border">
             <div className="flex items-center gap-2 mb-4">
                 <Filter className="w-5 h-5 text-primary" />
                 <h3 className="text-lg font-semibold text-foreground">
@@ -38,7 +38,7 @@ export default function EventList({ events, season }: EventListProps) {
                         className="group relative flex flex-col p-4 rounded-xl border border-border bg-background hover:bg-muted/50 transition-all hover:shadow-md hover:border-primary/30"
                     >
                         <div className="flex justify-between items-start mb-2">
-                            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-md mb-2 inline-block">
+                            <span className="bg-primary/10 text-primary font-mono text-xs font-bold px-2 py-1 rounded-md mb-2 inline-block">
                                 {event.abbr || event.code}
                             </span>
                             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors opacity-0 group-hover:opacity-100" />

@@ -12,8 +12,10 @@ import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID } from "@/lib/orgs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import Tip from "@/components/ui/Tip";
-import { ClipboardList, Trophy, Eye } from "lucide-react";
+import { ClipboardList, Trophy, Eye, ChevronLeft } from "lucide-react";
+import clsx from "clsx";
 import { toast } from "sonner";
+import { guessActiveEventCode } from "@/lib/active-event";
 
 interface ScoutingClientProps {
     initialTeams: AggregatedTeamStats[];
@@ -27,6 +29,10 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
     );
     const [pitData, setPitData] = useState<PitScouting | null>(null);
     const [matchScoutingEntries, setMatchScoutingEntries] = useState<MatchScouting[]>([]);
+    // Mobile master-detail: below md the list and the form are alternate
+    // screens (picking a team slides to the form; ChevronLeft goes back).
+    // Desktop always shows both — md: classes override this flag.
+    const [mobileShowForm, setMobileShowForm] = useState(false);
 
     // Load this org's pit scouting record for the selected team. Other orgs'
     // public summaries (if any) are surfaced inside ScoutingForm via the
@@ -45,7 +51,7 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
     // (In a real scenario, we might want to filter by eventCode properly)
     useEffect(() => {
         // For now, we assume a default event code or use the one from the teams' first event
-        const eventCode = initialTeams[0]?.events[0]?.eventCode || "MXTOL";
+        const eventCode = guessActiveEventCode(initialTeams) ?? "MXTOL";
         const unsubscribe = listenToMatchScouting(season, eventCode, (entries) => {
             setMatchScoutingEntries(entries);
         });
@@ -86,17 +92,30 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
 
             <div className="container mx-auto px-4 md:px-8 py-8 flex flex-col md:flex-row gap-6 h-screen relative z-10">
                 {/* Sidebar List */}
-                <div className="md:w-72 lg:w-80 flex flex-col h-full bg-white/5 border border-white/10 rounded-xl overflow-hidden shadow-2xl backdrop-blur-md">
+                <div className={clsx(
+                    "md:w-72 lg:w-80 flex-col h-full bg-muted border border-border rounded-xl overflow-hidden shadow-sm",
+                    mobileShowForm ? "hidden md:flex" : "flex"
+                )}>
                     <TeamList
                         teams={initialTeams}
                         selectedTeamId={selectedTeamId}
-                        onSelectTeam={setSelectedTeamId}
+                        onSelectTeam={(id) => { setSelectedTeamId(id); setMobileShowForm(true); }}
                         scoutingDataMap={{}} // Not used anymore for local storage
                     />
                 </div>
 
                 {/* Main Content Area */}
-                <main className="flex-1 flex flex-col h-full overflow-hidden">
+                <main className={clsx(
+                    "flex-1 flex-col h-full overflow-hidden",
+                    mobileShowForm ? "flex" : "hidden md:flex"
+                )}>
+                    <button
+                        type="button"
+                        onClick={() => setMobileShowForm(false)}
+                        className="md:hidden flex items-center gap-1 mb-3 text-sm font-medium text-muted-foreground hover:text-foreground min-h-[44px]"
+                    >
+                        <ChevronLeft size={18} /> Equipos
+                    </button>
                     {selectedTeam ? (
                         <Tabs defaultValue={program === 'FTC' ? "pit" : "match"} className="flex-1 flex flex-col">
                             <Tip
@@ -106,7 +125,7 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
                             >
                                 <strong>Pit:</strong> specs del robot (1×). <strong>Match:</strong> counters por match jugado. <strong>Super:</strong> impresiones cualitativas (driver, defense, would-pick) — alimenta el picklist.
                             </Tip>
-                            <TabsList className="mb-4 bg-white/5 border border-white/10 p-1 w-full md:w-fit">
+                            <TabsList className="mb-4 bg-muted border border-border p-1 w-full md:w-fit">
                                 {program === 'FTC' && (
                                     <TabsTrigger value="pit" className="flex items-center gap-2">
                                         <ClipboardList size={16} /> Pit Scouting
@@ -146,7 +165,7 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
                             </div>
                         </Tabs>
                     ) : (
-                        <div className="flex items-center justify-center h-full text-gray-400 bg-white/5 border border-white/10 rounded-xl">
+                        <div className="flex items-center justify-center h-full text-muted-foreground bg-muted border border-border rounded-xl">
                             Selecciona un equipo de la lista
                         </div>
                     )}

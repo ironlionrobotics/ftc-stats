@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { Home, ClipboardList, Menu, X, BarChart2, Sun, Moon } from "lucide-react";
+import { Home, ClipboardList, Menu, X, BarChart2, Sun, Moon, Swords } from "lucide-react";
 import clsx from "clsx";
 import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
@@ -71,7 +71,7 @@ export default function Sidebar() {
 
             <aside
                 className={clsx(
-                    "fixed top-0 left-0 h-screen w-60 bg-card md:bg-card/95 backdrop-blur-xl border-r border-border z-40 transition-transform duration-300 ease-in-out overflow-y-auto",
+                    "fixed top-0 left-0 h-screen w-60 bg-card border-r border-border z-40 transition-transform duration-300 ease-in-out overflow-y-auto",
                     isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                 )}
             >
@@ -98,7 +98,7 @@ export default function Sidebar() {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
@@ -106,12 +106,15 @@ export default function Sidebar() {
                     </form>
 
                     <nav className="flex-1 space-y-1">
-                        <p className="px-4 text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 mt-2">Main</p>
+                        <p className="px-4 font-mono text-[10px] text-muted-foreground uppercase tracking-[0.2em] mb-2 mt-2">Main</p>
                         <NavItem href="/" icon={Home} isActive={pathname === "/"} onClick={handleLinkClick}>
                             General Stats
                         </NavItem>
                         <NavItem href="/scouting" icon={ClipboardList} isActive={pathname === "/scouting"} onClick={handleLinkClick}>
                             Scouting Form
+                        </NavItem>
+                        <NavItem href="/strategy" icon={Swords} isActive={pathname === "/strategy"} onClick={handleLinkClick}>
+                            Estrategia
                         </NavItem>
                         <NavItem href="/analytics" icon={BarChart2} isActive={pathname === "/analytics"} onClick={handleLinkClick}>
                             Data Lab <span className="ml-auto text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold">NEW</span>
@@ -146,7 +149,7 @@ export default function Sidebar() {
                                 disabled={!mounted}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={clsx("p-1.5 rounded-lg text-white flex-shrink-0 font-black text-[10px]", program === 'FTC' ? "bg-orange-500" : "bg-cyan-500")}>
+                                    <div className={clsx("p-1.5 rounded-lg text-primary-foreground flex-shrink-0 font-black text-[10px]", program === 'FTC' ? "bg-primary" : "bg-secondary")}>
                                         {mounted ? program : '...'}
                                     </div>
                                     <span className="text-sm font-bold text-muted-foreground group-hover:text-foreground">App Mode</span>
@@ -191,7 +194,7 @@ export default function Sidebar() {
                                     <DiscordSettings />
                                     <button
                                         onClick={() => logout()}
-                                        className="w-full px-4 py-2 rounded-xl bg-muted hover:bg-red-500/10 text-muted-foreground hover:text-red-500 text-xs font-bold transition-all border border-transparent hover:border-red-500/20"
+                                        className="w-full px-4 py-2 rounded-xl bg-muted hover:bg-danger/10 text-muted-foreground hover:text-danger text-xs font-bold transition-all border border-transparent hover:border-danger/20"
                                     >
                                         Cerrar Sesión
                                     </button>
@@ -199,7 +202,7 @@ export default function Sidebar() {
                             ) : (
                                 <button
                                     onClick={() => signInWithGoogle()}
-                                    className="w-full px-4 py-3 rounded-xl bg-primary text-white text-sm font-bold transition-all shadow-lg shadow-primary/20 hover:bg-primary/80 active:scale-95 flex items-center justify-center gap-2"
+                                    className="w-full px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all shadow-sm hover:bg-primary/90 active:scale-95 flex items-center justify-center gap-2"
                                 >
                                     <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                                         <path
@@ -252,7 +255,7 @@ function NavItem({ href, icon: Icon, children, className = "", isActive, onClick
                 "min-h-[44px] flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm group",
                 "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                 isActive
-                    ? "bg-primary/20 text-primary border border-primary/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]"
+                    ? "bg-primary/10 text-primary border border-primary/20"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
                 className
             )}
