@@ -106,6 +106,18 @@ Actualizar `lib/constants.ts` con los `eventCode` reales del:
 
 9. ~~**React Compiler — backlog react-hooks (42 hallazgos)**~~ ✅ HECHO 16 jul (commit `deab1f6`, decisión #41). Los 42 → 0. Verificado en navegador (Oracle prop-sync, bracket derivado, RankingTable sorting). De paso se arregló un bug real: `MatchSimulator` no recalculaba la proyección al ajustar puntos manualmente (`manualAdjustments` faltaba en deps). Sin cambios de comportamiento en el resto.
 
+### De la auditoría 2026-07-24/25 (medios — pueden esperar post-Premier)
+
+Los críticos/altos de esa auditoría (identidad season/eventCode, captura FTC offline-first, caché de fallos, TTL UTC, payload del home, StatsTable, región "All", RP trainer global, listeners sin error callback) quedaron **resueltos y desplegados** en la misma sesión (decisiones #42–#44). Quedan los medios:
+
+10. **`app/actions/pro-scouting.ts`** — (a) `variance = Σ/scoresList.length` sin guard: equipo sin quals → `consistency: NaN` que además se cachea; (b) join `tm.tournamentLevel === s.matchLevel` con igualdad estricta casi nunca empata (los valores difieren "QUALIFICATION" vs "Qual…" — `analytics.ts:168` usa `startsWith` case-insensitive por eso): `avgEnd` sale 0 sistemáticamente. Además el dashboard Pro hace 1 server action por equipo (~30-40 round-trips): agregarlo en una sola action con caché.
+11. **Ground-truth validation no idempotente** (`lib/ground-truth-validation.ts:294-320`) — updates secuenciales por scout sin batch ni marcador de corrida: fallo a mitad = mitad actualizada; re-ejecutar aplica la EWMA dos veces. Falta registro "evento ya validado".
+12. **Dead-letter invisible en la cola offline** (`OnlineSync.tsx:88`) — filas con `syncAttempts >= 5` se saltan para siempre pero cuentan en "N pend."; no hay UI para inspeccionar/reintentar/exportar. Si la causa era transitoria, esas entradas están perdidas de facto.
+13. **Server actions que lanzan en vez de `{ok:false}`** cuando firebase-admin falla (`calibration.ts`, `validate-ground-truth.ts`, `notify-discord.ts`, `train-rp-models.ts` — el `getAdminDb()` fuera del try) + `CalibrationDashboard.refresh()` sin catch (muestra "sin datos" en vez del error).
+14. **`fetchTeam` cachea `null`** indistinguible de un miss (`ftc-api.ts:408`) — solo perf.
+15. **Pit scouting sin cola offline** — el fallback Dexie del fix 3 cubre match/super scouting; pit va directo a Firestore (con toast de error correcto, pero sin cola).
+16. **Juego 2026-2027** — el form FTC actual (`FTC_IntoTheDeepForm.tsx`) ya captura campos DECODE (fue reutilizado; solo el nombre del archivo es engañoso — renombrarlo a `FTC_DecodeForm`). Para el juego nuevo: cablear `DynamicGameForm` según `docs/architecture/game-schema-migration.md`.
+
 ---
 
 ## 🟡 Encontrado en QA
