@@ -1,16 +1,21 @@
 import { useState, useMemo, useCallback } from "react";
-import { Search, Info, X, Trophy, Bot, User, Sparkles, Network } from "lucide-react";
+import { Search, Info, X, Trophy, Bot, User, Sparkles, Network, Radio } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import clsx from "clsx";
 import { TeamEvolution } from "@/app/actions/analytics";
-import { MatchScouting, FTCMatchScouting } from "@/types/scouting";
+import { MatchScouting, FTCMatchScouting, FTCAllianceSelection } from "@/types/scouting";
 import TournamentSimulator from "./TournamentSimulator";
+import LiveDraftBoard from "./LiveDraftBoard";
 
 interface AlliancePredictorProps {
     teams: TeamEvolution[];
     scoutingData?: MatchScouting[];
     initialTeam?: TeamEvolution | null;
     onTeamSelect?: (team: TeamEvolution | null) => void;
+    /** Official selection (for one-click import in the live draft board). */
+    officialAlliances?: FTCAllianceSelection[];
+    /** Scopes the live-draft localStorage state per event. */
+    eventCode?: string;
 }
 
 interface ScoutedMetrics {
@@ -21,12 +26,12 @@ interface ScoutedMetrics {
     notes: string[];
 }
 
-export default function AlliancePredictor({ teams, scoutingData = [], initialTeam, onTeamSelect }: AlliancePredictorProps) {
+export default function AlliancePredictor({ teams, scoutingData = [], initialTeam, onTeamSelect, officialAlliances, eventCode }: AlliancePredictorProps) {
     const [unavailableTeams, setUnavailableTeams] = useState<number[]>([]);
     const [unavailableInput, setUnavailableInput] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedTeam, setSelectedTeam] = useState<TeamEvolution | null>(null);
-    const [mode, setMode] = useState<"analysis" | "simulator">("analysis");
+    const [mode, setMode] = useState<"analysis" | "simulator" | "draft">("analysis");
 
     // Sync with external selection (e.g. from the table). This is the React
     // "adjusting state when a prop changes" pattern: compare the prop against
@@ -278,10 +283,25 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                         >
                             <Network size={16} /> Tournament
                         </button>
+                        <button
+                            onClick={() => setMode("draft")}
+                            className={clsx(
+                                "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
+                                mode === "draft" ? "bg-card text-warning shadow-sm" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <Radio size={16} /> Draft en vivo
+                        </button>
                     </div>
                 </div>
 
-                {mode === "simulator" ? (
+                {mode === "draft" ? (
+                    <LiveDraftBoard
+                        teams={teams}
+                        official={officialAlliances}
+                        storageKey={`live-draft:${eventCode ?? "default"}`}
+                    />
+                ) : mode === "simulator" ? (
                     <TournamentSimulator teams={teams} />
                 ) : (
                     <>

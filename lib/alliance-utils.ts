@@ -199,8 +199,9 @@ export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, 
 /**
  * Re-uses the logic from AlliancePredictor to score a pair.
  * Simplified for pure calculation without UI strings.
+ * Exported for the live-draft board (partner ranking over available teams).
  */
-function calculateSynergyScore(t1: TeamEvolution, t2: TeamEvolution): number {
+export function calculateSynergyScore(t1: TeamEvolution, t2: TeamEvolution): number {
     const combinedOPR = (t1.opr || 0) + (t2.opr || 0);
 
     // Auto Synergy

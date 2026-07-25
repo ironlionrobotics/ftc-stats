@@ -403,7 +403,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                         {selectedAlliances && selectedAlliances.length > 0 && (
                             <SelectedAlliancesPanel alliances={selectedAlliances} />
                         )}
-                        <AlliancePredictor teams={oracleTeams} scoutingData={scoutingData} />
+                        <AlliancePredictor teams={oracleTeams} scoutingData={scoutingData} officialAlliances={selectedAlliances} eventCode={eventCode} />
                     </div>
                 )}
                 {activeTab === "advancement" && (
