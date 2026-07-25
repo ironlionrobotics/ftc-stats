@@ -81,12 +81,15 @@ export default function Sidebar() {
                             <Image src="/icon.png" alt="Logo" fill className="object-contain" />
                         </div>
                         <div>
-                            <h1 className="font-display font-bold text-foreground text-lg tracking-tight">
-                                FTC Stats
+                            <h1 className="font-display font-extrabold text-foreground text-xl tracking-tight">
+                                PRIDE
                             </h1>
-                            <p className="text-xs text-secondary font-medium tracking-wider uppercase">México</p>
+                            <p className="text-[10px] text-secondary font-medium tracking-[0.18em] uppercase">FTC Analytics · MX</p>
                         </div>
                     </div>
+                    <p className="px-2 -mt-4 mb-4 font-mono text-[10px] tracking-wide text-muted-foreground">
+                        por <span className="text-primary font-bold">Iron Lion</span> Robotics · FTC #30311
+                    </p>
 
                     <form onSubmit={handleSearch} className="mb-6 px-2">
                         <div className="relative">

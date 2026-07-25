@@ -168,7 +168,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
 
                     <div className="space-y-4 flex-1 relative z-10">
                         {/* Slots */}
-                        {["Captain", "1st Pick", "2nd Pick"].map((label, idx) => (
+                        {["Captain", "1st Pick", "2nd Pick (rota/backup)"].map((label, idx) => (
                             <div key={label} className="relative p-6 rounded-2xl border-2 border-dashed border-border min-h-[110px] flex flex-col justify-center items-center bg-muted shadow-inner transition-colors hover:border-border/80 group/slot">
                                 <span className="absolute top-2 left-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest group-hover/slot:text-primary transition-colors">{label}</span>
                                 {selectedTeams[idx] ? (
@@ -222,8 +222,18 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                             <div className="mt-8 p-6 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl border border-border shadow-lg animate-in zoom-in-95 duration-300">
                                 <div className="text-[10px] text-center text-muted-foreground font-bold uppercase tracking-widest mb-2">Estimated Alliance Score</div>
                                 <div className="text-4xl font-bold text-center text-foreground font-display">
-                                    {(selectedTeams.reduce((acc, t) => acc + t.averageMatchPoints, 0)).toFixed(1)}
+                                    {/* Only 2 robots play each match (rule 15.3) — with 3
+                                        selected, project the strongest pair, not the sum. */}
+                                    {([...selectedTeams]
+                                        .sort((a, b) => b.averageMatchPoints - a.averageMatchPoints)
+                                        .slice(0, 2)
+                                        .reduce((acc, t) => acc + t.averageMatchPoints, 0)).toFixed(1)}
                                 </div>
+                                {selectedTeams.length === 3 && (
+                                    <p className="text-[10px] text-center text-muted-foreground mt-2">
+                                        Mejor par de los 3 — en cancha solo juegan 2 robots por match (regla 15.3).
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>

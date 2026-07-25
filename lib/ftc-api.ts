@@ -360,6 +360,88 @@ export async function fetchMatches(season: number, eventCode: string): Promise<F
     });
 }
 
+// Full schedule (played + upcoming) with results inlined for played matches.
+// Source: the FIRST API "hybrid" schedule endpoint. Unplayed matches come
+// back with null scores — consumers use that to show predictions instead.
+export async function fetchHybridSchedule(
+    season: number,
+    eventCode: string,
+): Promise<import("@/types/scouting").FTCHybridScheduleMatch[]> {
+    const cacheKey = `hybrid_v1_${season}_${eventCode}`;
+    const ttl = await getSmartTTL(season, eventCode);
+
+    return readThrough(cacheKey, ttl, async () => {
+        const qualUrl = `${BASE_URL}/${season}/schedule/${eventCode}/qual/hybrid`;
+        const playoffUrl = `${BASE_URL}/${season}/schedule/${eventCode}/playoff/hybrid`;
+
+        try {
+            // Same contract as fetchMatches: 404 = "not published yet"
+            // (cacheable); any other failure must not be memoised.
+            let fetchFailed = false;
+            const handleLevel = (label: string) => async (r: Response) => {
+                if (!r.ok) {
+                    if (r.status !== 404) {
+                        console.warn(`[fetchHybridSchedule] ${label} fetch failed: ${r.status} ${r.statusText}`);
+                        fetchFailed = true;
+                    }
+                    return { schedule: [] };
+                }
+                return r.json().catch((e: unknown) => {
+                    console.error(`[fetchHybridSchedule] Error parsing ${label} JSON:`, e);
+                    fetchFailed = true;
+                    return { schedule: [] };
+                });
+            };
+            const [qualResult, playoffResult] = await Promise.all([
+                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Qual")),
+                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Playoff")),
+            ]);
+
+            const all = [...(qualResult.schedule || []), ...(playoffResult.schedule || [])];
+            if (!fetchFailed) await setCachedData(cacheKey, all, ttl);
+            return all;
+        } catch (error) {
+            console.error(`[fetchHybridSchedule] Error for ${eventCode}:`, error);
+            return [];
+        }
+    });
+}
+
+// Selected playoff alliances (published by the API once alliance selection
+// happens). Empty array until then. round2 != null on any alliance means the
+// event runs 3-robot alliances (Championship/Premier format, manual §15.3).
+export async function fetchAlliances(
+    season: number,
+    eventCode: string,
+): Promise<import("@/types/scouting").FTCAllianceSelection[]> {
+    const cacheKey = `alliances_v1_${season}_${eventCode}`;
+    const ttl = await getSmartTTL(season, eventCode);
+
+    return readThrough(cacheKey, ttl, async () => {
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/alliances/${eventCode}`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: ttl < 60 ? 60 : ttl },
+            });
+            if (!response.ok) {
+                if (response.status !== 404) {
+                    console.warn(`[fetchAlliances] ${response.status} ${response.statusText} for ${eventCode}`);
+                }
+                // 404/no data yet — return without caching so the next request
+                // re-checks (selection can publish any minute during an event).
+                return [];
+            }
+            const data = await response.json();
+            const alliances = data.alliances || [];
+            await setCachedData(cacheKey, alliances, ttl);
+            return alliances;
+        } catch (e) {
+            console.error(`[fetchAlliances] Error for ${eventCode}:`, e);
+            return [];
+        }
+    });
+}
+
 export async function fetchMatchScores(season: number, eventCode: string): Promise<FTCMatchScoreEntry[]> {
     const cacheKey = `scores_v4_${season}_${eventCode}`;
     const ttl = await getSmartTTL(season, eventCode);

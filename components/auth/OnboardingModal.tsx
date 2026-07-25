@@ -89,7 +89,7 @@ export default function OnboardingModal() {
                 {/* Header */}
                 <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-xl font-black text-foreground mb-1">Bienvenido a FTC Stats</h2>
+                        <h2 className="text-xl font-black text-foreground mb-1">Bienvenido a PRIDE</h2>
                         <p className="text-xs text-muted-foreground leading-relaxed">
                             Para empezar, dinos a qué equipo perteneces. Tu scouting se atribuye a ese
                             equipo y puede compartirse con otros equipos en eventos en los que estén

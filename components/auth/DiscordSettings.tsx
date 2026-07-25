@@ -92,7 +92,7 @@ export default function DiscordSettings() {
             const res = await notifyDiscordAction({
                 idToken,
                 title: "Prueba de webhook",
-                description: "Si ves este mensaje, el bot de FTC Stats está configurado correctamente.",
+                description: "Si ves este mensaje, el bot de PRIDE está configurado correctamente.",
                 severity: "info",
                 rateLimitSeconds: 0,
             });

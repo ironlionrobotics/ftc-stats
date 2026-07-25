@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting } from "@/types/scouting";
+import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting, FTCHybridScheduleMatch } from "@/types/scouting";
+import { winProbabilityFromNormalModel } from "@/lib/win-probability";
 import clsx from "clsx";
-import { Trophy, Zap, Star, Info, Target, MousePointer2, AlertTriangle } from "lucide-react";
+import { Trophy, Zap, Star, Info, Target, MousePointer2, AlertTriangle, Clock, ChevronDown } from "lucide-react";
 
 interface MatchListProps {
     matches: FTCMatch[];
@@ -11,9 +12,11 @@ interface MatchListProps {
     filterTeam: number | null;
     setFilterTeam: (team: number | null) => void;
     scoutingData: MatchScouting[];
+    /** Full hybrid schedule (played + upcoming). Upcoming = null scores. */
+    schedule?: FTCHybridScheduleMatch[];
 }
 
-export default function MatchList({ matches, rankings, filterTeam, setFilterTeam, scoutingData }: MatchListProps) {
+export default function MatchList({ matches, rankings, filterTeam, setFilterTeam, scoutingData, schedule }: MatchListProps) {
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
 
     const toggleMatch = (matchId: string) => {
@@ -104,6 +107,83 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
 
         return { overall, auto, drawnFoul, committedFoul };
     }, [calculateComponentOPR]);
+
+    // --- Upcoming matches + predictions ---------------------------------
+    // The hybrid schedule includes unplayed matches (null scores). Predicted
+    // no-penalty score = sum of each alliance's overall OPR; win probability
+    // comes from the normal model with σ estimated from this event's own OPR
+    // residuals (how far real alliances landed from their OPR sum so far).
+    const upcomingMatches = useMemo(() => {
+        const pending = (schedule ?? []).filter(
+            m => m.scoreRedFinal == null && m.tournamentLevel !== "PRACTICE",
+        );
+        const visible = filterTeam
+            ? pending.filter(m => m.teams.some(t => t.teamNumber === filterTeam))
+            : pending;
+        if (visible.length === 0) return [];
+
+        const residuals: number[] = [];
+        matches.forEach(m => {
+            if (m.tournamentLevel === "PRACTICE") return;
+            (["Red", "Blue"] as const).forEach(alliance => {
+                const actual = alliance === "Red"
+                    ? m.scoreRedFinal - m.scoreRedFoul
+                    : m.scoreBlueFinal - m.scoreBlueFoul;
+                const predicted = m.teams
+                    .filter(t => t.station.startsWith(alliance))
+                    .reduce((s, t) => s + (oprData.overall.get(t.teamNumber) ?? 0), 0);
+                residuals.push(actual - predicted);
+            });
+        });
+        // With <4 observations σ=0 and winProbabilityFromNormalModel falls
+        // back to its logistic-on-projections estimate.
+        const sigmaAlliance = residuals.length >= 4
+            ? Math.sqrt(residuals.reduce((s, r) => s + r * r, 0) / residuals.length)
+            : 0;
+
+        const sigmaDiff = sigmaAlliance * Math.SQRT2;
+        const allianceDetail = (teams: FTCHybridScheduleMatch["teams"]) => {
+            const perTeam = teams.map(t => {
+                const opr = oprData.overall.get(t.teamNumber) ?? 0;
+                const auto = oprData.auto.get(t.teamNumber) ?? 0;
+                return {
+                    teamNumber: t.teamNumber,
+                    opr,
+                    auto,
+                    tele: opr - auto,
+                    foulsGiven: oprData.committedFoul.get(t.teamNumber) ?? 0,
+                };
+            });
+            return {
+                perTeam,
+                total: perTeam.reduce((s, t) => s + t.opr, 0),
+                auto: perTeam.reduce((s, t) => s + t.auto, 0),
+                tele: perTeam.reduce((s, t) => s + t.tele, 0),
+                foulsGiven: perTeam.reduce((s, t) => s + t.foulsGiven, 0),
+            };
+        };
+
+        return [...visible]
+            .sort((a, b) => a.matchNumber - b.matchNumber)
+            .map(m => {
+                const red = m.teams.filter(t => t.station.startsWith("Red"));
+                const blue = m.teams.filter(t => t.station.startsWith("Blue"));
+                const redDetail = allianceDetail(red);
+                const blueDetail = allianceDetail(blue);
+                const pRed = winProbabilityFromNormalModel(redDetail.total, blueDetail.total, sigmaDiff);
+                return {
+                    match: m,
+                    red,
+                    blue,
+                    muRed: redDetail.total,
+                    muBlue: blueDetail.total,
+                    pRed,
+                    redDetail,
+                    blueDetail,
+                    sigmaDiff,
+                };
+            });
+    }, [schedule, matches, oprData, filterTeam]);
 
     // Calculate Dynamic KPIs for filtered team
     const stats = {
@@ -281,11 +361,36 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                 </div>
             )}
 
+            {upcomingMatches.length > 0 && (
+                <section>
+                    <div className="flex items-baseline justify-between mb-4 gap-3 flex-wrap">
+                        <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                            <span className="w-2 h-8 bg-secondary rounded-full" />
+                            Próximos partidos
+                            <span className="px-2 py-0.5 rounded-md bg-secondary/10 text-secondary font-mono text-xs">{upcomingMatches.length}</span>
+                        </h3>
+                        <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                            Predicción: OPR + σ del evento · sin penalizaciones
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {upcomingMatches.map(item => (
+                            <UpcomingMatchCard
+                                key={`${item.match.tournamentLevel}-${item.match.matchNumber}-${item.match.series ?? 0}`}
+                                item={item}
+                                filterTeam={filterTeam}
+                                onTeamClick={setFilterTeam}
+                            />
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {qualMatches.length > 0 && (
                 <section>
                     <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                         <span className="w-2 h-8 bg-primary rounded-full transition-all" />
-                        Qualification Matches {filterTeam && <span className="text-muted-foreground text-sm font-normal">— {qualMatches.length} partidos</span>}
+                        Resultados — Qualification {filterTeam && <span className="text-muted-foreground text-sm font-normal">— {qualMatches.length} partidos</span>}
                     </h3>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[900px]">
@@ -692,6 +797,205 @@ function StatRow({ label, value, color }: { label: string, value: number, color?
         <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground font-medium">{label}</span>
             <span className={`font-mono ${color}`}>{value}</span>
+        </div>
+    );
+}
+
+/** Per-alliance OPR breakdown used by the prediction and its analysis. */
+interface AllianceDetail {
+    perTeam: { teamNumber: number; opr: number; auto: number; tele: number; foulsGiven: number }[];
+    total: number;
+    auto: number;
+    tele: number;
+    foulsGiven: number;
+}
+
+interface UpcomingItem {
+    match: FTCHybridScheduleMatch;
+    red: FTCHybridScheduleMatch["teams"];
+    blue: FTCHybridScheduleMatch["teams"];
+    muRed: number;
+    muBlue: number;
+    pRed: number;
+    redDetail: AllianceDetail;
+    blueDetail: AllianceDetail;
+    sigmaDiff: number;
+}
+
+/**
+ * Deterministic narrative for "why this prediction": where the edge is built
+ * (auto vs teleop), who drives it, foul discipline, and how solid the lead is
+ * relative to the event's observed score noise.
+ */
+function buildMatchAnalysis(redDetail: AllianceDetail, blueDetail: AllianceDetail, pRed: number, sigmaDiff: number): string[] {
+    const bullets: string[] = [];
+    const diff = redDetail.total - blueDetail.total;
+    const favName = diff >= 0 ? "Roja" : "Azul";
+    const favDetail = diff >= 0 ? redDetail : blueDetail;
+    const absDiff = Math.abs(diff);
+    const favPct = Math.round((diff >= 0 ? pRed : 1 - pRed) * 100);
+
+    const autoDiff = redDetail.auto - blueDetail.auto;
+    const teleDiff = redDetail.tele - blueDetail.tele;
+    const phase = Math.abs(autoDiff) >= Math.abs(teleDiff)
+        ? { name: "autónomo", d: autoDiff }
+        : { name: "teleop/endgame", d: teleDiff };
+
+    if (absDiff < 5) {
+        bullets.push(`Alianzas prácticamente parejas en contribución ofensiva (Δ ${absDiff.toFixed(0)} pts) — el pronóstico de ${favPct}% es casi un volado.`);
+    } else {
+        bullets.push(`Alianza ${favName} favorita por ~${absDiff.toFixed(0)} pts; la ventaja se construye sobre todo en ${phase.name} (Δ ${Math.abs(phase.d).toFixed(0)} pts).`);
+    }
+
+    const top = [...favDetail.perTeam].sort((a, b) => b.opr - a.opr)[0];
+    if (top && favDetail.total > 0 && top.opr / Math.max(favDetail.total, 1) >= 0.6) {
+        bullets.push(`El motor de la alianza ${favName} es ${top.teamNumber}: aporta ~${top.opr.toFixed(0)} de sus ${favDetail.total.toFixed(0)} pts proyectados.`);
+    }
+
+    const foulGap = Math.abs(redDetail.foulsGiven - blueDetail.foulsGiven);
+    const sloppy = redDetail.foulsGiven >= blueDetail.foulsGiven
+        ? { side: "Roja", v: redDetail.foulsGiven }
+        : { side: "Azul", v: blueDetail.foulsGiven };
+    if (sloppy.v >= 8 && foulGap >= 5) {
+        bullets.push(`Disciplina: la alianza ${sloppy.side} regala ~${sloppy.v.toFixed(0)} pts/partido en faltas — en un match cerrado eso decide.`);
+    }
+
+    if (sigmaDiff > 0) {
+        const z = absDiff / sigmaDiff;
+        if (z < 0.5) {
+            bullets.push(`Alta volatilidad: la variación típica del evento (±${sigmaDiff.toFixed(0)} pts) supera la ventaja — cualquiera puede ganar.`);
+        } else if (z < 1.2) {
+            bullets.push(`Partido abierto: ventaja de ${absDiff.toFixed(0)} pts contra un ruido típico de ±${sigmaDiff.toFixed(0)} pts.`);
+        } else {
+            bullets.push(`Ventaja sólida: ${absDiff.toFixed(0)} pts frente a un ruido de ±${sigmaDiff.toFixed(0)} — el upset ronda el ${100 - favPct}%.`);
+        }
+    }
+    return bullets;
+}
+
+/**
+ * Card for an unplayed match: alliances, scheduled time, predicted no-penalty
+ * score, win-probability split bar, and an expandable "why" analysis built
+ * from the OPR components. Module-level per the React Compiler
+ * static-components rule.
+ */
+function UpcomingMatchCard({ item, filterTeam, onTeamClick }: {
+    item: UpcomingItem;
+    filterTeam: number | null;
+    onTeamClick: (team: number | null) => void;
+}) {
+    const { match, red, blue, muRed, muBlue, pRed, redDetail, blueDetail, sigmaDiff } = item;
+    const [showAnalysis, setShowAnalysis] = useState(false);
+    const pctRed = Math.round(pRed * 100);
+    const pctBlue = 100 - pctRed;
+    const time = match.startTime
+        ? new Date(match.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : null;
+    const isQual = match.tournamentLevel === "QUALIFICATION";
+    const label = isQual ? `Q${match.matchNumber}` : match.description;
+
+    const TeamChip = ({ t, side }: { t: FTCHybridScheduleMatch["teams"][number]; side: "red" | "blue" }) => (
+        <button
+            type="button"
+            onClick={() => onTeamClick(filterTeam === t.teamNumber ? null : t.teamNumber)}
+            className={clsx(
+                "px-2 py-1 rounded-md font-mono text-xs font-bold transition-colors border",
+                filterTeam === t.teamNumber
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : side === "red"
+                        ? "bg-danger/5 text-danger border-danger/20 hover:bg-danger/10"
+                        : "bg-secondary/5 text-secondary border-secondary/20 hover:bg-secondary/10",
+            )}
+            title={t.teamName ?? undefined}
+        >
+            {t.teamNumber}{t.surrogate ? "*" : ""}
+        </button>
+    );
+
+    return (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-primary/30 transition-colors">
+            <div className="flex items-center justify-between">
+                <span className="font-mono text-sm font-bold text-foreground">{label}</span>
+                <span className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {time && <><Clock size={12} /> {time}</>}
+                </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex gap-1.5 flex-wrap">
+                    {red.map(t => <TeamChip key={t.teamNumber} t={t} side="red" />)}
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase shrink-0">vs</span>
+                <div className="flex gap-1.5 flex-wrap justify-end">
+                    {blue.map(t => <TeamChip key={t.teamNumber} t={t} side="blue" />)}
+                </div>
+            </div>
+
+            {/* Predicted score + win probability split */}
+            <div className="space-y-1.5">
+                <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
+                    <span className={clsx(pRed >= 0.5 && "text-danger font-bold")}>{pctRed}% · {Math.round(muRed)}</span>
+                    <span className="text-[10px] uppercase tracking-wider">proyección</span>
+                    <span className={clsx(pRed < 0.5 && "text-secondary font-bold")}>{Math.round(muBlue)} · {pctBlue}%</span>
+                </div>
+                <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
+                    <div className="bg-danger/80 transition-all" style={{ width: `${pctRed}%` }} />
+                    <div className="bg-secondary/80 transition-all" style={{ width: `${pctBlue}%` }} />
+                </div>
+            </div>
+
+            {/* Why this prediction */}
+            <button
+                type="button"
+                onClick={() => setShowAnalysis(v => !v)}
+                className="w-full flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors pt-1"
+            >
+                ¿Por qué este pronóstico?
+                <ChevronDown size={14} className={clsx("transition-transform", showAnalysis && "rotate-180")} />
+            </button>
+
+            {showAnalysis && (
+                <div className="space-y-3 pt-1 border-t border-border animate-in fade-in slide-in-from-top-1 duration-200">
+                    {/* Component comparison: Auto / Teleop */}
+                    <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                        {[
+                            { name: "Auto", r: redDetail.auto, b: blueDetail.auto },
+                            { name: "Tele+End", r: redDetail.tele, b: blueDetail.tele },
+                        ].map(row => (
+                            <div key={row.name} className="bg-muted rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                                <span className={clsx("font-bold", row.r >= row.b ? "text-danger" : "text-muted-foreground")}>{row.r.toFixed(0)}</span>
+                                <span className="text-[9px] uppercase tracking-wider text-muted-foreground">{row.name}</span>
+                                <span className={clsx("font-bold", row.b > row.r ? "text-secondary" : "text-muted-foreground")}>{row.b.toFixed(0)}</span>
+                            </div>
+                        ))}
+                    </div>
+                    {/* Per-team contributions */}
+                    <div className="flex justify-between gap-3 font-mono text-[10px] text-muted-foreground">
+                        <div className="space-y-0.5">
+                            {redDetail.perTeam.map(t => (
+                                <div key={t.teamNumber}>
+                                    <span className="text-danger font-bold">{t.teamNumber}</span> · OPR {t.opr.toFixed(0)}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="space-y-0.5 text-right">
+                            {blueDetail.perTeam.map(t => (
+                                <div key={t.teamNumber}>
+                                    OPR {t.opr.toFixed(0)} · <span className="text-secondary font-bold">{t.teamNumber}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
+                        {buildMatchAnalysis(redDetail, blueDetail, pRed, sigmaDiff).map((b, i) => (
+                            <li key={i} className="flex gap-2">
+                                <span className="text-primary shrink-0 mt-0.5">▸</span>
+                                <span>{b}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </div>
     );
 }

@@ -5,7 +5,7 @@ import MatchList from "./MatchList";
 import RankingTable from "./RankingTable";
 import ParticipantList from "./ParticipantList";
 import AlliancePredictor from "../analytics/AlliancePredictor";
-import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, AdvancementPoints, FTCMatchScouting } from "@/types/scouting";
+import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, AdvancementPoints, FTCMatchScouting, FTCHybridScheduleMatch, FTCAllianceSelection } from "@/types/scouting";
 import { TeamEvolution } from "@/app/actions/analytics";
 import { Trophy, LayoutList, History, Sparkles, Medal, Target, Zap as LucideZap } from "lucide-react";
 import { listenToMatchScouting } from "@/lib/scouting-service";
@@ -21,11 +21,14 @@ interface EventViewManagerProps {
     advancement: AdvancementResponse | null;
     awards: FTCAward[];
     advancementPoints: AdvancementPoints[];
+    schedule: FTCHybridScheduleMatch[];
+    /** Official playoff alliances once selection is published (empty before). */
+    selectedAlliances?: FTCAllianceSelection[];
     eventCode: string;
     season: number;
 }
 
-export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, eventCode, season }: EventViewManagerProps) {
+export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, schedule, selectedAlliances, eventCode, season }: EventViewManagerProps) {
     const [activeTab, setActiveTab] = useState<"matches" | "rankings" | "oracle" | "teams" | "advancement" | "awards">("teams");
     const [scoutingData, setScoutingData] = useState<MatchScouting[]>([]);
     const [filterTeam, setFilterTeam] = useState<number | null>(null);
@@ -392,10 +395,16 @@ export default function EventViewManager({ matches, rankings, advancement, award
                         filterTeam={filterTeam}
                         setFilterTeam={setFilterTeam}
                         scoutingData={scoutingData}
+                        schedule={schedule}
                     />
                 )}
                 {activeTab === "oracle" && (
-                    <AlliancePredictor teams={oracleTeams} scoutingData={scoutingData} />
+                    <div className="space-y-6">
+                        {selectedAlliances && selectedAlliances.length > 0 && (
+                            <SelectedAlliancesPanel alliances={selectedAlliances} />
+                        )}
+                        <AlliancePredictor teams={oracleTeams} scoutingData={scoutingData} />
+                    </div>
                 )}
                 {activeTab === "advancement" && (
                     <AdvancementList advancement={advancement} points={advancementPoints} rankings={rankings} />
@@ -403,6 +412,43 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 {activeTab === "awards" && (
                     <AwardList awards={awards} rankings={rankings} />
                 )}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Official playoff alliances as published by the FIRST API. Detects the
+ * event's format from the data itself: any alliance with a round-2 pick means
+ * 3-robot alliances (Competition Manual §15.3 — any 2 of the 3 play each
+ * match). Module-level per the React Compiler static-components rule.
+ */
+function SelectedAlliancesPanel({ alliances }: { alliances: FTCAllianceSelection[] }) {
+    const isThreeRobot = alliances.some(a => a.round2 != null);
+    return (
+        <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+            <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                    <span className="w-1.5 h-6 bg-primary rounded-full" />
+                    Alianzas oficiales
+                </h3>
+                <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                    {alliances.length} alianzas · {isThreeRobot ? "3 robots (juegan 2 por match, §15.3)" : "2 robots"}
+                </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {alliances.map(a => (
+                    <div key={a.number} className="bg-muted rounded-lg px-3 py-2.5 flex items-center gap-3">
+                        <span className="w-7 h-7 shrink-0 rounded-md bg-primary/10 text-primary font-display font-bold text-sm flex items-center justify-center">
+                            {a.number}
+                        </span>
+                        <div className="font-mono text-xs text-foreground flex flex-wrap gap-x-2 gap-y-0.5">
+                            {a.captain && <span className="font-bold" title={a.captain.teamName ?? undefined}>{a.captain.teamNumber}</span>}
+                            {a.round1 && <span title={a.round1.teamName ?? undefined}>· {a.round1.teamNumber}</span>}
+                            {a.round2 && <span className="text-muted-foreground" title={a.round2.teamName ?? undefined}>· {a.round2.teamNumber}</span>}
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

@@ -75,7 +75,7 @@ export default function PWAInstallPrompt() {
                 <Download size={18} />
             </div>
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Instala FTC Stats</p>
+                <p className="text-sm font-bold text-foreground">Instala PRIDE</p>
                 <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
                     Acceso rápido + funciona offline en venue.
                 </p>

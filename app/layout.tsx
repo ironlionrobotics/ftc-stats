@@ -31,14 +31,14 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
-  title: "FTC Stats México",
-  description: "Estadísticas y Proyecciones de Avance para FIRST Tech Challenge México",
+  title: "PRIDE — FTC Analytics por Iron Lion Robotics",
+  description: "Estadísticas, scouting colaborativo y proyecciones para FIRST Tech Challenge México. Una app de Iron Lion Robotics (FTC #30311).",
   manifest: "/manifest.webmanifest",
-  applicationName: "FTC Stats",
+  applicationName: "PRIDE",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "FTC Stats",
+    title: "PRIDE",
     startupImage: [
       // iOS uses these as splash screens (one per device class). We don't
       // generate per-device-resolution startup images yet — pwa-asset-generator

@@ -76,14 +76,42 @@ function clamp(x: number, lo: number, hi: number): number {
 // --- Alliance Generation Logic ---
 
 /**
- * Generates optimal alliances based on a "Greedy Oracle" approach.
- * Alliance 1 gets the best possible partners from the pool.
- * Alliance 2 gets the best possible partners from the remaining pool.
- * And so on.
+ * Best fieldable pair of an alliance. In 3-robot alliances (Championship /
+ * some Premier Events, Competition Manual §15.3) only 2 of the 3 robots play
+ * each match, at the captain's discretion — so the alliance's projected
+ * strength is its strongest PAIR, never the sum of all three.
  */
-export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8): Alliance[] {
+export function bestFieldedPair(members: TeamEvolution[]): { pair: TeamEvolution[]; score: number } {
+    if (members.length <= 2) {
+        return {
+            pair: members,
+            score: members.length === 2 ? calculateSynergyScore(members[0], members[1]) : (members[0]?.opr ?? 0),
+        };
+    }
+    let best: { pair: TeamEvolution[]; score: number } | null = null;
+    for (let a = 0; a < members.length; a++) {
+        for (let b = a + 1; b < members.length; b++) {
+            const score = calculateSynergyScore(members[a], members[b]);
+            if (!best || score > best.score) best = { pair: [members[a], members[b]], score };
+        }
+    }
+    return best!;
+}
+
+/**
+ * Generates optimal alliances based on a "Greedy Oracle" approach.
+ * Alliance 1 gets the best possible partners from the pool, Alliance 2 the
+ * best remaining, and so on.
+ *
+ * `allianceSize` (Competition Manual):
+ *  - 2 (default, §13.7.1): captain + 1 pick, single round in seed order.
+ *  - 3 (§15.3, Championship and Premier Events that adopt it): a second
+ *    selection round runs in REVERSED order (last alliance picks first —
+ *    serpentine), and projections use the best fieldable pair since only
+ *    2 of the 3 robots play each match.
+ */
+export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, allianceSize: 2 | 3 = 2): Alliance[] {
     const availableTeams = [...teams];
-    const alliances: Alliance[] = [];
 
     // Sort by Rank to determine Initial Captain order
     const sortedByRank = [...availableTeams].sort((a, b) => {
@@ -93,56 +121,79 @@ export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8):
     });
 
     const usedTeamNumbers = new Set<number>();
+    const drafts: { id: number; captain: TeamEvolution; pick1: TeamEvolution | null; pick2: TeamEvolution | null }[] = [];
 
+    // Round 1 — seed order (1 → count).
     for (let i = 1; i <= count; i++) {
-        // 1. Find Captain (Highest ranked available team)
-        // This naturally handles the logic where if Rank 1 picks Rank 2, 
-        // Rank 3 becomes the next captain because Rank 2 is already in 'usedTeamNumbers'.
+        // Highest ranked available team becomes captain. This naturally handles
+        // the rule where accepting an invite promotes the next ranked team.
         const captain = sortedByRank.find(t => !usedTeamNumbers.has(t.teamNumber));
         if (!captain) break;
         usedTeamNumbers.add(captain.teamNumber);
 
-        // 2. Find Best Partner (Pick 1) from ENTIRE remaining pool
-        // Heuristic: Highest Combined OPR + Synergy
         let bestPick1: TeamEvolution | null = null;
         let bestScore1 = -Infinity;
-
-        for (const candidate of sortedByRank) { // Iterate sorted to favor higher rank in ties?
+        for (const candidate of sortedByRank) {
             if (usedTeamNumbers.has(candidate.teamNumber)) continue;
-
             const score = calculateSynergyScore(captain, candidate);
             if (score > bestScore1) {
                 bestScore1 = score;
                 bestPick1 = candidate;
             }
         }
-
         if (bestPick1) usedTeamNumbers.add(bestPick1.teamNumber);
 
-        // Create Alliance Object (2 Teams Only)
-        const members = [captain, bestPick1!].filter(Boolean);
-        const totalOPR = members.reduce((sum, t) => sum + (t.opr || 0), 0);
-        const totalAuto = members.reduce((sum, t) => sum + (t.autoOPR || 0), 0);
-        // Tele is OPR - Auto roughly
-        const totalTele = members.reduce((sum, t) => sum + ((t.opr || 0) - (t.autoOPR || 0)), 0);
-        // Per-team sigmas combined assuming independent contributions.
-        const totalSigma = combineSigmas(members.map(t => computeTeamSigma(t)));
+        drafts.push({ id: i, captain, pick1: bestPick1, pick2: null });
+    }
 
-        alliances.push({
-            id: i,
-            captain,
-            pick1: bestPick1,
-            pick2: null, // No 3rd member
+    // Round 2 (3-robot format only) — reversed order per §15.3: the last
+    // alliance picks first. Each alliance takes the candidate that most
+    // improves its best fieldable pair (which also covers pure-backup value).
+    if (allianceSize === 3) {
+        for (let d = drafts.length - 1; d >= 0; d--) {
+            const draft = drafts[d];
+            const current = [draft.captain, draft.pick1].filter(Boolean) as TeamEvolution[];
+            let bestPick2: TeamEvolution | null = null;
+            let bestScore2 = -Infinity;
+            for (const candidate of sortedByRank) {
+                if (usedTeamNumbers.has(candidate.teamNumber)) continue;
+                const score = bestFieldedPair([...current, candidate]).score;
+                if (score > bestScore2) {
+                    bestScore2 = score;
+                    bestPick2 = candidate;
+                }
+            }
+            if (bestPick2) {
+                usedTeamNumbers.add(bestPick2.teamNumber);
+                draft.pick2 = bestPick2;
+            }
+        }
+    }
+
+    return drafts.map(draft => {
+        const members = [draft.captain, draft.pick1, draft.pick2].filter(Boolean) as TeamEvolution[];
+        // Projection always reflects the robots actually on the field: the
+        // whole alliance for size 2, the strongest pair for size 3.
+        const fielded = bestFieldedPair(members).pair;
+        const totalOPR = fielded.reduce((sum, t) => sum + (t.opr || 0), 0);
+        const totalAuto = fielded.reduce((sum, t) => sum + (t.autoOPR || 0), 0);
+        const totalTele = fielded.reduce((sum, t) => sum + ((t.opr || 0) - (t.autoOPR || 0)), 0);
+        // Per-team sigmas combined assuming independent contributions.
+        const totalSigma = combineSigmas(fielded.map(t => computeTeamSigma(t)));
+
+        return {
+            id: draft.id,
+            captain: draft.captain,
+            pick1: draft.pick1,
+            pick2: draft.pick2,
             totalOPR,
             totalAuto,
             totalTele,
             totalEndgame: 0,
             projectedScore: totalOPR,
             totalSigma,
-        });
-    }
-
-    return alliances;
+        };
+    });
 }
 
 /**

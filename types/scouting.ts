@@ -344,6 +344,40 @@ export interface FTCMatch {
     tournamentLevel: string; // "QUALIFICATION", "PLAYOFF", etc.
 }
 
+/**
+ * Entry from the FIRST API "hybrid schedule" endpoint: the full match
+ * schedule with results inlined for played matches. Unplayed matches have
+ * null scores — that's the signal the UI uses to render a prediction
+ * instead of a result.
+ */
+export interface FTCHybridScheduleMatch {
+    description: string;
+    matchNumber: number;
+    tournamentLevel: string;
+    series?: number;
+    startTime?: string | null;
+    actualStartTime?: string | null;
+    scoreRedFinal: number | null;
+    scoreBlueFinal: number | null;
+    teams: {
+        teamNumber: number;
+        station: string;
+        teamName?: string | null;
+        surrogate?: boolean;
+    }[];
+}
+
+/** One selected playoff alliance from the FIRST API /alliances endpoint. */
+export interface FTCAllianceSelection {
+    number: number;
+    name?: string | null;
+    captain: { teamNumber: number; teamName?: string | null } | null;
+    round1: { teamNumber: number; teamName?: string | null } | null;
+    /** Non-null ⟹ the event runs 3-robot alliances (Championship rule 15.3). */
+    round2: { teamNumber: number; teamName?: string | null } | null;
+    backup?: { teamNumber: number; teamName?: string | null } | null;
+}
+
 export interface FTCAward {
     awardId: number;
     teamNumber: number;

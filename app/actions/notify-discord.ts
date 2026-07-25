@@ -77,7 +77,7 @@ export async function notifyDiscordAction(input: {
     const emoji = EMOJI_BY_SEVERITY[severity];
     const color = COLOR_BY_SEVERITY[severity];
     const payload = {
-        username: "FTC Stats Bot",
+        username: "PRIDE Bot",
         embeds: [
             {
                 title: `${emoji} ${title}`,

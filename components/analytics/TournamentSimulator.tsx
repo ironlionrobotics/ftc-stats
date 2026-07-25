@@ -14,6 +14,9 @@ interface TournamentSimulatorProps {
 export default function TournamentSimulator({ teams }: TournamentSimulatorProps) {
     const [step, setStep] = useState<'config' | 'building' | 'bracket'>('config');
     const [allianceCount, setAllianceCount] = useState<2 | 4 | 6 | 8>(4);
+    // 2 = formato estándar (§13.7.1); 3 = Championship/Premier (§15.3):
+    // segunda ronda serpentina y solo 2 de los 3 robots juegan cada match.
+    const [allianceSize, setAllianceSize] = useState<2 | 3>(2);
     const [alliances, setAlliances] = useState<Alliance[]>([]);
     const [overrides, setOverrides] = useState<Record<string, number>>({});
     const [simResults, setSimResults] = useState<SimulationResult[] | null>(null);
@@ -119,7 +122,7 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
 
     const handleAutoGenerate = () => {
         setOverrides({}); // Reset overrides on new generation
-        const newAlliances = generateAlliances(teams, allianceCount);
+        const newAlliances = generateAlliances(teams, allianceCount, allianceSize);
         setAlliances(newAlliances);
         setStep('building');
     };
@@ -219,6 +222,32 @@ export default function TournamentSimulator({ teams }: TournamentSimulatorProps)
                                 {count}
                             </button>
                         ))}
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Robots por alianza</p>
+                        <div className="flex gap-3">
+                            {([2, 3] as const).map(size => (
+                                <button
+                                    key={size}
+                                    onClick={() => setAllianceSize(size)}
+                                    className={clsx(
+                                        "px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-2",
+                                        allianceSize === size
+                                            ? "bg-card border-primary text-primary shadow-sm"
+                                            : "bg-card border-border text-muted-foreground"
+                                    )}
+                                >
+                                    {size === 2 ? "2 — Estándar" : "3 — Championship/Premier"}
+                                </button>
+                            ))}
+                        </div>
+                        {allianceSize === 3 && (
+                            <p className="text-[11px] text-muted-foreground max-w-sm">
+                                Regla 15.3: 2ª ronda de picks en orden invertido; en cada match
+                                juegan 2 de los 3 robots (la proyección usa el mejor par).
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex gap-4">
