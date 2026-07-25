@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const getFirebaseConfig = () => {
@@ -44,7 +44,6 @@ let db: ReturnType<typeof getFirestore>;
 
 if (typeof window === "undefined") {
     // SERVER SIDE: Force long-polling to avoid gRPC connection issues in Node/NextJS environments
-    const { initializeFirestore } = require("firebase/firestore");
     db = initializeFirestore(app, {
         experimentalForceLongPolling: true,
     });

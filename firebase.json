@@ -1,4 +1,18 @@
 {
+  "apphosting": {
+    "backendId": "ftc-stats",
+    "rootDir": "/",
+    "ignore": [
+      "node_modules",
+      ".git",
+      ".next",
+      ".env*",
+      "docs",
+      "e2e",
+      "test",
+      "firebase-debug.log"
+    ]
+  },
   "firestore": {
     "indexes": "firestore.indexes.json",
     "rules": "firestore.rules"

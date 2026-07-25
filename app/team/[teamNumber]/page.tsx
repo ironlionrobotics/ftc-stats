@@ -1,4 +1,5 @@
 import { fetchTeam, fetchTeamRankingsInSeason, fetchTeamAwards, TeamSeasonRanking } from "@/lib/ftc-api";
+import { getCurrentSeason } from "@/lib/constants";
 import { FTCAward } from "@/types/scouting";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -7,7 +8,8 @@ import { MapPin, Globe, Award, Calendar, Trophy } from "lucide-react";
 import clsx from "clsx";
 import Link from "next/link";
 
-const SUPPORTED_SEASONS = [2025, 2024, 2023, 2022];
+// Current season first, then the three before it — stays correct at rollover.
+const SUPPORTED_SEASONS = [0, 1, 2, 3].map((i) => getCurrentSeason() - i);
 
 const GAME_NAMES: Record<number, string> = {
     2025: "Decode",
@@ -26,7 +28,7 @@ export default async function TeamPage(props: TeamPageProps) {
     const teamNum = parseInt(teamNumber);
 
     const cookieStore = await cookies();
-    const currentSeason = Number(cookieStore.get("ftc_season")?.value || 2024);
+    const currentSeason = Number(cookieStore.get("ftc_season")?.value) || getCurrentSeason();
 
     // Fetch team metadata (try current season first)
     const team = await fetchTeam(currentSeason, teamNum);

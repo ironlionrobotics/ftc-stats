@@ -174,15 +174,21 @@ const getSmartTTL = cache(async (season: number, eventCode: string): Promise<num
         if (!event) return 60;
 
         const now = new Date();
-        // Parse dates (assuming YYYY-MM-DD or ISO string)
+        // dateStart/dateEnd are date-only strings ("YYYY-MM-DD"), which
+        // Date parses as UTC midnight. All arithmetic must stay in UTC:
+        // mixing in local setHours() shifted the boundary by the server's
+        // timezone offset and marked events "completed" during their final
+        // afternoon (playoffs!) when the server ran in UTC.
         const start = new Date(event.dateStart);
         const end = new Date(event.dateEnd || event.dateStart);
+        end.setUTCHours(23, 59, 59, 999);
 
-        // Adjust end date to include the whole day (until midnight)
-        end.setHours(23, 59, 59, 999);
+        // Only treat the event as completed a full day after its last day
+        // ends in UTC — covers every venue timezone plus late score edits.
+        const COMPLETED_BUFFER_MS = 24 * 60 * 60 * 1000;
 
         // If event is in the past (completed) -> Long Cache (30 days)
-        if (now > end) {
+        if (now.getTime() > end.getTime() + COMPLETED_BUFFER_MS) {
             return 30 * 24 * 60 * 60;
         }
 
@@ -305,27 +311,26 @@ export async function fetchMatches(season: number, eventCode: string): Promise<F
         }
 
         try {
+            // 404 means "no data published yet" (cacheable); any other failure
+            // must NOT be memoised — see readThrough contract above.
+            let fetchFailed = false;
+            const handleLevel = (label: string) => async (r: Response) => {
+                if (!r.ok) {
+                    if (r.status !== 404) {
+                        console.warn(`[fetchMatches] ${label} fetch failed: ${r.status} ${r.statusText}`);
+                        fetchFailed = true;
+                    }
+                    return { matches: [] };
+                }
+                return r.json().catch((e: unknown) => {
+                    console.error(`[fetchMatches] Error parsing ${label} JSON:`, e);
+                    fetchFailed = true;
+                    return { matches: [] };
+                });
+            };
             const [qualResult, playoffResult] = await Promise.all([
-                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(async r => {
-                    if (!r.ok) {
-                        if (r.status !== 404) console.warn(`[fetchMatches] Quals fetch failed: ${r.status} ${r.statusText}`);
-                        return { matches: [] };
-                    }
-                    return r.json().catch(e => {
-                        console.error("[fetchMatches] Error parsing Quals JSON:", e);
-                        return { matches: [] };
-                    });
-                }),
-                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(async r => {
-                    if (!r.ok) {
-                        if (r.status !== 404) console.warn(`[fetchMatches] Playoffs fetch failed: ${r.status} ${r.statusText}`);
-                        return { matches: [] };
-                    }
-                    return r.json().catch(e => {
-                        console.error("[fetchMatches] Error parsing Playoffs JSON:", e);
-                        return { matches: [] };
-                    });
-                })
+                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Quals")),
+                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Playoffs"))
             ]);
 
             const qualMatches = qualResult.matches || [];
@@ -334,7 +339,7 @@ export async function fetchMatches(season: number, eventCode: string): Promise<F
 
             console.log(`[fetchMatches] Found ${allMatches.length} matches for ${eventCode}`);
 
-            await setCachedData(cacheKey, allMatches, ttl);
+            if (!fetchFailed) await setCachedData(cacheKey, allMatches, ttl);
             return allMatches;
         } catch (error) {
             console.error(`[fetchMatches] Critical error fetching matches for ${eventCode}:`, error);
@@ -365,9 +370,26 @@ export async function fetchMatchScores(season: number, eventCode: string): Promi
         const playoffUrl = `${BASE_URL}/${season}/scores/${eventCode}/Playoff`;
 
         try {
+            // Same contract as fetchMatches: 404 = "not published yet"
+            // (cacheable); any other failure must not be memoised.
+            let fetchFailed = false;
+            const handleLevel = (label: string) => async (r: Response) => {
+                if (!r.ok) {
+                    if (r.status !== 404) {
+                        console.warn(`[fetchMatchScores] ${label} fetch failed: ${r.status} ${r.statusText}`);
+                        fetchFailed = true;
+                    }
+                    return { scores: [] };
+                }
+                return r.json().catch((e: unknown) => {
+                    console.error(`[fetchMatchScores] Error parsing ${label} JSON:`, e);
+                    fetchFailed = true;
+                    return { scores: [] };
+                });
+            };
             const [qualResult, playoffResult] = await Promise.all([
-                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(r => r.ok ? r.json() : { scores: [] }),
-                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(r => r.ok ? r.json() : { scores: [] })
+                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Qual")),
+                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Playoff"))
             ]);
 
             const allScores = [...(qualResult.scores || []), ...(playoffResult.scores || [])];
@@ -379,7 +401,7 @@ export async function fetchMatchScores(season: number, eventCode: string): Promi
                 console.warn(`[fetchMatchScores] No scores found for ${eventCode} at ${qualUrl}`);
             }
 
-            await setCachedData(cacheKey, allScores, ttl);
+            if (!fetchFailed) await setCachedData(cacheKey, allScores, ttl);
             return allScores;
         } catch (error) {
             console.error(`[fetchMatchScores] Error for ${eventCode}:`, error);

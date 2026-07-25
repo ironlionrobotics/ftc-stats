@@ -80,10 +80,10 @@ export default async function EventPage(props: EventPageProps) {
     ]);
 
     return (
-        <div className="container mx-auto px-4 md:px-8 py-12">
-            <header className="mb-12 border-b border-border/50 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="container mx-auto px-4 md:px-8 py-8 md:py-12">
+            <header className="mb-8 border-b border-border pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-primary font-bold tracking-widest text-xs uppercase">
+                    <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-[11px] uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                         Season {season}
                     </div>

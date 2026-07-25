@@ -5,11 +5,17 @@ import { saveMatchScouting, savePitScouting } from "@/lib/scouting-service";
 import { saveToLocal } from "@/lib/localDatabase";
 import type { MatchScouting, PitScouting } from "@/types/scouting";
 
+/** Where a match-scouting entry ended up when the mutation resolved. */
+export type MatchScoutingSaveResult =
+    | { savedTo: "remote" }
+    | { savedTo: "local"; id: string };
+
 /**
- * Mutation hook for saving a match-scouting entry to Firestore. Wraps
- * `saveMatchScouting` with TanStack Query so callers get retry-with-backoff
- * (Firestore is occasionally flaky on venue Wi-Fi) and a typed loading state
- * without rolling their own try/finally.
+ * Mutation hook for saving a match-scouting entry. Tries Firestore first;
+ * if that fails (venue Wi-Fi down, Firestore hiccup) the entry is queued in
+ * Dexie and OnlineSync drains it once connectivity returns — a capture must
+ * never be lost silently. Callers can inspect `savedTo` to tell the scout
+ * whether the entry is live or queued.
  *
  * Note: we don't expose optimistic UI here because the listener
  * (listenToMatchScouting) will already surface the new entry within a few
@@ -17,9 +23,19 @@ import type { MatchScouting, PitScouting } from "@/types/scouting";
  */
 export function useSaveMatchScouting() {
     return useMutation({
-        mutationFn: async (entry: MatchScouting) => {
-            await saveMatchScouting(entry);
+        mutationFn: async (entry: MatchScouting): Promise<MatchScoutingSaveResult> => {
+            try {
+                await saveMatchScouting(entry);
+                return { savedTo: "remote" };
+            } catch (err) {
+                console.warn("[scouting] remote save failed, queueing locally:", err);
+                const id = await saveToLocal(entry);
+                return { savedTo: "local", id };
+            }
         },
+        // The remote→local fallback already handles transient failures; only a
+        // Dexie failure rejects, and retrying won't fix that.
+        retry: false,
     });
 }
 

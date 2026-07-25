@@ -1,5 +1,7 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import ProScoutingDashboard from "@/components/scouting/ProScoutingDashboard";
+import { getCurrentSeason } from "@/lib/constants";
 import { Info } from "lucide-react";
 
 // Rendered on-demand. We don't pre-generate static params because the global
@@ -13,6 +15,8 @@ export default async function ProScoutingPage({
     params: Promise<{ eventCode: string }>;
 }) {
     const { eventCode } = await params;
+    const cookieStore = await cookies();
+    const season = Number(cookieStore.get("ftc_season")?.value) || getCurrentSeason();
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -46,7 +50,7 @@ export default async function ProScoutingPage({
             </div>
 
             <Suspense fallback={<div className="text-slate-400">Cargando dashboard…</div>}>
-                <ProScoutingDashboard eventCode={eventCode} season={2024} />
+                <ProScoutingDashboard eventCode={eventCode} season={season} />
             </Suspense>
         </div>
     );

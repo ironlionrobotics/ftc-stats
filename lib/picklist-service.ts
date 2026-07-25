@@ -68,6 +68,11 @@ export function listenToPicklist(
             return;
         }
         callback({ id, ...(snap.data() as Omit<Picklist, "id">) });
+    }, error => {
+        // Surface listener death (permission-denied, index) instead of leaving
+        // the picklist UI stuck; callers treat null as "nothing loaded".
+        console.error(`[picklist] listener failed for ${id}:`, error);
+        callback(null);
     });
 }
 

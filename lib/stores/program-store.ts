@@ -2,8 +2,20 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { getCurrentSeason } from "@/lib/constants";
 
 export type ProgramType = "FTC" | "FRC";
+
+// The `ftc_season` cookie is the single source of truth for the active season:
+// Server Components read it via cookies() and this store mirrors it on the
+// client. (Historically the store wrote a different cookie, `active_season`,
+// with a hardcoded 2024 default — so scouting captures and event pages could
+// silently disagree on the season.)
+function readSeasonCookie(): number | null {
+    if (typeof document === "undefined") return null;
+    const match = document.cookie.match(/(?:^|;\s*)ftc_season=(\d+)/);
+    return match ? Number(match[1]) : null;
+}
 
 interface ProgramState {
     program: ProgramType;
@@ -32,7 +44,7 @@ export const useProgramStore = create<ProgramState>()(
     persist(
         (set) => ({
             program: "FTC",
-            season: 2024,
+            season: getCurrentSeason(),
             setProgram: (program) => {
                 set({ program });
                 if (typeof document !== "undefined") {
@@ -43,15 +55,33 @@ export const useProgramStore = create<ProgramState>()(
             setSeason: (season) => {
                 set({ season });
                 if (typeof document !== "undefined") {
-                    document.cookie = `active_season=${season}; path=/; max-age=31536000`;
+                    document.cookie = `ftc_season=${season}; path=/; max-age=31536000`;
                     window.location.reload();
                 }
             },
         }),
         {
             name: "ftc-program-storage",
+            // v0 persisted `season` with a hardcoded 2024 default that desynced
+            // from the `ftc_season` cookie. Discard it on upgrade; the cookie
+            // reconciliation below repopulates it.
+            version: 1,
+            migrate: (persisted) => {
+                const old = persisted as { program?: ProgramType } | undefined;
+                return { program: old?.program ?? "FTC" } as ProgramState;
+            },
             // Don't persist setters — only the data.
             partialize: (state) => ({ program: state.program, season: state.season }),
+            onRehydrateStorage: () => (state) => {
+                if (typeof document === "undefined") return;
+                const cookieSeason = readSeasonCookie();
+                if (cookieSeason && cookieSeason !== state?.season) {
+                    // Server pages already rendered with the cookie value — align.
+                    useProgramStore.setState({ season: cookieSeason });
+                } else if (!cookieSeason && state?.season) {
+                    document.cookie = `ftc_season=${state.season}; path=/; max-age=31536000`;
+                }
+            },
             storage: createJSONStorage(() => {
                 if (typeof window === "undefined") {
                     // No-op storage on the server so SSR doesn't try to touch localStorage.

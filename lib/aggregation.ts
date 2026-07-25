@@ -20,7 +20,10 @@ export async function getAggregatedStats(season: number = 2024, filters?: { regi
 
     // Filter events
     // Default to Mexico if no region filter is provided, to maintain original behavior
-    const regionFilter = (filters?.region === "All") ? null : (filters?.region || "MX");
+    // "All" (world-wide) is not supported: it meant ~1,800 events × 4
+    // endpoints of API fan-out and a multi-MB team payload serialized to the
+    // client. Old shared URLs with ?region=All degrade to the MX default.
+    const regionFilter = (filters?.region === "All") ? "MX" : (filters?.region || "MX");
 
     let filteredEvents = allEvents;
 
@@ -72,18 +75,21 @@ export async function getAggregatedStats(season: number = 2024, filters?: { regi
 
     // Cache Logic
     const filterKey = filters ? JSON.stringify(filters) : "default";
-    const cacheKey = `aggregation_v2_${season}_${filterKey}`;
+    // v3: events[].eventCode switched from abbreviation to real FIRST code.
+    const cacheKey = `aggregation_v3_${season}_${filterKey}`;
 
     // Determine TTL based on filtered events status
     let ttl = 24 * 60 * 60; // Default 24h
     const now = new Date();
 
     const isAnyActive = filteredEvents.some(e => {
+        // Date-only strings parse as UTC midnight — keep all arithmetic in
+        // UTC (see getSmartTTL in ftc-api.ts for the timezone-mixing bug).
         const start = new Date(e.dateStart);
         const end = new Date(e.dateEnd || e.dateStart);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         const threeDaysAfter = new Date(end);
-        threeDaysAfter.setDate(threeDaysAfter.getDate() + 3);
+        threeDaysAfter.setUTCDate(threeDaysAfter.getUTCDate() + 3);
         return now >= start && now <= threeDaysAfter;
     });
 
@@ -217,7 +223,12 @@ export async function getAggregatedStats(season: number = 2024, filters?: { regi
             teamStats.totalTies += rank.ties;
             teamStats.bestRank = Math.min(teamStats.bestRank, rank.rank);
             teamStats.events.push({
-                eventCode: event.abbr || event.code,
+                // Real FIRST code — scouting writes/reads and /event/[code]
+                // key off this. The abbreviation is display-only.
+                eventCode: event.code,
+                abbr: event.abbr,
+                dateStart: event.dateStart,
+                dateEnd: event.dateEnd,
                 rank: rank.rank,
                 rs: rank.sortOrder1,
                 matchPoints: rank.sortOrder2,

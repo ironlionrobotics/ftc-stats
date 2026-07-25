@@ -60,10 +60,17 @@ export async function trainRpModelsAction(input: {
         return { ok: false, error: "Redis no configurado — los modelos no se pueden cachear" };
     }
 
-    // Pull all season events, then their matches. Sequential to stay polite
-    // to the FTC API + the cached fetchMatches already deduplicates within
-    // a single request, so this is cheap on warm cache.
-    const events = await fetchEvents(input.season);
+    // Pull the season's MEXICAN events, then their matches. fetchEvents
+    // returns the world catalog (~1,850 events); iterating all of them meant
+    // tens of minutes of sequential API fan-out from one admin click. MX
+    // events (~12/season) match the "~10-30 events" budget documented above,
+    // and RP models are used for Mexican-event predictions anyway.
+    const events = (await fetchEvents(input.season)).filter(
+        (e) => e.country === "Mexico" || e.countryCode === "MX" || e.code.startsWith("MX"),
+    );
+    // Sequential to stay polite to the FTC API + the cached fetchMatches
+    // already deduplicates within a single request, so this is cheap on
+    // warm cache.
     const allMatches = [];
     for (const event of events) {
         try {

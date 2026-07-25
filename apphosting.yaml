@@ -1,5 +1,22 @@
+# Firebase App Hosting configuration
+# Secrets live in Cloud Secret Manager (grant access with:
+#   firebase apphosting:secrets:grantaccess <NAME> --backend <BACKEND>)
+# FIREBASE_WEBAPP_CONFIG is injected automatically by App Hosting (lib/firebase.ts
+# consumes it) and firebase-admin uses Application Default Credentials, so neither
+# needs an entry here.
+
+runConfig:
+  memoryMiB: 1024
+  maxInstances: 4
+
 env:
   - variable: FTC_API_USERNAME
     secret: FTC_API_USERNAME
   - variable: FTC_API_KEY
     secret: FTC_API_KEY
+  - variable: UPSTASH_REDIS_REST_URL
+    secret: UPSTASH_REDIS_REST_URL
+  - variable: UPSTASH_REDIS_REST_TOKEN
+    secret: UPSTASH_REDIS_REST_TOKEN
+  - variable: GOOGLE_GENERATIVE_AI_API_KEY
+    secret: GOOGLE_GENERATIVE_AI_API_KEY

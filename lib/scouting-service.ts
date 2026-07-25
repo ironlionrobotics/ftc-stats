@@ -219,6 +219,11 @@ export function listenToMatchScouting(
             );
         }
         callback(matches);
+    }, (error) => {
+        // Without this handler a permission-denied / missing-index error kills
+        // the listener silently and the UI reads as "no scouting data".
+        console.error(`[scouting] listenToMatchScouting failed for ${eventCode}:`, error);
+        callback([]);
     });
 }
 

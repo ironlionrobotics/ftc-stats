@@ -93,7 +93,16 @@ export interface AggregatedTeamStats {
     averageNP: number;
     opr: number;
     events: {
+        // Official FIRST event code (e.g. "MXCIQ") — the namespace scouting
+        // entries, event pages, and the FTC API all share. Display strings
+        // belong in `abbr`, never here.
         eventCode: string;
+        // Optional short label for UI chips (e.g. "CTN").
+        abbr?: string;
+        // Event dates ("YYYY-MM-DD") so clients can pick the event currently
+        // in progress (see lib/active-event.ts) instead of guessing events[0].
+        dateStart?: string;
+        dateEnd?: string;
         rank: number;
         rs: number;
         matchPoints: number;
