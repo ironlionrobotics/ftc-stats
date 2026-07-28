@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Search, Info, X, Trophy, Bot, User, Sparkles, Network, Radio } from "lucide-react";
+import { Search, Info, X, Trophy, Bot, User, Sparkles, Network, Radio, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import clsx from "clsx";
 import { TeamEvolution } from "@/app/actions/analytics";
@@ -131,8 +131,12 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
 
                 let synergyScore = 0;
                 let synergyLabel = "Balanced";
+                // Human-readable justification, emitted by the SAME factors that
+                // build the score (deterministic — no LLM, works offline in venue).
+                const reasons: string[] = [];
                 const isRisky = (selectedTeam.netDiscipline || 0) + (partner.netDiscipline || 0) < -5;
                 const projectedScore = (selectedTeam.opr || 0) + (partner.opr || 0);
+                reasons.push(`Potencia: ${(selectedTeam.opr || 0).toFixed(0)} + ${(partner.opr || 0).toFixed(0)} = ${projectedScore.toFixed(0)} pts proyectados — el factor de mayor peso (70%).`);
 
                 // --- Improved Synergy Logic ---
 
@@ -151,6 +155,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 if (autoSynergy > 30) {
                     synergyScore += 10;
                     synergyLabel = "Auto Dominance";
+                    reasons.push(`Auto dominante: ${autoSynergy.toFixed(0)} pts combinados de autónomo (+10) — ventaja temprana en cada match.`);
                 }
 
                 // 3. Discipline Factor (The Risk) - UPDATED: Dynamic Penalty
@@ -163,18 +168,22 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
 
                     synergyScore -= dynamicPenalty;
                     synergyLabel = "High Foul Risk";
+                    reasons.push(`⚠ Riesgo de fouls: disciplina neta combinada ${((selectedTeam.netDiscipline || 0) + (partner.netDiscipline || 0)).toFixed(0)} (−${dynamicPenalty.toFixed(0)}) — juntos tienden a regalar penalizaciones.`);
                 } else if ((partner.netDiscipline || 0) > 5) {
                     synergyScore += 10;
                     synergyLabel = "Disciplined";
+                    reasons.push(`Disciplinado: disciplina neta +${(partner.netDiscipline || 0).toFixed(0)} (+10) — provoca más fouls de los que comete.`);
                 }
 
                 // 4. Archetype Complement (Still Valid)
                 if (targetStats?.archetype === 'Miner' && scoutedMetrics.archetype === 'Architect') {
                     synergyScore += 15;
                     synergyLabel = "Perfect Match";
+                    reasons.push("Arquetipos complementarios (scouting): tú Miner + su Architect (+15) — no compiten por los mismos recursos de cancha.");
                 } else if (targetStats?.archetype === 'Architect' && scoutedMetrics.archetype === 'Miner') {
                     synergyScore += 15;
                     synergyLabel = "Perfect Match";
+                    reasons.push("Arquetipos complementarios (scouting): tú Architect + su Miner (+15) — no compiten por los mismos recursos de cancha.");
                 }
 
                 // 5. RP Complementarity (The Money)
@@ -192,17 +201,23 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 if ((selectedTeam.rpPattern || 0) < 0.4 && effPat > 0.8) {
                     synergyScore += 25;
                     synergyLabel = "Pattern Specialist";
+                    reasons.push(`Cubre tu debilidad en Pattern RP: tú ${Math.round((selectedTeam.rpPattern || 0) * 100)}% vs su ${Math.round(effPat * 100)}% (+25) — el RP que no ganas solo, lo trae él.`);
                 }
                 // If I am bad at Artifacts (< 0.4) and partner is GOD at volume (> 0.8)
                 if ((selectedTeam.rpArtifacts || 0) < 0.4 && effArt > 0.8) {
                     synergyScore += 20;
                     synergyLabel = "Volume Loader";
+                    reasons.push(`Cubre tu debilidad en Artifact RP: tú ${Math.round((selectedTeam.rpArtifacts || 0) * 100)}% vs su ${Math.round(effArt * 100)}% (+20) — volumen de ciclos que te falta.`);
                 }
                 // If both are decent at Movement/Auto (> 0.6), we lock that RP down
                 if ((selectedTeam.rpMovement || 0) > 0.6 && effMov > 0.6) {
                     synergyScore += 10;
                     // Dont override "Perfect Match" unless it was default
                     if (synergyLabel === "Balanced") synergyLabel = "Auto RP Lock";
+                    reasons.push(`Movement RP casi asegurado: ambos >60% (tú ${Math.round((selectedTeam.rpMovement || 0) * 100)}%, él ${Math.round(effMov * 100)}%) (+10).`);
+                }
+                if (scoutedMetrics.driverSkill >= 4) {
+                    reasons.push(`Scouting: driver ${scoutedMetrics.driverSkill.toFixed(1)}/5 — pilotaje de élite confirmado en cancha.`);
                 }
 
                 // Weighted Final Score
@@ -222,6 +237,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                     projectedScore,
                     isRisky,
                     autoSynergy,
+                    reasons,
                     effectiveRP: {
                         movement: effMov,
                         artifacts: effArt,
@@ -555,6 +571,24 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                                                 </div>
                                                             </div>
                                                         </div>
+
+                                                        {/* Why this suggestion — reasons emitted by the scoring factors
+                                                            themselves (deterministic, offline-safe; no LLM). Native
+                                                            <details> avoids per-card state. */}
+                                                        <details className="mt-3 relative z-10 group/why">
+                                                            <summary className="cursor-pointer list-none flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors select-none">
+                                                                ¿Por qué este partner?
+                                                                <ChevronDown size={13} className="transition-transform group-open/why:rotate-180" />
+                                                            </summary>
+                                                            <ul className="mt-2 space-y-1.5 text-[11px] text-muted-foreground leading-relaxed border-t border-border pt-2">
+                                                                {rec.reasons.map((r, i) => (
+                                                                    <li key={i} className="flex gap-1.5">
+                                                                        <span className="text-secondary shrink-0 mt-0.5">▸</span>
+                                                                        <span>{r}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </details>
                                                     </div>
 
                                                     <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-border relative z-10">

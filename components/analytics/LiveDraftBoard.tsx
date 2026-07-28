@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { TeamEvolution } from "@/app/actions/analytics";
 import type { FTCAllianceSelection } from "@/types/scouting";
-import { calculateSynergyScore, bestFieldedPair, computeTeamSigma, combineSigmas, runMonteCarloSimulation } from "@/lib/alliance-utils";
+import { calculateSynergyScore, explainSynergyScore, bestFieldedPair, computeTeamSigma, combineSigmas, runMonteCarloSimulation } from "@/lib/alliance-utils";
 import type { Alliance } from "@/types/oracle";
 import { Crown, RotateCcw, Star, Ban, Download, Users, Handshake } from "lucide-react";
 import clsx from "clsx";
@@ -242,12 +242,17 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
 
     const myTeamObj = draft.myTeam != null ? teamByNumber.get(draft.myTeam) ?? null : null;
 
-    // Partner recommendations for MY team over AVAILABLE teams only.
+    // Partner recommendations for MY team over AVAILABLE teams only. Each carries
+    // the reasons emitted by the scoring factors themselves (see explainSynergyScore
+    // — deterministic justification, no LLM, offline-safe for venue).
     const recommendations = useMemo(() => {
         if (!myTeamObj) return [];
         return available
             .filter(t => t.teamNumber !== myTeamObj.teamNumber)
-            .map(t => ({ team: t, score: calculateSynergyScore(myTeamObj, t) }))
+            .map(t => {
+                const { score, reasons } = explainSynergyScore(myTeamObj, t);
+                return { team: t, score, reasons };
+            })
             .sort((a, b) => b.score - a.score)
             .slice(0, 6);
     }, [available, myTeamObj]);
@@ -540,19 +545,47 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                             <div
                                 key={r.team.teamNumber}
                                 className={clsx(
-                                    "flex items-center gap-3 px-3 py-2 rounded-lg border",
+                                    "px-3 py-2 rounded-lg border",
                                     i === 0 ? "bg-warning/5 border-warning/30" : "bg-muted border-transparent",
                                 )}
                             >
-                                <span className={clsx("font-mono text-[10px] font-bold w-4", i === 0 ? "text-warning" : "text-muted-foreground")}>#{i + 1}</span>
-                                <div className="min-w-0 flex-1">
-                                    <span className="font-mono text-sm font-bold text-foreground">{r.team.teamNumber}</span>
-                                    <span className="text-[10px] text-muted-foreground ml-2 truncate">{r.team.teamName}</span>
+                                <div className="flex items-center gap-3">
+                                    <span className={clsx("font-mono text-[10px] font-bold w-4", i === 0 ? "text-warning" : "text-muted-foreground")}>#{i + 1}</span>
+                                    <div className="min-w-0 flex-1">
+                                        <span className="font-mono text-sm font-bold text-foreground">{r.team.teamNumber}</span>
+                                        <span className="text-[10px] text-muted-foreground ml-2 truncate">{r.team.teamName}</span>
+                                    </div>
+                                    <div className="font-mono text-[10px] text-muted-foreground text-right shrink-0">
+                                        <div>OPR {Math.round(r.team.opr || 0)} · auto {Math.round(r.team.autoOPR || 0)}</div>
+                                        <div className={clsx("font-bold", i === 0 ? "text-warning" : "text-foreground")}>score {Math.round(r.score)}</div>
+                                    </div>
                                 </div>
-                                <div className="font-mono text-[10px] text-muted-foreground text-right shrink-0">
-                                    <div>OPR {Math.round(r.team.opr || 0)} · auto {Math.round(r.team.autoOPR || 0)}</div>
-                                    <div className={clsx("font-bold", i === 0 ? "text-warning" : "text-foreground")}>score {Math.round(r.score)}</div>
-                                </div>
+                                {/* Why: top pick shows its justification inline (it's the
+                                    decision being made); the rest expand on demand. */}
+                                {i === 0 ? (
+                                    <ul className="mt-2 pt-2 border-t border-warning/20 space-y-1 text-[11px] text-muted-foreground leading-snug">
+                                        {r.reasons.map((reason, j) => (
+                                            <li key={j} className="flex gap-1.5">
+                                                <span className="text-warning shrink-0">▸</span>
+                                                <span>{reason}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <details className="mt-1 group/why">
+                                        <summary className="cursor-pointer list-none text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors select-none">
+                                            ¿Por qué? <span className="group-open/why:hidden">＋</span><span className="hidden group-open/why:inline">−</span>
+                                        </summary>
+                                        <ul className="mt-1.5 space-y-1 text-[11px] text-muted-foreground leading-snug">
+                                            {r.reasons.map((reason, j) => (
+                                                <li key={j} className="flex gap-1.5">
+                                                    <span className="text-secondary shrink-0">▸</span>
+                                                    <span>{reason}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </details>
+                                )}
                             </div>
                         ))}
                     </div>

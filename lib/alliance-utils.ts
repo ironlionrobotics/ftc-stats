@@ -237,25 +237,45 @@ export function alliancesFromOfficial(
 }
 
 /**
- * Re-uses the logic from AlliancePredictor to score a pair.
- * Simplified for pure calculation without UI strings.
- * Exported for the live-draft board (partner ranking over available teams).
+ * Synergy score for a pair, with the human-readable justification derived from
+ * the SAME computation (no LLM, no post-hoc narrative: each reason is emitted
+ * exactly when its factor fires, with the real numbers). Deterministic and
+ * offline-safe — critical for venue use.
  */
-export function calculateSynergyScore(t1: TeamEvolution, t2: TeamEvolution): number {
+export function explainSynergyScore(t1: TeamEvolution, t2: TeamEvolution): { score: number; reasons: string[] } {
+    const reasons: string[] = [];
     const combinedOPR = (t1.opr || 0) + (t2.opr || 0);
+    reasons.push(`Potencia combinada: ${(t1.opr || 0).toFixed(0)} + ${(t2.opr || 0).toFixed(0)} = ${combinedOPR.toFixed(0)} pts proyectados (la base del score).`);
 
     // Auto Synergy
     const autoSynergy = (t1.autoOPR || 0) + (t2.autoOPR || 0);
     let synergyBonus = 0;
-    if (autoSynergy > 30) synergyBonus += 10;
+    if (autoSynergy > 30) {
+        synergyBonus += 10;
+        reasons.push(`Autónomo dominante: ${autoSynergy.toFixed(0)} pts combinados de auto (+10) — arrancar arriba presiona al rival todo el match.`);
+    }
 
     // Discipline Penalty
     const risk = (t1.netDiscipline || 0) + (t2.netDiscipline || 0);
     if (risk < -5) {
-        synergyBonus -= Math.min(Math.abs(risk) * 0.8, 30);
+        const penalty = Math.min(Math.abs(risk) * 0.8, 30);
+        synergyBonus -= penalty;
+        reasons.push(`Riesgo de fouls: disciplina neta combinada ${risk.toFixed(0)} (−${penalty.toFixed(0)}) — juntos tienden a regalar puntos de penalización.`);
+    } else if (risk > 5) {
+        reasons.push(`Dupla disciplinada: disciplina neta combinada +${risk.toFixed(0)} — provocan más fouls de los que cometen.`);
     }
 
-    return combinedOPR + synergyBonus;
+    return { score: combinedOPR + synergyBonus, reasons };
+}
+
+/**
+ * Re-uses the logic from AlliancePredictor to score a pair.
+ * Simplified for pure calculation without UI strings.
+ * Exported for the live-draft board (partner ranking over available teams).
+ * Delegates to explainSynergyScore so score and explanation never diverge.
+ */
+export function calculateSynergyScore(t1: TeamEvolution, t2: TeamEvolution): number {
+    return explainSynergyScore(t1, t2).score;
 }
 
 // --- Playoff Bracket Logic ---
