@@ -8,54 +8,65 @@
  * dark themes both work. Never hardcode slate/white/black in components.
  * ==========================================================================*/
 
+/* ----------------------------------------------------------------------------
+ * Direction C · "Nightshift" (decision 2026-07-28, Héctor). Dark-first
+ * instrumentation palette: chartreuse signal + cobalt data accent on near-black.
+ * `.dark` is the primary experience; `:root` (light) is the secondary "at-the-
+ * desk" mode where chartreuse is deepened to #5E8A00 so it still passes contrast
+ * on a light ground (raw #C4F135 fails WCAG on white). Token NAMES are unchanged
+ * from the previous violet/cyan system, so no component needed rewriting.
+ * ------------------------------------------------------------------------- */
 :root {
-  --color-background: #fafafa;
-  --color-foreground: #16161d;
+  /* Light — secondary mode. */
+  --color-background: #f5f6f2;
+  --color-foreground: #0e1116;
   --color-card: #ffffff;
-  --color-card-foreground: #16161d;
-  --color-muted: #f0f0f4;
-  --color-muted-foreground: #6e6e80;
-  --color-border: #e5e5ec;
+  --color-card-foreground: #0e1116;
+  --color-muted: #eceee9;
+  --color-muted-foreground: #616772;
+  --color-border: #dce0e6;
 
-  --color-primary: #6d5ce8;          /* violet — brand + interactive */
+  --color-primary: #5e8a00;          /* deepened chartreuse — legible on white */
   --color-primary-foreground: #ffffff;
-  --color-secondary: #0891b2;        /* cyan — data highlights */
+  --color-secondary: #3049d6;        /* cobalt — data highlights */
   --color-secondary-foreground: #ffffff;
-  --color-accent: #0891b2;
+  --color-accent: #3049d6;
   --color-accent-foreground: #ffffff;
 
-  --color-success: #059669;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
+  --color-success: #1f8a4c;
+  --color-warning: #a5680a;
+  --color-danger: #d6203f;
 }
 
 .dark {
-  /* Near-black with a barely-there violet cast — surfaces step up in three
-     levels (background → card → muted) with hairline borders. */
-  --color-background: #0b0b11;
-  --color-foreground: #ececf2;
-  --color-card: #12121a;
-  --color-card-foreground: #ececf2;
-  --color-muted: #1a1a25;
-  --color-muted-foreground: #8f8fa3;
-  --color-border: #23232f;
+  /* Dark — primary "Nightshift" mode. Near-black with cool cast; surfaces step
+     up in three levels (background → card → muted) with hairline borders. */
+  --color-background: #08090c;
+  --color-foreground: #e7eaf0;
+  --color-card: #101319;
+  --color-card-foreground: #e7eaf0;
+  --color-muted: #171b22;
+  --color-muted-foreground: #7d8494;
+  --color-border: #1e2430;
 
-  --color-primary: #8f85f3;
-  --color-primary-foreground: #0b0b11;
-  --color-secondary: #22d3ee;
-  --color-secondary-foreground: #0b0b11;
-  --color-accent: #22d3ee;
-  --color-accent-foreground: #0b0b11;
+  --color-primary: #c4f135;          /* chartreuse — signature signal */
+  --color-primary-foreground: #08090c;
+  --color-secondary: #5a76ff;        /* cobalt */
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #5a76ff;
+  --color-accent-foreground: #ffffff;
 
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
+  --color-success: #3fde7b;
+  --color-warning: #f0b429;
+  --color-danger: #ff3b5c;
 }
 
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-archivo), var(--font-geist-sans), sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Direction C typography: Space Grotesk (display + body, "instrument panel"
+     voice) + JetBrains Mono for tabular data. */
+  --font-sans: var(--font-space), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
   --color-primary: var(--color-primary);
   --color-primary-foreground: var(--color-primary-foreground);
@@ -103,6 +114,15 @@
   .font-mono {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Fase 0 · reserved focus-glow. Keyboard focus gets a high-contrast accent
+     ring — small, saturated, on an opaque surface, so it stays legible in
+     daylight. Components with their own focus-visible ring layer on top. */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
 @layer utilities {
@@ -133,6 +153,38 @@
       linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
     background-size: 32px 32px;
     mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 75%);
+  }
+
+  /* Direction C signature — a broadcast-style scanline for the on-deck / live
+     match surface: a 1px accent gradient sweeping across the bottom edge. Pure
+     CSS, no JS; collapses to a static faint bar under reduced-motion. */
+  .live-scanline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .live-scanline::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 45%;
+    background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+    animation: live-scan 2.4s linear infinite;
+  }
+  @keyframes live-scan {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(320%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live-scanline::before {
+      animation: none;
+      width: 100%;
+      opacity: 0.4;
+    }
   }
 
   .custom-scrollbar {

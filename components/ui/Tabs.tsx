@@ -10,8 +10,21 @@ const TabsContext = React.createContext<{
 
 export function Tabs({ defaultValue, children, className }: { defaultValue: string, children: React.ReactNode, className?: string }) {
     const [value, setValue] = React.useState(defaultValue);
+    // Fase 0 · View Transitions API — cross-fade tab panels natively, no motion
+    // library. Progressive enhancement: falls back to an instant switch (plus the
+    // existing animate-in on TabsContent) where startViewTransition is absent.
+    const onValueChange = React.useCallback((next: string) => {
+        const doc = document as Document & {
+            startViewTransition?: (cb: () => void) => void;
+        };
+        if (typeof doc.startViewTransition === "function") {
+            doc.startViewTransition(() => setValue(next));
+        } else {
+            setValue(next);
+        }
+    }, []);
     return (
-        <TabsContext.Provider value={{ value, onValueChange: setValue }}>
+        <TabsContext.Provider value={{ value, onValueChange }}>
             <div className={className}>{children}</div>
         </TabsContext.Provider>
     );

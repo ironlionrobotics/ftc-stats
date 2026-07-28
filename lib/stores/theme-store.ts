@@ -23,7 +23,9 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
     persist(
         (set, get) => ({
-            theme: "light",
+            // Dark-first (Direction C "Nightshift"). New users open in dark; the
+            // anti-FOUC script in app/layout.tsx applies the class before paint.
+            theme: "dark",
             setTheme: (theme) => {
                 set({ theme });
                 if (typeof document !== "undefined") {

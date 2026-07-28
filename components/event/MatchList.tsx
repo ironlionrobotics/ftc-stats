@@ -377,12 +377,13 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                         </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                        {upcomingMatches.map(item => (
+                        {upcomingMatches.map((item, idx) => (
                             <UpcomingMatchCard
                                 key={`${item.match.tournamentLevel}-${item.match.matchNumber}-${item.match.series ?? 0}`}
                                 item={item}
                                 filterTeam={filterTeam}
                                 onTeamClick={setFilterTeam}
+                                isNext={idx === 0}
                             />
                         ))}
                     </div>
@@ -882,10 +883,12 @@ function buildMatchAnalysis(redDetail: AllianceDetail, blueDetail: AllianceDetai
  * from the OPR components. Module-level per the React Compiler
  * static-components rule.
  */
-function UpcomingMatchCard({ item, filterTeam, onTeamClick }: {
+function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
     item: UpcomingItem;
     filterTeam: number | null;
     onTeamClick: (team: number | null) => void;
+    /** The soonest upcoming match — gets the Direction C live scanline signature. */
+    isNext?: boolean;
 }) {
     const { match, red, blue, muRed, muBlue, pRed, redDetail, blueDetail, sigmaDiff } = item;
     const [showAnalysis, setShowAnalysis] = useState(false);
@@ -916,9 +919,20 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick }: {
     );
 
     return (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3 hover:border-primary/30 transition-colors">
+        <div className={clsx(
+            "relative overflow-hidden bg-card border rounded-xl p-4 space-y-3 transition-colors",
+            isNext ? "border-primary/50" : "border-border hover:border-primary/30",
+        )}>
             <div className="flex items-center justify-between">
-                <span className="font-mono text-sm font-bold text-foreground">{label}</span>
+                <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm font-bold text-foreground">{label}</span>
+                    {isNext && (
+                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-[10px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            Próximo
+                        </span>
+                    )}
+                </div>
                 <span className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
                     {time && <><Clock size={12} /> {time}</>}
                 </span>
@@ -999,6 +1013,8 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick }: {
                     </ul>
                 </div>
             )}
+
+            {isNext && <span className="live-scanline" aria-hidden />}
         </div>
     );
 }

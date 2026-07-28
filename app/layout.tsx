@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Archivo } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/context/AuthContext";
@@ -12,22 +12,17 @@ import { Toaster } from "sonner";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Direction C "Nightshift" typography. Space Grotesk carries both display and
+// body with an "instrument panel" voice; JetBrains Mono handles tabular data.
+// Both are variable fonts, so no explicit weight list is needed.
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
-});
-
-// Display face for headings and big numbers: a grotesque with a technical,
-// slightly condensed voice that separates titles from Geist body text.
-const archivo = Archivo({
-  variable: "--font-archivo",
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -68,11 +63,18 @@ export const metadata: Metadata = {
 import type { Viewport } from "next";
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#08090c",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
 };
+
+// Dark-first (Direction C): apply the theme class before first paint so a
+// dark-default app never flashes white. Reads the persisted Zustand theme
+// ("ftc-theme" in localStorage); defaults to dark unless the user explicitly
+// chose light. Runs synchronously in <head>, ahead of the React hydration
+// that lib/stores/theme-store.ts performs.
+const themeInitScript = `(function(){try{var s=localStorage.getItem('ftc-theme');var t=s?JSON.parse(s).state.theme:'dark';if(t!=='light'){document.documentElement.classList.add('dark');}}catch(e){document.documentElement.classList.add('dark');}})();`;
 
 // Theme and program state moved from Context to Zustand stores
 // (lib/stores/theme-store.ts, lib/stores/program-store.ts). The root layout
@@ -84,9 +86,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the themeInitScript below sets the `dark` class
+    // on <html> before hydration, which intentionally differs from the server
+    // markup. Scoped to this element only (standard next-themes pattern).
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} antialiased bg-background text-foreground`}
+        className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
         <ThemeSync />
         <QueryProvider>
