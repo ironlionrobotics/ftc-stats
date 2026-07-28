@@ -397,6 +397,8 @@ export default function EventViewManager({ matches, rankings, advancement, award
                         setFilterTeam={setFilterTeam}
                         scoutingData={scoutingData}
                         schedule={schedule}
+                        awards={awards}
+                        selectedAlliances={selectedAlliances}
                     />
                 )}
                 {activeTab === "oracle" && (

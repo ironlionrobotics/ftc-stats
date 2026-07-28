@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting, FTCHybridScheduleMatch } from "@/types/scouting";
+import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting, FTCHybridScheduleMatch, FTCAward, FTCAllianceSelection } from "@/types/scouting";
 import { winProbabilityFromNormalModel } from "@/lib/win-probability";
 import clsx from "clsx";
-import { Trophy, Zap, Star, Info, Target, MousePointer2, AlertTriangle, Clock, ChevronDown } from "lucide-react";
+import { Trophy, Zap, Star, Info, Target, MousePointer2, AlertTriangle, Clock, ChevronDown, Award, Users } from "lucide-react";
 
 interface MatchListProps {
     matches: FTCMatch[];
@@ -14,9 +14,13 @@ interface MatchListProps {
     scoutingData: MatchScouting[];
     /** Full hybrid schedule (played + upcoming). Upcoming = null scores. */
     schedule?: FTCHybridScheduleMatch[];
+    /** Event awards — surfaced in a filtered team's record header. */
+    awards?: FTCAward[];
+    /** Official playoff alliances — used to show a team's alliance role. */
+    selectedAlliances?: FTCAllianceSelection[];
 }
 
-export default function MatchList({ matches, rankings, filterTeam, setFilterTeam, scoutingData, schedule }: MatchListProps) {
+export default function MatchList({ matches, rankings, filterTeam, setFilterTeam, scoutingData, schedule, awards, selectedAlliances }: MatchListProps) {
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
 
     const toggleMatch = (matchId: string) => {
@@ -228,6 +232,19 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
     const committedFoulOPR = filterTeam ? (oprData.committedFoul.get(filterTeam) || 0) : 0;
     const netDiscipline = drawnFoulOPR - committedFoulOPR; // Strategy Metric: Postive = Provokes more than commits
 
+    // Awards + alliance role for the filtered team, shown in its record header.
+    const teamAwards = filterTeam && awards ? awards.filter(a => a.teamNumber === filterTeam) : [];
+    const allianceRole = (() => {
+        if (!filterTeam || !selectedAlliances?.length) return null;
+        for (const a of selectedAlliances) {
+            if (a.captain?.teamNumber === filterTeam) return { number: a.number, role: "Capitán" };
+            if (a.round1?.teamNumber === filterTeam) return { number: a.number, role: "1er pick" };
+            if (a.round2?.teamNumber === filterTeam) return { number: a.number, role: "2do pick" };
+            if (a.backup?.teamNumber === filterTeam) return { number: a.number, role: "Backup" };
+        }
+        return null;
+    })();
+
     return (
         <div className="space-y-8">
             {filterTeam && (
@@ -245,6 +262,30 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                                     <span className="w-1 h-1 rounded-full bg-border" />
                                     <span>Sistema Decode 2025</span>
                                 </div>
+                                {(allianceRole || teamAwards.length > 0) && (
+                                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                                        {allianceRole && (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+                                                <Users size={12} /> Alianza {allianceRole.number} · {allianceRole.role}
+                                            </span>
+                                        )}
+                                        {teamAwards.map((aw, i) => {
+                                            const label = aw.name || aw.awardName || "Premio";
+                                            const isWin = aw.series === 1;
+                                            return (
+                                                <span
+                                                    key={`${aw.awardId ?? label}-${i}`}
+                                                    className={clsx(
+                                                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border",
+                                                        isWin ? "bg-warning/10 text-warning border-warning/20" : "bg-muted text-muted-foreground border-border",
+                                                    )}
+                                                >
+                                                    <Award size={12} /> {label}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <button
