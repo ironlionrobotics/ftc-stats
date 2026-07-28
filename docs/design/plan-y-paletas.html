@@ -1,0 +1,450 @@
+<title>PRIDE — Evolución de diseño</title>
+<style>
+  :root {
+    /* Artifact chrome — restrained ink neutral with a faint violet bias so the
+       three direction panels carry the color, not the page. */
+    --ink: #17161f;
+    --ink-2: #45434f;
+    --ink-3: #6f6d7a;
+    --paper: #f6f5f8;
+    --paper-2: #ffffff;
+    --line: #e5e3ec;
+    --brand: #6d5ce8;
+    --radius: 14px;
+    --maxw: 1180px;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #ececf2; --ink-2: #b9b7c4; --ink-3: #8a8896;
+      --paper: #0c0c11; --paper-2: #14141c; --line: #23232f; --brand: #9b8fff;
+    }
+  }
+  :root[data-theme="light"] {
+    --ink: #17161f; --ink-2: #45434f; --ink-3: #6f6d7a;
+    --paper: #f6f5f8; --paper-2: #ffffff; --line: #e5e3ec; --brand: #6d5ce8;
+  }
+  :root[data-theme="dark"] {
+    --ink: #ececf2; --ink-2: #b9b7c4; --ink-3: #8a8896;
+    --paper: #0c0c11; --paper-2: #14141c; --line: #23232f; --brand: #9b8fff;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); line-height: 1.55;
+    -webkit-font-smoothing: antialiased; font-synthesis: none;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: clamp(20px, 5vw, 64px) clamp(16px, 4vw, 40px); }
+
+  /* ---- Masthead ---- */
+  .eyebrow {
+    font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 650; margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--sans); font-weight: 800; letter-spacing: -0.03em;
+    font-size: clamp(30px, 5.4vw, 52px); line-height: 1.02; margin: 0 0 16px;
+    text-wrap: balance;
+  }
+  h1 .g {
+    background: linear-gradient(100deg, var(--brand), #00a99a);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lede { font-size: clamp(15px, 1.6vw, 18px); color: var(--ink-2); max-width: 60ch; margin: 0; }
+
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  .chip {
+    font-size: 12px; font-weight: 600; color: var(--ink-2);
+    background: var(--paper-2); border: 1px solid var(--line);
+    padding: 6px 11px; border-radius: 999px;
+  }
+  .chip b { color: var(--ink); font-weight: 700; }
+
+  /* ---- Section heads ---- */
+  .sec { margin-top: clamp(44px, 7vw, 76px); }
+  .sec-h { display: flex; align-items: baseline; gap: 14px; margin: 0 0 6px; }
+  .sec-n {
+    font-family: var(--mono); font-size: 13px; color: var(--brand);
+    font-weight: 600; letter-spacing: .05em;
+  }
+  .sec-t { font-size: clamp(20px, 2.6vw, 27px); font-weight: 750; letter-spacing: -0.02em; margin: 0; }
+  .sec-d { color: var(--ink-2); margin: 8px 0 0; max-width: 64ch; font-size: 15px; }
+
+  /* ---- Direction cards ---- */
+  .dirs { display: grid; gap: 22px; margin-top: 28px; }
+  .dir {
+    /* Each direction scopes its OWN palette in local vars so the mocks below
+       render in that direction's colors regardless of the viewer's theme. */
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--paper-2); overflow: hidden;
+  }
+  .dir-top {
+    display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px;
+    justify-content: space-between; padding: 20px 22px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .dir-id { display: flex; align-items: center; gap: 13px; }
+  .dir-badge {
+    width: 46px; height: 46px; border-radius: 12px; flex: none;
+    display: grid; place-items: center; font-weight: 800; font-size: 20px;
+    color: #fff;
+  }
+  .dir-name { font-size: 20px; font-weight: 780; letter-spacing: -0.02em; margin: 0; }
+  .dir-sub { font-size: 13px; color: var(--ink-3); margin: 2px 0 0; }
+  .risk {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    padding: 5px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .risk.low { color: #067a5b; background: #05966915; border: 1px solid #05966945; }
+  .risk.med { color: #a5680a; background: #d9770615; border: 1px solid #d9770645; }
+  .risk.high { color: #b52a3a; background: #dc262615; border: 1px solid #dc262645; }
+  @media (prefers-color-scheme: dark) {
+    .risk.low { color: #4ade9f; } .risk.med { color: #fbbf24; } .risk.high { color: #fb8497; }
+  }
+  :root[data-theme="dark"] .risk.low { color: #4ade9f; }
+  :root[data-theme="dark"] .risk.med { color: #fbbf24; }
+  :root[data-theme="dark"] .risk.high { color: #fb8497; }
+
+  .dir-body { display: grid; grid-template-columns: 1fr; gap: 0; }
+  @media (min-width: 780px) { .dir-body { grid-template-columns: 1fr 1fr; } }
+
+  /* swatches + notes column */
+  .dir-info { padding: 20px 22px; }
+  .swatch-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .sw { display: flex; flex-direction: column; gap: 5px; }
+  .sw i {
+    display: block; width: 44px; height: 44px; border-radius: 9px;
+    border: 1px solid #8886; font-style: normal;
+  }
+  .sw span { font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-align: center; }
+  .kv { margin: 16px 0 0; display: grid; gap: 11px; }
+  .kv > div { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: baseline; }
+  .kv dt { font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-3); font-weight: 650; }
+  .kv dd { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+  .kv dd b { color: var(--ink); font-weight: 650; }
+
+  /* Mock preview column — renders in the direction's palette (dark + light) */
+  .mocks { padding: 18px 22px; display: grid; gap: 12px; background: color-mix(in srgb, var(--ink) 3%, transparent); }
+  .mock {
+    --bg: #fff; --fg: #111; --card: #fff; --bd: #ddd; --mut: #777;
+    --pri: #6d5ce8; --acc: #0891b2; --sig: #ff3d6e;
+    background: var(--bg); border: 1px solid var(--bd); border-radius: 11px;
+    padding: 13px 14px; color: var(--fg); position: relative; overflow: hidden;
+  }
+  .mock-lab {
+    position: absolute; top: 8px; right: 10px; font-size: 9px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--mut); font-weight: 700;
+  }
+  .m-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .m-team { display: flex; align-items: center; gap: 9px; }
+  .m-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--sig); flex: none; }
+  .pulse { position: relative; }
+  .pulse::after {
+    content: ""; position: absolute; inset: -5px; border-radius: 50%;
+    border: 2px solid var(--sig); animation: pg 1.6s ease-out infinite;
+  }
+  @keyframes pg { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.8); opacity: 0; } }
+  .m-num { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 15px; }
+  .m-name { font-weight: 650; font-size: 13px; }
+  .m-sub { font-size: 11px; color: var(--mut); }
+  .pill {
+    font-size: 11px; font-weight: 750; padding: 3px 9px; border-radius: 999px;
+    color: #fff; font-variant-numeric: tabular-nums;
+  }
+  .stat-big { font-variant-numeric: tabular-nums; line-height: 1; }
+  .bar { height: 6px; border-radius: 4px; background: color-mix(in srgb, var(--fg) 12%, transparent); overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: 4px; }
+  .scan { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; }
+  .scan::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, var(--pri), transparent);
+    width: 55%; animation: scan 2.4s linear infinite;
+  }
+  @keyframes scan { from { transform: translateX(-100%); } to { transform: translateX(280%); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulse::after, .scan::before { animation: none; }
+    .pulse::after { opacity: .35; }
+  }
+
+  /* ---- technique table ---- */
+  .tbl-wrap { overflow-x: auto; margin-top: 20px; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-3); font-weight: 700; background: color-mix(in srgb, var(--ink) 3%, transparent); }
+  tbody tr:last-child td { border-bottom: none; }
+  td b { font-weight: 650; }
+  .tag { font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 6px; background: color-mix(in srgb, var(--brand) 13%, transparent); color: var(--brand); border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent); white-space: nowrap; }
+  .cost-lo { color: #067a5b; font-weight: 650; } .cost-md { color: #a5680a; font-weight: 650; }
+  :root[data-theme="dark"] .cost-lo { color:#4ade9f;} :root[data-theme="dark"] .cost-md { color:#fbbf24;}
+
+  /* ---- roadmap ---- */
+  .road { margin-top: 26px; display: grid; gap: 14px; }
+  @media (min-width: 720px) { .road { grid-template-columns: repeat(2, 1fr); } }
+  .phase { border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper-2); padding: 18px 20px; }
+  .phase h4 { margin: 0 0 3px; font-size: 15px; font-weight: 730; letter-spacing: -0.01em; }
+  .phase .when { font-size: 12px; color: var(--brand); font-weight: 650; margin: 0 0 12px; font-family: var(--mono); }
+  .phase ul { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 8px; }
+  .phase li { font-size: 13.5px; color: var(--ink-2); padding-left: 20px; position: relative; }
+  .phase li::before { content: "→"; position: absolute; left: 0; color: var(--ink-3); }
+  .phase li b { color: var(--ink); font-weight: 650; }
+
+  /* ---- recommendation ---- */
+  .rec {
+    margin-top: 26px; border: 1px solid color-mix(in srgb, var(--brand) 40%, var(--line));
+    border-radius: var(--radius); padding: 22px 24px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 7%, var(--paper-2)), var(--paper-2));
+  }
+  .rec h3 { margin: 0 0 8px; font-size: 17px; font-weight: 750; }
+  .rec p { margin: 0 0 10px; color: var(--ink-2); font-size: 14.5px; max-width: 72ch; }
+  .rec p:last-child { margin-bottom: 0; }
+  .rec b { color: var(--ink); }
+
+  .foot { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); }
+  .foot a { color: var(--brand); text-decoration: none; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">PRIDE · FTC Analytics · Plan para autorizar</p>
+    <h1>Evolución de diseño: <span class="g">tres direcciones</span>, una decisión.</h1>
+    <p class="lede">La investigación converge en una conclusión incómoda pero útil: las herramientas de scouting con más credibilidad (Statbotics, The Blue Alliance) <b>no</b> persiguen tendencias — ganan por dato rápido y confiable. Las que se sienten "next-gen" (Sofascore, Baseball Savant) lo logran con <b>2-3 primitivas de firma</b>, no con un re-skin completo. Este plan propone exactamente eso: elegir una dirección y un elemento memorable, no repintar la app.</p>
+    <div class="meta">
+      <span class="chip"><b>Restricción dura:</b> legible a pleno sol en cancha</span>
+      <span class="chip"><b>Sin big-bang:</b> cambios por tokens, reversibles</span>
+      <span class="chip"><b>Ya en producción</b> · evolución incremental</span>
+    </div>
+  </header>
+
+  <!-- DIRECTIONS -->
+  <section class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Direcciones de color y tipografía</h2></div>
+    <p class="sec-d">Cada panel muestra su paleta y una mini-UI real (fila de match en vivo · tile de stat · rating pill) renderizada en <em>sus</em> colores, en modo oscuro y claro. Los tres conservan los tokens semánticos actuales: cambian valores, no componentes.</p>
+
+    <div class="dirs">
+
+      <!-- A -->
+      <article class="dir" style="--A-pri:#6d5ce8; --A-acc:#00a99a; --A-sig:#ff3d6e;">
+        <div class="dir-top">
+          <div class="dir-id">
+            <div class="dir-badge" style="background:linear-gradient(135deg,#6d5ce8,#00a99a)">A</div>
+            <div>
+              <p class="dir-name">Signal</p>
+              <p class="dir-sub">Evolución del violet/cyan actual · conserva marca</p>
+            </div>
+          </div>
+          <span class="risk low">Riesgo bajo · recomendada</span>
+        </div>
+        <div class="dir-body">
+          <div class="dir-info">
+            <div class="swatch-row">
+              <span class="sw"><i style="background:#6d5ce8"></i><span>#6D5CE8</span></span>
+              <span class="sw"><i style="background:#00a99a"></i><span>#00A99A</span></span>
+              <span class="sw"><i style="background:#ff3d6e"></i><span>#FF3D6E</span></span>
+              <span class="sw"><i style="background:#fafaf9;border-color:#ccc"></i><span>#FAFAF9</span></span>
+              <span class="sw"><i style="background:#0b0b11"></i><span>#0B0B11</span></span>
+            </div>
+            <dl class="kv">
+              <div><dt>Tipos</dt><dd><b>Bricolage Grotesque</b> (display, variable) + Geist (cuerpo) + Geist Mono (datos)</dd></div>
+              <div><dt>Firma</dt><dd><b>"Live Pulse":</b> el rosa <b>#FF3D6E</b> aparece <em>solo</em> en el anillo pulsante de match en vivo. Reservado — tu ojo aprende "ese tono = pasando ahora".</dd></div>
+              <div><dt>Por qué</dt><dd>Cero pérdida de reconocimiento de marca. Atención vía un acento raro y disciplinado, no un repintado.</dd></div>
+            </dl>
+          </div>
+          <div class="mocks">
+            <div class="mock" style="--bg:#0b0b11;--fg:#ececf2;--card:#14141d;--bd:#23232f;--mut:#8f8fa3;--pri:#9b8fff;--acc:#2de5d4;--sig:#ff5c82">
+              <span class="mock-lab">Oscuro</span>
+              <div class="m-row">
+                <div class="m-team"><span class="m-dot pulse"></span><div><div class="m-name">Iron Lion · 30311</div><div class="m-sub">Q-42 · en vivo</div></div></div>
+                <div class="m-num" style="color:var(--pri)">108</div>
+              </div>
+            </div>
+            <div class="mock" style="--bg:#fafaf9;--fg:#14131f;--card:#fff;--bd:#e7e4f0;--mut:#6f6d7a;--pri:#6d5ce8;--acc:#00a99a;--sig:#ff3d6e">
+              <span class="mock-lab">Claro</span>
+              <div class="m-row">
+                <div><div class="m-sub" style="letter-spacing:.08em;text-transform:uppercase;font-weight:700">OPR total</div><div class="stat-big" style="font-size:26px;font-weight:800;color:var(--acc)">142.6</div></div>
+                <span class="pill" style="background:var(--acc)">Top 8%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- B -->
+      <article class="dir" style="--B-pri:#ff5a1f; --B-acc:#2354ff;">
+        <div class="dir-top">
+          <div class="dir-id">
+            <div class="dir-badge" style="background:linear-gradient(135deg,#ff5a1f,#2354ff)">B</div>
+            <div>
+              <p class="dir-name">Arena</p>
+              <p class="dir-sub">Energía de transmisión / competencia · editorial</p>
+            </div>
+          </div>
+          <span class="risk med">Riesgo medio</span>
+        </div>
+        <div class="dir-body">
+          <div class="dir-info">
+            <div class="swatch-row">
+              <span class="sw"><i style="background:#ff5a1f"></i><span>#FF5A1F</span></span>
+              <span class="sw"><i style="background:#2354ff"></i><span>#2354FF</span></span>
+              <span class="sw"><i style="background:#f7f5f2;border-color:#ccc"></i><span>#F7F5F2</span></span>
+              <span class="sw"><i style="background:#121110"></i><span>#121110</span></span>
+            </div>
+            <dl class="kv">
+              <div><dt>Tipos</dt><dd><b>Fraunces</b> (serif variable, números héroe) + Funnel/General Sans (UI) + JetBrains Mono</dd></div>
+              <div><dt>Firma</dt><dd>El número más importante de cada pantalla (score, OPR, RP) en <b>Fraunces grande</b> — "scoreboard editorial". Solo uno por pantalla.</dd></div>
+              <div><dt>Por qué</dt><dd>Se lee como gráfica de transmisión, no como SaaS. Requiere disciplina para no caer en cliché de blog deportivo.</dd></div>
+            </dl>
+          </div>
+          <div class="mocks">
+            <div class="mock" style="--bg:#121110;--fg:#f5f2ec;--card:#1c1a18;--bd:#2a2724;--mut:#a49a8c;--pri:#ff7a45;--acc:#4c8dff;--sig:#ff7a45">
+              <span class="mock-lab">Oscuro</span>
+              <div class="m-row">
+                <div><div class="m-sub" style="letter-spacing:.08em;text-transform:uppercase;font-weight:700">Score proyectado</div><div class="stat-big" style="font-family:var(--serif);font-size:40px;font-weight:600;color:var(--pri)">187</div></div>
+                <div style="text-align:right"><div class="m-sub">vs A3</div><div class="m-num" style="font-family:var(--serif);font-size:26px;color:var(--mut)">164</div></div>
+              </div>
+            </div>
+            <div class="mock" style="--bg:#f7f5f2;--fg:#1b1a17;--card:#fff;--bd:#e8e3da;--mut:#7a7266;--pri:#ff5a1f;--acc:#2354ff;--sig:#ff5a1f">
+              <span class="mock-lab">Claro</span>
+              <div class="m-row">
+                <div class="m-team"><span class="pill" style="background:var(--acc)">A5</span><div><div class="m-name">Alianza 5</div><div class="m-sub">Prob. ganar</div></div></div>
+                <div class="stat-big" style="font-family:var(--serif);font-size:30px;font-weight:600;color:var(--pri)">61%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- C -->
+      <article class="dir">
+        <div class="dir-top">
+          <div class="dir-id">
+            <div class="dir-badge" style="background:linear-gradient(135deg,#c4f135,#4361ff);color:#08090c">C</div>
+            <div>
+              <p class="dir-name">Nightshift</p>
+              <p class="dir-sub">Dark-first · instrumentación esports</p>
+            </div>
+          </div>
+          <span class="risk high">Riesgo alto</span>
+        </div>
+        <div class="dir-body">
+          <div class="dir-info">
+            <div class="swatch-row">
+              <span class="sw"><i style="background:#c4f135"></i><span>#C4F135</span></span>
+              <span class="sw"><i style="background:#4361ff"></i><span>#4361FF</span></span>
+              <span class="sw"><i style="background:#08090c"></i><span>#08090C</span></span>
+              <span class="sw"><i style="background:#101319"></i><span>#101319</span></span>
+              <span class="sw"><i style="background:#ff3b5c"></i><span>#FF3B5C</span></span>
+            </div>
+            <dl class="kv">
+              <div><dt>Tipos</dt><dd><b>Space Grotesk</b> (display) + Space/JetBrains Mono (datos). Carácter de "panel de instrumentos".</dd></div>
+              <div><dt>Firma</dt><dd>Scanline de 1px animado bajo las filas de match en vivo — lower-third de transmisión, cero JS.</dd></div>
+              <div><dt>Por qué</dt><dd>El "wow" más fuerte y el más polarizante. Chartreuse-sobre-negro es esports, no robótica. Opción de rebrand, no default.</dd></div>
+            </dl>
+          </div>
+          <div class="mocks">
+            <div class="mock" style="--bg:#08090c;--fg:#e7eaf0;--card:#101319;--bd:#1e2430;--mut:#7d8494;--pri:#c4f135;--acc:#4361ff;--sig:#ff3b5c">
+              <span class="mock-lab">Oscuro (primario)</span>
+              <div class="m-row">
+                <div class="m-team"><span class="m-dot" style="background:var(--pri)"></span><div><div class="m-name">Rhinos · 31546</div><div class="m-sub">Capitán · A5</div></div></div>
+                <div class="m-num" style="color:var(--pri)">129</div>
+              </div>
+              <div class="scan"></div>
+            </div>
+            <div class="mock" style="--bg:#f5f6f2;--fg:#0e1116;--card:#fff;--bd:#dce0e6;--mut:#616772;--pri:#5e8a00;--acc:#3049d6;--sig:#d6203f">
+              <span class="mock-lab">Claro (secundario)</span>
+              <div style="margin-bottom:8px" class="m-row"><div class="m-sub" style="font-weight:700;text-transform:uppercase;letter-spacing:.08em">Endgame OPR</div><div class="m-num" style="color:var(--pri)">34.2</div></div>
+              <div class="bar"><i style="width:78%;background:var(--pri)"></i></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- TECHNIQUES -->
+  <section class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Técnicas adoptables — nombradas, con costo real</h2></div>
+    <p class="sec-d">Todo esto es aditivo y compatible con el stack (Next 16 · Tailwind v4 · sin librería de motion hoy). La regla de legibilidad manda: sirve lo que reduce contraste en un área <em>chica</em> (glow, badge saturado); se descarta lo que lo reduce en área <em>grande</em> (blur, pasteles, tipos finos).</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Técnica</th><th>Qué es</th><th>Costo</th><th>Realidad 2026</th></tr></thead>
+        <tbody>
+          <tr><td><b>Tabular figures</b> <span class="tag">hecho</span></td><td>Dígitos de ancho fijo; columnas no bailan al actualizar</td><td class="cost-lo">Cero</td><td>Ya aplicado en tablas. Revisar tiles con <code>&lt;span&gt;</code> sueltos.</td></tr>
+          <tr><td><b>View Transitions API</b></td><td>Cross-fade/morph nativo entre tabs/rutas, sin librería</td><td class="cost-lo">1 línea</td><td>Baseline Chrome/Safari/FF. Progressive enhancement seguro.</td></tr>
+          <tr><td><b>Bento grid</b></td><td>Grid asimétrico; el tile más grande = el dato más importante</td><td class="cost-lo">Layout</td><td>Tailwind v4 nativo. Tope 8-12 tiles visibles.</td></tr>
+          <tr><td><b>Rating pills</b> (Sofascore)</td><td>Score numérico mapeado a rojo→ámbar→verde</td><td class="cost-lo">Tokens</td><td>Directo para driverSkill / defenseRating / OPR.</td></tr>
+          <tr><td><b>Scroll-driven anim.</b></td><td>Animar por scroll, cero JS</td><td class="cost-lo">CSS</td><td>~82% soporte; Firefox aún detrás → solo decoración.</td></tr>
+          <tr><td><b>Sombra ambiental + glow</b></td><td>Multi-sombra suave + glow del acento al ~8% en pocas hero-cards</td><td class="cost-lo">CSS</td><td>Seguro a pleno sol si es solo elevación, no legibilidad.</td></tr>
+          <tr><td><b>Motion (motion.dev)</b></td><td>Física de spring para gestos/drag que VT no cubre</td><td class="cost-md">Dep. nueva</td><td>Solo alcance reducido (ej. drag del picklist). No app-wide.</td></tr>
+          <tr><td><b>Fuente variable de firma</b></td><td>Un archivo, ejes (peso/ancho/óptico) del label al número héroe</td><td class="cost-md">Swap fuente</td><td>Bricolage / Fraunces flexionan sin cargar segunda familia.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Roadmap por fases — incremental, reversible</h2></div>
+    <p class="sec-d">Fases 0-1 son puro CSS/tokens sin tocar lógica de negocio: se pueden shippear sueltas. Fases 2-3 tocan layout y carga de fuentes → PR normal + smoke de Playwright en ambos temas. Ninguna reescribe código de datos/agregación.</p>
+    <div class="road">
+      <div class="phase">
+        <h4>Fase 0 — Quick wins</h4>
+        <p class="when">horas · riesgo casi nulo</p>
+        <ul>
+          <li>Cerrar cobertura de <b>tabular-nums</b> en tiles sueltos</li>
+          <li>Timing de skeleton: <b>delay 200ms</b>, geometría idéntica al contenido (sin layout shift)</li>
+          <li>Token <b>focus-glow</b> reservado en <code>:focus-visible</code></li>
+          <li><b>View Transitions</b> en los tabs de Strategy (5) y Analytics (2)</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <h4>Fase 1 — Cambios de token</h4>
+        <p class="when">días · aditivo, reversible</p>
+        <ul>
+          <li>Token <b>"signal"</b> reservado → solo el pulso de match en vivo</li>
+          <li><b>Sombra ambiental</b> en hero-cards contadas (home, Oracle)</li>
+          <li><b>Rating pills</b> para driverSkill / defenseRating / OPR</li>
+          <li>Saldar deuda: <code>/team</code>, SourceBadge, AlliancePredictor a tokens</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <h4>Fase 2 — Estructural aditivo</h4>
+        <p class="when">1-2 semanas</p>
+        <ul>
+          <li><b>Bento grid</b> en home/overview (≤12 tiles)</li>
+          <li>Swap de fuente display (Archivo → Bricolage) en un solo punto</li>
+          <li><b>Librería de chart-templates</b> en Data Lab (estilo Illustrator)</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <h4>Fase 3 — Profundo / opcional</h4>
+        <p class="when">semanas · más disciplina</p>
+        <ul>
+          <li>Reveal de charts con <b>scroll-driven</b> (tras <code>@supports</code>)</li>
+          <li><b>Motion</b> acotado solo al drag del picklist</li>
+          <li>Superficie <b>showcase</b> con el tratamiento Fraunces (Oracle reveal)</li>
+          <li><b>Regresión visual</b> Playwright en ambos temas antes de cerrar</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- REC -->
+  <section class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Recomendación</h2></div>
+    <div class="rec">
+      <h3>Shippear Dirección A ("Signal") como base — B y C como experimentos acotados</h3>
+      <p><b>A</b> es el camino de menor riesgo a "que llame la atención": conserva el equity violet/cyan, y logra el gancho con <b>un acento raro y disciplinado</b> (el Live Pulse) en vez de un repintado. Cada técnica que propone es legible a pleno sol según las reglas de §04 de la investigación.</p>
+      <p>El número-héroe en Fraunces de <b>B</b> vale como experimento aditivo de Fase 3 en <b>una</b> superficie de alta visibilidad (el reveal del Alliance Oracle), sin swap de paleta. <b>C</b> se reserva como opción de rebrand deliberado, no default — probar en cancha con luz de gimnasio real antes de generalizar.</p>
+      <p style="margin-top:14px"><b>Lo que necesito de ti para arrancar:</b> (1) qué dirección autorizas como base, (2) si abrimos la puerta a la librería <b>Motion</b> (dep. nueva) o nos quedamos solo con View Transitions + CSS, y (3) si empezamos por Fase 0 (quick wins, casi sin riesgo) o vamos directo a la Fase 1 de tokens.</p>
+    </div>
+  </section>
+
+  <p class="foot">
+    Investigación: tendencias 2026 (UXPin, Muzli, Inkbot), referentes del nicho (Statbotics, The Blue Alliance, Sofascore, Baseball Savant), soporte de browser (caniuse: View Transitions, scroll-driven), legibilidad (Adrian Roselli WCAG3, APCA). · Grounding: <code>app/globals.css</code> actual.
+  </p>
+</div>

@@ -46,3 +46,6 @@ public/sw.js.map
 
 # scratch / ad-hoc scripts
 test-fetch.ts
+
+# Playwright MCP screenshots/logs (local verification only)
+.playwright-mcp/
