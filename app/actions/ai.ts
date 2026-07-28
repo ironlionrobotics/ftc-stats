@@ -2,6 +2,7 @@
 
 import { getAdminAuth } from "@/lib/firebase-admin";
 import { getRedis } from "@/lib/redis";
+import { getAppConfig } from "@/lib/app-config";
 import {
     AI_LIMITS,
     capContext,
@@ -68,6 +69,13 @@ export async function chatWithAssistant(input: {
         return reply("AI Configuration Missing: Please set GOOGLE_GENERATIVE_AI_API_KEY in .env.local");
     }
 
+    // Runtime config (superadmin console): master switch + tunables. Read is
+    // Redis-cached (60s) so this adds no meaningful latency per request.
+    const appConfig = await getAppConfig();
+    if (!appConfig.features.aiAssistant) {
+        return reply("El asistente de IA está desactivado por el administrador.");
+    }
+
     // 4a. Message validation (before rate-limit spend so junk doesn't consume quota).
     const validated = validateMessage(message);
     if (!validated.ok) {
@@ -86,7 +94,9 @@ export async function chatWithAssistant(input: {
             const key = RL_PREFIX + uid;
             const count = await redis.incr(key);
             if (count === 1) await redis.expire(key, AI_LIMITS.rateWindowSeconds);
-            if (count > AI_LIMITS.rateMaxPerWindow) {
+            // Ceiling comes from runtime config (superadmin-tunable), not the
+            // compile-time constant — AI_LIMITS keeps the default.
+            if (count > appConfig.ai.rateMaxPerWindow) {
                 return reply("Vas muy rápido — espera un momento antes de la siguiente consulta.");
             }
         } catch (e) {
@@ -118,8 +128,9 @@ export async function chatWithAssistant(input: {
         contents.push({ role: "user", parts: [{ text: trimmed }] });
 
         // 2. Model resolved server-side from the allow-list — never interpolated
-        // from raw client input. Key stays in the query string as before.
-        const model = resolveModel(modelTier);
+        // from raw client input. Config's tier is the default when the client
+        // doesn't ask for one. Key stays in the query string as before.
+        const model = resolveModel(modelTier ?? appConfig.ai.modelTier);
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
             {

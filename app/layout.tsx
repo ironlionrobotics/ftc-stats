@@ -4,6 +4,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/context/AuthContext";
 import AssistantChat from "@/components/ai/AssistantChat";
+import { getAppConfig } from "@/lib/app-config";
 import OnboardingModal from "@/components/auth/OnboardingModal";
 import ThemeSync from "@/components/ThemeSync";
 import QueryProvider from "@/components/QueryProvider";
@@ -85,6 +86,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Runtime config (superadmin console). Redis-cached; degrades to defaults.
+  const appConfig = await getAppConfig();
   return (
     // suppressHydrationWarning: the themeInitScript below sets the `dark` class
     // on <html> before hydration, which intentionally differs from the server
@@ -104,7 +107,7 @@ export default async function RootLayout({
               <div className="md:ml-60 min-h-screen transition-all duration-300 pb-20 md:pb-0">
                 {children}
               </div>
-              <AssistantChat />
+              {appConfig.features.aiAssistant && <AssistantChat />}
               <OnboardingModal />
               <OnlineSync />
               <PWAInstallPrompt />

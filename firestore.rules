@@ -196,5 +196,12 @@ service cloud.firestore {
         match /api_cache/{key} {
             allow read, write: if false;
         }
+
+        // App-level runtime config (superadmin console). Written ONLY via the
+        // superadmin server action using the Admin SDK (which bypasses rules);
+        // clients never touch it directly, in either direction.
+        match /app_config/{doc} {
+            allow read, write: if false;
+        }
     }
 }
