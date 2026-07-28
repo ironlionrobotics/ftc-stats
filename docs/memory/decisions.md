@@ -388,3 +388,17 @@ Este documento registra el "por qué" detrás de las elecciones técnicas para e
 - A1 (12887+32753) campeón como el favorito absoluto (~256 pts proyectados, doble que A5/A6). A4 protagonista secundario como predijo el MC; la Lower Final se volteó 198-180 por major fouls de A4 (impronosticable — cubierto por la capa de realidad).
 - **Insight estratégico**: en un campo con súper-equipo, el boleto ganador no era capitanear sino ser pick de A1 (32753, rank 16, campeón por buen scouting del capitán). El top-4 de seed vale desproporcionadamente por los byes en doble eliminación; ser "pickeable" para capitanes top es estrategia válida.
 - **Posicionamiento vs ecosistema** (investigado 25 jul): ninguna herramienta FTC pública combina scouting federado + blend bayesiano + Monte Carlo + regresión RP + calibración Brier. FTC Scout = OPR estándar sin predicción. FTC Secrets (equipo 31000) es lo más cercano en predicción pero sin scouting colaborativo. Nadie publica accuracy/Brier de predicción FTC — PRIDE tiene el instrumental para ser el primero.
+
+## #51 · Backtest del Oracle contra el World Championship Houston 2026 (2026-07-28)
+
+Metodología idéntica a la validación FPEMX (OPR Gauss-Seidel de quals → suma de robots en cancha → Φ((μA−μB)/σ_diff), σ de residuales ×√2), corrida sobre las 6 divisiones + Finals vía FTCScout GraphQL.
+
+| Ámbito | Resultado |
+|---|---|
+| 6 divisiones (84 matches de playoffs) | **55/84 = 65.5%** de aciertos; calibración sana (P media al ganador real 0.634 ≈ 65.5% realizado) |
+| Mejor división | Ross **85.7%** (alianza dominante 14270/3565, invicta en división) |
+| Peores | Lovelace y Franklin 57.1% — paridad real (σ_diff más bajos del set), no falla del modelo |
+| Finals (17 matches, OPR pooled de 847 quals) | **8/17 = 47.1%** — moneda al aire; el campeón mundial ([30030,21087,11228]) era el **#5** por OPR pooled y venció al favorito del modelo (98.7%→perdió) en el mayor upset del backtest |
+| Campeón = favorito del modelo | Solo 3/6 divisiones; Finals NO |
+
+**Lecturas:** (1) 65.5% en Worlds vs 90% en FPEMX es esperado — el field mundial comprime los márgenes de OPR hacia el piso de ruido y las eliminatorias tienden a 50/50 genuino; la calibración se sostuvo, que es lo que importa. (2) Se confirma a mayor escala el insight FPEMX: el OPR lineal de quals no captura factores de playoffs (defensa, sinergia, mejora del driver) — "el mejor por OPR" solo fue campeón en la mitad de las divisiones. (3) Mejora futura candidata: ajuste específico de eliminatorias (peso a consistencia/σ propio y defensa) antes del Championship 2027. La app ya renderiza las divisiones nativamente (§15.3 auto-detectado) + navegación agregada.
