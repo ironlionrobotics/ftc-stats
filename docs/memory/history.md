@@ -187,3 +187,16 @@ Tras el clúster estadístico, se ejecutó la remediación de los hallazgos de s
 - **Móvil** — auditoría con Playwright (390×844) y fixes: overflow de página en /event eliminado, master-detail en /scouting, tabla compacta, link Estrategia en Sidebar (faltaba), headers con wrap. Decisión #45.
 - **Rediseño** — tokens violet/cyan claro+oscuro, tipografía Geist/Archivo/Geist Mono (bug: las fuentes del @theme nunca se cargaban), flat design, ~900 reemplazos de clases hardcodeadas en ~40 archivos vía 2 agentes Sonnet supervisados con excepciones documentadas. El toggle de tema funciona en toda la app por primera vez. Decisión #46.
 - **Estado**: 224 tests verdes, lint/tsc limpios, build ok. NO desplegado — regla nueva: ningún deploy a App Hosting sin OK explícito de Héctor.
+
+### Sesión 15: Deploy en vivo + suite de análisis en tiempo real durante FPEMX (24-28 Jul 2026, Fable 5 + Opus 4.8)
+Sesión larga y multi-tema, con la app YA en producción y usada en vivo durante el México Premier Event.
+
+- **Deploy a Firebase App Hosting**: backend `ftc-stats` en `us-central1` (proyecto `ironlion-scouting`), secretos en Secret Manager (FTC API, Gemini, Upstash), Upstash Redis creado y verificado. URL: https://ftc-stats--ironlion-scouting.us-central1.hosted.app. Decisiones #42-#44 (caché, identidad de datos, offline-first) desplegadas primero por urgencia del día final del evento. **Regla nueva del usuario**: NO desplegar sin OK explícito (memoria `feedback_no_deploy_sin_permiso`).
+- **Rediseño visual "Modern technical"** (dirección guardada, ejecutada porque el Premier terminó y el usuario lo pidió): tokens violet/cyan, tipografía real (Geist/Archivo/Geist Mono — las fuentes del @theme nunca se cargaban), flat design, ~900 reemplazos a tokens en ~40 archivos. Toggle claro/oscuro funciona en toda la app por primera vez. Optimización móvil (master-detail scouting, tab bars scrolleables, link Estrategia). Decisiones #45-#46.
+- **Análisis en vivo FPEMX**: OPR + Monte Carlo sobre datos reales para las 2 quals restantes de 30311; comparación competitiva vs FTC Scout/Orange Alliance/ftcstats/FTC Secrets (investigación con fuentes primarias).
+- **Alianzas de 3 robots** (Championship/Premier §15.3, semántica "mejor par" — solo 2 de 3 juegan): auto-detección desde `fetchAlliances`, toggle en simulador. FPEMX resultó 6 alianzas de 2. Decisión #47.
+- **Calendario híbrido + predicción de matches + análisis explicable + rebrand a PRIDE**. Decisión #49.
+- **Draft en vivo + asesor de invitación** (inferencia de scouting rival vía T702). Decisión #50.
+- **Corrección de semántica de fouls del API** (estaba invertida en medio código — `scoreXFoul` = cometidos, no recibidos) + capa de realidad del bracket (falla por robot, foul points, resultados reales, import API) + bracket en bandas upper/lower. Decisión #48.
+- **Validación**: modelo acertó 9/10 ganadores de playoffs reales de FPEMX; único upset fue de 30311. Ver decisiones.md "Validación del modelo contra FPEMX".
+- **Estado**: rama `feat/oracle-alliance_maker-260210`, 224 tests verdes, tsc/lint limpios. Todo commiteado y desplegado a producción.
