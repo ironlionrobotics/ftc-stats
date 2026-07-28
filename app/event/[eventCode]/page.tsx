@@ -1,5 +1,6 @@
 import { fetchMatches, fetchRankings, fetchEvents, fetchAdvancement, fetchEventAwards, fetchAdvancementPoints, fetchHybridSchedule, fetchAlliances } from "@/lib/ftc-api";
-import { getCurrentSeason } from "@/lib/constants";
+import { getCurrentSeason, CHAMPIONSHIP_EVENTS_2025, PREMIER_EVENTS_2025 } from "@/lib/constants";
+import Link from "next/link";
 import EventViewManager from "@/components/event/EventViewManager";
 import EventStats from "@/components/event/EventStats";
 import { cookies } from "next/headers";
@@ -99,6 +100,37 @@ export default async function EventPage(props: EventPageProps) {
                     </div>
                 </div>
             </header>
+
+            {/* Sibling navigation: on a Championship division or Premier event,
+                offer one-click jumps to the rest of the group (§15.3 events all
+                render natively; nobody memorizes codes like FTCCMP1FRAN). */}
+            {(() => {
+                const upper = event.code.toUpperCase();
+                const group = CHAMPIONSHIP_EVENTS_2025.some(e => e.code === upper)
+                    ? { label: "Divisiones · Houston", items: CHAMPIONSHIP_EVENTS_2025 }
+                    : PREMIER_EVENTS_2025.some(e => e.code === upper)
+                        ? { label: "Premier Events", items: PREMIER_EVENTS_2025 }
+                        : null;
+                if (!group) return null;
+                return (
+                    <div className="mb-6 flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground mr-1">{group.label}</span>
+                        {group.items.map(d => (
+                            <Link
+                                key={d.code}
+                                href={`/event/${d.code}?season=${season}`}
+                                className={
+                                    d.code === upper
+                                        ? "px-2.5 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-bold"
+                                        : "px-2.5 py-1 rounded-lg bg-muted border border-border text-muted-foreground hover:text-foreground text-xs font-bold transition-colors"
+                                }
+                            >
+                                {d.name}
+                            </Link>
+                        ))}
+                    </div>
+                );
+            })()}
 
             <EventStats matches={matches} rankings={rankings} />
 

@@ -10,6 +10,32 @@ export const MEXICAN_EVENTS = [
     { code: "MXCMP", abbr: "CMP", name: "Championship Nacional" },
 ];
 
+/**
+ * FIRST World Championship (Houston) divisions + Finals, and the Premier
+ * Events, for the DECODE 2025 season. Codes verified against FTCScout
+ * (2026-07-28). Used for quick navigation — nobody memorizes FTCCMP1FRAN.
+ * All render natively: the event page auto-detects 3-robot alliances (§15.3).
+ */
+export const CHAMPIONSHIP_EVENTS_2025 = [
+    { code: "FTCCMP1FRAN", abbr: "FRA", name: "Franklin" },
+    { code: "FTCCMP1JACK", abbr: "JAC", name: "Jackson" },
+    { code: "FTCCMP1ROSS", abbr: "ROS", name: "Ross" },
+    { code: "FTCCMP1EDIS", abbr: "EDI", name: "Edison" },
+    { code: "FTCCMP1GOOD", abbr: "GOO", name: "Goodall" },
+    { code: "FTCCMP1LOVE", abbr: "LOV", name: "Lovelace" },
+    { code: "FTCCMP1", abbr: "FIN", name: "Finals" },
+];
+
+export const PREMIER_EVENTS_2025 = [
+    { code: "FPEMX", abbr: "MEX", name: "México" },
+    { code: "FPEEUR", abbr: "EUR", name: "Europa" },
+    { code: "FPEIST", abbr: "IST", name: "İstanbul" },
+    { code: "FPENE", abbr: "NE", name: "New England" },
+    { code: "FPEWE", abbr: "WE", name: "Western Edge" },
+    { code: "FPERR", abbr: "RR", name: "Run for the Robots" },
+    { code: "FPECAR", abbr: "CAR", name: "Carolinas" },
+];
+
 export function getCurrentSeason(): number {
     const now = new Date();
     // Similar to FIRST: Season is usually defined by the start year.
