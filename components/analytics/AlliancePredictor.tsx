@@ -3,7 +3,7 @@ import { Search, Info, X, Trophy, Bot, User, Sparkles, Network, Radio } from "lu
 import { Card } from "@/components/ui/Card";
 import clsx from "clsx";
 import { TeamEvolution } from "@/app/actions/analytics";
-import { MatchScouting, FTCMatchScouting, FTCAllianceSelection } from "@/types/scouting";
+import { MatchScouting, FTCMatchScouting, FTCAllianceSelection, FTCMatch } from "@/types/scouting";
 import TournamentSimulator from "./TournamentSimulator";
 import LiveDraftBoard from "./LiveDraftBoard";
 
@@ -16,6 +16,8 @@ interface AlliancePredictorProps {
     officialAlliances?: FTCAllianceSelection[];
     /** Scopes the live-draft localStorage state per event. */
     eventCode?: string;
+    /** Real playoff matches (API) for the tournament reality import. */
+    playoffMatches?: FTCMatch[];
 }
 
 interface ScoutedMetrics {
@@ -26,12 +28,17 @@ interface ScoutedMetrics {
     notes: string[];
 }
 
-export default function AlliancePredictor({ teams, scoutingData = [], initialTeam, onTeamSelect, officialAlliances, eventCode }: AlliancePredictorProps) {
+export default function AlliancePredictor({ teams, scoutingData = [], initialTeam, onTeamSelect, officialAlliances, eventCode, playoffMatches }: AlliancePredictorProps) {
     const [unavailableTeams, setUnavailableTeams] = useState<number[]>([]);
     const [unavailableInput, setUnavailableInput] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedTeam, setSelectedTeam] = useState<TeamEvolution | null>(null);
     const [mode, setMode] = useState<"analysis" | "simulator" | "draft">("analysis");
+    // Partner-finder data scope. API stats (OPR/rankings) are ALWAYS
+    // qualification-only; this toggle additionally excludes human scouting
+    // entries so recommendations can be reproduced from pure API data
+    // (scouting keeps growing during/after playoffs and shifts rankings).
+    const [useScouting, setUseScouting] = useState(true);
 
     // Sync with external selection (e.g. from the table). This is the React
     // "adjusting state when a prop changes" pattern: compare the prop against
@@ -55,7 +62,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
     // stable across renders where scoutingData is unchanged — the two useMemos
     // below depend on it, so an unstable identity would defeat their memoization.
     const calculateScoutingMetrics = useCallback((teamNumber: number): ScoutedMetrics => {
-        const teamMatches = scoutingData.filter(m => m.teamNumber === teamNumber);
+        const teamMatches = useScouting ? scoutingData.filter(m => m.teamNumber === teamNumber) : [];
         if (!teamMatches.length) return { driverSkill: 0, reliability: 0, archetype: 'Unknown', endgameSuccess: 0, notes: [] };
 
         // Simple predictive calculation
@@ -80,7 +87,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
             endgameSuccess,
             notes: teamMatches.filter(m => m.notes).map(m => m.notes).slice(0, 3)
         };
-    }, [scoutingData]);
+    }, [scoutingData, useScouting]);
 
     const targetStats = useMemo(() => {
         if (!selectedTeam) return null;
@@ -263,6 +270,24 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                             Select a target team to identify statistically optimal partners.
                             Now integrated with <span className="text-primary font-bold">OPR Analytics</span> for precise scoring predictions.
                         </p>
+                        <div className="flex items-center gap-3 mt-3 flex-wrap">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-md bg-secondary/10 text-secondary border border-secondary/20">
+                                API: solo Qualification
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setUseScouting(v => !v)}
+                                className={clsx(
+                                    "font-mono text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-md border transition-colors",
+                                    useScouting
+                                        ? "bg-primary/10 text-primary border-primary/20"
+                                        : "bg-muted text-muted-foreground border-border line-through"
+                                )}
+                                title="El scouting humano puede incluir observaciones hechas durante playoffs; apágalo para recomendaciones 100% reproducibles desde datos API de quals."
+                            >
+                                Scouting: {useScouting ? "ON" : "OFF"} ({scoutingData.length})
+                            </button>
+                        </div>
                     </div>
                     <div className="flex bg-muted p-1 rounded-xl">
                         <button
@@ -302,7 +327,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                         storageKey={`live-draft:${eventCode ?? "default"}`}
                     />
                 ) : mode === "simulator" ? (
-                    <TournamentSimulator teams={teams} />
+                    <TournamentSimulator teams={teams} official={officialAlliances} playoffMatches={playoffMatches} />
                 ) : (
                     <>
                         {/* Selection Area (Same as before) */}
