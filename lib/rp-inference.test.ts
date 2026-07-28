@@ -73,7 +73,7 @@ describe("extractObservations", () => {
     it("backs out tele from total - auto - foul when scoreTeleOp is absent", () => {
         // total 100, auto 20, foul 5 → tele = 75
         const obs = extractObservations(
-            ftcMatch({ scoreRedFinal: 100, scoreRedAuto: 20, scoreRedFoul: 5 }),
+            ftcMatch({ scoreRedFinal: 100, scoreRedAuto: 20, scoreBlueFoul: 5 }),
             "movement",
         );
         // Feature [1] is tele
@@ -91,7 +91,7 @@ describe("allianceScoreComponents — train-serve parity (M8 regression)", () =>
         const match = ftcMatch({
             scoreRedFinal: 100,
             scoreRedAuto: 20,
-            scoreRedFoul: 5,
+            scoreBlueFoul: 5,
             ...( { scoreRedEndgame: 25 } as object ),
         });
         const red = allianceScoreComponents(match, "red");
@@ -119,7 +119,7 @@ describe("allianceScoreComponents — train-serve parity (M8 regression)", () =>
     });
 
     it("clamps the tele fallback at 0 for foul-heavy degenerate scores", () => {
-        const match = ftcMatch({ scoreRedFinal: 10, scoreRedAuto: 5, scoreRedFoul: 20 });
+        const match = ftcMatch({ scoreRedFinal: 10, scoreRedAuto: 5, scoreBlueFoul: 20 });
         expect(allianceScoreComponents(match, "red").tele).toBe(0);
     });
 
@@ -131,7 +131,7 @@ describe("allianceScoreComponents — train-serve parity (M8 regression)", () =>
         const match = ftcMatch({
             scoreRedFinal: 100,
             scoreRedAuto: 20,
-            scoreRedFoul: 5,
+            scoreBlueFoul: 5,
             ...( { scoreRedEndgame: 25 } as object ),
         });
         const trainingRow = extractObservations(match, "movement")[0].features;

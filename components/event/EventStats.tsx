@@ -41,8 +41,8 @@ export default function EventStats({ matches, rankings }: EventStatsProps) {
         matches.forEach(match => {
             const redFinal = match.scoreRedFinal;
             const blueFinal = match.scoreBlueFinal;
-            const redClean = redFinal - match.scoreRedFoul;
-            const blueClean = blueFinal - match.scoreBlueFoul;
+            const redClean = redFinal - match.scoreBlueFoul;
+            const blueClean = blueFinal - match.scoreRedFoul;
             const redAuto = match.scoreRedAuto;
             const blueAuto = match.scoreBlueAuto;
 

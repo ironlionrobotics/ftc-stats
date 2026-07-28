@@ -116,7 +116,7 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
                 end = getEndgame(allianceData);
             } else {
                 // Fallback estimate
-                tele = Math.max(0, score - auto - (isRed ? m.scoreRedFoul : m.scoreBlueFoul));
+                tele = Math.max(0, score - auto - (isRed ? m.scoreBlueFoul : m.scoreRedFoul));
             }
         } else {
             // Fallback estimate

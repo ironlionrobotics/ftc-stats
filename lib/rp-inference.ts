@@ -82,7 +82,9 @@ export function allianceScoreComponents(
     const isRed = side === "red";
     const final = (isRed ? match.scoreRedFinal : match.scoreBlueFinal) ?? 0;
     const auto = (isRed ? match.scoreRedAuto : match.scoreBlueAuto) ?? 0;
-    const foul = (isRed ? match.scoreRedFoul : match.scoreBlueFoul) ?? 0;
+    // Penalties RECEIVED by this alliance = the OPPONENT's committed fouls
+    // (scoreXFoul = committed by X — verified vs the official score display).
+    const foul = (isRed ? match.scoreBlueFoul : match.scoreRedFoul) ?? 0;
     const end = (isRed ? raw.scoreRedEndgame : raw.scoreBlueEndgame) ?? 0;
     const teleRaw = isRed ? raw.scoreRedTeleOp : raw.scoreBlueTeleOp;
     const tele = teleRaw ?? Math.max(0, final - auto - foul - end);

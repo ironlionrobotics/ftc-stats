@@ -197,6 +197,46 @@ export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, 
 }
 
 /**
+ * Builds Alliance objects from the OFFICIAL selection published by the FIRST
+ * API, resolving team numbers against the event's TeamEvolution stats.
+ * Projections follow the same fielded-pair semantics as generateAlliances.
+ * Alliances whose captain isn't in `teams` (shouldn't happen) are dropped.
+ */
+export function alliancesFromOfficial(
+    official: import("@/types/scouting").FTCAllianceSelection[],
+    teams: TeamEvolution[],
+): Alliance[] {
+    const byNumber = new Map(teams.map(t => [t.teamNumber, t]));
+    const resolve = (m: { teamNumber: number } | null | undefined) =>
+        m ? byNumber.get(m.teamNumber) ?? null : null;
+
+    return official
+        .map((a, i) => {
+            const captain = resolve(a.captain);
+            if (!captain) return null;
+            const pick1 = resolve(a.round1);
+            const pick2 = resolve(a.round2);
+            const members = [captain, pick1, pick2].filter(Boolean) as TeamEvolution[];
+            const fielded = bestFieldedPair(members).pair;
+            const totalOPR = fielded.reduce((s, t) => s + (t.opr || 0), 0);
+            const totalAuto = fielded.reduce((s, t) => s + (t.autoOPR || 0), 0);
+            return {
+                id: a.number ?? i + 1,
+                captain,
+                pick1,
+                pick2,
+                totalOPR,
+                totalAuto,
+                totalTele: fielded.reduce((s, t) => s + ((t.opr || 0) - (t.autoOPR || 0)), 0),
+                totalEndgame: 0,
+                projectedScore: totalOPR,
+                totalSigma: combineSigmas(fielded.map(t => computeTeamSigma(t))),
+            } as Alliance;
+        })
+        .filter((a): a is Alliance => a !== null);
+}
+
+/**
  * Re-uses the logic from AlliancePredictor to score a pair.
  * Simplified for pure calculation without UI strings.
  * Exported for the live-draft board (partner ranking over available teams).
@@ -301,7 +341,83 @@ export function initializeBracket(type: 2 | 4 | 6 | 8): PlayoffMatch[] {
     return matches;
 }
 
-export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[]): PlayoffMatch[] {
+/** DECODE penalty values (verified against live API score breakdowns). */
+export const MAJOR_FOUL_POINTS = 15;
+
+/**
+ * Per-match what-if/reality adjustments for the playoff bracket:
+ *  - realRed/realBlue: the REAL final score once the match was played. When
+ *    both are present the bracket propagates the real winner (beats any
+ *    probability or manual override) and the UI can compare estimate vs real.
+ *  - failRed/failBlue: robot-failure incident — the alliance is projected at
+ *    its best SINGLE robot instead of the pair (a dead robot can't be
+ *    forecast; this reproduces it after the fact).
+ *  - foulsRed/foulsBlue: MAJOR fouls committed by that alliance; each awards
+ *    15 pts to the opponent (the Lower-Final-flip scenario).
+ */
+export interface MatchAdjustment {
+    realRed?: number | null;
+    realBlue?: number | null;
+    /** Team number of the robot that failed (either robot can die — the
+     *  survivor keeps playing, so the alliance projects at the REMAINING
+     *  robots' strength). null/undefined = no failure. */
+    failedTeamRed?: number | null;
+    failedTeamBlue?: number | null;
+    /** @deprecated legacy boolean failure (assumed best robot survives). */
+    failRed?: boolean;
+    failBlue?: boolean;
+    /** Foul POINTS committed by that alliance (awarded to the opponent).
+     *  DECODE: minor = 5, major = 15 — but any point total is accepted,
+     *  matching the official "Penalty Points Committed" stat. */
+    foulPointsRed?: number;
+    foulPointsBlue?: number;
+    /** @deprecated legacy major-foul count (× 15 pts). */
+    foulsRed?: number;
+    foulsBlue?: number;
+}
+
+function allianceMembers(a: Alliance): TeamEvolution[] {
+    return [a.captain, a.pick1, a.pick2].filter((t): t is TeamEvolution => !!t);
+}
+
+/** Alliance strength after a robot failure: the surviving robots' output. */
+function survivingOpr(a: Alliance, failedTeam?: number | null, legacyFail?: boolean): number {
+    const members = allianceMembers(a);
+    if (failedTeam != null) {
+        const rest = members.filter(t => t.teamNumber !== failedTeam);
+        if (rest.length === 0) return 0;
+        if (rest.length === 1) return rest[0].opr || 0;
+        return bestFieldedPair(rest).pair.reduce((s, t) => s + (t.opr || 0), 0);
+    }
+    if (legacyFail) {
+        return members.length ? Math.max(...members.map(t => t.opr || 0)) : 0;
+    }
+    return a.totalOPR;
+}
+
+function committedFoulPoints(adj: MatchAdjustment | undefined, side: "red" | "blue"): number {
+    if (!adj) return 0;
+    if (side === "red") return adj.foulPointsRed ?? (adj.foulsRed ?? 0) * MAJOR_FOUL_POINTS;
+    return adj.foulPointsBlue ?? (adj.foulsBlue ?? 0) * MAJOR_FOUL_POINTS;
+}
+
+function adjustedPredictions(red: Alliance, blue: Alliance, adj?: MatchAdjustment): { r: number; b: number } {
+    let r = survivingOpr(red, adj?.failedTeamRed, adj?.failRed);
+    let b = survivingOpr(blue, adj?.failedTeamBlue, adj?.failBlue);
+    r += committedFoulPoints(adj, "blue"); // blue's fouls award points to red
+    b += committedFoulPoints(adj, "red");
+    return { r, b };
+}
+
+function hasAdjustment(adj?: MatchAdjustment): boolean {
+    return !!adj && (
+        adj.failedTeamRed != null || adj.failedTeamBlue != null ||
+        !!adj.failRed || !!adj.failBlue ||
+        committedFoulPoints(adj, "red") > 0 || committedFoulPoints(adj, "blue") > 0
+    );
+}
+
+export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], adjustments?: Record<string, MatchAdjustment>): PlayoffMatch[] {
     const allianceMap = new Map(alliances.map(a => [a.id, a]));
     const updatedMatches = [...matches];
     const matchMap = new Map(updatedMatches.map(m => [m.id, m]));
@@ -311,6 +427,12 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[]): P
 
     // Helper to get winner ID
     const getWinner = (m: PlayoffMatch): number | null => {
+        // A recorded REAL result is ground truth — it beats probability AND
+        // manual overrides.
+        const adj = adjustments?.[m.id];
+        if (adj && adj.realRed != null && adj.realBlue != null && adj.realRed !== adj.realBlue && m.redAllianceId && m.blueAllianceId) {
+            return adj.realRed > adj.realBlue ? m.redAllianceId : m.blueAllianceId;
+        }
         if (m.overriddenWinnerId) return m.overriddenWinnerId;
         // Default to higher probability
         if (!m.redAllianceId || !m.blueAllianceId) return null;
@@ -334,7 +456,13 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[]): P
             const red = allianceMap.get(1);
             const blue = allianceMap.get(2);
             if (red && blue) {
-                m.winProbabilityRed = calculateWinProbability(red, blue);
+                const adj = adjustments?.[id];
+                const { r, b } = adjustedPredictions(red, blue, adj);
+                m.redScorePrediction = r;
+                m.blueScorePrediction = b;
+                m.winProbabilityRed = hasAdjustment(adj)
+                    ? winProbabilityFromNormalModel(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]))
+                    : calculateWinProbability(red, blue);
                 m.redAllianceId = 1;
                 m.blueAllianceId = 2;
                 m.winnerId = getWinner(m);
@@ -367,10 +495,13 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[]): P
                 const red = allianceMap.get(match.redAllianceId);
                 const blue = allianceMap.get(match.blueAllianceId);
                 if (red && blue) {
-                    const prob = calculateWinProbability(red, blue);
-                    match.winProbabilityRed = prob;
-                    match.redScorePrediction = red.totalOPR;
-                    match.blueScorePrediction = blue.totalOPR;
+                    const adj = adjustments?.[match.id];
+                    const { r, b } = adjustedPredictions(red, blue, adj);
+                    match.winProbabilityRed = hasAdjustment(adj)
+                        ? winProbabilityFromNormalModel(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]))
+                        : calculateWinProbability(red, blue);
+                    match.redScorePrediction = r;
+                    match.blueScorePrediction = b;
                 }
             } else {
                 match.winProbabilityRed = 0.5; // Unknown

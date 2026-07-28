@@ -110,8 +110,9 @@ export default function EventViewManager({ matches, rankings, advancement, award
             };
             m.teams.forEach(t => {
                 const isRed = t.station.startsWith('Red');
-                if (isRed) processTeam(t.teamNumber, 'Red', m.scoreRedFinal, m.scoreBlueFinal, m.scoreRedAuto, m.scoreRedFoul);
-                else processTeam(t.teamNumber, 'Blue', m.scoreBlueFinal, m.scoreRedFinal, m.scoreBlueAuto, m.scoreBlueFoul);
+                // np subtracts penalties RECEIVED (= the opponent's committed fouls).
+                if (isRed) processTeam(t.teamNumber, 'Red', m.scoreRedFinal, m.scoreBlueFinal, m.scoreRedAuto, m.scoreBlueFoul);
+                else processTeam(t.teamNumber, 'Blue', m.scoreBlueFinal, m.scoreRedFinal, m.scoreBlueAuto, m.scoreRedFoul);
             });
         });
 
@@ -186,10 +187,10 @@ export default function EventViewManager({ matches, rankings, advancement, award
             return new Map(teamsList.map((t, i) => [t, x[i]]));
         };
 
-        const overallOPR = calculateComponentOPR((m, alliance) => alliance === 'Red' ? (m.scoreRedFinal - m.scoreRedFoul) : (m.scoreBlueFinal - m.scoreBlueFoul));
+        const overallOPR = calculateComponentOPR((m, alliance) => alliance === 'Red' ? (m.scoreRedFinal - m.scoreBlueFoul) : (m.scoreBlueFinal - m.scoreRedFoul));
         const autoOPR = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedAuto : m.scoreBlueAuto);
-        const drawnFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedFoul : m.scoreBlueFoul);
-        const committedFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreBlueFoul : m.scoreRedFoul);
+        const drawnFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreBlueFoul : m.scoreRedFoul);
+        const committedFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedFoul : m.scoreBlueFoul);
 
         // Calculate maxes for normalization
         const maxPower = Math.max(...simulatedRankings.map(r => r.sortOrder2 + r.sortOrder4)) || 1;
@@ -204,7 +205,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
             if (lastTwo.length >= 2) {
                 const recentAvg = lastTwo.reduce((acc, m) => {
                     const isRed = m.teams.some(t => t.teamNumber === rank.teamNumber && t.station.startsWith('Red'));
-                    return acc + (isRed ? m.scoreRedFinal - m.scoreRedFoul : m.scoreBlueFinal - m.scoreBlueFoul);
+                    return acc + (isRed ? m.scoreRedFinal - m.scoreBlueFoul : m.scoreBlueFinal - m.scoreRedFoul);
                 }, 0) / 2;
 
                 const overallAvg = rank.sortOrder2;
@@ -237,7 +238,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                     const isRed = m.teams.some(t => t.teamNumber === rank.teamNumber && t.station.startsWith('Red'));
                     const autoScore = isRed ? m.scoreRedAuto : m.scoreBlueAuto;
                     const totalScore = isRed ? m.scoreRedFinal : m.scoreBlueFinal;
-                    const teleScore = totalScore - autoScore - (isRed ? m.scoreRedFoul : m.scoreBlueFoul); // Approx teleop
+                    const teleScore = totalScore - autoScore - (isRed ? m.scoreBlueFoul : m.scoreRedFoul); // Approx teleop (minus RECEIVED penalties)
 
                     // Thresholds for "Into The Deep" (Estimated)
                     // Auto RP usually requires specific tasks (Ascent + Samples). ~40pts is a good proxy for high auto achievement.
@@ -403,7 +404,13 @@ export default function EventViewManager({ matches, rankings, advancement, award
                         {selectedAlliances && selectedAlliances.length > 0 && (
                             <SelectedAlliancesPanel alliances={selectedAlliances} />
                         )}
-                        <AlliancePredictor teams={oracleTeams} scoutingData={scoutingData} officialAlliances={selectedAlliances} eventCode={eventCode} />
+                        <AlliancePredictor
+                            teams={oracleTeams}
+                            scoutingData={scoutingData}
+                            officialAlliances={selectedAlliances}
+                            eventCode={eventCode}
+                            playoffMatches={matches.filter(m => m.tournamentLevel !== "QUALIFICATION" && m.tournamentLevel !== "PRACTICE")}
+                        />
                     </div>
                 )}
                 {activeTab === "advancement" && (

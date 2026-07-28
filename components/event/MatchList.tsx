@@ -83,9 +83,12 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
 
     // Calculate Extended OPR Metrics
     const oprData = useMemo(() => {
-        // 1. Overall OPR (Score - Foul) = "offensive contribution"
+        // 1. Overall OPR (score minus RECEIVED penalty points) = own output.
+        // API semantics (verified vs the official score display): scoreXFoul =
+        // penalty points COMMITTED by X, awarded to the opponent — so red's
+        // received points are scoreBlueFoul.
         const overall = calculateComponentOPR((m, alliance) =>
-            alliance === 'Red' ? (m.scoreRedFinal - m.scoreRedFoul) : (m.scoreBlueFinal - m.scoreBlueFoul)
+            alliance === 'Red' ? (m.scoreRedFinal - m.scoreBlueFoul) : (m.scoreBlueFinal - m.scoreRedFoul)
         );
 
         // 2. Auto OPR (Autonomous Score)
@@ -93,16 +96,16 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
             alliance === 'Red' ? m.scoreRedAuto : m.scoreBlueAuto
         );
 
-        // 3. Drawn Foul OPR (Points given by opponents due to fouls) - "Strategy/Provocation"
-        // Red Alliance gets scoreRedFoul (points FROM Blue committing fouls)
+        // 3. Drawn Foul OPR (points RECEIVED from the opponent's fouls) —
+        // "Strategy/Provocation". Red receives scoreBlueFoul.
         const drawnFoul = calculateComponentOPR((m, alliance) =>
-            alliance === 'Red' ? m.scoreRedFoul : m.scoreBlueFoul
+            alliance === 'Red' ? m.scoreBlueFoul : m.scoreRedFoul
         );
 
-        // 4. Committed Foul OPR (Points given TO opponents by this alliance) - "Discipline/Sloppiness"
-        // Red Alliance GIVES scoreBlueFoul points to Blue
+        // 4. Committed Foul OPR (points GIFTED to the opponent) —
+        // "Discipline/Sloppiness". Red commits scoreRedFoul.
         const committedFoul = calculateComponentOPR((m, alliance) =>
-            alliance === 'Red' ? m.scoreBlueFoul : m.scoreRedFoul
+            alliance === 'Red' ? m.scoreRedFoul : m.scoreBlueFoul
         );
 
         return { overall, auto, drawnFoul, committedFoul };
@@ -127,8 +130,8 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
             if (m.tournamentLevel === "PRACTICE") return;
             (["Red", "Blue"] as const).forEach(alliance => {
                 const actual = alliance === "Red"
-                    ? m.scoreRedFinal - m.scoreRedFoul
-                    : m.scoreBlueFinal - m.scoreBlueFoul;
+                    ? m.scoreRedFinal - m.scoreBlueFoul
+                    : m.scoreBlueFinal - m.scoreRedFoul;
                 const predicted = m.teams
                     .filter(t => t.station.startsWith(alliance))
                     .reduce((s, t) => s + (oprData.overall.get(t.teamNumber) ?? 0), 0);
@@ -681,8 +684,8 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
 }
 
 function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rankings: TeamRanking[], scoutingData: MatchScouting[] }) {
-    const redTele = match.scoreRedFinal - match.scoreRedAuto - match.scoreRedFoul;
-    const blueTele = match.scoreBlueFinal - match.scoreBlueAuto - match.scoreBlueFoul;
+    const redTele = match.scoreRedFinal - match.scoreRedAuto - match.scoreBlueFoul;
+    const blueTele = match.scoreBlueFinal - match.scoreBlueAuto - match.scoreRedFoul;
 
     const redTeams = match.teams.filter(t => t.station.startsWith('Red'));
     const blueTeams = match.teams.filter(t => t.station.startsWith('Blue'));
@@ -717,7 +720,7 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
                     <div className="grid gap-2">
                         <StatRow label="Auto" value={match.scoreRedAuto} color="text-danger font-bold" />
                         <StatRow label="TeleOp" value={redTele} color="text-danger" />
-                        <StatRow label="Penalty In" value={match.scoreRedFoul} color="text-muted-foreground italic" />
+                        <StatRow label="Penalty In" value={match.scoreBlueFoul} color="text-muted-foreground italic" />
                         <div className="pt-2 border-t border-border mt-2">
                             <StatRow label="Total" value={match.scoreRedFinal} color="text-danger font-black text-lg" />
                         </div>
@@ -733,7 +736,7 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
                     <div className="grid gap-2">
                         <StatRow label="Auto" value={match.scoreBlueAuto} color="text-secondary font-bold" />
                         <StatRow label="TeleOp" value={blueTele} color="text-secondary" />
-                        <StatRow label="Penalty In" value={match.scoreBlueFoul} color="text-muted-foreground italic" />
+                        <StatRow label="Penalty In" value={match.scoreRedFoul} color="text-muted-foreground italic" />
                         <div className="pt-2 border-t border-border mt-2">
                             <StatRow label="Total" value={match.scoreBlueFinal} color="text-secondary font-black text-lg" />
                         </div>
