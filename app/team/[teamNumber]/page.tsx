@@ -1,10 +1,10 @@
-import { fetchTeam, fetchTeamRankingsInSeason, fetchTeamAwards, TeamSeasonRanking } from "@/lib/ftc-api";
+import { fetchTeam, fetchTeamRankingsInSeason, fetchEventAwards, fetchAlliances, fetchMatches, TeamSeasonRanking } from "@/lib/ftc-api";
 import { getCurrentSeason } from "@/lib/constants";
 import { FTCAward } from "@/types/scouting";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/Card";
-import { MapPin, Globe, Award, Calendar, Trophy } from "lucide-react";
+import { MapPin, Globe, Award, Calendar, Trophy, Users, Target } from "lucide-react";
 import clsx from "clsx";
 import Link from "next/link";
 import { TeamSeasonReport } from "@/components/team/TeamSeasonReport";
@@ -22,6 +22,70 @@ const GAME_NAMES: Record<number, string> = {
     2023: "CenterStage",
     2022: "PowerPlay",
 };
+
+interface EventPlayoff {
+    role: string | null;          // Capitán / 1er pick / 2do pick / Backup
+    allianceNumber: number | null;
+    advancement: string | null;   // Campeón / Finalista / Playoffs
+    playoffRecord: string | null; // e.g. "2-1"
+}
+
+interface EnrichedEvent {
+    ranking: TeamSeasonRanking;
+    awards: FTCAward[];
+    playoff: EventPlayoff;
+}
+
+// Enriches one event with the team's awards (from the per-EVENT awards endpoint,
+// which — unlike the per-team endpoint — reliably includes Premier-event awards
+// like FPEMX's Reach Award), its playoff alliance role, and how far it advanced.
+async function enrichEvent(season: number, ranking: TeamSeasonRanking, teamNum: number): Promise<EnrichedEvent> {
+    const [alliances, evMatches, evAwards] = await Promise.all([
+        fetchAlliances(season, ranking.eventCode),
+        fetchMatches(season, ranking.eventCode),
+        fetchEventAwards(season, ranking.eventCode),
+    ]);
+
+    const awards = evAwards.filter(a => a.teamNumber === teamNum);
+
+    let role: string | null = null;
+    let allianceNumber: number | null = null;
+    for (const a of alliances) {
+        if (a.captain?.teamNumber === teamNum) { role = "Capitán"; allianceNumber = a.number; break; }
+        if (a.round1?.teamNumber === teamNum) { role = "1er pick"; allianceNumber = a.number; break; }
+        if (a.round2?.teamNumber === teamNum) { role = "2do pick"; allianceNumber = a.number; break; }
+        if (a.backup?.teamNumber === teamNum) { role = "Backup"; allianceNumber = a.number; break; }
+    }
+
+    const playoffMatches = evMatches.filter(m =>
+        m.tournamentLevel !== "QUALIFICATION" && m.tournamentLevel !== "PRACTICE" &&
+        m.teams.some(t => t.teamNumber === teamNum),
+    );
+    let pWins = 0, pLosses = 0;
+    playoffMatches.forEach(m => {
+        const isRed = m.teams.some(t => t.teamNumber === teamNum && t.station.startsWith("Red"));
+        const my = isRed ? m.scoreRedFinal : m.scoreBlueFinal;
+        const opp = isRed ? m.scoreBlueFinal : m.scoreRedFinal;
+        if (my > opp) pWins++; else if (my < opp) pLosses++;
+    });
+
+    const awardNames = awards.map(a => (a.name || a.awardName || "").toLowerCase());
+    let advancement: string | null = null;
+    if (awardNames.some(n => n.includes("winning alliance"))) advancement = "Campeón";
+    else if (awardNames.some(n => n.includes("finalist"))) advancement = "Finalista";
+    else if (playoffMatches.length > 0) advancement = "Playoffs";
+
+    return {
+        ranking,
+        awards,
+        playoff: {
+            role,
+            allianceNumber,
+            advancement,
+            playoffRecord: playoffMatches.length > 0 ? `${pWins}-${pLosses}` : null,
+        },
+    };
+}
 
 interface TeamPageProps {
     params: Promise<{ teamNumber: string }>;
@@ -42,16 +106,17 @@ export default async function TeamPage(props: TeamPageProps) {
         return notFound();
     }
 
-    // Fetch history for all supported seasons
+    // Fetch history for all supported seasons, enriching each event with the
+    // team's awards, playoff role, and advancement (see enrichEvent).
     const historyData = await Promise.all(
-        SUPPORTED_SEASONS.map(async (s) => ({
-            season: s,
-            rankings: await fetchTeamRankingsInSeason(s, teamNum),
-            awards: await fetchTeamAwards(s, teamNum),
-        }))
+        SUPPORTED_SEASONS.map(async (s) => {
+            const rankings = await fetchTeamRankingsInSeason(s, teamNum);
+            const events = await Promise.all(rankings.map((r) => enrichEvent(s, r, teamNum)));
+            return { season: s, events };
+        })
     );
 
-    const activeSeasons = historyData.filter(d => d.rankings.length > 0);
+    const activeSeasons = historyData.filter(d => d.events.length > 0);
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -156,13 +221,13 @@ export default async function TeamPage(props: TeamPageProps) {
                                         </div>
                                         <p className="text-muted-foreground font-medium flex items-center gap-2">
                                             <Trophy size={16} className="text-accent" />
-                                            Analyzing performance across {year.rankings.length} major tournaments
+                                            Analyzing performance across {year.events.length} major tournaments
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <div className="text-right hidden md:block">
                                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">Season Peak</span>
-                                            <span className="text-2xl font-black text-primary font-display">Rank #{Math.min(...year.rankings.map((r: TeamSeasonRanking) => r.rank))}</span>
+                                            <span className="text-2xl font-black text-primary font-display">Rank #{Math.min(...year.events.map((e) => e.ranking.rank))}</span>
                                         </div>
                                         <div className="w-14 h-14 rounded-2xl bg-primary shadow-xl shadow-primary/20 flex items-center justify-center text-white">
                                             <Trophy size={32} />
@@ -171,82 +236,76 @@ export default async function TeamPage(props: TeamPageProps) {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {year.rankings.map((rank: TeamSeasonRanking, idx: number) => (
-                                        <div key={idx} className="group relative">
-                                            <div className="absolute -inset-0.5 bg-linear-to-br from-border to-transparent rounded-2xl opacity-50 group-hover:opacity-100 transition-opacity" />
-                                            <Card className="relative bg-card p-6 flex flex-col gap-6 hover:shadow-2xl transition-all duration-500 overflow-hidden border-border/50 min-h-[300px]">
-                                                {/* Decorative Icon */}
-                                                <Trophy className="absolute -right-8 -bottom-8 w-40 h-40 text-primary/5 -rotate-12 transition-transform group-hover:scale-110 group-hover:rotate-0" />
+                                    {year.events.map((ev, idx) => {
+                                        const rank = ev.ranking;
+                                        const hasExtras = !!ev.playoff.role || !!ev.playoff.advancement || ev.awards.length > 0;
+                                        return (
+                                            <div key={idx} className="group relative">
+                                                <div className="absolute -inset-0.5 bg-linear-to-br from-border to-transparent rounded-2xl opacity-50 group-hover:opacity-100 transition-opacity" />
+                                                <Card className="relative bg-card p-6 flex flex-col gap-5 hover:shadow-2xl transition-all duration-500 overflow-hidden border-border/50 min-h-[300px]">
+                                                    {/* Decorative Icon */}
+                                                    <Trophy className="absolute -right-8 -bottom-8 w-40 h-40 text-primary/5 -rotate-12 transition-transform group-hover:scale-110 group-hover:rotate-0" />
 
-                                                <div className="flex justify-between items-start relative z-10">
-                                                    <div className="flex-1 space-y-1">
-                                                        <span className="text-[10px] font-black text-secondary uppercase tracking-[0.25em] block">
-                                                            {rank.eventCode}
-                                                        </span>
-                                                        <h4 className="text-xl font-black text-foreground leading-tight">{rank.eventName || "Regional Event"}</h4>
-                                                    </div>
-                                                    <div className="flex flex-col items-end">
-                                                        <div className="px-3 py-1.5 rounded-xl bg-accent text-white text-sm font-black shadow-lg shadow-accent/20">
-                                                            #{rank.rank}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-3 relative z-10 flex-1">
-                                                    <KPIItem label="Win Rate" value={`${rank.winRate.toFixed(0)}%`} sub={`${rank.wins}-${rank.losses}-${rank.ties}`} />
-                                                    <KPIItem label="Max Score" value={rank.highScore.toString()} sub="Season Peak" highlighted />
-                                                    <KPIItem label="Avg Net" value={rank.avgNP.toFixed(1)} sub="Performance" />
-                                                    <KPIItem label="Auto Avg" value={rank.avgAuto.toFixed(1)} sub="Consistencia" />
-                                                </div>
-
-                                                <Link href={`/event/${rank.eventCode}`} className="relative z-10 w-full py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-black text-center transition-colors border border-border/50">
-                                                    VIEW EVENT DETAILS
-                                                </Link>
-                                            </Card>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Awards Section for this season */}
-                                {year.awards.length > 0 && (
-                                    <div className="bg-muted/10 rounded-3xl p-8 border border-border/50">
-                                        <div className="flex items-center gap-4 mb-8">
-                                            <div className="p-3 bg-accent/20 rounded-2xl">
-                                                <Award size={24} className="text-accent" />
-                                            </div>
-                                            <div>
-                                                <h4 className="text-xl font-black text-foreground uppercase tracking-widest">Season Honors</h4>
-                                                <p className="text-xs text-muted-foreground font-medium italic">Recognizing exceptional engineering, design, and outreach</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {year.awards.map((award: FTCAward, i: number) => {
-                                                const aName = award.awardName || award.name || "Official Award";
-                                                return (
-                                                    <div
-                                                        key={i}
-                                                        className="flex items-center gap-5 p-6 rounded-2xl bg-card border border-border hover:border-accent/50 hover:shadow-xl transition-all group"
-                                                    >
-                                                        <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 group-hover:bg-accent group-hover:text-white transition-all shadow-accent/5">
-                                                            <Trophy size={28} />
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <span className="text-sm md:text-base font-black text-foreground block mb-0.5 leading-tight uppercase tracking-tight">
-                                                                {aName}
+                                                    <div className="flex justify-between items-start relative z-10">
+                                                        <div className="flex-1 space-y-1">
+                                                            <span className="text-[10px] font-black text-secondary uppercase tracking-[0.25em] block">
+                                                                {rank.eventCode}
                                                             </span>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{award.eventCode}</span>
-                                                                <span className="w-1 h-1 rounded-full bg-border" />
-                                                                <span className="text-[10px] text-accent font-black uppercase tracking-widest">Award Winner</span>
+                                                            <h4 className="text-xl font-black text-foreground leading-tight">{rank.eventName || "Regional Event"}</h4>
+                                                        </div>
+                                                        <div className="flex flex-col items-end">
+                                                            <div className="px-3 py-1.5 rounded-xl bg-accent text-white text-sm font-black shadow-lg shadow-accent/20">
+                                                                #{rank.rank}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
+
+                                                    <div className="grid grid-cols-2 gap-3 relative z-10">
+                                                        <KPIItem label="Win Rate" value={`${rank.winRate.toFixed(0)}%`} sub={`${rank.wins}-${rank.losses}-${rank.ties}`} />
+                                                        <KPIItem label="Max Score" value={rank.highScore.toString()} sub="Season Peak" highlighted />
+                                                        <KPIItem label="Avg Net" value={rank.avgNP.toFixed(1)} sub="Performance" />
+                                                        <KPIItem label="Auto Avg" value={rank.avgAuto.toFixed(1)} sub="Consistencia" />
+                                                    </div>
+
+                                                    {/* Playoffs (alliance role + advancement) + awards for this event */}
+                                                    {hasExtras && (
+                                                        <div className="relative z-10 flex flex-wrap gap-2 flex-1 content-start">
+                                                            {ev.playoff.role && (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-bold">
+                                                                    <Users size={12} /> Alianza {ev.playoff.allianceNumber} · {ev.playoff.role}
+                                                                </span>
+                                                            )}
+                                                            {ev.playoff.advancement && (
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/10 text-secondary border border-secondary/20 text-[11px] font-bold">
+                                                                    <Target size={12} /> {ev.playoff.advancement}{ev.playoff.playoffRecord ? ` · ${ev.playoff.playoffRecord}` : ""}
+                                                                </span>
+                                                            )}
+                                                            {ev.awards.map((aw, i) => {
+                                                                const label = aw.name || aw.awardName || "Premio";
+                                                                const isWin = aw.series === 1;
+                                                                return (
+                                                                    <span
+                                                                        key={`${aw.awardId}-${i}`}
+                                                                        className={clsx(
+                                                                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border",
+                                                                            isWin ? "bg-warning/10 text-warning border-warning/20" : "bg-muted text-muted-foreground border-border",
+                                                                        )}
+                                                                    >
+                                                                        <Award size={12} /> {label}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+
+                                                    <Link href={`/event/${rank.eventCode}`} className="relative z-10 w-full py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-black text-center transition-colors border border-border/50 mt-auto">
+                                                        VIEW EVENT DETAILS
+                                                    </Link>
+                                                </Card>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         ))
                     )}
