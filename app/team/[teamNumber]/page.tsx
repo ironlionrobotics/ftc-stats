@@ -7,6 +7,11 @@ import { Card } from "@/components/ui/Card";
 import { MapPin, Globe, Award, Calendar, Trophy } from "lucide-react";
 import clsx from "clsx";
 import Link from "next/link";
+import { TeamSeasonReport } from "@/components/team/TeamSeasonReport";
+
+// Teams with a hand-curated season retrospective (sponsor-grade). 30311-only
+// for now — see lib/reports/team-30311-decode.ts.
+const REPORT_TEAMS = new Set([30311]);
 
 // Current season first, then the three before it — stays correct at rollover.
 const SUPPORTED_SEASONS = [0, 1, 2, 3].map((i) => getCurrentSeason() - i);
@@ -58,7 +63,6 @@ export default async function TeamPage(props: TeamPageProps) {
                 <div className="relative glass-card rounded-3xl overflow-hidden border-border/50">
                     <div className="h-48 md:h-64 w-full relative overflow-hidden">
                         <div className="absolute inset-0 bg-primary/20 bg-linear-to-br from-primary/30 to-secondary/30" />
-                        <div className="absolute inset-0 bg-grid-white/[0.1] bg-[size:30px_30px]" />
                         <div className="absolute inset-0 bg-linear-to-t from-background via-transparent to-transparent" />
 
                         {/* Abstract shapes */}
@@ -117,7 +121,14 @@ export default async function TeamPage(props: TeamPageProps) {
                 </div>
             </div>
 
-            {/* Participation History */}
+            {/* Curated sponsor-grade season report (30311) */}
+            {REPORT_TEAMS.has(teamNum) && (
+                <div className="mb-16">
+                    <TeamSeasonReport />
+                </div>
+            )}
+
+            {/* Participation History (live FTC API — complements the report) */}
             <div className="space-y-12">
                 <div className="flex items-center gap-4">
                     <div className="h-12 w-2 bg-primary rounded-full" />
@@ -247,12 +258,12 @@ export default async function TeamPage(props: TeamPageProps) {
 
 function KPIItem({ label, value, sub, highlighted }: { label: string, value: string, sub: string, highlighted?: boolean }) {
     return (
-        <div className="bg-white/[0.03] rounded-xl p-3 border border-white/5">
-            <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1">{label}</span>
+        <div className="bg-muted/40 rounded-xl p-3 border border-border">
+            <span className="block text-[9px] text-muted-foreground font-bold uppercase tracking-wider mb-1">{label}</span>
             <div className={clsx("text-lg font-black font-display leading-none mb-1", highlighted ? "text-primary" : "text-foreground")}>
                 {value}
             </div>
-            <span className="text-[9px] text-gray-600 font-medium italic">{sub}</span>
+            <span className="text-[9px] text-muted-foreground/70 font-medium italic">{sub}</span>
         </div>
     );
 }
