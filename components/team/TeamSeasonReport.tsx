@@ -1,4 +1,5 @@
 import { TEAM_30311_DECODE } from "@/lib/reports/team-30311-decode";
+import { RookieComparison } from "@/components/team/RookieComparison";
 import {
     Trophy, TrendingUp, Award, Target, Globe, Medal,
     Flame, ArrowUpRight, Sparkles, MapPin, Rocket, ExternalLink,
@@ -69,10 +70,10 @@ export function TeamSeasonReport() {
                 </div>
             </ReportSection>
 
-            {/* ── Event palmarés ───────────────────────────────────────── */}
+            {/* ── Results per event ────────────────────────────────────── */}
             <ReportSection
                 n="03"
-                title="Palmarés por evento"
+                title="Resultados por evento"
                 desc="Cada parada de la temporada: field, ranking, récord, RP, OPR y reconocimientos."
                 icon={<Medal size={20} />}
             >
@@ -137,26 +138,14 @@ export function TeamSeasonReport() {
                 </p>
             </ReportSection>
 
-            {/* ── Rookie benchmark ─────────────────────────────────────── */}
+            {/* ── Rookie comparison · national + international ──────────── */}
             <ReportSection
                 n="05"
-                title="Contra su propia generación"
-                desc={`Rookies del mismo cohorte de registro (año rookie 2025). Iron Lion supera a ${R.rookieCohort.beat} de ${R.rookieCohort.of} ${R.rookieCohort.note}.`}
+                title="Contra otros rookies"
+                desc="Cómo se ubica Iron Lion entre los equipos rookie (debut 2025) a nivel nacional e internacional — por desempeño del robot (OPR) y por premios. Ambas cohortes son exhaustivas contra el registro de FTCScout."
                 icon={<Sparkles size={20} />}
             >
-                <div className="grid md:grid-cols-[1.4fr_1fr] gap-6 items-start">
-                    <CohortTable rows={[...R.rookieCohort.sample]} />
-                    <div className="rounded-2xl border border-border bg-muted/30 p-6">
-                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Mediana rookie del cohorte</div>
-                        <div className="mt-1 font-display text-4xl font-black text-foreground">≈{R.rookieCohort.median} <span className="text-lg text-muted-foreground font-bold">OPR</span></div>
-                        <div className="mt-4 h-px bg-border" />
-                        <div className="mt-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">Iron Lion</div>
-                        <div className="mt-1 font-display text-4xl font-black text-primary">{R.skills[0].value.toFixed(1)} <span className="text-lg text-muted-foreground font-bold">OPR</span></div>
-                        <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
-                            <strong className="text-foreground">≈4× la mediana</strong> de su propia generación de rookies.
-                        </p>
-                    </div>
-                </div>
+                <RookieComparison />
             </ReportSection>
 
             {/* ── World context ────────────────────────────────────────── */}

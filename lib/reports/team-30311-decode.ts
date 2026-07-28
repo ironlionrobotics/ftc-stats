@@ -48,6 +48,18 @@ export interface CohortTeam {
     self?: boolean;
 }
 
+// A rookie-cohort row (national or international). `place` is the city (MX) or
+// country (world); `awards` are short display labels for this season.
+export interface RookieRow {
+    number: number;
+    name: string;
+    place: string;
+    totOpr: number;
+    worldRank: number;
+    awards: string[];
+    self?: boolean;
+}
+
 export const TEAM_30311_DECODE = {
     meta: {
         season: 2025,
@@ -84,7 +96,7 @@ export const TEAM_30311_DECODE = {
             totOpr: 50.94,
             autoOpr: 9.45,
             dcOpr: 41.63,
-            awards: ["Inspire Award — 1° lugar", "Ganadores (alianza 2)"],
+            awards: ["Inspire Award — 1° lugar", "Alianza ganadora (2° pick)"],
         },
         {
             name: "Torneo Regional FTC Monterrey",
@@ -143,22 +155,54 @@ export const TEAM_30311_DECODE = {
         { number: 30311, name: "Iron Lion", location: "Monterrey", rookieYear: 2025, seasons: 1, totOpr: 63.4, worldRank: 1686, self: true },
     ] as CohortTeam[],
 
-    /** Same-registration-cohort rookies (rookieYear 2025, numbers 30290-30440). */
-    rookieCohort: {
-        median: 16,
-        beat: 6,
-        of: 7,
-        note: "de 7 rookies del mismo cohorte que sí compitieron (varios registrados nunca compitieron)",
-        sample: [
-            { number: 30380, name: "Bitflip", totOpr: 75.51, worldRank: 1229 },
-            { number: 30311, name: "Iron Lion", totOpr: 63.4, worldRank: 1686, self: true },
-            { number: 30420, name: "Bearbotics", totOpr: 60.12, worldRank: 1850 },
-            { number: 30308, name: "Significant Figures", totOpr: 32.18, worldRank: 4338 },
-            { number: 30350, name: "SHAM-ROCK-BOTICS GREEN", totOpr: 15.69, worldRank: 6886 },
-            { number: 30400, name: "Merced Robotics", totOpr: 15.67, worldRank: 6890 },
-            { number: 30315, name: "Cornerstone Cooperators", totOpr: 14.06, worldRank: 7143 },
-            { number: 30325, name: "ASTRO-APOLLO", totOpr: 2.78, worldRank: 8207 },
-        ] as CohortTeam[],
+    /**
+     * Rookie cohort comparison (rookieYear 2025), two levels + an awards lens.
+     * Both cohorts are provably exhaustive against FTCScout's registry:
+     * Mexico = 31 rookies (region MX, 189 teams total, none truncated);
+     * world = 1,319 rookies (US 846 + International 473, neither list truncated).
+     * `oprRank` is 30311's position among that cohort by season tot OPR.
+     */
+    rookies: {
+        national: {
+            total: 31,
+            oprRank: 5,
+            // 30311 is the sole Mexican rookie with an Inspire Award / Winning Alliance.
+            awardsRank: 1,
+            headline: "Único rookie mexicano que ganó el Inspire Award",
+            rows: [
+                { number: 32867, name: "Adelitas STEAMex", place: "Chihuahua", totOpr: 77.22, worldRank: 1170, awards: ["Reach 1°", "Connect 1°"] },
+                { number: 30670, name: "Botbusters Grey", place: "Monterrey", totOpr: 71.97, worldRank: 1356, awards: ["Design 1°", "Innovate 1°"] },
+                { number: 31546, name: "Next Gen Rhinos", place: "Benito Juárez", totOpr: 68.07, worldRank: 1483, awards: ["Finalist 1°", "Innovate 1°"] },
+                { number: 31983, name: "Lobos Negros Delta", place: "CDMX", totOpr: 65.48, worldRank: 1578, awards: [] },
+                { number: 30311, name: "Iron Lion", place: "Monterrey", totOpr: 63.40, worldRank: 1686, awards: ["Inspire 1°", "Alianza ganadora", "Think 1°", "Reach 2°"], self: true },
+                { number: 30813, name: "ThundeRoar", place: "Monterrey", totOpr: 45.66, worldRank: 2774, awards: ["Connect 1°", "Sustain 2°"] },
+                { number: 30767, name: "MinerZ Jr", place: "Guadalupe, ZAC", totOpr: 39.75, worldRank: 3382, awards: ["Design 1°"] },
+                { number: 32943, name: "PrepaTec Purple Spark", place: "Saltillo", totOpr: 34.43, worldRank: 4053, awards: ["Innovate 2°"] },
+            ] as RookieRow[],
+        },
+        international: {
+            total: 1317,
+            oprRank: 178,
+            oprTopPct: 13.5,      // top % of world rookies by OPR
+            inspireCohort: 36,    // rookies worldwide that won an Inspire (1st) this season
+            inspireTotal: 1319,
+            inspireTopPct: 2.7,   // top % → 36 / 1319
+            mexicoIsSoleInspire: true,
+            inspireCountries: "EE.UU. 19 · Kazajistán 5 · Reino Unido 4 · y 1 c/u de México, Taiwán, Países Bajos, Chequia, Francia, Australia, Kirguistán, Alemania, Libia",
+            rows: [
+                { number: 30030, name: "Exodus", place: "EE.UU.", totOpr: 236.52, worldRank: 6, awards: ["Winner ×5", "Innovate"] },
+                { number: 30784, name: "ITKAN Lunar Jr", place: "EE.UU.", totOpr: 205.25, worldRank: 24, awards: ["Winner 2°", "Innovate 1°"] },
+                { number: 30435, name: "Klutch Robotics", place: "EE.UU.", totOpr: 202.88, worldRank: 27, awards: ["Winner", "Innovate"] },
+                { number: 33033, name: "TGJ", place: "Kazajistán", totOpr: 183.08, worldRank: 55, awards: ["Winner ×2", "Reach"] },
+                { number: 32896, name: "Droid Squad", place: "EE.UU.", totOpr: 179.49, worldRank: 66, awards: ["Winner 1°", "Design 1°"] },
+                { number: 31596, name: "Absolute Zero", place: "China", totOpr: 175.72, worldRank: 73, awards: ["Innovate 2°", "Finalist 2°"] },
+                { number: 30579, name: "PUNISHERS", place: "EE.UU.", totOpr: 165.49, worldRank: 102, awards: ["Inspire 1°", "Winner ×3", "Think 1°"] },
+                { number: 32602, name: "We Don't Byte", place: "Taiwán", totOpr: 162.34, worldRank: 113, awards: ["Inspire 3°"] },
+                { number: 32728, name: "Celestial", place: "Kazajistán", totOpr: 160.53, worldRank: 118, awards: ["Inspire 1°", "Control 1°"] },
+                { number: 34241, name: "NazarX", place: "Uzbekistán", totOpr: 157.19, worldRank: 136, awards: [] },
+            ] as RookieRow[],
+            self: { number: 30311, name: "Iron Lion", place: "México", totOpr: 63.40, worldRank: 1686, awards: ["Inspire 1°", "Alianza ganadora", "Think 1°", "Reach 2°"], self: true } as RookieRow,
+        },
     },
 
     /** World top 5 — aspirational reference for where the program can grow. */
@@ -177,6 +221,8 @@ export const TEAM_30311_DECODE = {
         "5-0 en clasificatorias del Mexico Championship (feb 2026, 52 equipos), rank 5.",
         "Seleccionados a playoffs en el México Premier Event (68 equipos, el evento clasificatorio continental del país) como pick del capitán 31546, más un Reach Award 2° lugar por vinculación comunitaria.",
         "Arco de mejora claro en OPR total: 50.9 → 68.9 → 63.4 → 80.8 a lo largo de sus cuatro eventos, con su mejor actuación en su evento más importante.",
+        "Único rookie mexicano que ganó el Inspire Award esta temporada: de 31 programas rookie del país, ninguno de los otros 30 capturó el máximo honor de FTC.",
+        "Top ~3% de rookies del mundo por premio: uno de solo 36 equipos rookie (de 1,319) que ganó un Inspire Award — y el único de México.",
     ],
 
     learnings: [
