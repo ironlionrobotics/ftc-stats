@@ -173,7 +173,7 @@ export const TEAM_30311_DECODE = {
     takeaways: [
         "Temporada rookie, rendimiento de tier veterano: en su primer año de competencia, su OPR de temporada (63.4) ya supera a todos menos un rookie de su mismo cohorte y se acerca a los programas mexicanos de varios años.",
         "Top ~19% de los 8,866 equipos activos del mundo por OPR total (rank 1,686), y top 13-14% global en teleoperado y endgame.",
-        "Ganaron el Inspire Award — el máximo honor de un evento FTC — en apenas su 2° competencia (Guadalajara, dic 2025), más la alianza ganadora ese mismo fin de semana.",
+        "Ganaron el Inspire Award — el máximo honor de un evento FTC — en su torneo debut (Guadalajara, dic 2025), más la alianza ganadora ese mismo fin de semana.",
         "5-0 en clasificatorias del Mexico Championship (feb 2026, 52 equipos), rank 5.",
         "Seleccionados a playoffs en el México Premier Event (68 equipos, el evento clasificatorio continental del país) como pick del capitán 31546, más un Reach Award 2° lugar por vinculación comunitaria.",
         "Arco de mejora claro en OPR total: 50.9 → 68.9 → 63.4 → 80.8 a lo largo de sus cuatro eventos, con su mejor actuación en su evento más importante.",

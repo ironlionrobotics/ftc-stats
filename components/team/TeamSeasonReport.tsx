@@ -38,7 +38,7 @@ export function TeamSeasonReport() {
 
                     <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
                         <HeroStat value="Top 19%" label="Mundial · OPR total" sub={`#${R.skills[0].worldRank.toLocaleString("es-MX")} de ${R.meta.activeTeamsWorld.toLocaleString("es-MX")}`} icon={<Globe size={16} />} />
-                        <HeroStat value="1°" label="Inspire Award" sub="Máximo honor · 2° evento" icon={<Trophy size={16} />} accent />
+                        <HeroStat value="1°" label="Inspire Award" sub="Máximo honor · torneo debut" icon={<Trophy size={16} />} accent />
                         <HeroStat value="4" label="Eventos jugados" sub="Qualifier → Premier" icon={<Flame size={16} />} />
                         <HeroStat value="80.8" label="Mejor OPR" sub={`${bestEvent.code} · su evento cumbre`} icon={<ArrowUpRight size={16} />} />
                     </div>
