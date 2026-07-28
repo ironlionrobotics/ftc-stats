@@ -2,7 +2,7 @@
 
 import { TeamSeasonStats } from "@/app/actions/pro-scouting";
 import { generateSpyLinks } from "@/lib/utils";
-import { Youtube, Instagram, Database } from "lucide-react";
+import { Youtube, Instagram, Database, Bot } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 
@@ -98,7 +98,22 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
             </div>
 
             {/* Spy Actions */}
-            <div className="p-3 bg-muted border-t border-border grid grid-cols-3 gap-2">
+            <div className="p-3 bg-muted border-t border-border grid grid-cols-4 gap-2">
+                <button
+                    type="button"
+                    onClick={() => {
+                        // Opens the AI assistant with a notes-synthesis request.
+                        // The chat attaches the event's scouting-notes digest as
+                        // context on event pages (see AssistantChat).
+                        window.dispatchEvent(new CustomEvent("open-ai-chat", {
+                            detail: { message: `Sintetiza las notas de scouting del equipo ${stats.teamNumber} (${stats.teamName}). Agrupa por tema y cita quién observó cada cosa. Si no hay notas de ese equipo, dímelo.` },
+                        }));
+                    }}
+                    className="flex flex-col items-center justify-center p-2 rounded hover:bg-secondary/10 hover:text-secondary text-muted-foreground transition-colors group"
+                >
+                    <Bot size={16} className="mb-1 group-hover:scale-110 transition-transform" />
+                    <span className="text-[9px] font-bold uppercase">Notas IA</span>
+                </button>
                 <Link
                     href={spyLinks.youtube}
                     target="_blank"

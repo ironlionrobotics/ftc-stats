@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Search, Info, X, Trophy, Bot, User, Sparkles, Network, Radio, ChevronDown } from "lucide-react";
+import { Search, Info, X, Trophy, User, Sparkles, Network, Radio, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import clsx from "clsx";
 import { TeamEvolution } from "@/app/actions/analytics";
@@ -251,20 +251,10 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
     const topRecommendations = (allScoredTeams || []).slice(0, 6);
     const otherTeams = (allScoredTeams || []).slice(6);
 
-    const triggerAI = (partner: TeamEvolution) => {
-        if (!selectedTeam) return;
-
-        // ... existing AI prompt code ...
-        const prompt = `Analyze alliance: Team ${selectedTeam.teamNumber} & Team ${partner.teamNumber}.
-        TARGET: OPR ${(selectedTeam.opr || 0).toFixed(1)}, Auto ${(selectedTeam.autoOPR || 0).toFixed(1)}, Tele ${(selectedTeam.teleOPR || 0).toFixed(1)}, End ${(selectedTeam.endgameOPR || 0).toFixed(1)}, Disc ${(selectedTeam.netDiscipline || 0).toFixed(1)}.
-        RP PROBS: Mov ${(selectedTeam.rpMovement || 0).toFixed(2)}, Art ${(selectedTeam.rpArtifacts || 0).toFixed(2)}, Pat ${(selectedTeam.rpPattern || 0).toFixed(2)}.
-        PARTNER: OPR ${(partner.opr || 0).toFixed(1)}, Auto ${(partner.autoOPR || 0).toFixed(1)}, Tele ${(partner.teleOPR || 0).toFixed(1)}, End ${(partner.endgameOPR || 0).toFixed(1)}, Disc ${(partner.netDiscipline || 0).toFixed(1)}.
-        RP PROBS: Mov ${(partner.rpMovement || 0).toFixed(2)}, Art ${(partner.rpArtifacts || 0).toFixed(2)}, Pat ${(partner.rpPattern || 0).toFixed(2)}.
-        Context: Combined OPR ${(selectedTeam.opr || 0) + (partner.opr || 0)}. Match compatibility?`;
-
-        const event = new CustomEvent('open-ai-chat', { detail: { message: prompt } });
-        window.dispatchEvent(event);
-    };
+    // NOTE: the old "AI Analysis" button (LLM narrating the pair's numbers) was
+    // removed — the deterministic "¿Por qué este partner?" explanation replaced
+    // it. The LLM's job is now synthesizing unstructured scouting notes (see
+    // AssistantChat), not re-telling scores.
 
     const clearSelection = () => {
         setSelectedTeam(null);
@@ -591,18 +581,12 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                                         </details>
                                                     </div>
 
-                                                    <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-border relative z-10">
+                                                    <div className="mt-5 pt-4 border-t border-border relative z-10">
                                                         <button
                                                             onClick={() => setUnavailableTeams([...unavailableTeams, rec.partner.teamNumber])}
-                                                            className="py-2.5 bg-muted border border-border text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-xl text-xs font-bold uppercase transition-all"
+                                                            className="w-full py-2.5 bg-muted border border-border text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-xl text-xs font-bold uppercase transition-all"
                                                         >
                                                             Exclude
-                                                        </button>
-                                                        <button
-                                                            onClick={() => triggerAI(rec.partner)}
-                                                            className="py-2.5 bg-secondary hover:bg-secondary/90 text-secondary-foreground border border-transparent rounded-xl text-xs font-bold uppercase transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95"
-                                                        >
-                                                            <Bot size={16} /> AI Analysis
                                                         </button>
                                                     </div>
                                                 </div>
@@ -626,9 +610,8 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                                 {otherTeams.map(rec => {
                                                     const lastEvent = rec.partner.events[rec.partner.events.length - 1]; // Get rank for list items
                                                     return (
-                                                        <button
+                                                        <div
                                                             key={rec.partner.teamNumber}
-                                                            onClick={() => triggerAI(rec.partner)} // Or open detail
                                                             className="w-full bg-card border border-border rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 hover:border-secondary/30 hover:shadow-sm transition-all group text-left"
                                                         >
                                                             <div className="flex items-center gap-4">
@@ -657,10 +640,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="text-xs font-bold text-secondary bg-secondary/10 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                Analyze
-                                                            </div>
-                                                        </button>
+                                                        </div>
                                                     )
                                                 })}
                                             </div>

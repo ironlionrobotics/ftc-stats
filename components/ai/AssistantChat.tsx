@@ -5,16 +5,49 @@ import { chatWithAssistant } from "@/app/actions/ai";
 import { useAuth } from "@/context/AuthContext";
 import { Bot, Send, MessageSquare, ChevronDown, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { getMatchScoutingOnce } from "@/lib/scouting-service";
+import { getCurrentSeason } from "@/lib/constants";
+import type { MatchScouting } from "@/types/scouting";
+
+/**
+ * Builds a compact digest of the event's free-text scouting notes — the one
+ * data type the deterministic aggregation engine can NOT merge (notes are
+ * listed with attribution by design). Synthesizing them is the LLM's actual
+ * job in PRIDE; score explanations are handled natively by the Oracle.
+ * Only match-scouting notes are included (cross-org visible). Pit notes are
+ * org-private and never leave their owner.
+ */
+function buildNotesDigest(entries: MatchScouting[]): string {
+    const byTeam = new Map<number, string[]>();
+    for (const e of entries) {
+        const note = (e.notes ?? "").trim();
+        if (!note) continue;
+        const list = byTeam.get(e.teamNumber) ?? [];
+        if (list.length >= 3) continue; // latest 3 per team (entries arrive desc)
+        const scout = e.scoutName || e.scoutId || "scout";
+        list.push(`"${note.slice(0, 180)}" (${scout})`);
+        byTeam.set(e.teamNumber, list);
+    }
+    const lines: string[] = [];
+    for (const [team, notes] of [...byTeam.entries()].sort((a, b) => a[0] - b[0])) {
+        lines.push(`T${team}: ${notes.join(" · ")}`);
+    }
+    // Server caps context at 8KB; trim client-side so the cap cuts cleanly.
+    return lines.join("\n").slice(0, 6000);
+}
 
 export default function AssistantChat() {
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
-        { role: 'assistant', content: "Hello! I'm your FTC Strategy Assistant. I can help you analyze matches or pick alliance partners." }
+        { role: 'assistant', content: "¡Hola! Soy el asistente de estrategia de PRIDE. Mi especialidad: sintetizar las notas de scouting del evento (\"¿qué dicen las notas del 12887?\") y responder dudas de estrategia. En páginas de evento leo las notas automáticamente." }
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    // Per-event cache of the scouting-notes digest (avoids re-reading Firestore
+    // on every message in the same event).
+    const notesCacheRef = useRef<{ eventCode: string; digest: string } | null>(null);
     const pathname = usePathname();
 
     const scrollToBottom = () => {
@@ -42,9 +75,29 @@ export default function AssistantChat() {
             }
             const idToken = await user.getIdToken();
 
+            // On event pages, attach the event's scouting-notes digest (cached
+            // per event so repeat questions don't re-read Firestore).
+            let scoutingNotes: string | undefined;
+            const eventMatch = pathname?.match(/^\/event\/([^/]+)/);
+            if (eventMatch) {
+                const eventCode = decodeURIComponent(eventMatch[1]);
+                try {
+                    if (notesCacheRef.current?.eventCode !== eventCode) {
+                        const cookieSeason = Number(document.cookie.match(/(?:^|; )ftc_season=(\d+)/)?.[1]);
+                        const season = cookieSeason || getCurrentSeason();
+                        const entries = await getMatchScoutingOnce(season, eventCode);
+                        notesCacheRef.current = { eventCode, digest: buildNotesDigest(entries) };
+                    }
+                    scoutingNotes = notesCacheRef.current.digest || undefined;
+                } catch {
+                    // Notes are an enhancement — the chat still works without them.
+                }
+            }
+
             const contextData = {
                 page: pathname,
                 timestamp: new Date().toISOString(),
+                ...(scoutingNotes ? { scoutingNotes } : {}),
             };
 
             // Pass the existing conversation history to maintain context

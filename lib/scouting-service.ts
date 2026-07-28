@@ -227,6 +227,33 @@ export function listenToMatchScouting(
     });
 }
 
+/**
+ * One-shot fetch of an event's match scouting (no listener). Used by the AI
+ * assistant to build a notes digest on demand — a live subscription would be
+ * wasted cost for a chat that reads the notes at most a few times per event.
+ */
+export async function getMatchScoutingOnce(
+    season: number,
+    eventCode: string,
+    options?: { maxEntries?: number },
+): Promise<MatchScouting[]> {
+    const maxEntries = options?.maxEntries ?? DEFAULT_LISTENER_LIMIT;
+    const colRef = collection(db, MATCH_COLLECTION);
+    const q = query(
+        colRef,
+        where("season", "==", season),
+        where("eventCode", "==", eventCode),
+        orderBy("timestamp", "desc"),
+        limit(maxEntries),
+    );
+    const querySnapshot = await getDocs(q);
+    const results: MatchScouting[] = [];
+    querySnapshot.forEach((doc) => {
+        results.push({ id: doc.id, ...doc.data() } as MatchScouting);
+    });
+    return results;
+}
+
 export async function getMatchScoutingForTeam(
     season: number,
     teamNumber: number,
