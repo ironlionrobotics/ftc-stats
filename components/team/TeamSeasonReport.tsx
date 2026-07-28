@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { TEAM_30311_DECODE } from "@/lib/reports/team-30311-decode";
 import { RookieComparison } from "@/components/team/RookieComparison";
 import {
@@ -128,14 +129,19 @@ export function TeamSeasonReport() {
             {/* ── Mexico cohort ────────────────────────────────────────── */}
             <ReportSection
                 n="04"
-                title="Dónde caen en México"
-                desc="Los programas mexicanos más competitivos de DECODE por OPR de temporada. Iron Lion, en su primer año, ya se acerca al tier veterano y supera a todo programa más nuevo que pudimos ubicar."
+                title="Frente a los grandes de México"
+                desc="Los 8 programas mexicanos más consolidados (3 a 9 temporadas) por OPR — la vara del tier veterano. No es la tabla de posiciones nacional: Iron Lion es rookie (1ª temporada) y aparece al final para medir la distancia a ese tier, no como un 9° lugar."
                 icon={<MapPin size={20} />}
             >
-                <CohortTable rows={[...R.mexicoCohort]} showSeasons />
-                <p className="mt-4 text-sm text-muted-foreground">
-                    Referencia de élite: <strong className="text-foreground">Devolt Phobos (12887)</strong>, rank mundial 224 tras 9 temporadas — el mapa de a dónde puede crecer el programa.
-                </p>
+                <CohortTable rows={[...R.mexicoCohort]} showSeasons dividerLabel="tier veterano ↑ · nuestro debut ↓" />
+                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                    <p>
+                        <strong className="text-foreground">Cómo leerla:</strong> arriba, programas con años de historia (columna Temporadas); abajo, nuestro debut. Es un mapa de crecimiento, no un ranking. Entre <strong className="text-foreground">rookies</strong> mexicanos, Iron Lion es <strong className="text-foreground">#5 de 31</strong> — y #1 por premios (ver sección siguiente).
+                    </p>
+                    <p>
+                        Referencia de élite: <strong className="text-foreground">Devolt Phobos (12887)</strong>, rank mundial 224 tras 9 temporadas — a dónde puede crecer el programa.
+                    </p>
+                </div>
             </ReportSection>
 
             {/* ── Rookie comparison · national + international ──────────── */}
@@ -304,7 +310,8 @@ function SkillBar({ skill }: { skill: (typeof R.skills)[number] }) {
     );
 }
 
-function CohortTable({ rows, showSeasons }: { rows: Array<{ number: number; name: string; location?: string; seasons?: number; totOpr: number; worldRank: number; self?: boolean }>; showSeasons?: boolean }) {
+function CohortTable({ rows, showSeasons, dividerLabel }: { rows: Array<{ number: number; name: string; location?: string; seasons?: number; totOpr: number; worldRank: number; self?: boolean }>; showSeasons?: boolean; dividerLabel?: string }) {
+    const cols = showSeasons ? 4 : 3;
     return (
         <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full min-w-[480px] text-sm">
@@ -317,24 +324,38 @@ function CohortTable({ rows, showSeasons }: { rows: Array<{ number: number; name
                     </tr>
                 </thead>
                 <tbody>
-                    {rows.map((t) => (
-                        <tr key={t.number} className={clsx("border-t border-border", t.self && "bg-primary/5")}>
-                            <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                    <span className={clsx("font-bold leading-tight", t.self ? "text-primary" : "text-foreground")}>{t.name}</span>
-                                    {t.self && <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">Nosotros</span>}
-                                </div>
-                                <div className="text-xs text-muted-foreground font-mono">#{t.number}{t.location ? ` · ${t.location}` : ""}</div>
-                            </td>
-                            {showSeasons && (
-                                <td className="px-4 py-3 text-center font-mono text-muted-foreground">
-                                    {t.seasons}{t.seasons === 1 ? " (rookie)" : ""}
-                                </td>
-                            )}
-                            <td className={clsx("px-4 py-3 text-center font-mono font-bold", t.self ? "text-primary" : "text-secondary")}>{t.totOpr.toFixed(1)}</td>
-                            <td className="px-4 py-3 text-center font-mono text-muted-foreground">#{t.worldRank.toLocaleString("es-MX")}</td>
-                        </tr>
-                    ))}
+                    {rows.map((t, i) => {
+                        // A separator before the highlighted "self" row makes clear it is a
+                        // reference point below the group above, not the next ranked entry.
+                        const dividerBefore = t.self && i > 0 && !rows[i - 1].self;
+                        return (
+                            <Fragment key={t.number}>
+                                {dividerBefore && (
+                                    <tr>
+                                        <td colSpan={cols} className="px-4 py-1.5 text-center bg-muted/20 text-muted-foreground/70 font-mono text-[11px] uppercase tracking-wider">
+                                            {dividerLabel ?? "···"}
+                                        </td>
+                                    </tr>
+                                )}
+                                <tr className={clsx("border-t border-border", t.self && "bg-primary/5")}>
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className={clsx("font-bold leading-tight", t.self ? "text-primary" : "text-foreground")}>{t.name}</span>
+                                            {t.self && <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">Nosotros · rookie</span>}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground font-mono">#{t.number}{t.location ? ` · ${t.location}` : ""}</div>
+                                    </td>
+                                    {showSeasons && (
+                                        <td className="px-4 py-3 text-center font-mono text-muted-foreground">
+                                            {t.seasons}{t.seasons === 1 ? " (rookie)" : ""}
+                                        </td>
+                                    )}
+                                    <td className={clsx("px-4 py-3 text-center font-mono font-bold", t.self ? "text-primary" : "text-secondary")}>{t.totOpr.toFixed(1)}</td>
+                                    <td className="px-4 py-3 text-center font-mono text-muted-foreground">#{t.worldRank.toLocaleString("es-MX")}</td>
+                                </tr>
+                            </Fragment>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>
