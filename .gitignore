@@ -49,3 +49,6 @@ test-fetch.ts
 
 # Playwright MCP screenshots/logs (local verification only)
 .playwright-mcp/
+
+# Oracle backtest raw results (regenerable via scripts/oracle-backtest.mjs)
+data/oracle-backtest/
