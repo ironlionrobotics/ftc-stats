@@ -575,3 +575,21 @@ Dos lecturas accionables:
 **Posición de 30311**: percentil **79.2** de México en su temporada rookie (28º de 131 equipos con datos 2025), contra una mediana rookie de 33.8. Es el nivel que el programa mexicano típico alcanza hasta su **sexta temporada**.
 
 Caveat documentado en la UI: la ventana 2019-2025 trunca por la izquierda (un programa anterior a 2019 sólo aparece desde temporadas tardías), lo que adelgaza los primeros años de la cohorte fija (T1 descansa en 4 equipos) — indicativo, no asentado.
+
+## #72 · Ciencia del draft: priors medidos, no supuestos (2026-07-29)
+
+Los umbrales de selección de alianzas que usaba la app venían de mirar unos pocos eventos (#58: "capitán ≈ top `alliances`, pickeable ≈ top 2×"). Ahora hay medición: **606 eventos, 15,186 observaciones equipo-evento** de la temporada 2025. Scripts: `scripts/draft-science.mjs` (recolección) y `scripts/draft-analysis.mjs` (análisis).
+
+FTCScout no expone selección de alianzas, así que se **reconstruyen** desde la composición de los matches de playoffs: equipos que salen a la cancha del mismo lado están en la misma alianza (componentes conexos, sólo `onField`). Validación: en cada evento de la muestra `picked` = alianzas × 2 exacto y capitanes = nº de alianzas. Al capitán se le infiere como el mejor seed de su alianza — es la regla en la práctica, pero es inferencia, no un campo del dato.
+
+**Hallazgo 1 — la probabilidad por seed** (fields de 20+): seed 1-4 ~99%, seed 7 92%, seed 8 87%, seed 9 76%, seed 10 63%, seed 12 46%, seed 14 33%, seed 16 17%. El acantilado está entre el 8 y el 12.
+
+**Hallazgo 2, el importante — el seed NO es destino.** Entre equipos que no pueden capitanear y están en el tercio alto de la tabla, controlando por una banda estrecha de seed (7-12, n=2,238): estar en el decil superior de OPR del evento da **94.1%** de selección; estar bajo el percentil 25 da **50.2%**. A igualdad de seed, ser visiblemente bueno vale más que varias posiciones de ranking. Es la forma cuantificada de lo que FPEMX sugirió anecdóticamente ([[project-fpemx-validacion]]).
+
+**Hallazgo 3** — el 36.7% de los equipos que seedearon por encima del último seleccionado se quedaron fuera: los capitanes sí alcanzan hacia abajo de la tabla, así que un umbral puro por seed nunca iba a ser correcto.
+
+Dos correcciones estadísticas que el código hace explícitas:
+- **Regresión isotónica (PAVA)** sobre la curva por seed. Las tasas crudas oscilan en la cola (el seed 14 midió por encima del 13) y una curva donde seedear peor mejora tus odds es ruido vendido como consejo. La monotonía se conoce a priori, así que imponerla es el estimador de máxima verosimilitud, no un maquillaje. Se conservan ambas series (`pickRate` cruda y `pickRateSmoothed`); se calcula con la suavizada.
+- **Ajuste en espacio de odds, no de probabilidad.** Multiplicar una probabilidad por un factor >1 se desborda cuando la base ya es alta: un seed 8 (87%) × 1.22 pasa de 100% y hay que clampear, lo que esconde el problema y borra la distinción entre p75 y p95. Con odds ratios ambos quedan ordenados y dentro de (0,1) por construcción.
+
+`lib/draft-odds.ts` (+12 tests) expone `draftOdds(seed, alliances, oprPct)` y `seedNeededFor(target)`. Cableado en la tabla de bandas del reporte de equipo como columna "Prob. de alianza" con el ajuste por OPR visible — porque el veredicto "burbuja" se lee igual al 45% que al 85% y son situaciones que se planean distinto.

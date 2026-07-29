@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TEAM_30311_DECODE } from "@/lib/reports/team-30311-decode";
 import { buildConsistencyProfile, projectFormBands, pointsToNextTier, consistencyNote, FormDiagnosis } from "@/lib/consistency";
 import { EventProfile, Verdict } from "@/lib/event-selector";
+import { draftOdds, type DraftOdds } from "@/lib/draft-odds";
 import { TrendingUp, Radar, Info, ArrowRight } from "lucide-react";
 import clsx from "clsx";
 
@@ -184,6 +185,7 @@ export function ConsistencyTracker() {
                                 <th className="px-4 py-3 text-left font-bold">Forma</th>
                                 <th className="px-4 py-3 text-center font-bold">OPR</th>
                                 <th className="px-4 py-3 text-center font-bold">Seed est.</th>
+                                <th className="px-4 py-3 text-center font-bold">Prob. de alianza</th>
                                 <th className="px-4 py-3 text-center font-bold">Resultado probable</th>
                             </tr>
                         </thead>
@@ -197,6 +199,14 @@ export function ConsistencyTracker() {
                                     <td className="px-4 py-3 text-center font-mono font-bold text-secondary tabular-nums">{b.opr.toFixed(1)}</td>
                                     <td className="px-4 py-3 text-center font-mono text-foreground tabular-nums whitespace-nowrap">
                                         #{b.projection.expectedSeed}<span className="text-muted-foreground text-xs">/{field.teams}</span>
+                                    </td>
+                                    {/* Measured selection rate at that seed (606 events), rather than
+                                        the verdict's eyeballed thresholds — "burbuja" reads the same
+                                        at 45% and 85%, and those plan very differently. */}
+                                    <td className="px-4 py-3 text-center font-mono tabular-nums" title={draftOdds(b.projection.expectedSeed, b.projection.alliances, b.projection.percentile).basis}>
+                                        <PickOdds
+                                            odds={draftOdds(b.projection.expectedSeed, b.projection.alliances, b.projection.percentile)}
+                                        />
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={clsx("inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap", VERDICT_STYLE[b.projection.verdict].cls)}>
@@ -328,6 +338,26 @@ function LegendKey({ color, label, dashed, band }: { color: string; label: strin
                     : { backgroundImage: dashed ? `repeating-linear-gradient(90deg, ${color} 0 4px, transparent 4px 7px)` : "none", backgroundColor: dashed ? "transparent" : color }}
             />
             {label}
+        </span>
+    );
+}
+
+/**
+ * Selection probability with its OPR adjustment shown, because the adjustment
+ * IS the actionable part: at the same seed, being visibly good is worth more
+ * than a couple of ranking positions (decisions.md #72).
+ */
+function PickOdds({ odds }: { odds: DraftOdds }) {
+    const p = odds.probability;
+    const tone = p >= 0.85 ? "text-success" : p >= 0.6 ? "text-warning" : "text-danger";
+    return (
+        <span className="inline-flex flex-col items-center leading-tight">
+            <span className={clsx("font-bold", tone)}>{(p * 100).toFixed(0)}%</span>
+            {Math.abs(odds.oprAdjustment) >= 0.02 && (
+                <span className="text-[10px] font-normal text-muted-foreground mt-0.5">
+                    {odds.oprAdjustment > 0 ? "+" : ""}{(odds.oprAdjustment * 100).toFixed(0)} por OPR
+                </span>
+            )}
         </span>
     );
 }

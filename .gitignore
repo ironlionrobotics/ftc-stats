@@ -56,3 +56,5 @@ data/oracle-backtest/
 # Growth-curve raw results (regenerable via scripts/growth-curves.mjs).
 # The curated subset that the report renders lives in lib/reports/growth-curves.ts.
 data/growth-curves/
+# Draft science raw pulls (regenerable via scripts/draft-science.mjs).
+data/draft-science/
