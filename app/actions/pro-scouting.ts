@@ -1,22 +1,23 @@
 "use server";
 
-import { fetchTeamEvents, fetchRankings, fetchMatches, fetchMatchScores, getCachedData, setCachedData, fetchTeam } from "@/lib/ftc-api";
+import { fetchTeamEvents, fetchRankings, fetchMatches, fetchMatchScores, getCachedData, setCachedData, fetchTeam, FTCMatchScoreEntry, FTCAllianceScoreBreakdown } from "@/lib/ftc-api";
 import { TeamRanking, FTCMatch } from "@/types/scouting";
 
-interface AllianceScoreBreakdown {
-    endgamePoints?: number;
-    endGamePoints?: number;
-    parkingPoints?: number;
-    ascentPoints?: number;
-    teleopPoints?: number;
-    teleOpPoints?: number;
-    dcPoints?: number;
+// Match score entries from the FIRST API `/scores` endpoint use a
+// `matchLevel` string ("Qualification", "Playoff", etc.) that doesn't
+// necessarily match FTCMatch.tournamentLevel's casing/wording
+// ("QUALIFICATION", "PLAYOFF"). Compare via a normalized prefix match,
+// mirroring the already-correct pattern in app/actions/analytics.ts.
+export function levelsMatch(tournamentLevel: string, matchLevel: string): boolean {
+    return matchLevel.toUpperCase().startsWith(tournamentLevel.substring(0, 4).toUpperCase());
 }
 
-interface MatchScoreEntry {
-    matchNumber: number;
-    matchLevel: string;
-    scoreBreakdown?: Record<string, AllianceScoreBreakdown>;
+// Guards the zero-length case so `consistency` is never persisted as NaN
+// (e.g. a team whose events are all still upcoming, or a data gap).
+export function computeStdDev(scores: number[], mean: number): number {
+    if (scores.length === 0) return 0;
+    const variance = scores.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / scores.length;
+    return Math.sqrt(variance);
 }
 
 export interface TeamSeasonStats {
@@ -56,7 +57,7 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
     const completedEvents = events.filter(e => new Date(e.dateEnd || e.dateStart) < new Date());
 
     const allMatches: FTCMatch[] = [];
-    const allScores: MatchScoreEntry[] = [];
+    const allScores: FTCMatchScoreEntry[] = [];
 
     // 3. Aggregate Matches & Scores from all events
     // Parallelize for speed, but limit concurrency if needed
@@ -71,7 +72,7 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
         allMatches.push(...teamMatches);
 
         // Filter scores for this team's matches
-        const relevantScores = scores.filter(s => teamMatches.some(tm => tm.matchNumber === s.matchNumber && tm.tournamentLevel === s.matchLevel));
+        const relevantScores = scores.filter(s => teamMatches.some(tm => tm.matchNumber === s.matchNumber && levelsMatch(tm.tournamentLevel, s.matchLevel)));
         allScores.push(...relevantScores);
     }));
 
@@ -92,10 +93,15 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
         const score = isRed ? m.scoreRedFinal : m.scoreBlueFinal;
         scoresList.push(score);
 
-        // Breakdown lookup
+        // Breakdown lookup — each FTCMatchScoreEntry represents a single
+        // alliance (its own `alliance` field), so find the entry matching
+        // both this match and this team's alliance color, then use its
+        // scoreBreakdown directly (it's not nested by color).
+        const allianceColor = isRed ? 'red' : 'blue';
         const matchScore = allScores.find(s =>
             s.matchNumber === m.matchNumber &&
-            s.matchLevel === m.tournamentLevel
+            levelsMatch(m.tournamentLevel, s.matchLevel) &&
+            s.alliance.toLowerCase() === allianceColor
         );
 
         const auto = isRed ? m.scoreRedAuto : m.scoreBlueAuto;
@@ -103,14 +109,13 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
         let end = 0;
 
         if (matchScore) {
-            const allianceData = matchScore.scoreBreakdown?.[isRed ? 'red' : 'blue'] ||
-                matchScore.scoreBreakdown?.[isRed ? 'Red' : 'Blue']; // Handle case variance
+            const allianceData = matchScore.scoreBreakdown;
 
             if (allianceData) {
                 // Robust extraction logic similar to analytics.ts
-                const getEndgame = (data: AllianceScoreBreakdown) => data.endgamePoints ?? data.endGamePoints ??
+                const getEndgame = (data: FTCAllianceScoreBreakdown) => data.endgamePoints ?? data.endGamePoints ??
                     ((data.parkingPoints || 0) + (data.ascentPoints || 0));
-                const getTeleop = (data: AllianceScoreBreakdown) => data.teleopPoints ?? data.teleOpPoints ?? data.dcPoints ?? 0;
+                const getTeleop = (data: FTCAllianceScoreBreakdown) => data.teleopPoints ?? data.teleOpPoints ?? data.dcPoints ?? 0;
 
                 tele = getTeleop(allianceData);
                 end = getEndgame(allianceData);
@@ -155,8 +160,7 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
 
     // Standard Deviation
     const mean = avg(scoresList);
-    const variance = scoresList.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / scoresList.length;
-    const stdDev = Math.sqrt(variance);
+    const stdDev = computeStdDev(scoresList, mean);
 
     const stats: TeamSeasonStats = {
         teamNumber,
