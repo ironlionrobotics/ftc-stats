@@ -203,5 +203,14 @@ service cloud.firestore {
         match /app_config/{doc} {
             allow read, write: if false;
         }
+
+        // Ground-truth validation run markers — records which scouting entries
+        // have already been folded into scout reliability, so a re-run stays
+        // idempotent. Written ONLY by the validation runner via the Admin SDK
+        // (which bypasses rules). A client that could write here could replay
+        // or suppress reliability updates, so both directions stay closed.
+        match /ground_truth_runs/{doc} {
+            allow read, write: if false;
+        }
     }
 }

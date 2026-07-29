@@ -56,10 +56,37 @@ function playedMatch() {
     };
 }
 
-/** Minimal in-memory Firestore that actually applies the recorded equality filters. */
-function fakeDb(scoutingDocs: MatchScouting[], users: Record<string, Record<string, unknown> | undefined>) {
+interface FakeRef {
+    __collection: string;
+    __id: string;
+    get(): Promise<{ exists: boolean; data: () => Record<string, unknown> | undefined }>;
+}
+
+/**
+ * Minimal in-memory Firestore that applies the recorded equality filters and
+ * models batched writes: staged operations only land on commit(), so a test
+ * can assert that a failed run writes nothing.
+ */
+function fakeDb(
+    scoutingDocs: MatchScouting[],
+    users: Record<string, Record<string, unknown> | undefined>,
+    priorRun?: Record<string, unknown>,
+) {
     const updates: Array<{ uid: string; data: Record<string, unknown> }> = [];
+    const runWrites: Array<{ id: string; data: Record<string, unknown> }> = [];
     const capturedFilters: Array<[string, string, unknown]> = [];
+
+    const makeRef = (collection: string, id: string): FakeRef => ({
+        __collection: collection,
+        __id: id,
+        async get() {
+            if (collection === "users") {
+                const data = users[id];
+                return { exists: data !== undefined, data: () => data };
+            }
+            return { exists: priorRun !== undefined, data: () => priorRun };
+        },
+    });
 
     const db = {
         collection(name: string) {
@@ -80,26 +107,27 @@ function fakeDb(scoutingDocs: MatchScouting[], users: Record<string, Record<stri
                 };
                 return builder;
             }
-            if (name === "users") {
-                return {
-                    doc(uid: string) {
-                        return {
-                            async get() {
-                                const data = users[uid];
-                                return { exists: data !== undefined, data: () => data };
-                            },
-                            async update(data: Record<string, unknown>) {
-                                updates.push({ uid, data });
-                            },
-                        };
-                    },
-                };
+            if (name === "users" || name === "ground_truth_runs") {
+                return { doc: (id: string) => makeRef(name, id) };
             }
             throw new Error("unexpected collection: " + name);
         },
+        batch() {
+            const staged: Array<{ ref: FakeRef; data: Record<string, unknown> }> = [];
+            return {
+                update(ref: FakeRef, data: Record<string, unknown>) { staged.push({ ref, data }); },
+                set(ref: FakeRef, data: Record<string, unknown>) { staged.push({ ref, data }); },
+                async commit() {
+                    for (const op of staged) {
+                        if (op.ref.__collection === "users") updates.push({ uid: op.ref.__id, data: op.data });
+                        else runWrites.push({ id: op.ref.__id, data: op.data });
+                    }
+                },
+            };
+        },
     };
 
-    return { db, updates, capturedFilters };
+    return { db, updates, runWrites, capturedFilters };
 }
 
 beforeEach(() => {
@@ -152,5 +180,87 @@ describe("runGroundTruthValidation — org scoping (C4)", () => {
 
         expect(updates).toHaveLength(0);
         expect(report.scoutsUpdated).toBe(0);
+    });
+});
+
+describe("runGroundTruthValidation — idempotency", () => {
+    const perfectScout = () => [
+        entry({ teamNumber: 101, scoutId: "A", orgId: "30311", teleopPurpleArtifacts: 5 }),
+        entry({ teamNumber: 102, scoutId: "A", orgId: "30311", teleopPurpleArtifacts: 4 }),
+    ];
+    const users = () => ({ A: { orgId: "30311", reliability: 0.5 } });
+
+    it("records the consumed entry ids alongside the reliability write", async () => {
+        const { db, updates, runWrites } = fakeDb(perfectScout(), users());
+        getAdminDbMock.mockReturnValue(db);
+
+        const report = await runGroundTruthValidation(2025, "MXTOL", "30311");
+
+        expect(updates).toHaveLength(1);
+        expect(runWrites).toHaveLength(1);
+        // Marker id is org × season × event, and it claims exactly the entries
+        // that were folded in — the invariant that makes re-runs safe.
+        expect(runWrites[0].id).toBe("30311__2025__MXTOL");
+        expect(runWrites[0].data.processedEntryIds).toEqual(["doc0", "doc1"]);
+        expect(report.entriesConsumed).toBe(2);
+        expect(report.entriesAlreadyCounted).toBe(0);
+        expect(report.previousRunAt).toBeNull();
+    });
+
+    it("does not move reliability a second time when re-run on the same entries", async () => {
+        // This is the bug: an EWMA applied twice moves the score twice.
+        const prior = {
+            orgId: "30311", season: 2025, eventCode: "MXTOL",
+            ranAt: "2025-01-02T00:00:00Z",
+            processedEntryIds: ["doc0", "doc1"],
+        };
+        const { db, updates, runWrites } = fakeDb(perfectScout(), users(), prior);
+        getAdminDbMock.mockReturnValue(db);
+
+        const report = await runGroundTruthValidation(2025, "MXTOL", "30311");
+
+        expect(updates).toHaveLength(0);
+        expect(runWrites).toHaveLength(0);
+        expect(report.scoutsUpdated).toBe(0);
+        expect(report.entriesConsumed).toBe(0);
+        expect(report.entriesAlreadyCounted).toBe(2);
+        expect(report.previousRunAt).toBe("2025-01-02T00:00:00Z");
+    });
+
+    it("counts only the new entries when a re-run finds additional scouting", async () => {
+        // Mid-event run, then more scouting arrives: the second run must fold
+        // in ONLY the new entry, not re-apply the first one.
+        const docs = [
+            ...perfectScout(),
+            entry({ teamNumber: 101, scoutId: "D", orgId: "30311", teleopPurpleArtifacts: 5 }),
+        ];
+        const prior = {
+            orgId: "30311", season: 2025, eventCode: "MXTOL",
+            ranAt: "2025-01-02T00:00:00Z",
+            processedEntryIds: ["doc0", "doc1"],
+        };
+        const { db, updates, runWrites } = fakeDb(docs, { ...users(), D: { orgId: "30311", reliability: 0.5 } }, prior);
+        getAdminDbMock.mockReturnValue(db);
+
+        const report = await runGroundTruthValidation(2025, "MXTOL", "30311");
+
+        expect(updates.map(u => u.uid)).toEqual(["D"]);
+        expect(report.entriesAlreadyCounted).toBe(2);
+        // The marker accumulates: prior ids plus the newly consumed one.
+        expect(runWrites[0].data.processedEntryIds).toEqual(["doc0", "doc1", "doc2"]);
+    });
+
+    it("leaves entries unconsumed when their match has not been played", async () => {
+        // Otherwise a mid-event run would permanently burn entries whose
+        // official score didn't exist yet.
+        fetchMatchesMock.mockResolvedValue([{ ...playedMatch(), postResultTime: null, scoreRedFinal: 0 }]);
+        const { db, updates, runWrites } = fakeDb(perfectScout(), users());
+        getAdminDbMock.mockReturnValue(db);
+
+        const report = await runGroundTruthValidation(2025, "MXTOL", "30311");
+
+        expect(updates).toHaveLength(0);
+        expect(runWrites).toHaveLength(0);   // nothing claimed
+        expect(report.entriesConsumed).toBe(0);
     });
 });

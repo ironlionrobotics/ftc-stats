@@ -78,9 +78,22 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
             } else {
                 setSnapshot(calibration.snapshot);
             }
+            // Reliability failing isn't fatal to the page (calibration metrics
+            // still render), but it shouldn't be silently swallowed either —
+            // surface it unless the (more specific) calibration error already
+            // has something to show.
             if (reliability.ok) {
                 setScouts(reliability.scouts.sort((a, b) => b.reliability - a.reliability));
+            } else if (calibration.ok) {
+                setError(reliability.error);
             }
+        } catch (e) {
+            // Distinguish "loaded, but empty" (handled above via ok:false
+            // results) from "failed to load at all" (network error, thrown
+            // rejection, etc.) — both must surface a message instead of
+            // silently falling through to the empty state.
+            setError(e instanceof Error ? e.message : "Error al cargar datos de calibración");
+            setSnapshot(null);
         } finally {
             setLoading(false);
         }

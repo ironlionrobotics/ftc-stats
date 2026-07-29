@@ -460,3 +460,19 @@ Traducción a decisiones vía `projectFormBands` sobre perfiles reales: en FPEMX
 ## #62 · Los helpers puros no viven en módulos "use server" (2026-07-28)
 
 Al arreglar `app/actions/pro-scouting.ts` (#10 de PENDING) se exportaron dos helpers **síncronos** desde un módulo `"use server"`. Next.js trata cada export de esos módulos como server action y exige que sean `async`, así que rompe el build — pero **`tsc`, `vitest` y `eslint` los tres pasan**: sólo `next build` lo detecta. Se movieron a `lib/scoring-utils.ts` (+7 tests) y `pro-scouting.ts` los importa. **Regla operativa: cualquier cambio bajo `app/actions/` exige correr `npm run build`, no basta con tests + typecheck.**
+
+## #63 · Ground-truth validation idempotente por entrada consumida (2026-07-29)
+
+`runGroundTruthValidation` actualizaba reliability con `await userRef.update()` secuencial por scout, sin registro de corrida: re-ejecutar sobre un evento **volvía a aplicar la EWMA** (mueve el score dos veces) y un fallo a media lista dejaba la org medio actualizada sin forma de saber hasta dónde llegó.
+
+Fix con marcador en la colección server-only `ground_truth_runs/{orgId}__{season}__{eventCode}` que guarda **los IDs de las entradas ya incorporadas**:
+- Re-ejecutar es **incremental**, no un rechazo: validar a media competencia y otra vez al final cuenta cada entrada exactamente una vez. Un "ya corrió, me niego" habría roto ese flujo, que es el normal.
+- Sólo se registran entradas que **produjeron señal**. Las de matches no jugados quedan sin marcar para que una corrida posterior las tome cuando exista score.
+- El marcador se commitea **en el mismo `WriteBatch`** que los updates de usuario ⇒ "el marcador reclama una entrada" ⟺ "esa entrada se aplicó". Un commit fallido no aplica nada. Guard explícito si se superara el límite de 500 ops de Firestore (falla ruidoso en vez de partir el batch y perder atomicidad).
+- Semántica deliberada: las entradas de un scout saltado por el guard cross-org **sí** cuentan como consumidas — el guard es una decisión de seguridad permanente, no un fallo transitorio, así que re-escanearlas nunca produciría escritura.
+
+De paso: el mapeo era `{ id: d.id, ...d.data() }` — el spread iba **después**, así que un campo `id` guardado en el payload sobrescribía el id real del documento. Como el dedup usa ese id, se invirtió el orden. `ValidationReport` gana `entriesConsumed` / `entriesAlreadyCounted` / `previousRunAt`. Regla `ground_truth_runs` cerrada en ambos sentidos (`if false`) — un cliente que pudiera escribirla podría replicar o suprimir actualizaciones de reliability. 4 tests nuevos (277 total).
+
+## #64 · Server actions fallan cerrado cuando falta firebase-admin (2026-07-29)
+
+`getAdminDb()` lanza si no hay `FIREBASE_SERVICE_ACCOUNT_KEY` — un estado esperado en dev. Estaba fuera de todo try en 4 actions (`calibration`, `validate-ground-truth`, `notify-discord`, `train-rp-models`), así que la promesa se rechazaba en vez de devolver el `{ok:false}` que esas mismas funciones ya usan en todos sus otros caminos. Ahora cada call site del Admin SDK cae al shape de resultado propio de su archivo (`error` o `reason: "no-admin"`). Mensaje deliberadamente honesto — "No se pudo acceder a Firestore (¿falta configurar Firebase Admin?)" — porque el catch también atrapa fallos de red o permisos, y afirmar "no está configurado" mandaría a depurar lo que no es. `CalibrationDashboard.refresh()` ya distingue "cargó vacío" de "falló al cargar". Además `fetchTeam` dejó de escribir `null` a Redis: `readThrough` trata falsy como miss, así que era una escritura sin ningún beneficio.

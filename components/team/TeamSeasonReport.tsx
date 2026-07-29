@@ -72,7 +72,7 @@ export function TeamSeasonReport() {
             <ReportSection
                 n="03"
                 title="Desglose de habilidad vs. el mundo"
-                desc="Percentil mundial de la temporada por fase de juego. Fuertes en teleoperado y endgame; el autónomo es la palanca de crecimiento."
+                desc="Percentil mundial de la temporada por fase de juego. Fuertes en teleoperado y endgame; el autónomo es el más débil por nivel — aunque, como muestra la sección anterior, es también el que crece más parejo."
                 icon={<Target size={20} />}
             >
                 <div className="grid gap-4 md:gap-5">

@@ -48,7 +48,12 @@ export async function trainRpModelsAction(input: {
     } catch {
         return { ok: false, error: "Token inválido o expirado" };
     }
-    const userSnap = await getAdminDb().collection("users").doc(uid).get();
+    let userSnap;
+    try {
+        userSnap = await getAdminDb().collection("users").doc(uid).get();
+    } catch {
+        return { ok: false, error: "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)" };
+    }
     if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
     const role = userSnap.data()?.role;
     if (role !== "admin" && role !== "lead") {

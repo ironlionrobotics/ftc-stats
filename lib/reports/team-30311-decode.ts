@@ -227,8 +227,12 @@ export const TEAM_30311_DECODE = {
 
     learnings: [
         {
-            title: "El autónomo es la palanca de crecimiento",
-            body: "Su punto relativamente más débil (top 26% mundial vs. top 13-14% en teleop/endgame). Subir el auto es donde más rank mundial pueden ganar por unidad de esfuerzo.",
+            title: "El autónomo sube el techo; el teleoperado sube el piso",
+            body: "Son dos palancas distintas, no una. El autónomo es el punto más débil por nivel (top 26% mundial vs. top 13-14% en teleop/endgame) y además ya crece de forma sostenida (+1.9 OPR por evento): ahí es donde más rank mundial se gana. El teleoperado es el caso opuesto — nivel alto pero la fase más inestable de la temporada (±5.1 OPR de ruido que la tendencia no explica). Ahí no se gana techo, se gana consistencia.",
+        },
+        {
+            title: "El número público de temporada va detrás de la forma real",
+            body: "El OPR de temporada (63.4) promedia los eventos tempranos y queda 15.2 puntos por debajo de la forma actual (78.6). Como los capitanes scoutean por ese número, la brecha cuesta posición de draft: la palanca no es reducir varianza — es hacer visible la forma reciente.",
         },
         {
             title: "El siguiente escalón es el tier veterano (91+ OPR)",

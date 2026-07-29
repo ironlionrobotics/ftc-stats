@@ -41,7 +41,7 @@ export async function notifyDiscordAction(input: {
     severity?: Severity;
     /** Override rate limit window (seconds). Defaults to 60. */
     rateLimitSeconds?: number;
-}): Promise<{ ok: boolean; reason?: "no-token" | "no-org" | "no-webhook" | "rate-limited" | "send-failed" }> {
+}): Promise<{ ok: boolean; reason?: "no-token" | "no-org" | "no-webhook" | "no-admin" | "rate-limited" | "send-failed" }> {
     const { idToken, title, description, severity = "info", rateLimitSeconds = DEFAULT_RATE_LIMIT_SECONDS } = input;
 
     if (!idToken) return { ok: false, reason: "no-token" };
@@ -53,13 +53,19 @@ export async function notifyDiscordAction(input: {
         return { ok: false, reason: "no-token" };
     }
 
-    const userSnap = await getAdminDb().collection("users").doc(uid).get();
-    if (!userSnap.exists) return { ok: false, reason: "no-org" };
-    const orgId = userSnap.data()?.orgId as string | undefined;
-    if (!orgId) return { ok: false, reason: "no-org" };
+    let orgId: string | undefined;
+    let webhookUrl: string | undefined;
+    try {
+        const userSnap = await getAdminDb().collection("users").doc(uid).get();
+        if (!userSnap.exists) return { ok: false, reason: "no-org" };
+        orgId = userSnap.data()?.orgId as string | undefined;
+        if (!orgId) return { ok: false, reason: "no-org" };
 
-    const secretsSnap = await getAdminDb().collection("org_secrets").doc(orgId).get();
-    const webhookUrl = secretsSnap.data()?.discordWebhookUrl as string | undefined;
+        const secretsSnap = await getAdminDb().collection("org_secrets").doc(orgId).get();
+        webhookUrl = secretsSnap.data()?.discordWebhookUrl as string | undefined;
+    } catch {
+        return { ok: false, reason: "no-admin" };
+    }
     if (!webhookUrl) return { ok: false, reason: "no-webhook" };
 
     // Rate limit: skip if we already pinged this org recently.
@@ -124,11 +130,17 @@ export async function setDiscordWebhookAction(input: {
         return { ok: false, error: "Token inválido o expirado" };
     }
 
-    const userSnap = await getAdminDb().collection("users").doc(uid).get();
-    if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
-    const data = userSnap.data() ?? {};
-    const orgId = data.orgId as string | undefined;
-    const role = data.role;
+    let orgId: string | undefined;
+    let role: unknown;
+    try {
+        const userSnap = await getAdminDb().collection("users").doc(uid).get();
+        if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
+        const data = userSnap.data() ?? {};
+        orgId = data.orgId as string | undefined;
+        role = data.role;
+    } catch {
+        return { ok: false, error: "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)" };
+    }
     if (!orgId) return { ok: false, error: "Sin equipo asignado" };
     if (role !== "admin" && role !== "lead") {
         return { ok: false, error: "Solo admins/leads pueden configurar el webhook" };
@@ -150,13 +162,17 @@ export async function setDiscordWebhookAction(input: {
 
     // Use set + merge so the doc is created on first save and only the
     // webhook field is touched on subsequent updates.
-    await getAdminDb().collection("org_secrets").doc(orgId).set(
-        {
-            orgId,
-            discordWebhookUrl: webhookUrl ?? null,
-        },
-        { merge: true },
-    );
+    try {
+        await getAdminDb().collection("org_secrets").doc(orgId).set(
+            {
+                orgId,
+                discordWebhookUrl: webhookUrl ?? null,
+            },
+            { merge: true },
+        );
+    } catch {
+        return { ok: false, error: "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)" };
+    }
     return { ok: true };
 }
 
@@ -172,12 +188,18 @@ export async function hasDiscordWebhookAction(input: {
     } catch {
         return { ok: false, error: "Token inválido" };
     }
-    const userSnap = await getAdminDb().collection("users").doc(uid).get();
-    if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
-    const orgId = userSnap.data()?.orgId as string | undefined;
-    if (!orgId) return { ok: false, error: "Sin equipo asignado" };
+    let orgId: string | undefined;
+    let url: string | undefined;
+    try {
+        const userSnap = await getAdminDb().collection("users").doc(uid).get();
+        if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
+        orgId = userSnap.data()?.orgId as string | undefined;
+        if (!orgId) return { ok: false, error: "Sin equipo asignado" };
 
-    const secretsSnap = await getAdminDb().collection("org_secrets").doc(orgId).get();
-    const url = secretsSnap.data()?.discordWebhookUrl as string | undefined;
+        const secretsSnap = await getAdminDb().collection("org_secrets").doc(orgId).get();
+        url = secretsSnap.data()?.discordWebhookUrl as string | undefined;
+    } catch {
+        return { ok: false, error: "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)" };
+    }
     return { ok: true, configured: !!url && url.length > 0 };
 }

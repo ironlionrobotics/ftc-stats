@@ -53,7 +53,12 @@ export async function fetchCalibrationAction(input: {
         return { ok: false, error: "Token inválido o expirado" };
     }
 
-    const userSnap = await getAdminDb().collection("users").doc(uid).get();
+    let userSnap;
+    try {
+        userSnap = await getAdminDb().collection("users").doc(uid).get();
+    } catch {
+        return { ok: false, error: "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)" };
+    }
     if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
     const data = userSnap.data() ?? {};
     const orgId = data.orgId as string | undefined;
@@ -128,11 +133,18 @@ export async function logPredictionAction(input: {
         return { ok: false };
     }
 
-    const userSnap = await getAdminDb().collection("users").doc(uid).get();
-    if (!userSnap.exists) return { ok: false };
-    const orgId = userSnap.data()?.orgId as string | undefined;
-    if (!orgId) return { ok: false };
+    try {
+        const userSnap = await getAdminDb().collection("users").doc(uid).get();
+        if (!userSnap.exists) return { ok: false };
+        const orgId = userSnap.data()?.orgId as string | undefined;
+        if (!orgId) return { ok: false };
 
-    await logPredictionImpl({ ...input.prediction, orgId });
-    return { ok: true };
+        await logPredictionImpl({ ...input.prediction, orgId });
+        return { ok: true };
+    } catch {
+        // Fail closed silently — matches this action's existing contract
+        // (best-effort logging must never surface an error to the caller),
+        // and also covers firebase-admin being unconfigured.
+        return { ok: false };
+    }
 }

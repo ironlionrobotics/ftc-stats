@@ -510,7 +510,15 @@ export async function fetchTeam(season: number, teamNumber: number): Promise<FTC
 
             const data = await response.json();
             const team = data.teams?.[0] || null;
-            await setCachedData(cacheKey, team, 86400);
+            // Only cache real data. `readThrough` treats a falsy cached value
+            // as a miss (`if (cached) return cached;`), so writing `null` here
+            // would be a pure no-op write — zero cache benefit, one wasted
+            // Redis round-trip on every lookup. It also deliberately avoids
+            // negative-caching: a team that registers mid-season becomes
+            // visible immediately instead of waiting out a 24h TTL.
+            if (team) {
+                await setCachedData(cacheKey, team, 86400);
+            }
             return team;
         } catch (error) {
             console.error(`Error fetching team ${teamNumber}:`, error);

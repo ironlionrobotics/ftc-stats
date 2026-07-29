@@ -16,6 +16,38 @@ import type { MatchScouting, FTCMatch } from "@/types/scouting";
 // careful scout's score, while still being responsive over a typical event.
 const RELIABILITY_ALPHA = 0.2;
 
+/**
+ * Server-only collection recording which scouting entries have already been
+ * folded into reliability, keyed by org × season × event. See the IDEMPOTENCY
+ * note on runGroundTruthValidation. Locked to `if false` in firestore.rules —
+ * only the Admin SDK (which bypasses rules) touches it.
+ */
+const RUNS_COLLECTION = "ground_truth_runs";
+
+/**
+ * Firestore forbids "/" in document ids. Org ids are Firestore auto-ids and
+ * FTC event codes are alphanumeric, so a "__" join is unambiguous for both.
+ */
+function runDocId(orgId: string, season: number, eventCode: string): string {
+    return `${orgId}__${season}__${eventCode}`;
+}
+
+/**
+ * Firestore caps a WriteBatch at 500 operations. We commit one update per
+ * scout plus the run marker, and an org fields a handful of scouts per event,
+ * so this is a guard against a pathological case, not an expected limit —
+ * exceeding it must fail loudly rather than silently split the batch and give
+ * up atomicity.
+ */
+const MAX_BATCH_WRITES = 500;
+
+/**
+ * A scouting entry as read back from Firestore, where the document id is
+ * always present. `MatchScouting.id` is optional because a not-yet-written
+ * entry has none, but everything this module reads has been persisted.
+ */
+type StoredEntry = MatchScouting & { id: string };
+
 /** Clamp a value into the closed interval [0, 1]. */
 function clamp01(x: number): number {
     return Math.max(0, Math.min(1, x));
@@ -109,6 +141,12 @@ export interface ValidationReport {
     deltas: ScoutAccuracyDelta[];
     /** ISO timestamp of run. */
     ranAt: string;
+    /** Entries folded into reliability by THIS run (excludes prior runs). */
+    entriesConsumed: number;
+    /** Entries skipped because a previous run already counted them. */
+    entriesAlreadyCounted: number;
+    /** ISO timestamp of the previous run for this org × event, if any. */
+    previousRunAt: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -214,6 +252,24 @@ export function computeAllianceSignals(
  * and written.
  *
  * FTC scoring formula remains approximate (RP-only mechanics not counted).
+ *
+ * IDEMPOTENCY. Reliability is an EWMA, so folding the same observation in
+ * twice moves a scout's score twice — re-running validation on an event used
+ * to silently double-count, and a crash midway through the per-scout writes
+ * left the org half-updated with no record of how far it got. Both are fixed
+ * by a run marker in `ground_truth_runs` that stores the IDs of the entries
+ * already folded in:
+ *
+ *   - Entries listed in the marker are skipped, so a re-run is INCREMENTAL:
+ *     validating mid-event and again at the end counts each entry exactly
+ *     once. (A blanket "already ran, refuse" would have blocked that normal
+ *     workflow instead.)
+ *   - Only entries that actually produced a signal are recorded. Entries whose
+ *     match had not been played yet stay unrecorded so a later run picks them
+ *     up once the score exists.
+ *   - The marker is committed in the SAME batch as the user updates, so
+ *     "marker contains an entry" ⟺ "that entry was applied". A failed commit
+ *     applies nothing and leaves the marker untouched — no partial state.
  */
 export async function runGroundTruthValidation(
     season: number,
@@ -221,6 +277,13 @@ export async function runGroundTruthValidation(
     orgId: string,
 ): Promise<ValidationReport> {
     const db = getAdminDb();
+    const runRef = db.collection(RUNS_COLLECTION).doc(runDocId(orgId, season, eventCode));
+    const runSnap = await runRef.get();
+    const priorRun = runSnap.exists ? runSnap.data() : undefined;
+    const alreadyCounted = new Set<string>(
+        Array.isArray(priorRun?.processedEntryIds) ? priorRun.processedEntryIds : [],
+    );
+    const previousRunAt = typeof priorRun?.ranAt === "string" ? priorRun.ranAt : null;
 
     // 1. Pull THIS ORG's scouting entries only. Equality-only multi-field
     // query — Firestore serves it via single-field index merge, no composite
@@ -233,9 +296,15 @@ export async function runGroundTruthValidation(
         .where("eventCode", "==", eventCode)
         .where("orgId", "==", orgId)
         .get();
-    const entries: MatchScouting[] = scoutingSnap.docs.map(
-        d => ({ id: d.id, ...d.data() }) as MatchScouting,
+    // `id` is spread LAST so the Firestore document id always wins: dedup below
+    // keys on it, and a stale `id` field inside the stored payload overriding it
+    // would let one entry masquerade as another.
+    const allEntries: StoredEntry[] = scoutingSnap.docs.map(
+        d => ({ ...d.data(), id: d.id }) as StoredEntry,
     );
+    // Drop what a previous run already folded in, so this run is incremental.
+    const entries = allEntries.filter(e => !alreadyCounted.has(e.id));
+    const entriesAlreadyCounted = allEntries.length - entries.length;
 
     // 2. Pull official matches.
     const matches = await fetchMatches(season, eventCode);
@@ -244,6 +313,16 @@ export async function runGroundTruthValidation(
     const obs: AllianceScoutSignal[] = [];
     let eligibleMatches = 0;
     let coveredMatches = 0;
+    // Entries that actually produced a signal in this run. Only these get
+    // recorded as consumed — an entry whose match has not been played yet must
+    // stay eligible for a later run (see the IDEMPOTENCY note).
+    //
+    // Note this is "signal computed", not "reliability written": entries from a
+    // scout skipped by the cross-org guard below still count as consumed. That
+    // is deliberate — the guard is a permanent security decision, not a
+    // transient failure, so re-scanning those entries forever would never
+    // produce a write.
+    const consumedEntryIds = new Set<string>();
 
     for (const match of matches) {
         if (!isMatchPlayed(match)) continue;
@@ -275,6 +354,7 @@ export async function runGroundTruthValidation(
             if (signals === null) continue;
             matchHadCoverage = true;
             obs.push(...signals);
+            for (const e of allianceEntries) consumedEntryIds.add(e.id);
         }
 
         if (matchHadCoverage) coveredMatches++;
@@ -290,6 +370,9 @@ export async function runGroundTruthValidation(
     }
 
     const deltas: ScoutAccuracyDelta[] = [];
+    // Writes are staged and committed together at the end: a mid-loop failure
+    // must leave reliability untouched rather than half-applied.
+    const batch = db.batch();
 
     for (const [scoutId, { signals, errors }] of byScout) {
         const userRef = db.collection("users").doc(scoutId);
@@ -314,7 +397,7 @@ export async function runGroundTruthValidation(
         }
         reliability = clamp01(reliability);
 
-        await userRef.update({
+        batch.update(userRef, {
             reliability,
             matchesScouted: matchesScoutedBefore + signals.length,
         });
@@ -330,6 +413,30 @@ export async function runGroundTruthValidation(
         });
     }
 
+    const ranAt = new Date().toISOString();
+
+    if (deltas.length + 1 > MAX_BATCH_WRITES) {
+        throw new Error(
+            `Ground-truth validation would need ${deltas.length + 1} writes, over Firestore's ` +
+            `${MAX_BATCH_WRITES}-op batch limit. Splitting would sacrifice atomicity, so nothing was applied.`,
+        );
+    }
+
+    // Commit the marker WITH the updates. Because they land together, the
+    // marker can never claim an entry whose reliability write didn't happen.
+    // Union with the prior run's ids so earlier entries stay consumed.
+    if (consumedEntryIds.size > 0 || deltas.length > 0) {
+        batch.set(runRef, {
+            orgId,
+            season,
+            eventCode,
+            ranAt,
+            processedEntryIds: [...alreadyCounted, ...consumedEntryIds],
+            lastRunScoutsUpdated: deltas.length,
+        });
+        await batch.commit();
+    }
+
     return {
         eventCode,
         season,
@@ -337,7 +444,10 @@ export async function runGroundTruthValidation(
         coveredMatches,
         scoutsUpdated: deltas.length,
         deltas,
-        ranAt: new Date().toISOString(),
+        ranAt,
+        entriesConsumed: consumedEntryIds.size,
+        entriesAlreadyCounted,
+        previousRunAt,
     };
 }
 
