@@ -146,12 +146,19 @@ function analyzeEvent(matches) {
         });
     }
     if (n < 2) return null;
-    return { quals: quals.length, playoffN: n, hits, meanP: sumP / n, brier: brier / n, sigma, matchRows };
+
+    // Field profile (for the event-selector): distribution of team OPRs.
+    const oprs = [...opr.values()].sort((a, b) => b - a);
+    const oprMean = oprs.reduce((s, v) => s + v, 0) / oprs.length;
+    const oprSd = Math.sqrt(oprs.reduce((s, v) => s + (v - oprMean) ** 2, 0) / oprs.length);
+    const profile = { teams: oprs.length, oprMean, oprSd, oprTop: oprs[0] ?? 0 };
+
+    return { quals: quals.length, playoffN: n, hits, meanP: sumP / n, brier: brier / n, sigma, matchRows, profile };
 }
 
-async function runSeason(season, limit, matchesMode = false) {
+async function runSeason(season, limit, mode = "season") {
     mkdirSync(OUT_DIR, { recursive: true });
-    const outFile = join(OUT_DIR, matchesMode ? `matches-${season}.jsonl` : `season-${season}.jsonl`);
+    const outFile = join(OUT_DIR, `${mode === "season" ? "season" : mode}-${season}.jsonl`);
     const done = new Set(
         existsSync(outFile)
             ? readFileSync(outFile, "utf8").split("\n").filter(Boolean).map(l => JSON.parse(l).code)
@@ -177,7 +184,12 @@ async function runSeason(season, limit, matchesMode = false) {
                 const d = await gql(`query{ eventByCode(season:${season}, code:"${ev.code}"){ matches { tournamentLevel scores { ... on ${scoreType} { red { totalPointsNp totalPoints } blue { totalPointsNp totalPoints } } } teams { teamNumber alliance station } } } }`);
                 const matches = d.eventByCode?.matches ?? [];
                 const r = analyzeEvent(matches);
-                if (matchesMode) {
+                if (mode === "profiles") {
+                    const row = r
+                        ? { season, code: ev.code, name: ev.name, type: ev.type, region: ev.regionCode, ...r.profile, sigma: Number(r.sigma.toFixed(1)), playoffN: r.playoffN }
+                        : { season, code: ev.code, skipped: true };
+                    appendFileSync(outFile, JSON.stringify(row) + "\n");
+                } else if (mode === "matches") {
                     // One line per playoff match (features for the elim-model fit),
                     // or a skip marker so resume still works for barren events.
                     const lines = r
@@ -273,8 +285,20 @@ const [cmd, arg, flag, flagVal] = process.argv.slice(2);
 if (cmd === "run" && arg) {
     const limit = flag === "--limit" ? Number(flagVal) : undefined;
     runSeason(Number(arg), limit).catch(e => { console.error(e); process.exit(1); });
-} else if (cmd === "matches" && arg) {
-    runSeason(Number(arg), flag === "--limit" ? Number(flagVal) : undefined, true).catch(e => { console.error(e); process.exit(1); });
+} else if ((cmd === "matches" || cmd === "profiles") && arg) {
+    runSeason(Number(arg), flag === "--limit" ? Number(flagVal) : undefined, cmd).catch(e => { console.error(e); process.exit(1); });
+} else if (cmd === "export-profiles") {
+    // Curates profiles-*.jsonl into the committed dataset the app's event
+    // selector imports (lib/data/event-profiles.json).
+    const rows = readdirSync(OUT_DIR).filter(f => f.startsWith("profiles-"))
+        .flatMap(f => readFileSync(join(OUT_DIR, f), "utf8").split("\n").filter(Boolean).map(l => JSON.parse(l)))
+        .filter(r => !r.skipped && r.teams >= 8)
+        .map(r => ({ season: r.season, code: r.code, name: r.name, type: r.type, region: r.region ?? null, teams: r.teams, oprMean: Number(r.oprMean.toFixed(1)), oprSd: Number(r.oprSd.toFixed(1)), oprTop: Number(r.oprTop.toFixed(1)), sigma: r.sigma }));
+    const out = join(process.cwd(), "lib", "data", "event-profiles.json");
+    mkdirSync(join(process.cwd(), "lib", "data"), { recursive: true });
+    const fs = await import("node:fs");
+    fs.writeFileSync(out, JSON.stringify(rows));
+    console.log(`export: ${rows.length} perfiles → ${out}`);
 } else if (cmd === "fit") {
     fit();
 } else if (cmd === "report") {

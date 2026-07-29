@@ -2,9 +2,10 @@ import { fetchEvents } from "@/lib/ftc-api";
 import { getCurrentSeason } from "@/lib/constants";
 import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
 import CalibrationDashboard from "@/components/analytics/CalibrationDashboard";
+import EventAdvisor from "@/components/analytics/EventAdvisor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { cookies } from "next/headers";
-import { FlaskConical, Target } from "lucide-react";
+import { FlaskConical, Target, Compass } from "lucide-react";
 
 // `cookies()` already opts this page into dynamic rendering; no need for force-dynamic.
 // Revalidate cached fetches after 5 minutes to balance freshness with API load.
@@ -44,6 +45,9 @@ export default async function AnalyticsPage() {
                     <TabsTrigger value="calibration" className="flex items-center gap-2">
                         <Target size={16} /> Calibración
                     </TabsTrigger>
+                    <TabsTrigger value="event-advisor" className="flex items-center gap-2">
+                        <Compass size={16} /> Selector de eventos
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="data-lab" className="m-0">
@@ -52,6 +56,10 @@ export default async function AnalyticsPage() {
 
                 <TabsContent value="calibration" className="m-0">
                     <CalibrationDashboard />
+                </TabsContent>
+
+                <TabsContent value="event-advisor" className="m-0">
+                    <EventAdvisor />
                 </TabsContent>
             </Tabs>
         </div>
