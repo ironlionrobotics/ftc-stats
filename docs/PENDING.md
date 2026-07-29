@@ -83,6 +83,14 @@ Inglés por defecto + `es`, `next-intl` **cookie-based sin routing de URL** (dec
 
 El andamiaje va **antes** de construir "Hoy" y las vistas de red (ya está) para no escribir esos strings dos veces.
 
+### 🃏 Trading Card / autorreporte — V1 HECHA (sesión 19, decisión #81)
+
+Primera pieza concreta del autorreporte federado (#76), disparada por el benchmark de **WikiScout** (competidor directo confirmado; su Trading Card es este mismo modelo **sin ancla de ground-truth**). En `/card`: editor de autodescripción de tu equipo (capacidades, rangos de puntos auto/teleop/endgame, descripciones, foto por URL) → colección `team_profiles` (pública, write solo a tu propio equipo; distinta de pit). **Diferenciador ya presente:** la carta muestra los rangos autorreportados junto a rank/récord/puntos **medidos** de la FIRST API. i18n desde el inicio. 338 tests, build OK.
+
+**Fase 2 (con la federación):** vista pública de cartas de OTROS equipos (link/QR compartible), reconciliación formal del autorreporte contra ground-truth (hoy solo se yuxtapone), OPR/SoS medidos en el strip (agregación event-wide), y subida real de foto (hoy URL).
+
+**Otras ideas del benchmark WikiScout (no arrancadas):** home "Hoy" + panel "Your Team" + des-hardcodear el reporte de 30311 (mayor palanca de IA, desbloquea apertura); rankings tri-columna + tag "UNLUCKY"; scouts nombrados bajo la org con scoutId estable (día de evento sin OAuth por persona, adaptado al modelo de confiabilidad); Custom Questions = exponer edición de la definición del motor de juego al usuario.
+
 ---
 
 ## ✅ Producción al día (desplegado 2026-07-29)

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { Home, ClipboardList, Menu, X, BarChart2, Sun, Moon, Swords, Target } from "lucide-react";
+import { Home, ClipboardList, Menu, X, BarChart2, Sun, Moon, Swords, Target, IdCard } from "lucide-react";
+import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
@@ -39,6 +40,7 @@ export default function Sidebar() {
     const router = useRouter();
     const { user, userDoc, signInWithGoogle, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
+    const tCard = useTranslations("TradingCard");
     const { program, setProgram } = useProgram();
 
     const mounted = useHydrated();
@@ -135,6 +137,9 @@ export default function Sidebar() {
                             a page nobody can find is not transparency. */}
                         <NavItem href="/oracle" icon={Target} isActive={pathname === "/oracle"} onClick={handleLinkClick}>
                             Precisión del Oracle
+                        </NavItem>
+                        <NavItem href="/card" icon={IdCard} isActive={pathname === "/card"} onClick={handleLinkClick}>
+                            {tCard("title")}
                         </NavItem>
                     </nav>
 

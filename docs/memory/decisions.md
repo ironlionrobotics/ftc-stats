@@ -748,3 +748,17 @@ Ejecución de #77 (inglés por defecto + multilenguaje). Detalle: `docs/architec
 **El patrón que la memoria marcaba como la trampa, probado en `draft-odds.ts`.** El campo `basis` generaba una de 4 frases en español con params interpolados. Ahora `draftOdds().basis` devuelve un `DraftBasis` **discriminado** (`{ key, ...params }`), y el consumidor (`ConsistencyTracker`) traduce con `useTranslations("DraftOdds")`. El redondeo (`toFixed(0)`) se hace en el análisis (params ya redondeados), no en el mensaje. Regla: la capa de análisis devuelve **clave + params**, nunca prosa; el test asserta la estructura.
 
 **Barrido pendiente = 12 módulos** (delegable a Sonnet con el patrón sentado): `consistency`, `schemas/scouting`, `event-selector`, `projections`, `alliance-utils`, `briefings/briefing-data`, `reports/growth-curves`, `reports/team-30311-decode`, `games/ftc-decode-2025`, `constants`, `orgs`, `invite-redemption`; más los strings de UI en componentes (incremental). **Regla activa: ningún string nuevo hardcodeado.** Verificado: typecheck 0, lint 0, 313 tests, build OK. Ver [[project-i18n-ingles-default]].
+
+---
+
+## #81 · Trading Card: autorreporte de equipo con ancla de ground-truth (2026-07-29)
+
+Primera pieza concreta del autorreporte federado (#76), disparada por el benchmark de WikiScout (competidor directo en la escena FTC mexicana, visto logueado como 30311 en el mismo México Premier Event donde validamos PRIDE). WikiScout tiene una "Trading Card" — perfil de robot autorreportado y compartible — que **es** el modelo #76 ya en producción, pero **sin ancla de verdad** (cheap talk puro; sus columnas de stats salen vacías sin captura manual).
+
+**La jugada de PRIDE: la misma carta, anclada a ground-truth.** La `TradingCardPreview` muestra los rangos de puntos **autorreportados** (lo que el equipo dice) junto a un strip **"Medido · oficial"** (rank, récord, puntos promedio derivados de los scores oficiales de la FIRST API vía `getMeasuredStatsAction`). Reclamo y verdad, lado a lado — exactamente lo que WikiScout no puede hacer.
+
+**Modelo de datos:** colección `team_profiles` (era un stub de reglas sin usar). Es **distinta de pit scouting**: pit es observación PRIVADA por-org (lockdown Fase 1); la Trading Card es autodescripción PÚBLICA de tu propio equipo. La regla ya existía y encaja: `read: if isAuthed()` (público, es autorreporte que quieres que se vea) + `write: teamNumber == myOrgId` (solo tu equipo). Como es público y las reglas no enmascaran campos, el doc lleva **solo campos públicos** — nada privado (las notas privadas siguen en pit).
+
+**V1 (construido):** editor `/card` (capacidades, rangos de puntos auto/teleop/endgame, descripciones, foto por URL) + live-preview + guardado a `team_profiles`. i18n desde el inicio (namespace `TradingCard`, paridad en/es). Archivos: `types/team-profile.ts`, `lib/schemas/team-profile.ts`, `lib/team-profile-service.ts` (+ test de round-trip), `app/actions/team-card.ts`, `app/card/page.tsx`, `components/card/{TradingCardEditor,TradingCardPreview}.tsx`, nav en Sidebar. 338 tests, build OK.
+
+**Fase 2 (con la federación):** vista pública de cartas de OTROS equipos (link/QR compartible como WikiScout), reconciliación formal del autorreporte contra ground-truth (ahora solo se yuxtapone; #76 quiere que la inflación sistemática baje la confiabilidad vía `ground-truth-validation.ts`), OPR/SoS medidos en el strip (necesitan agregación event-wide), y subida de foto real (hoy es URL). Ver [[project-autorreporte-federado]].
