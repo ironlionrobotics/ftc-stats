@@ -24,7 +24,7 @@ Del menú discutido en sesión 16 (los 3 primeros ya se hicieron: schedule stren
 - ~~**Ciencia del draft**~~ ✅ HECHO 29 jul (decisión #72). 606 eventos / 15,186 observaciones de 2025; alianzas reconstruidas desde composición de playoffs. `lib/draft-odds.ts` + columna "Prob. de alianza" en el reporte. Hallazgo: a igualdad de seed (7-12), estar en el decil alto de OPR sube la selección de 50% a 94%.
 - ~~**Página pública de calibración**~~ ✅ HECHO 29 jul (decisión #69). `/oracle`, enlazada en el nav. Cifras recomputadas desde la data cruda, no transcritas. Incluye el diagrama de fiabilidad con la curva del modelo original (sobreconfiado) junto a la corregida.
 - ~~**Tracker de consistencia 30311**~~ ✅ HECHO 28 jul (decisión #61). `lib/consistency.ts` +24 tests, sección 02 del reporte de equipo. Hallazgo: la dispersión es **crecimiento** (r² 0.77, +8.4 OPR/evento), no volatilidad — y el OPR público va 15.2 puntos por detrás de la forma actual. El driver de volatilidad real es **teleop**, no auto (contradice el learning previo del reporte, que habría que actualizar).
-- **consDiff** en el modelo de eliminatorias (requiere plomería de σ por equipo en call sites, decisión #59).
+- ~~**consDiff** en el modelo de eliminatorias~~ ✅ HECHO 29 jul (decisión #73). De paso se descubrió que el −0.13 de #59 era un **bug de convergencia** del fit (real: −0.696, 5× mayor); corregido el fit y la decisión. Se verificó además que el efecto es lineal, no una interacción con z.
 
 Este documento es la **fuente autoritativa** de qué falta. Leer al iniciar cualquier sesión nueva. Después de hacer trabajo, actualizar moviendo items entre secciones.
 

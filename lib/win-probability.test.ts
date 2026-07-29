@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
     winProbabilityFromProjections,
     winProbabilityFromNormalModel,
+    playoffWinProbability,
+    consistencyMarginAdjustment,
+    CONSISTENCY_MARGIN_WEIGHT,
 } from "./win-probability";
 
 describe("winProbabilityFromProjections (logistic, projection-only)", () => {
@@ -70,5 +73,55 @@ describe("winProbabilityFromNormalModel (probit, sigma-aware)", () => {
         expect(winProbabilityFromNormalModel(120, 90, -5)).toBeCloseTo(expected, 10);
         expect(winProbabilityFromNormalModel(120, 90, NaN)).toBeCloseTo(expected, 10);
         expect(winProbabilityFromNormalModel(120, 90, Infinity)).toBeCloseTo(expected, 10);
+    });
+});
+
+describe("volatility effect (CONSISTENCY_MARGIN_WEIGHT)", () => {
+    const SIG = 25;
+
+    it("is inert when no consistency data is supplied", () => {
+        // Callers that don't track per-team sigma must get the old answer,
+        // not a silently different one.
+        const withOut = playoffWinProbability(150, 140, SIG);
+        const withUndef = playoffWinProbability(150, 140, SIG, undefined);
+        expect(withUndef).toBeCloseTo(withOut, 12);
+    });
+
+    it("favors the MORE volatile alliance", () => {
+        // The fitted direction: a sigma advantage is worth margin. Counter-
+        // intuitive, and exactly why it's pinned by a test.
+        const evenTeams = playoffWinProbability(150, 150, SIG);
+        const redVolatile = playoffWinProbability(150, 150, SIG, { redMeanSigma: 30, blueMeanSigma: 20 });
+        expect(redVolatile).toBeGreaterThan(evenTeams);
+        const blueVolatile = playoffWinProbability(150, 150, SIG, { redMeanSigma: 20, blueMeanSigma: 30 });
+        expect(blueVolatile).toBeLessThan(evenTeams);
+    });
+
+    it("is symmetric: swapping sides mirrors the probability", () => {
+        const a = playoffWinProbability(160, 140, SIG, { redMeanSigma: 30, blueMeanSigma: 18 });
+        const b = playoffWinProbability(140, 160, SIG, { redMeanSigma: 18, blueMeanSigma: 30 });
+        expect(a + b).toBeCloseTo(1, 10);
+    });
+
+    it("converts one point of sigma advantage into ~1.06 points of margin", () => {
+        // The adjustment is the whole integration; if the constant drifts, the
+        // model silently stops matching the fit it came from.
+        expect(consistencyMarginAdjustment({ redMeanSigma: 30, blueMeanSigma: 20 }))
+            .toBeCloseTo(CONSISTENCY_MARGIN_WEIGHT * 10, 10);
+        // Equivalent to shifting red's projected score by that amount.
+        const viaAdj = playoffWinProbability(150 + CONSISTENCY_MARGIN_WEIGHT * 10, 150, SIG);
+        const viaCons = playoffWinProbability(150, 150, SIG, { redMeanSigma: 30, blueMeanSigma: 20 });
+        expect(viaCons).toBeCloseTo(viaAdj, 12);
+    });
+
+    it("degrades to zero on missing or nonsensical sigmas", () => {
+        for (const c of [
+            { redMeanSigma: 0, blueMeanSigma: 20 },
+            { redMeanSigma: 30, blueMeanSigma: 0 },
+            { redMeanSigma: NaN, blueMeanSigma: 20 },
+            { redMeanSigma: -5, blueMeanSigma: 20 },
+        ]) {
+            expect(consistencyMarginAdjustment(c)).toBe(0);
+        }
     });
 });

@@ -16,6 +16,13 @@ export interface Alliance {
      * Replaces the previous σ=30 global default.
      */
     totalSigma: number;
+    /**
+     * Mean per-team σ of the fielded robots — NOT the same as totalSigma, which
+     * combines them in quadrature for score noise. The volatility effect in
+     * lib/win-probability.ts was fitted against the mean, so it needs the mean.
+     * Optional: alliances built before this existed simply skip the effect.
+     */
+    meanSigma?: number;
 }
 
 export type PlayoffMatchType = 'Winner' | 'Loser' | 'Final';

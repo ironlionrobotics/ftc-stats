@@ -115,18 +115,80 @@ export function winProbabilityFromNormalModel(
  * fixes is OVERCONFIDENCE at the extremes (e.g. the 98.7% Finals miss in
  * decisions.md #51), which log-loss punishes and picks/brackets feel.
  *
- * Secondary learned effect (consDiff weight −0.13): volatility slightly
- * favors its owner in single-elimination — variance is the underdog's
- * friend. Not integrated yet (needs per-team σ plumbing at call sites);
- * tracked in decisions.md #59.
+ * Secondary learned effect — see CONSISTENCY_MARGIN_WEIGHT below.
  */
 export const PLAYOFF_SIGMA_INFLATION = 2.4;
 
-/** Playoff entry point: the normal model with elimination-calibrated noise. */
+/**
+ * Volatility bonus, in points of score margin per point of per-team σ.
+ *
+ * The same fit carries a consistency term: with consDiff defined as
+ * (meanσ_blue − meanσ_red) / σ_event, its weight is −0.6957 against z's
+ * 0.6568, so the model is equivalent to shifting z by −1.059·consDiff. Because
+ * z is itself a margin divided by σ_event, that σ cancels and the whole effect
+ * reduces to adding 1.059 × (meanσ_red − meanσ_blue) to red's margin. No
+ * scale approximation is involved.
+ *
+ * Direction: the MORE volatile alliance is favored, by about one point of
+ * margin per point of σ advantage. That reads backwards until you notice the
+ * qual-residual σ this is built from cannot distinguish "erratic" from
+ * "improving during the event" — a team climbing through quals leaves large
+ * late residuals and arrives at playoffs genuinely stronger than its OPR.
+ * Which of the two drives the effect is NOT established here, so the constant
+ * is used and the interpretation is left open (decisions.md #73).
+ *
+ * Tested against the alternative: an interaction term (z × consDiff), i.e.
+ * "variance helps whoever is behind", adds nothing — its weight fits to 0.016
+ * and held-out log-loss is unchanged at 0.4975. The effect really is a main
+ * effect, not the underdog story it looks like.
+ *
+ * decisions.md #59 recorded this weight as −0.13. That was an unconverged
+ * estimate: the fit ran 400 epochs at lr 0.05 and stopped there. At
+ * convergence it is −0.6957, stable to 20,000 epochs. The z weight barely
+ * moved (0.666 → 0.657), so the 2.4× inflation above is unaffected.
+ */
+export const CONSISTENCY_MARGIN_WEIGHT = 1.059;
+
+/** Per-alliance mean team σ, when known. Both sides or neither. */
+export interface AllianceConsistency {
+    redMeanSigma: number;
+    blueMeanSigma: number;
+}
+
+/**
+ * Playoff entry point: the normal model with elimination-calibrated noise.
+ *
+ * Pass `consistency` to include the volatility effect. Omitted, the behavior is
+ * exactly what it was before — callers that don't track per-team σ are not
+ * silently given a different answer.
+ */
 export function playoffWinProbability(
     redMean: number,
     blueMean: number,
     sigmaDiff: number,
+    consistency?: AllianceConsistency,
 ): number {
-    return winProbabilityFromNormalModel(redMean, blueMean, sigmaDiff * PLAYOFF_SIGMA_INFLATION);
+    const adj = consistencyMarginAdjustment(consistency);
+    return winProbabilityFromNormalModel(
+        redMean + adj,
+        blueMean,
+        sigmaDiff * PLAYOFF_SIGMA_INFLATION,
+    );
+}
+
+/**
+ * Points to add to RED's margin for the volatility effect. Positive when red
+ * is the more volatile alliance. Zero when consistency data is absent or
+ * unusable, so the caller degrades to the plain normal model.
+ *
+ * Exported because the Monte Carlo has to apply the SAME shift to stay
+ * consistent with the analytic path — a sampler that disagrees with the
+ * closed form is worse than either alone.
+ */
+export function consistencyMarginAdjustment(consistency?: AllianceConsistency): number {
+    if (!consistency) return 0;
+    const { redMeanSigma, blueMeanSigma } = consistency;
+    if (!Number.isFinite(redMeanSigma) || !Number.isFinite(blueMeanSigma)) return 0;
+    if (redMeanSigma <= 0 || blueMeanSigma <= 0) return 0;
+    return CONSISTENCY_MARGIN_WEIGHT * (redMeanSigma - blueMeanSigma);
 }

@@ -251,8 +251,13 @@ function fit() {
 
     const feats = (r) => [1, r.z, r.consDiff, r.level];
     let w = [0, 1.2, 0, 0]; // start near the probit≈logit equivalence for z
-    const lr = 0.05;
-    for (let epoch = 0; epoch < 400; epoch++) {
+    // 400 epochs at lr 0.05 does NOT converge: it stops with consDiff at -0.13
+    // while the true minimum is -0.696, which is what decisions.md #59
+    // originally recorded. The z weight was already near its optimum, so that
+    // finding survived; the secondary term did not. These settings are stable
+    // to 20,000 epochs — verify before lowering them again.
+    const lr = 0.3;
+    for (let epoch = 0; epoch < 3000; epoch++) {
         const g = [0, 0, 0, 0];
         for (const r of train) {
             const x = feats(r);

@@ -1,6 +1,11 @@
 import { TeamEvolution } from "@/app/actions/analytics";
 import { Alliance, PlayoffMatch } from "@/types/oracle";
-import { playoffWinProbability, PLAYOFF_SIGMA_INFLATION } from "@/lib/win-probability";
+import {
+    playoffWinProbability,
+    consistencyMarginAdjustment,
+    PLAYOFF_SIGMA_INFLATION,
+    type AllianceConsistency,
+} from "@/lib/win-probability";
 
 // --- Per-team sigma estimation ---
 
@@ -179,7 +184,11 @@ export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, 
         const totalAuto = fielded.reduce((sum, t) => sum + (t.autoOPR || 0), 0);
         const totalTele = fielded.reduce((sum, t) => sum + ((t.opr || 0) - (t.autoOPR || 0)), 0);
         // Per-team sigmas combined assuming independent contributions.
-        const totalSigma = combineSigmas(fielded.map(t => computeTeamSigma(t)));
+        const teamSigmas = fielded.map(t => computeTeamSigma(t));
+        const totalSigma = combineSigmas(teamSigmas);
+        const meanSigma = teamSigmas.length
+            ? teamSigmas.reduce((a, b) => a + b, 0) / teamSigmas.length
+            : 0;
 
         return {
             id: draft.id,
@@ -192,6 +201,7 @@ export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, 
             totalEndgame: 0,
             projectedScore: totalOPR,
             totalSigma,
+            meanSigma,
         };
     });
 }
@@ -231,6 +241,9 @@ export function alliancesFromOfficial(
                 totalEndgame: 0,
                 projectedScore: totalOPR,
                 totalSigma: combineSigmas(fielded.map(t => computeTeamSigma(t))),
+                meanSigma: fielded.length
+                    ? fielded.reduce((s2, t) => s2 + computeTeamSigma(t), 0) / fielded.length
+                    : 0,
             } as Alliance;
         })
         .filter((a): a is Alliance => a !== null);
@@ -481,7 +494,7 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], ad
                 m.redScorePrediction = r;
                 m.blueScorePrediction = b;
                 m.winProbabilityRed = hasAdjustment(adj)
-                    ? playoffWinProbability(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]))
+                    ? playoffWinProbability(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]), consistencyOf(red, blue))
                     : calculateWinProbability(red, blue);
                 m.redAllianceId = 1;
                 m.blueAllianceId = 2;
@@ -518,7 +531,7 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], ad
                     const adj = adjustments?.[match.id];
                     const { r, b } = adjustedPredictions(red, blue, adj);
                     match.winProbabilityRed = hasAdjustment(adj)
-                        ? playoffWinProbability(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]))
+                        ? playoffWinProbability(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]), consistencyOf(red, blue))
                         : calculateWinProbability(red, blue);
                     match.redScorePrediction = r;
                     match.blueScorePrediction = b;
@@ -615,8 +628,21 @@ function calculateWinProbability(red: Alliance, blue: Alliance): number {
         red.totalSigma || SIGMA_FALLBACK,
         blue.totalSigma || SIGMA_FALLBACK,
     ]);
-    // Playoff context: elimination-calibrated noise (see PLAYOFF_SIGMA_INFLATION).
-    return playoffWinProbability(red.totalOPR, blue.totalOPR, sigmaDiff);
+    // Playoff context: elimination-calibrated noise (see PLAYOFF_SIGMA_INFLATION)
+    // plus the volatility effect (CONSISTENCY_MARGIN_WEIGHT).
+    return playoffWinProbability(red.totalOPR, blue.totalOPR, sigmaDiff, consistencyOf(red, blue));
+}
+
+
+/**
+ * Per-alliance mean σ for the volatility effect, or undefined when either side
+ * lacks it — the effect is a DIFFERENCE, so half the data would bias it toward
+ * whichever alliance happens to have been built with sigma tracking.
+ */
+function consistencyOf(red: Alliance, blue: Alliance): AllianceConsistency | undefined {
+    const r = red.meanSigma, b = blue.meanSigma;
+    if (!r || !b || !Number.isFinite(r) || !Number.isFinite(b)) return undefined;
+    return { redMeanSigma: r, blueMeanSigma: b };
 }
 
 // --- Monte Carlo Simulation ---
@@ -656,7 +682,10 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 |
                     // Simulate Match — per-alliance sigma derived from team variance.
                     // Playoff-calibrated noise so MC and analytic bracket agree
                     // (see PLAYOFF_SIGMA_INFLATION in lib/win-probability.ts).
-                    const redScore = getSimulatedScore(red.totalOPR, (red.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION);
+                    // Same volatility shift the analytic path applies, so the
+                    // sampler and the closed form stay two views of one model.
+                    const consAdj = consistencyMarginAdjustment(consistencyOf(red, blue));
+                    const redScore = getSimulatedScore(red.totalOPR + consAdj, (red.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION);
                     const blueScore = getSimulatedScore(blue.totalOPR, (blue.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION);
 
                     match.winnerId = redScore > blueScore ? match.redAllianceId : match.blueAllianceId;

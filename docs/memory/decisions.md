@@ -441,7 +441,7 @@ FTCScout no tiene datos pre-2019 (verificado) — el expediente de 7 temporadas 
 
 Fit logístico sobre **10,800 matches reales de playoffs** (2024+2025, todas las regiones; `scripts/oracle-backtest.mjs matches/fit`, split 80/20 por evento): features [z, consDiff, level]. Resultado en held-out: log-loss 0.685→**0.500 (−27%)**, Brier −9%, sin overfitting (train 0.487). El efecto dominante es shrinkage de z (peso 0.666 vs ~1.7 de equivalencia probit↔logit) ⇒ **la σ efectiva de playoffs ≈ 2.4× la derivada de quals**. La precisión casi no cambia (74.7→75.0%): lo que se corrige es la SOBRECONFIANZA en los extremos (ej. el miss de 98.7% en Finals, #51).
 
-Integración: `PLAYOFF_SIGMA_INFLATION = 2.4` + `playoffWinProbability()` en lib/win-probability.ts; cableado en updateBracket (ambas ramas) y en el muestreo del Monte Carlo (consistencia analítico↔MC preservada). Los caminos de QUALS (MatchList próximos) mantienen la σ sin inflar — correcto, el shrinkage es fenómeno de eliminatorias. Tests actualizados al nuevo contrato (Φ(30/28.28·2.4)≈0.671 vs 0.856 previo). Hallazgo secundario NO integrado aún: consDiff −0.13 (la volatilidad favorece levemente a su dueño en eliminación — la varianza es amiga del underdog); requiere plomería de σ por equipo en call sites, pendiente.
+Integración: `PLAYOFF_SIGMA_INFLATION = 2.4` + `playoffWinProbability()` en lib/win-probability.ts; cableado en updateBracket (ambas ramas) y en el muestreo del Monte Carlo (consistencia analítico↔MC preservada). Los caminos de QUALS (MatchList próximos) mantienen la σ sin inflar — correcto, el shrinkage es fenómeno de eliminatorias. Tests actualizados al nuevo contrato (Φ(30/28.28·2.4)≈0.671 vs 0.856 previo). Hallazgo secundario: consDiff. **⚠ El −0.13 registrado aquí era un estimado SIN CONVERGER** — ver #73, el valor real es −0.696 y ya está integrado. El peso de z (0.666) sí estaba convergido, así que la σ×2.4 de esta decisión se mantiene.
 
 ## #60 · Feature "Selector de eventos" (territorio T4) (2026-07-28)
 
@@ -593,3 +593,32 @@ Dos correcciones estadísticas que el código hace explícitas:
 - **Ajuste en espacio de odds, no de probabilidad.** Multiplicar una probabilidad por un factor >1 se desborda cuando la base ya es alta: un seed 8 (87%) × 1.22 pasa de 100% y hay que clampear, lo que esconde el problema y borra la distinción entre p75 y p95. Con odds ratios ambos quedan ordenados y dentro de (0,1) por construcción.
 
 `lib/draft-odds.ts` (+12 tests) expone `draftOdds(seed, alliances, oprPct)` y `seedNeededFor(target)`. Cableado en la tabla de bandas del reporte de equipo como columna "Prob. de alianza" con el ajuste por OPR visible — porque el veredicto "burbuja" se lee igual al 45% que al 85% y son situaciones que se planean distinto.
+
+## #73 · consDiff integrado — y el −0.13 de #59 era un bug de convergencia (2026-07-29)
+
+Al ir a integrar el efecto de consistencia salieron dos cosas antes que el código.
+
+**1. La duda teórica estaba equivocada, y probarla valió la pena.** "La varianza ayuda al que va perdiendo" implica una *interacción* (consDiff × z), no un efecto lineal: ser volátil debería ayudarte cuando eres underdog y perjudicarte cuando eres favorito. Se ajustaron cuatro modelos sobre los mismos 10,800 matches con idéntico split:
+
+| modelo | log-loss held-out |
+|---|---|
+| z + level (sin consDiff) | 0.5012 |
+| z + consDiff + level (actual) | **0.4975** |
+| + interacción z×consDiff | 0.4975 |
+| sólo interacción | 0.5007 |
+
+La interacción **no aporta nada** (peso 0.016, cero mejora). El efecto es genuinamente un efecto principal, no la historia del underdog que parecía. Hipótesis a favor: la σ de residuales de clasificación **no distingue "errático" de "mejorando durante el evento"** — un equipo que sube a lo largo de quals deja residuales tardíos grandes y llega a playoffs realmente más fuerte que su OPR. Cuál de las dos manda no está establecido; se usa la constante y se deja la interpretación abierta.
+
+**2. El −0.13 de #59 era un bug de convergencia, no un hallazgo.** El `fit` corría 400 épocas a lr 0.05 y se detenía ahí:
+
+| épocas / lr | consDiff | z |
+|---|---|---|
+| 400 / 0.05 (shipped) | −0.1285 | 0.6658 |
+| 3000 / 0.3 | **−0.6957** | 0.6568 |
+| 20000 / 0.3 | −0.6957 | 0.6568 |
+
+Subestimado **5×**. El peso de z casi no se movió, así que la σ×2.4 de #59 sobrevive intacta; el término secundario no. Se corrigieron los parámetros del `fit` en `scripts/oracle-backtest.mjs` con una nota para que no se bajen sin verificar, y se anotó la corrección en #59.
+
+**Integración.** La derivación sale limpia: con consDiff = (σ̄_blue − σ̄_red)/σ_evento y pesos 0.6568/−0.6956, el modelo equivale a desplazar z en −1.059·consDiff; como z ya es un margen dividido entre σ_evento, esa σ **se cancela** y todo se reduce a sumar `1.059 × (σ̄_red − σ̄_blue)` al margen de red. Sin aproximación de escala. `CONSISTENCY_MARGIN_WEIGHT` + `consistencyMarginAdjustment()` en lib/win-probability.ts; `Alliance.meanSigma` (la MEDIA por equipo, distinta de `totalSigma` que combina en cuadratura) en types/oracle.ts.
+
+Aplicado en el camino analítico **y en el Monte Carlo** con el mismo desplazamiento — un muestreador que no coincide con la forma cerrada es peor que cualquiera de los dos solo. Inerte cuando falta σ de cualquiera de los dos lados: el efecto es una diferencia, y usar medio dato sesgaría hacia la alianza que sí la tenga. 5 tests nuevos (307 total), incluida la equivalencia entre desplazar el margen y pasar consistencia.
