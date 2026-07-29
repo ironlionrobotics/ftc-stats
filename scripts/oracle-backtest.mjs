@@ -139,8 +139,10 @@ async function runSeason(season, limit) {
             const ev = queue.shift();
             if (!ev) return;
             try {
-                // 2021 (Freight Frenzy) split scores into Trad/Remote types.
-                const scoreType = season === 2021 ? "MatchScores2021Trad" : `MatchScores${season}`;
+                // 2020-2021 (COVID era) split scores into Trad/Remote types;
+                // remote events have no alliances/playoffs so Trad is the one
+                // that matters. 2019 and earlier use the plain typename.
+                const scoreType = (season === 2021 || season === 2020) ? `MatchScores${season}Trad` : `MatchScores${season}`;
                 const d = await gql(`query{ eventByCode(season:${season}, code:"${ev.code}"){ matches { tournamentLevel scores { ... on ${scoreType} { red { totalPointsNp totalPoints } blue { totalPointsNp totalPoints } } } teams { teamNumber alliance station } } } }`);
                 const matches = d.eventByCode?.matches ?? [];
                 const r = analyzeEvent(matches);
