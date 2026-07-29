@@ -12,5 +12,179 @@
     "seedRate": "Tasa histórica de selección en el seed {seed}.",
     "oprUp": "Seed {seed} da {basePct}%, pero estar en el percentil {oprPct} de OPR del evento sube la probabilidad: los capitanes miran capacidad, no solo la tabla.",
     "oprDown": "Seed {seed} da {basePct}%, pero un OPR en el percentil {oprPct} la baja — a igualdad de seed, los capitanes prefieren al que anota más."
+  },
+  "Consistency": {
+    "note": {
+      "insufficient": "Aún no hay suficientes eventos para separar crecimiento de volatilidad. Con 3+ eventos esta lectura se vuelve confiable.",
+      "stable": "Rendimiento parejo evento a evento: lo que muestras es lo que eres. Para subir de tier hay que mover el promedio, no la varianza.",
+      "growthLag": "Tu dispersión es crecimiento, no inconsistencia: la tendencia explica {r2Pct}% de ella. El problema real es que tu OPR de temporada va {scoutingGap} puntos por detrás de tu forma actual — y los capitanes te scoutean por ese número atrasado.",
+      "growthClear": "Tendencia de crecimiento clara (+{slope} OPR por evento). La palanca es sostener la pendiente, no reducir la varianza.",
+      "decline": "La tendencia va a la baja ({slope} OPR por evento). Antes de optimizar nada, hay que encontrar qué se degradó: desgaste mecánico, cambios de diseño tardíos o fields progresivamente más fuertes.",
+      "volatility": "Tu dispersión es ruido, no tendencia: la línea solo explica {r2Pct}% de ella, así que cada evento es un volado entre {min} y {max} OPR. La palanca es subir el piso (fallas, confiabilidad), no el techo.",
+      "mixed": "Mezcla de crecimiento y ruido: la tendencia explica {r2Pct}% de tu dispersión y el resto es volatilidad real (±{residualSigma} OPR). Vale la pena atacar ambos frentes."
+    },
+    "diagnosisLabel": {
+      "crecimiento": "Crecimiento",
+      "declive": "Declive",
+      "volatilidad": "Volatilidad",
+      "mixto": "Mixto",
+      "estable": "Estable",
+      "insuficiente": "Datos insuficientes"
+    },
+    "phase": {
+      "auto": "Autónomo",
+      "dc": "Teleoperado"
+    },
+    "band": {
+      "piso": {
+        "label": "Piso",
+        "hint": "Tu peor evento de la temporada"
+      },
+      "publico": {
+        "label": "Número público",
+        "hint": "El OPR de temporada que ven los capitanes al scoutearte"
+      },
+      "actual": {
+        "label": "Forma actual",
+        "hint": "Tu tendencia evaluada en tu evento más reciente"
+      },
+      "pico": {
+        "label": "Pico",
+        "hint": "Tu mejor evento de la temporada"
+      }
+    }
+  },
+  "EventSelector": {
+    "strategy": {
+      "topOrdered": "Field ordenado y llegas arriba: el resultado suele respetar el OPR. Ideal.",
+      "topChaotic": "Llegas arriba pero el field es volátil: favorito con riesgo de upset — asegura el seed en quals.",
+      "topTypical": "Posición competitiva en un field típico: el seed en quals define tu suerte.",
+      "bubbleChaotic": "Zona de burbuja en field caótico: los upsets abundan — un buen día te mete a playoffs.",
+      "bubbleTypical": "Zona de burbuja: necesitas un evento por encima de tu promedio para entrar a playoffs.",
+      "outChaoticUpside": "Field fuerte pero volátil: difícil, aunque el caos da más oportunidades que un field ordenado.",
+      "outAboveLevel": "Field por encima de tu nivel actual: valioso como experiencia, improbable para playoffs."
+    },
+    "verdict": {
+      "capitan": "Capitán",
+      "pick": "Pick",
+      "burbuja": "Burbuja",
+      "fuera": "Fuera"
+    },
+    "verdictChip": {
+      "capitan": "Capitán probable",
+      "pick": "Pick probable",
+      "burbuja": "Burbuja",
+      "fuera": "Fuera de playoffs"
+    },
+    "volatility": {
+      "ordenado": "Ordenado",
+      "medio": "Medio",
+      "caotico": "Caótico"
+    }
+  },
+  "GrowthCurves": {
+    "caveat": "Ventana {windowStart}-{windowEnd}: los programas anteriores a {windowStart} sólo aparecen desde temporadas tardías."
+  },
+  "TeamReport": {
+    "skill": {
+      "tot": "OPR total",
+      "dc": "Teleoperado",
+      "eg": "Endgame",
+      "auto": "Autónomo"
+    },
+    "eventType": {
+      "Qualifier": "Regional",
+      "Championship": "Championship",
+      "Premier": "Premier"
+    },
+    "rookies": {
+      "nationalHeadline": "Único rookie mexicano que ganó el Inspire Award"
+    },
+    "eventAward": {
+      "award": "{name} Award — {place}° lugar",
+      "winningAlliancePick": "Alianza ganadora ({pick}° pick)",
+      "playoffsPick": "Playoffs · pick alianza {allianceNum} (cap. {captain})"
+    },
+    "rookieAward": {
+      "award": "{name} {place}°",
+      "bare": "{name}",
+      "multiplier": "{name} ×{count}",
+      "winningAlliance": "Alianza ganadora"
+    },
+    "source": {
+      "teamProfile": "FTCScout — perfil de equipo {teamNumber}",
+      "graphqlApi": "FTCScout GraphQL API (datos cuantitativos, consultados en vivo)",
+      "events": "FTCScout — eventos {codes} (temporada {season})"
+    },
+    "takeaway": {
+      "rookieVeteranTier": "Temporada rookie, rendimiento de tier veterano: en su primer año de competencia, su OPR de temporada ({seasonOpr}) ya supera a todos menos un rookie de su mismo cohorte y se acerca a los programas mexicanos de varios años.",
+      "worldStanding": "Top ~{totTopPct}% de los {activeTeams} equipos activos del mundo por OPR total (rank {worldRank}), y top {teleopEndgameTopPct}% global en teleoperado y endgame.",
+      "inspireDebut": "Ganaron el Inspire Award — el máximo honor de un evento FTC — en su torneo debut (Guadalajara, dic 2025), más la alianza ganadora ese mismo fin de semana.",
+      "champRecord": "{record} en clasificatorias del Mexico Championship (feb 2026, {fieldSize} equipos), rank {rank}.",
+      "premierPick": "Seleccionados a playoffs en el México Premier Event ({fieldSize} equipos, el evento clasificatorio continental del país) como pick del capitán {captain}, más un Reach Award {reachPlace}° lugar por vinculación comunitaria.",
+      "growthArc": "Arco de mejora claro en OPR total: {oprArc} a lo largo de sus cuatro eventos, con su mejor actuación en su evento más importante.",
+      "soleNationalInspire": "Único rookie mexicano que ganó el Inspire Award esta temporada: de {nationalTotal} programas rookie del país, ninguno de los otros {otherCount} capturó el máximo honor de FTC.",
+      "soleWorldInspire": "Top ~{worldPct}% de rookies del mundo por premio: uno de solo {inspireCohort} equipos rookie (de {inspireTotal}) que ganó un Inspire Award — y el único de México."
+    },
+    "learning": {
+      "autoTeleopLevers": {
+        "title": "El autónomo sube el techo; el teleoperado sube el piso",
+        "body": "Son dos palancas distintas, no una. El autónomo es el punto más débil por nivel (top {autoTopPct}% mundial vs. top {teleopEndgameTopPct}% en teleop/endgame) y además ya crece de forma sostenida (+{autoSlope} OPR por evento): ahí es donde más rank mundial se gana. El teleoperado es el caso opuesto — nivel alto pero la fase más inestable de la temporada (±{teleopNoise} OPR de ruido que la tendencia no explica). Ahí no se gana techo, se gana consistencia."
+      },
+      "publicNumberLag": {
+        "title": "El número público de temporada va detrás de la forma real",
+        "body": "El OPR de temporada ({seasonOpr}) promedia los eventos tempranos y queda {gap} puntos por debajo de la forma actual ({currentForm}). Como los capitanes scoutean por ese número, la brecha cuesta posición de draft: la palanca no es reducir varianza — es hacer visible la forma reciente."
+      },
+      "nextTier": {
+        "title": "El siguiente escalón es el tier veterano ({veteranFloor}+ OPR)",
+        "body": "Los programas mexicanos consolidados corren {veteranFloor}-{veteranCeiling} OPR. La referencia de élite es Devolt Phobos ({eliteTeamNumber}), rank mundial {eliteWorldRank} — el mapa de a dónde puede crecer el programa."
+      },
+      "rpAndSeed": {
+        "title": "Los RP bonus y el seed valen oro",
+        "body": "En doble eliminación, el top-4 de seed vale desproporcionadamente por los byes. Ser 'pickeable' para capitanes top (auto consistente y visible) superó dos lugares de ranking en FPEMX — el modelo PRIDE acertó {correct} de {total} playoffs."
+      }
+    },
+    "country": {
+      "US": "EE.UU.",
+      "KZ": "Kazajistán",
+      "GB": "Reino Unido",
+      "MX": "México",
+      "TW": "Taiwán",
+      "NL": "Países Bajos",
+      "CZ": "Chequia",
+      "FR": "Francia",
+      "AU": "Australia",
+      "KG": "Kirguistán",
+      "DE": "Alemania",
+      "LY": "Libia",
+      "CN": "China",
+      "UZ": "Uzbekistán",
+      "RO": "Rumania"
+    },
+    "inspireCountriesGlue": "y 1 c/u de"
+  },
+  "Projections": {
+    "mechanicalRisk": "Riesgo Mecánico Detectado",
+    "noAggregatedData": "Equipo sin datos agregados",
+    "noData": "Sin datos",
+    "redAutoAdvantage": "Ventaja crítica: Alianza Roja domina en período Autónomo.",
+    "blueAutoAdvantage": "Ventaja crítica: Alianza Azul tiene un mejor inicio autónomo.",
+    "highConfidence": "Predicción de alta precisión: Basada en abundantes datos de scouting.",
+    "technicalTie": "Empate técnico: El match se decidirá por penalizaciones o endgame."
+  },
+  "AllianceUtils": {
+    "combinedPower": "Potencia combinada: {opr1} + {opr2} = {combinedOPR} pts proyectados (la base del score).",
+    "dominantAuto": "Autónomo dominante: {autoSynergy} pts combinados de auto (+10) — arrancar arriba presiona al rival todo el match.",
+    "foulRisk": "Riesgo de fouls: disciplina neta combinada {risk} (−{penalty}) — juntos tienden a regalar puntos de penalización.",
+    "disciplinedDuo": "Dupla disciplinada: disciplina neta combinada +{risk} — provocan más fouls de los que cometen."
+  },
+  "Briefing": {
+    "autoAdvantageRed": "AUTO: ventaja roja. Proteger las posiciones de scoring del aliado durante auto.",
+    "autoAdvantageBlue": "AUTO: desventaja en auto. Considerar interrumpir la trayectoria azul desde el inicio del teleop.",
+    "endgameContention": "ENDGAME: ambas alianzas tienen capacidad similar de climb. Decidir orden de subida 30s antes del fin para ganar 20pts dual-parking.",
+    "clearFavorite": "Favoritos claros. Prioridad: asegurar RPs en lugar de score máximo.",
+    "underdog": "Underdog. Buscar plays de alto-riesgo/alta-recompensa. Defensa agresiva sobre top scorer del oponente.",
+    "opponentWeaknesses": "Aprovechar debilidades del oponente: {flags}.",
+    "balancedMatch": "Match equilibrado. Ejecutar plan estándar; ajustar tras el primer minuto."
   }
 }

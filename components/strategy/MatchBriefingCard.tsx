@@ -5,13 +5,15 @@ import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID } from "@/lib/orgs";
 import { listenToMatchScouting } from "@/lib/scouting-service";
-import { buildBriefingData, type BriefingData } from "@/lib/briefings/briefing-data";
+import { buildBriefingData, type BriefingData, type StrategicFocusItem } from "@/lib/briefings/briefing-data";
+import type { RedFlag } from "@/lib/projections";
 import { logPredictionAction } from "@/app/actions/calibration";
 import type { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
 import { Card } from "@/components/ui/Card";
 import { Printer, FileText, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { guessActiveEventCode } from "@/lib/active-event";
+import { useTranslations } from "next-intl";
 
 interface MatchBriefingCardProps {
     teams: AggregatedTeamStats[];
@@ -233,6 +235,21 @@ function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
     const redWinPct = Math.round(briefing.winProbabilityRed * 100);
     const blueWinPct = 100 - redWinPct;
 
+    // predictMatch's insights and deriveStrategicFocus's bullets are
+    // translation keys + params (never prose); render them here.
+    const tProjections = useTranslations("Projections");
+    const tBriefing = useTranslations("Briefing");
+    const redFlagText = (f: RedFlag) => tProjections(f.key);
+    const focusText = (f: StrategicFocusItem): string => {
+        if (f.key === "opponentWeaknesses") {
+            // Compose: translate each opposing red flag, join, then interpolate
+            // into the outer "Briefing" message — two namespaces, one sentence.
+            const flags = f.flags.map(redFlagText).join(", ");
+            return tBriefing("opponentWeaknesses", { flags });
+        }
+        return tBriefing(f.key);
+    };
+
     return (
         <article
             className={clsx(
@@ -301,7 +318,7 @@ function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
                         {briefing.insights.map((insight, i) => (
                             <li key={i} className="flex gap-2">
                                 <span className="text-gray-400">▸</span>
-                                <span>{insight}</span>
+                                <span>{tProjections(insight.key)}</span>
                             </li>
                         ))}
                     </ul>
@@ -317,7 +334,7 @@ function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
                     {briefing.strategicFocus.map((focus, i) => (
                         <li key={i} className="flex gap-2">
                             <span className="text-gray-400 font-bold">{i + 1}.</span>
-                            <span>{focus}</span>
+                            <span>{focusText(focus)}</span>
                         </li>
                     ))}
                 </ul>
@@ -347,6 +364,7 @@ function AllianceColumn({
     projectedScore: number;
 }) {
     const headerColor = color === "red" ? "text-red-600 border-red-600" : "text-blue-600 border-blue-600";
+    const tProjections = useTranslations("Projections");
     return (
         <div>
             <div className={clsx("flex items-end justify-between border-b-2 pb-1 mb-2", headerColor)}>
@@ -379,7 +397,7 @@ function AllianceColumn({
                         </div>
                         {t.redFlags.length > 0 && (
                             <div className="text-[10px] text-red-600 font-bold mt-1">
-                                ⚠ {t.redFlags.join(" · ")}
+                                ⚠ {t.redFlags.map(f => tProjections(f.key)).join(" · ")}
                             </div>
                         )}
                         {t.recentNotes.length > 0 && (

@@ -1,9 +1,10 @@
 "use client";
 
-import { TEAM_30311_DECODE, RookieRow } from "@/lib/reports/team-30311-decode";
+import { TEAM_30311_DECODE, RookieRow, RookieAward } from "@/lib/reports/team-30311-decode";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { MapPin, Globe, Trophy, Sparkles } from "lucide-react";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 const { national, international } = TEAM_30311_DECODE.rookies;
 
@@ -12,8 +13,20 @@ const { national, international } = TEAM_30311_DECODE.rookies;
  * two lenses: robot-game performance (OPR) and awards. Client component because
  * it uses the interactive Tabs primitive; fed entirely by the static report
  * module. 30311 is highlighted in every table.
+ *
+ * Award badges and country names come from lib/reports/team-30311-decode.ts as
+ * translation key + params (never prose) — rendered here via next-intl
+ * ("TeamReport" namespace, docs/architecture/i18n.md).
  */
 export function RookieComparison() {
+    const t = useTranslations("TeamReport");
+    const tCountry = useTranslations("TeamReport.country");
+
+    const topCountries = international.inspireCountries.top
+        .map(c => `${tCountry(c.code)} ${c.count}`)
+        .join(" · ");
+    const otherCountries = international.inspireCountries.others.map(c => tCountry(c)).join(", ");
+
     return (
         <Tabs defaultValue="nacional">
             <TabsList>
@@ -38,7 +51,7 @@ export function RookieComparison() {
                         lens="Premios"
                         value={`#${national.awardsRank}`}
                         of={`de ${national.total} rookies`}
-                        note={national.headline}
+                        note={t("rookies.nationalHeadline")}
                         accent
                     />
                 </div>
@@ -71,13 +84,15 @@ export function RookieComparison() {
                 </div>
 
                 <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wider">Top 10 rookies del mundo por OPR</p>
-                <RookieTable rows={international.rows} placeHeader="País" self={international.self} />
+                <RookieTable rows={international.rows} placeHeader="País" self={international.self} translatePlace />
 
                 <AwardsCallout>
                     Por OPR bruto, 30311 está en el <b className="text-foreground">top ~14%</b> de los 1,317 rookies del mundo — sólido, aunque el tope
                     (equipos de EE.UU. y Kazajistán con 150-240 OPR) queda lejos. Pero por el <b className="text-foreground">Inspire Award</b> —el máximo honor de
                     FTC— pertenecen a un grupo de solo <b className="text-foreground">36 rookies en todo el planeta (2.7%)</b>, y son el único de México.
-                    <span className="block mt-2 text-[11px] text-muted-foreground/80">Origen de esos 36 Inspire rookie: {international.inspireCountries}.</span>
+                    <span className="block mt-2 text-[11px] text-muted-foreground/80">
+                        Origen de esos 36 Inspire rookie: {topCountries} · {t("inspireCountriesGlue")} {otherCountries}.
+                    </span>
                 </AwardsCallout>
             </TabsContent>
         </Tabs>
@@ -99,7 +114,7 @@ function Standing({ lens, value, of, note, accent }: { lens: string; value: stri
     );
 }
 
-function RookieTable({ rows, placeHeader, self }: { rows: RookieRow[]; placeHeader: string; self?: RookieRow }) {
+function RookieTable({ rows, placeHeader, self, translatePlace }: { rows: RookieRow[]; placeHeader: string; self?: RookieRow; translatePlace?: boolean }) {
     return (
         <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full min-w-[560px] text-sm">
@@ -112,11 +127,11 @@ function RookieTable({ rows, placeHeader, self }: { rows: RookieRow[]; placeHead
                     </tr>
                 </thead>
                 <tbody>
-                    {rows.map((t) => <RookieTr key={t.number} t={t} />)}
+                    {rows.map((t) => <RookieTr key={t.number} t={t} translatePlace={translatePlace} />)}
                     {self && (
                         <>
                             <tr><td colSpan={4} className="px-4 py-1.5 text-center text-muted-foreground/50 font-mono text-xs">···</td></tr>
-                            <RookieTr t={self} />
+                            <RookieTr t={self} translatePlace={translatePlace} />
                         </>
                     )}
                 </tbody>
@@ -125,34 +140,39 @@ function RookieTable({ rows, placeHeader, self }: { rows: RookieRow[]; placeHead
     );
 }
 
-function RookieTr({ t }: { t: RookieRow }) {
+function RookieTr({ t: row, translatePlace }: { t: RookieRow; translatePlace?: boolean }) {
+    const t = useTranslations("TeamReport");
+    const tCountry = useTranslations("TeamReport.country");
+    // Every rookieAward variant carries a proper-noun `name` except
+    // winningAlliance — isInspire drives the badge's warning tint below.
+    const isInspire = (a: RookieAward) => "name" in a && a.name === "Inspire";
     return (
-        <tr className={clsx("border-t border-border align-top", t.self && "bg-primary/5")}>
+        <tr className={clsx("border-t border-border align-top", row.self && "bg-primary/5")}>
             <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                    <span className={clsx("font-bold leading-tight", t.self ? "text-primary" : "text-foreground")}>{t.name}</span>
-                    {t.self && <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">Nosotros</span>}
+                    <span className={clsx("font-bold leading-tight", row.self ? "text-primary" : "text-foreground")}>{row.name}</span>
+                    {row.self && <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">Nosotros</span>}
                 </div>
-                <span className="text-xs text-muted-foreground font-mono">#{t.number}</span>
+                <span className="text-xs text-muted-foreground font-mono">#{row.number}</span>
             </td>
-            <td className="px-4 py-3 text-muted-foreground">{t.place}</td>
-            <td className={clsx("px-4 py-3 text-center font-mono font-bold", t.self ? "text-primary" : "text-secondary")}>{t.totOpr.toFixed(1)}</td>
+            <td className="px-4 py-3 text-muted-foreground">{translatePlace ? tCountry(row.place) : row.place}</td>
+            <td className={clsx("px-4 py-3 text-center font-mono font-bold", row.self ? "text-primary" : "text-secondary")}>{row.totOpr.toFixed(1)}</td>
             <td className="px-4 py-3">
-                {t.awards.length === 0
+                {row.awards.length === 0
                     ? <span className="text-xs text-muted-foreground/50 italic">—</span>
                     : (
                         <div className="flex flex-wrap gap-1.5">
-                            {t.awards.map((a) => {
-                                const isInspire = a.toLowerCase().includes("inspire");
+                            {row.awards.map((a, i) => {
+                                const { key, ...params } = a;
                                 return (
                                     <span
-                                        key={a}
+                                        key={`${key}-${i}`}
                                         className={clsx(
                                             "text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap",
-                                            isInspire ? "bg-warning/15 text-warning border border-warning/30" : "bg-muted text-muted-foreground border border-border",
+                                            isInspire(a) ? "bg-warning/15 text-warning border border-warning/30" : "bg-muted text-muted-foreground border border-border",
                                         )}
                                     >
-                                        {a}
+                                        {t(`rookieAward.${key}`, params)}
                                     </span>
                                 );
                             })}

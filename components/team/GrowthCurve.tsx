@@ -1,5 +1,6 @@
 import { MX_GROWTH as G } from "@/lib/reports/growth-curves";
 import { Info } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Where a rookie program stands against the trajectory of its own region.
@@ -8,8 +9,12 @@ import { Info } from "lucide-react";
  * of Mexican programs by season-since-rookie, with Iron Lion's actual rookie
  * standing marked — the point of the whole section being a single comparison:
  * where they are now versus where a typical program is at the same age.
+ *
+ * Async because it reads translations via getTranslations (server-side
+ * next-intl API) rather than useTranslations — this stays a Server Component.
  */
-export function GrowthCurve() {
+export async function GrowthCurve() {
+    const t = await getTranslations("GrowthCurves");
     const all = G.all;
     const W = 720, H = 320, padX = 52, padY = 34;
 
@@ -121,7 +126,7 @@ export function GrowthCurve() {
             <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 leading-snug">
                 <Info size={12} className="shrink-0 mt-0.5" />
                 Percentil dentro de México y dentro de cada temporada — el OPR crudo no es comparable entre juegos
-                distintos, así que compararlo directamente inventaría una tendencia. {G.caveat} Datos: FTCScout,
+                distintos, así que compararlo directamente inventaría una tendencia. {t("caveat", { windowStart: G.caveatWindowStart, windowEnd: G.caveatWindowEnd })} Datos: FTCScout,
                 {" "}{G.teamsTotal} equipos mexicanos con año rookie conocido; regenerables con{" "}
                 <code className="font-mono">scripts/growth-curves.mjs</code>.
             </p>

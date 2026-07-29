@@ -267,7 +267,9 @@ describe("calculateTeamProjection", () => {
                 [],
                 pit("intake broken since Q3"),
             );
-            expect(p.redFlags).toContain("Riesgo Mecánico Detectado");
+            // redFlags is a translation key + params (never prose) — see
+            // docs/architecture/i18n.md.
+            expect(p.redFlags).toContainEqual({ key: "mechanicalRisk" });
             expect(p.projectedPoints).toBe(60); // ×(1 − 0.4)
         });
 
@@ -277,7 +279,7 @@ describe("calculateTeamProjection", () => {
                 [],
                 pit("Fallo recurrente en el brazo"),
             );
-            expect(p.redFlags).toContain("Riesgo Mecánico Detectado");
+            expect(p.redFlags).toContainEqual({ key: "mechanicalRisk" });
         });
 
         it("keeps confidence invariant to multiplicative modifiers", () => {
@@ -349,31 +351,40 @@ describe("predictMatch", () => {
     });
 
     describe("insights", () => {
+        // insights are translation keys + params (never prose) — see
+        // docs/architecture/i18n.md.
         it("flags a red autonomous advantage", () => {
             const red = [projection({ breakdown: { auto: 40, teleop: 50, endgame: 10 } })];
             const blue = [projection({ breakdown: { auto: 20, teleop: 70, endgame: 10 } })];
             const { insights } = predictMatch(red, blue);
-            expect(insights.some(i => i.includes("Alianza Roja domina en período Autónomo"))).toBe(true);
+            expect(insights.some(i => i.key === "redAutoAdvantage")).toBe(true);
         });
 
         it("flags a technical tie when the margin is under 5% of the average", () => {
             const red = [projection({ projectedPoints: 100 })];
             const blue = [projection({ projectedPoints: 98 })];
             const { insights } = predictMatch(red, blue);
-            expect(insights.some(i => i.includes("Empate técnico"))).toBe(true);
+            expect(insights.some(i => i.key === "technicalTie")).toBe(true);
         });
 
         it("marks high-precision predictions when all teams have high reliability", () => {
             const red = [projection({ reliability: "high" })];
             const blue = [projection({ reliability: "high" })];
             expect(
-                predictMatch(red, blue).insights.some(i => i.includes("alta precisión")),
+                predictMatch(red, blue).insights.some(i => i.key === "highConfidence"),
             ).toBe(true);
 
             const mixed = [projection({ reliability: "low" })];
             expect(
-                predictMatch(red, mixed).insights.some(i => i.includes("alta precisión")),
+                predictMatch(red, mixed).insights.some(i => i.key === "highConfidence"),
             ).toBe(false);
+        });
+
+        it("returns structured insights (key only, no params needed), never prose", () => {
+            const red = [projection({ breakdown: { auto: 40, teleop: 50, endgame: 10 } })];
+            const blue = [projection({ breakdown: { auto: 20, teleop: 70, endgame: 10 } })];
+            const { insights } = predictMatch(red, blue);
+            expect(insights).toContainEqual({ key: "redAutoAdvantage" });
         });
     });
 });

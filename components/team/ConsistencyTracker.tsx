@@ -36,30 +36,45 @@ const FIELDS: EventProfile[] = [
     { season: 2025, code: "FTCCMP1FRAN", name: "Mundial — División Franklin", type: "FIRSTChampionship", region: "CMPZ2", teams: 57, oprMean: 109, oprSd: 43.1, oprTop: 203.1, sigma: 50.8 },
 ];
 
-const DIAGNOSIS_STYLE: Record<FormDiagnosis, { label: string; cls: string }> = {
-    crecimiento: { label: "Crecimiento", cls: "text-success bg-success/10 border-success/25" },
-    declive: { label: "Declive", cls: "text-danger bg-danger/10 border-danger/25" },
-    volatilidad: { label: "Volatilidad", cls: "text-warning bg-warning/10 border-warning/25" },
-    mixto: { label: "Mixto", cls: "text-warning bg-warning/10 border-warning/25" },
-    estable: { label: "Estable", cls: "text-secondary bg-secondary/10 border-secondary/25" },
-    insuficiente: { label: "Datos insuficientes", cls: "text-muted-foreground bg-muted border-border" },
+// Style-only maps — labels come from next-intl (Consistency.diagnosisLabel /
+// EventSelector.verdict), keyed by the semantic enums lib/consistency.ts and
+// lib/event-selector.ts return. See docs/architecture/i18n.md.
+const DIAGNOSIS_STYLE: Record<FormDiagnosis, { cls: string }> = {
+    crecimiento: { cls: "text-success bg-success/10 border-success/25" },
+    declive: { cls: "text-danger bg-danger/10 border-danger/25" },
+    volatilidad: { cls: "text-warning bg-warning/10 border-warning/25" },
+    mixto: { cls: "text-warning bg-warning/10 border-warning/25" },
+    estable: { cls: "text-secondary bg-secondary/10 border-secondary/25" },
+    insuficiente: { cls: "text-muted-foreground bg-muted border-border" },
 };
 
-const VERDICT_STYLE: Record<Verdict, { label: string; cls: string }> = {
-    capitan: { label: "Capitán", cls: "text-primary bg-primary/10 border-primary/25" },
-    pick: { label: "Pick", cls: "text-success bg-success/10 border-success/25" },
-    burbuja: { label: "Burbuja", cls: "text-warning bg-warning/10 border-warning/25" },
-    fuera: { label: "Fuera", cls: "text-muted-foreground bg-muted border-border" },
+const VERDICT_STYLE: Record<Verdict, { cls: string }> = {
+    capitan: { cls: "text-primary bg-primary/10 border-primary/25" },
+    pick: { cls: "text-success bg-success/10 border-success/25" },
+    burbuja: { cls: "text-warning bg-warning/10 border-warning/25" },
+    fuera: { cls: "text-muted-foreground bg-muted border-border" },
 };
 
 export function ConsistencyTracker() {
     const [fieldCode, setFieldCode] = useState(FIELDS[0].code);
     const tOdds = useTranslations("DraftOdds");
+    const tConsistency = useTranslations("Consistency");
+    const tSelector = useTranslations("EventSelector");
     // draftOdds returns a translation key + params (never prose); render it here.
     const basisText = (basis: DraftBasis) => {
         const { key, ...params } = basis;
         return tOdds(key, params);
     };
+    // consistencyNote returns a translation key + params too (lib/consistency.ts).
+    const noteText = (note: ReturnType<typeof consistencyNote>) => {
+        const { key, ...params } = note;
+        return tConsistency(`note.${key}`, params);
+    };
+    const diagnosisLabel = (d: FormDiagnosis) => tConsistency(`diagnosisLabel.${d}`);
+    const verdictLabel = (v: Verdict) => tSelector(`verdict.${v}`);
+    const phaseLabel = (key: string) => tConsistency(`phase.${key}`);
+    const bandLabel = (key: string) => tConsistency(`band.${key}.label`);
+    const bandHint = (key: string) => tConsistency(`band.${key}.hint`);
 
     const profile = buildConsistencyProfile(
         R.events.map(e => ({ label: e.code, opr: e.totOpr, auto: e.autoOpr, dc: e.dcOpr })),
@@ -77,7 +92,7 @@ export function ConsistencyTracker() {
             <div className="rounded-2xl border border-border bg-card p-5 md:p-6">
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                     <span className={clsx("text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border", DIAGNOSIS_STYLE[profile.diagnosis].cls)}>
-                        {DIAGNOSIS_STYLE[profile.diagnosis].label}
+                        {diagnosisLabel(profile.diagnosis)}
                     </span>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                         {profile.tot.n} eventos analizados
@@ -85,7 +100,7 @@ export function ConsistencyTracker() {
                 </div>
 
                 <p className="text-foreground leading-relaxed md:text-lg text-balance">
-                    {consistencyNote(profile)}
+                    {noteText(consistencyNote(profile))}
                 </p>
 
                 <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -136,9 +151,9 @@ export function ConsistencyTracker() {
                             return (
                                 <div key={ph.key} className={clsx("rounded-xl border p-4", isDriver ? "border-warning/40 bg-warning/5" : "border-border bg-muted/30")}>
                                     <div className="flex items-center justify-between gap-2 mb-3">
-                                        <span className="font-bold text-foreground">{ph.label}</span>
+                                        <span className="font-bold text-foreground">{phaseLabel(ph.key)}</span>
                                         <span className={clsx("text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border", DIAGNOSIS_STYLE[ph.diagnosis].cls)}>
-                                            {DIAGNOSIS_STYLE[ph.diagnosis].label}
+                                            {diagnosisLabel(ph.diagnosis)}
                                         </span>
                                     </div>
                                     <dl className="grid grid-cols-3 gap-2 text-center">
@@ -200,8 +215,8 @@ export function ConsistencyTracker() {
                             {bands.map(b => (
                                 <tr key={b.key} className={clsx(b.key === "publico" && "bg-danger/5", b.key === "actual" && "bg-success/5")}>
                                     <td className="px-4 py-3">
-                                        <div className="font-bold text-foreground">{b.label}</div>
-                                        <div className="text-xs text-muted-foreground">{b.hint}</div>
+                                        <div className="font-bold text-foreground">{bandLabel(b.key)}</div>
+                                        <div className="text-xs text-muted-foreground">{bandHint(b.key)}</div>
                                     </td>
                                     <td className="px-4 py-3 text-center font-mono font-bold text-secondary tabular-nums">{b.opr.toFixed(1)}</td>
                                     <td className="px-4 py-3 text-center font-mono text-foreground tabular-nums whitespace-nowrap">
@@ -217,7 +232,7 @@ export function ConsistencyTracker() {
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={clsx("inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap", VERDICT_STYLE[b.projection.verdict].cls)}>
-                                            {VERDICT_STYLE[b.projection.verdict].label}
+                                            {verdictLabel(b.projection.verdict)}
                                         </span>
                                     </td>
                                 </tr>
@@ -230,8 +245,8 @@ export function ConsistencyTracker() {
                     <p className="mt-4 text-sm text-foreground bg-primary/5 border border-primary/20 rounded-xl px-4 py-3 flex items-start gap-2.5">
                         <ArrowRight size={16} className="text-primary shrink-0 mt-0.5" />
                         <span>
-                            Desde tu número público, pasar de <strong>{VERDICT_STYLE[nextTier.from].label.toLowerCase()}</strong> a{" "}
-                            <strong>{VERDICT_STYLE[nextTier.to].label.toLowerCase()}</strong> en este field pide{" "}
+                            Desde tu número público, pasar de <strong>{verdictLabel(nextTier.from).toLowerCase()}</strong> a{" "}
+                            <strong>{verdictLabel(nextTier.to).toLowerCase()}</strong> en este field pide{" "}
                             <strong className="font-mono">{nextTier.oprNeeded.toFixed(1)} OPR</strong>
                             {nextTier.delta > 0
                                 ? <> — te faltan <strong className="font-mono text-primary">{nextTier.delta.toFixed(1)} puntos</strong>.</>

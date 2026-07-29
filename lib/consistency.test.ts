@@ -200,7 +200,10 @@ describe("pointsToNextTier", () => {
 });
 
 describe("consistencyNote", () => {
-    it("produces a distinct, non-empty note for every diagnosis", () => {
+    it("returns a structured note (key + params), never prose, distinct per diagnosis", () => {
+        // consistencyNote must not bake a language into the analysis layer — it
+        // returns a translation key + already-rounded params (mirrors DraftBasis
+        // in lib/draft-odds.ts). See docs/architecture/i18n.md.
         const series: Record<FormDiagnosis, number[]> = {
             insuficiente: [50, 80],
             estable: [70, 71, 70, 71],
@@ -209,14 +212,48 @@ describe("consistencyNote", () => {
             volatilidad: [40, 80, 41, 79],
             mixto: [40, 70, 50, 80],
         };
-        const seen = new Set<string>();
+        const seenKeys = new Set<string>();
         for (const [diagnosis, values] of Object.entries(series)) {
             const p = buildConsistencyProfile(values.map((opr, i) => ({ label: `E${i}`, opr })));
             expect(p.diagnosis).toBe(diagnosis);
             const note = consistencyNote(p);
-            expect(note.length).toBeGreaterThan(20);
-            seen.add(note);
+            expect(typeof note).toBe("object");
+            expect(typeof note.key).toBe("string");
+            seenKeys.add(note.key);
         }
-        expect(seen.size).toBe(Object.keys(series).length);
+        expect(seenKeys.size).toBe(Object.keys(series).length);
+    });
+
+    it("splits the growth diagnosis into growthLag vs growthClear based on scouting gap", () => {
+        // Rising trend but the public (median-fallback) number lags current form
+        // by more than 3 points → growthLag, with rounded params.
+        const lag = buildConsistencyProfile([40, 55, 70, 85].map((opr, i) => ({ label: `E${i}`, opr })), 40);
+        const lagNote = consistencyNote(lag);
+        expect(lagNote.key).toBe("growthLag");
+        if (lagNote.key === "growthLag") {
+            expect(lagNote.r2Pct).toBeGreaterThan(0);
+            expect(lagNote.scoutingGap).toBeGreaterThan(3);
+        }
+
+        // Rising trend with the public number already close to current form
+        // (84 vs. a currentForm of 85) → growthClear, params carry only the
+        // rounded slope.
+        const clear = buildConsistencyProfile([40, 55, 70, 85].map((opr, i) => ({ label: `E${i}`, opr })), 84);
+        const clearNote = consistencyNote(clear);
+        expect(clearNote.key).toBe("growthClear");
+        if (clearNote.key === "growthClear") {
+            expect(clearNote.slope).toBeGreaterThan(0);
+        }
+    });
+
+    it("rounds params in the analysis layer so the message only interpolates", () => {
+        const p = buildConsistencyProfile([40, 80, 41, 79].map((opr, i) => ({ label: `E${i}`, opr })));
+        const note = consistencyNote(p);
+        expect(note.key).toBe("volatility");
+        if (note.key === "volatility") {
+            expect(Number.isInteger(note.r2Pct)).toBe(true);
+            expect(Number.isInteger(note.min)).toBe(true);
+            expect(Number.isInteger(note.max)).toBe(true);
+        }
     });
 });

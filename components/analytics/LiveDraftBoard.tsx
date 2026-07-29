@@ -3,10 +3,11 @@
 import { useMemo, useState } from "react";
 import type { TeamEvolution } from "@/app/actions/analytics";
 import type { FTCAllianceSelection } from "@/types/scouting";
-import { calculateSynergyScore, explainSynergyScore, bestFieldedPair, computeTeamSigma, combineSigmas, runMonteCarloSimulation } from "@/lib/alliance-utils";
+import { calculateSynergyScore, explainSynergyScore, bestFieldedPair, computeTeamSigma, combineSigmas, runMonteCarloSimulation, type SynergyReason } from "@/lib/alliance-utils";
 import type { Alliance } from "@/types/oracle";
 import { Crown, RotateCcw, Star, Ban, Download, Users, Handshake } from "lucide-react";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 /**
  * Live alliance-selection assistant: the alliance board and "my best
@@ -217,6 +218,13 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
     storageKey?: string;
 }) {
     const [draft, setDraft] = useState<DraftState>(() => loadDraft(storageKey, teams));
+    const tSynergy = useTranslations("AllianceUtils");
+    // explainSynergyScore returns each reason as a translation key + params
+    // (never prose); render it here.
+    const reasonText = (r: SynergyReason) => {
+        const { key, ...params } = r;
+        return tSynergy(key, params);
+    };
 
     const update = (patch: Partial<DraftState>) => {
         setDraft(prev => {
@@ -567,7 +575,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                         {r.reasons.map((reason, j) => (
                                             <li key={j} className="flex gap-1.5">
                                                 <span className="text-warning shrink-0">▸</span>
-                                                <span>{reason}</span>
+                                                <span>{reasonText(reason)}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -580,7 +588,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                             {r.reasons.map((reason, j) => (
                                                 <li key={j} className="flex gap-1.5">
                                                     <span className="text-secondary shrink-0">▸</span>
-                                                    <span>{reason}</span>
+                                                    <span>{reasonText(reason)}</span>
                                                 </li>
                                             ))}
                                         </ul>

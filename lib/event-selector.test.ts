@@ -54,12 +54,42 @@ describe("projectAtEvent", () => {
 });
 
 describe("strategyNote", () => {
-    it("returns a non-empty note for every verdict × volatility combo", () => {
+    it("returns a translation key, never prose, for every verdict × volatility combo", () => {
+        // strategyNote must not bake a language into the analysis layer — the
+        // UI resolves it via next-intl ("EventSelector.strategy"). See
+        // docs/architecture/i18n.md.
+        const validKeys = new Set([
+            "topOrdered", "topChaotic", "topTypical",
+            "bubbleChaotic", "bubbleTypical",
+            "outChaoticUpside", "outAboveLevel",
+        ]);
         for (const opr of [20, 65, 90, 150]) {
             for (const sigma of [33, 50, 92]) {
                 const note = strategyNote(projectAtEvent(opr, profile({ sigma })));
-                expect(note.length).toBeGreaterThan(10);
+                expect(typeof note).toBe("string");
+                expect(validKeys.has(note)).toBe(true);
             }
         }
+    });
+
+    it("distinguishes ordered vs chaotic fields for a captain-tier team", () => {
+        const ordered = strategyNote(projectAtEvent(150, profile({ sigma: 33 })));
+        const chaotic = strategyNote(projectAtEvent(150, profile({ sigma: 92 })));
+        expect(ordered).toBe("topOrdered");
+        expect(chaotic).toBe("topChaotic");
+    });
+
+    it("distinguishes bubble in a chaotic field from a typical one", () => {
+        // teams=32 → 6 alliances; oprMean 68 / oprSd 10 / myOPR 70 lands the
+        // expected seed at 14 (bubble band is seed 13-15, i.e. >2x and <=2.5x
+        // the alliance count).
+        const bubbleField = { teams: 32, oprMean: 68, oprSd: 10 };
+        const bubble = projectAtEvent(70, profile(bubbleField));
+        expect(bubble.verdict).toBe("burbuja");
+
+        const chaotic = strategyNote(projectAtEvent(70, profile({ ...bubbleField, sigma: 92 })));
+        const typical = strategyNote(projectAtEvent(70, profile({ ...bubbleField, sigma: 45 })));
+        expect(chaotic).toBe("bubbleChaotic");
+        expect(typical).toBe("bubbleTypical");
     });
 });

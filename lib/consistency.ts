@@ -175,8 +175,8 @@ export function diagnoseForm(a: SeriesAnalysis): FormDiagnosis {
 }
 
 export interface PhaseConsistency {
+    /** Semantic key ("auto" | "dc") — the UI translates it, never a label here. */
     key: string;
-    label: string;
     analysis: SeriesAnalysis;
     diagnosis: FormDiagnosis;
 }
@@ -215,18 +215,15 @@ export interface ConsistencyProfile {
 export function buildConsistencyProfile(points: FormPoint[], publicNumber?: number): ConsistencyProfile {
     const tot = analyzeSeries(points.map(p => p.opr));
 
-    const phaseDefs: { key: "auto" | "dc"; label: string }[] = [
-        { key: "auto", label: "Autónomo" },
-        { key: "dc", label: "Teleoperado" },
-    ];
+    const phaseKeys: ("auto" | "dc")[] = ["auto", "dc"];
 
-    const phases: PhaseConsistency[] = phaseDefs.flatMap(({ key, label }) => {
+    const phases: PhaseConsistency[] = phaseKeys.flatMap((key) => {
         const values = points.map(p => p[key]).filter((v): v is number => typeof v === "number");
         // Only analyze a phase when every event reported it; a partial series
         // would silently compare different sets of events.
         if (values.length !== points.length || values.length === 0) return [];
         const analysis = analyzeSeries(values);
-        return [{ key, label, analysis, diagnosis: diagnoseForm(analysis) }];
+        return [{ key, analysis, diagnosis: diagnoseForm(analysis) }];
     });
 
     const volatilityDriver = phases.length === 0
@@ -253,10 +250,8 @@ export function buildConsistencyProfile(points: FormPoint[], publicNumber?: numb
 export type BandKey = "piso" | "publico" | "actual" | "pico";
 
 export interface FormBand {
+    /** Semantic key — the UI translates label + hint from it, never prose here. */
     key: BandKey;
-    label: string;
-    /** What this band means, for the UI's benefit. */
-    hint: string;
     opr: number;
     projection: EventProjection;
 }
@@ -267,11 +262,11 @@ export interface FormBand {
  * current form you are a pick".
  */
 export function projectFormBands(profile: ConsistencyProfile, event: EventProfile): FormBand[] {
-    const bands: { key: BandKey; label: string; hint: string; opr: number }[] = [
-        { key: "piso", label: "Piso", hint: "Tu peor evento de la temporada", opr: profile.tot.min },
-        { key: "publico", label: "Número público", hint: "El OPR de temporada que ven los capitanes al scoutearte", opr: profile.publicNumber },
-        { key: "actual", label: "Forma actual", hint: "Tu tendencia evaluada en tu evento más reciente", opr: profile.tot.currentForm },
-        { key: "pico", label: "Pico", hint: "Tu mejor evento de la temporada", opr: profile.tot.max },
+    const bands: { key: BandKey; opr: number }[] = [
+        { key: "piso", opr: profile.tot.min },
+        { key: "publico", opr: profile.publicNumber },
+        { key: "actual", opr: profile.tot.currentForm },
+        { key: "pico", opr: profile.tot.max },
     ];
 
     return bands.map(b => ({ ...b, projection: projectAtEvent(b.opr, event) }));
@@ -334,28 +329,44 @@ export function pointsToNextTier(currentOpr: number, event: EventProfile): TierG
 }
 
 /**
+ * Why the one-line strategic read is what it is — as a translation KEY plus
+ * its (already rounded) parameters, NOT formed prose. Mirrors DraftBasis in
+ * lib/draft-odds.ts: the analysis layer must not bake a language in. The UI
+ * renders these via next-intl (namespace "Consistency.note").
+ */
+export type ConsistencyNote =
+    | { key: "insufficient" }
+    | { key: "stable" }
+    | { key: "growthLag"; r2Pct: number; scoutingGap: number }
+    | { key: "growthClear"; slope: number }
+    | { key: "decline"; slope: number }
+    | { key: "volatility"; r2Pct: number; min: number; max: number }
+    | { key: "mixed"; r2Pct: number; residualSigma: number };
+
+/**
  * The one-line strategic read for a diagnosis. Deliberately deterministic
  * (no LLM): the input space is small and a wrong-but-fluent narrative is
  * worse than a plain correct one — same reasoning as the partner-suggestion
  * explanations (decisions.md #55).
  */
-export function consistencyNote(profile: ConsistencyProfile): string {
+export function consistencyNote(profile: ConsistencyProfile): ConsistencyNote {
     const { diagnosis, scoutingGap, tot } = profile;
+    const r2Pct = Math.round(tot.r2 * 100);
 
     switch (diagnosis) {
         case "insuficiente":
-            return "Aún no hay suficientes eventos para separar crecimiento de volatilidad. Con 3+ eventos esta lectura se vuelve confiable.";
+            return { key: "insufficient" };
         case "estable":
-            return "Rendimiento parejo evento a evento: lo que muestras es lo que eres. Para subir de tier hay que mover el promedio, no la varianza.";
+            return { key: "stable" };
         case "crecimiento":
             return scoutingGap > 3
-                ? `Tu dispersión es crecimiento, no inconsistencia: la tendencia explica ${(tot.r2 * 100).toFixed(0)}% de ella. El problema real es que tu OPR de temporada va ${scoutingGap.toFixed(1)} puntos por detrás de tu forma actual — y los capitanes te scoutean por ese número atrasado.`
-                : `Tendencia de crecimiento clara (+${tot.slope.toFixed(1)} OPR por evento). La palanca es sostener la pendiente, no reducir la varianza.`;
+                ? { key: "growthLag", r2Pct, scoutingGap: Number(scoutingGap.toFixed(1)) }
+                : { key: "growthClear", slope: Number(tot.slope.toFixed(1)) };
         case "declive":
-            return `La tendencia va a la baja (${tot.slope.toFixed(1)} OPR por evento). Antes de optimizar nada, hay que encontrar qué se degradó: desgaste mecánico, cambios de diseño tardíos o fields progresivamente más fuertes.`;
+            return { key: "decline", slope: Number(tot.slope.toFixed(1)) };
         case "volatilidad":
-            return `Tu dispersión es ruido, no tendencia: la línea solo explica ${(tot.r2 * 100).toFixed(0)}% de ella, así que cada evento es un volado entre ${tot.min.toFixed(0)} y ${tot.max.toFixed(0)} OPR. La palanca es subir el piso (fallas, confiabilidad), no el techo.`;
+            return { key: "volatility", r2Pct, min: Number(tot.min.toFixed(0)), max: Number(tot.max.toFixed(0)) };
         case "mixto":
-            return `Mezcla de crecimiento y ruido: la tendencia explica ${(tot.r2 * 100).toFixed(0)}% de tu dispersión y el resto es volatilidad real (±${tot.residualSigma.toFixed(1)} OPR). Vale la pena atacar ambos frentes.`;
+            return { key: "mixed", r2Pct, residualSigma: Number(tot.residualSigma.toFixed(1)) };
     }
 }

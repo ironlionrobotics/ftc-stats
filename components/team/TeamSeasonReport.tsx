@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { TEAM_30311_DECODE } from "@/lib/reports/team-30311-decode";
+import { TEAM_30311_DECODE, EventAward } from "@/lib/reports/team-30311-decode";
 import { RookieComparison } from "@/components/team/RookieComparison";
 import { ConsistencyTracker } from "@/components/team/ConsistencyTracker";
 import { GrowthCurve } from "@/components/team/GrowthCurve";
@@ -8,6 +8,7 @@ import {
     Flame, ArrowUpRight, Sparkles, MapPin, Rocket, ExternalLink, Activity, LineChart,
 } from "lucide-react";
 import clsx from "clsx";
+import { getTranslations } from "next-intl/server";
 
 const R = TEAM_30311_DECODE;
 
@@ -15,8 +16,14 @@ const R = TEAM_30311_DECODE;
  * Sponsor-grade season retrospective for FTC #30311, DECODE 2025-26.
  * Server component, static curated data (lib/reports/team-30311-decode.ts),
  * flat semantic tokens only → respects the theme toggle and prints cleanly.
+ *
+ * Async because every prose field the module produces (awards, takeaways,
+ * learnings, sources, skill/event-type labels) is a translation key + params,
+ * resolved here via next-intl's server API (docs/architecture/i18n.md).
  */
-export function TeamSeasonReport() {
+export async function TeamSeasonReport() {
+    const t = await getTranslations("TeamReport");
+    const tCountry = await getTranslations("TeamReport.country");
     const bestEvent = R.events.reduce((a, b) => (b.totOpr > a.totOpr ? b : a));
 
     return (
@@ -78,7 +85,7 @@ export function TeamSeasonReport() {
             >
                 <div className="grid gap-4 md:gap-5">
                     {R.skills.map((s) => (
-                        <SkillBar key={s.key} skill={s} />
+                        <SkillBar key={s.key} skill={s} label={t(`skill.${s.key}`)} />
                     ))}
                 </div>
             </ReportSection>
@@ -111,7 +118,7 @@ export function TeamSeasonReport() {
                                         <div className="text-xs text-muted-foreground mt-0.5 font-mono">{e.code} · {e.dates}</div>
                                     </td>
                                     <td className="px-4 py-4 text-center">
-                                        <EventTypePill type={e.type} />
+                                        <EventTypePill type={e.type} label={t(`eventType.${e.type}`)} />
                                     </td>
                                     <td className="px-4 py-4 text-center whitespace-nowrap">
                                         <span className="font-display font-black text-foreground text-lg">#{e.rank}</span>
@@ -124,9 +131,9 @@ export function TeamSeasonReport() {
                                         <div className="flex flex-col gap-1">
                                             {e.awards.length === 0
                                                 ? <span className="text-xs text-muted-foreground/60 italic">—</span>
-                                                : e.awards.map((a) => (
-                                                    <span key={a} className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                                        <Award size={12} className="text-warning shrink-0" /> {a}
+                                                : e.awards.map((a, i) => (
+                                                    <span key={`${a.key}-${i}`} className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                                        <Award size={12} className="text-warning shrink-0" /> {eventAwardText(a, t)}
                                                     </span>
                                                 ))}
                                         </div>
@@ -184,15 +191,15 @@ export function TeamSeasonReport() {
                 icon={<Globe size={20} />}
             >
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {R.worldTop5.map((t, i) => (
-                        <div key={t.number} className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4">
+                    {R.worldTop5.map((team, i) => (
+                        <div key={team.number} className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4">
                             <div className="font-display font-black text-2xl text-muted-foreground/50 w-8 shrink-0">{i + 1}</div>
                             <div className="min-w-0">
-                                <div className="font-bold text-foreground truncate">{t.name}</div>
-                                <div className="text-xs text-muted-foreground font-mono">#{t.number} · {t.country}</div>
+                                <div className="font-bold text-foreground truncate">{team.name}</div>
+                                <div className="text-xs text-muted-foreground font-mono">#{team.number} · {tCountry(team.country)}</div>
                             </div>
                             <div className="ml-auto text-right shrink-0">
-                                <div className="font-mono font-bold text-secondary">{t.totOpr.toFixed(0)}</div>
+                                <div className="font-mono font-bold text-secondary">{team.totOpr.toFixed(0)}</div>
                                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider">OPR</div>
                             </div>
                         </div>
@@ -214,12 +221,15 @@ export function TeamSeasonReport() {
                 icon={<Target size={20} />}
             >
                 <div className="grid md:grid-cols-3 gap-4">
-                    {R.learnings.map((l) => (
-                        <div key={l.title} className="rounded-2xl border border-border bg-card p-6">
-                            <h4 className="font-display font-bold text-foreground leading-tight">{l.title}</h4>
-                            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{l.body}</p>
-                        </div>
-                    ))}
+                    {R.learnings.map((l) => {
+                        const { key, ...params } = l;
+                        return (
+                            <div key={key} className="rounded-2xl border border-border bg-card p-6">
+                                <h4 className="font-display font-bold text-foreground leading-tight">{t(`learning.${key}.title`, params)}</h4>
+                                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{t(`learning.${key}.body`, params)}</p>
+                            </div>
+                        );
+                    })}
                 </div>
             </ReportSection>
 
@@ -233,12 +243,15 @@ export function TeamSeasonReport() {
                     </div>
                 </div>
                 <ul className="grid md:grid-cols-2 gap-4">
-                    {R.takeaways.map((t, i) => (
-                        <li key={i} className="flex gap-3">
-                            <div className="mt-1 shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-black font-mono">{i + 1}</div>
-                            <span className="text-sm text-foreground/90 leading-relaxed">{t}</span>
-                        </li>
-                    ))}
+                    {R.takeaways.map((tk, i) => {
+                        const { key, ...params } = tk;
+                        return (
+                            <li key={i} className="flex gap-3">
+                                <div className="mt-1 shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-black font-mono">{i + 1}</div>
+                                <span className="text-sm text-foreground/90 leading-relaxed">{t(`takeaway.${key}`, params)}</span>
+                            </li>
+                        );
+                    })}
                 </ul>
             </div>
 
@@ -246,11 +259,14 @@ export function TeamSeasonReport() {
             <div className="text-xs text-muted-foreground border-t border-border pt-5">
                 <span className="font-bold uppercase tracking-widest">Fuentes</span>
                 <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5">
-                    {R.sources.map((s) => (
-                        <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-secondary hover:text-primary transition-colors">
-                            {s.label} <ExternalLink size={11} />
-                        </a>
-                    ))}
+                    {R.sources.map((s) => {
+                        const { key, url, ...params } = s;
+                        return (
+                            <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-secondary hover:text-primary transition-colors">
+                                {t(`source.${key}`, params)} <ExternalLink size={11} />
+                            </a>
+                        );
+                    })}
                 </div>
                 <p className="mt-3 text-muted-foreground/70 italic">
                     Retrospectiva de temporada finalizada (datos fijos, verificados vía FTCScout GraphQL, jul 2026). El OPR (Offensive Power Rating) estima la contribución de puntos de un equipo a partir de resultados de alianza por mínimos cuadrados.
@@ -261,6 +277,14 @@ export function TeamSeasonReport() {
 }
 
 /* ─────────────────────────── viz + primitives ─────────────────────────── */
+
+/** EventAward → localized text. Kept a plain function (not a component) since
+ * it needs the caller's already-resolved `t`, matching the {key,...params}
+ * destructure pattern used across the app (see docs/architecture/i18n.md). */
+function eventAwardText(a: EventAward, t: Awaited<ReturnType<typeof getTranslations>>): string {
+    const { key, ...params } = a;
+    return t(`eventAward.${key}`, params);
+}
 
 function GrowthChart() {
     const pts = R.events.map((e) => ({ code: e.code, v: e.totOpr, label: e.dates }));
@@ -306,13 +330,13 @@ function GrowthChart() {
     );
 }
 
-function SkillBar({ skill }: { skill: (typeof R.skills)[number] }) {
+function SkillBar({ skill, label }: { skill: (typeof R.skills)[number]; label: string }) {
     const strong = skill.percentile >= 85;
     return (
         <div className="rounded-2xl border border-border bg-card p-4 md:p-5">
             <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-2.5">
-                    <span className="font-bold text-foreground">{skill.label}</span>
+                    <span className="font-bold text-foreground">{label}</span>
                     {strong && <span className="text-[10px] font-black uppercase tracking-wider text-success bg-success/10 px-2 py-0.5 rounded-full">Fortaleza</span>}
                     {skill.key === "auto" && <span className="text-[10px] font-black uppercase tracking-wider text-warning bg-warning/10 px-2 py-0.5 rounded-full">A mejorar</span>}
                 </div>
@@ -423,14 +447,13 @@ function Badge({ children, tone, icon }: { children: React.ReactNode; tone: "pri
     );
 }
 
-function EventTypePill({ type }: { type: string }) {
+function EventTypePill({ type, label }: { type: string; label: string }) {
     const map: Record<string, string> = {
         Qualifier: "bg-muted text-muted-foreground border-border",
         Championship: "bg-secondary/10 text-secondary border-secondary/20",
         Premier: "bg-primary/10 text-primary border-primary/20",
     };
-    const label: Record<string, string> = { Qualifier: "Regional", Championship: "Championship", Premier: "Premier" };
-    return <span className={clsx("inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border whitespace-nowrap", map[type])}>{label[type] ?? type}</span>;
+    return <span className={clsx("inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border whitespace-nowrap", map[type])}>{label}</span>;
 }
 
 function Th({ children, className }: { children: React.ReactNode; className?: string }) {

@@ -27,6 +27,27 @@ function variance(xs: number[]): number {
     return sse / (xs.length - 1);
 }
 
+/**
+ * Red flags emitted by the projection layer (and, in the briefing composer,
+ * by the "no data on this team" fallbacks) — as a translation KEY, not
+ * prose. Rendered via next-intl, namespace "Projections". See
+ * docs/architecture/i18n.md.
+ */
+export type RedFlag =
+    | { key: "mechanicalRisk" }
+    | { key: "noAggregatedData" }
+    | { key: "noData" };
+
+/**
+ * Strategic insights from `predictMatch` — translation KEY plus params,
+ * NOT formed prose. Rendered via next-intl, namespace "Projections".
+ */
+export type ProjectionInsight =
+    | { key: "redAutoAdvantage" }
+    | { key: "blueAutoAdvantage" }
+    | { key: "highConfidence" }
+    | { key: "technicalTie" };
+
 export interface TeamProjection {
     teamNumber: number;
     projectedPoints: number;
@@ -37,7 +58,7 @@ export interface TeamProjection {
     };
     confidence: number; // 0-1
     reliability: "high" | "medium" | "low";
-    redFlags: string[];
+    redFlags: RedFlag[];
 }
 
 export interface MatchProjection {
@@ -50,7 +71,7 @@ export interface MatchProjection {
         teams: TeamProjection[];
     };
     winProbability: number; // For Red Alliance (0-1)
-    insights: string[];
+    insights: ProjectionInsight[];
 }
 
 /**
@@ -79,7 +100,7 @@ export function calculateTeamProjection(
     scoutingEntries: MatchScouting[],
     pitData: PitScouting | null
 ): TeamProjection {
-    const redFlags: string[] = [];
+    const redFlags: RedFlag[] = [];
     // Total entry count INCLUDING super-scouting entries. Only valid for the
     // subjective driver-skill modifier below — every objective statistic must
     // use scoredCount instead (super entries carry no counter data).
@@ -161,7 +182,7 @@ export function calculateTeamProjection(
     }
 
     if (pitData?.notes?.toLowerCase().includes("fallo") || pitData?.notes?.toLowerCase().includes("broken")) {
-        redFlags.push("Riesgo Mecánico Detectado");
+        redFlags.push({ key: "mechanicalRisk" });
         multiplier *= (1 - MODEL.mechanicalRiskPenalty);
     }
 
@@ -244,19 +265,19 @@ export function predictMatch(
 
     const winProbability = winProbabilityFromProjections(redScore, blueScore);
 
-    const insights: string[] = [];
+    const insights: ProjectionInsight[] = [];
 
     // Strategic Insights
     const redAuto = redTeams.reduce((a, b) => a + b.breakdown.auto, 0);
     const blueAuto = blueTeams.reduce((a, b) => a + b.breakdown.auto, 0);
 
-    if (redAuto > blueAuto * 1.25) insights.push("Ventaja crítica: Alianza Roja domina en período Autónomo.");
-    if (blueAuto > redAuto * 1.25) insights.push("Ventaja crítica: Alianza Azul tiene un mejor inicio autónomo.");
+    if (redAuto > blueAuto * 1.25) insights.push({ key: "redAutoAdvantage" });
+    if (blueAuto > redAuto * 1.25) insights.push({ key: "blueAutoAdvantage" });
 
     const highConfidence = redTeams.every(t => t.reliability === "high") && blueTeams.every(t => t.reliability === "high");
-    if (highConfidence) insights.push("Predicción de alta precisión: Basada en abundantes datos de scouting.");
+    if (highConfidence) insights.push({ key: "highConfidence" });
 
-    if (Math.abs(diff) < avgScore * 0.05) insights.push("Empate técnico: El match se decidirá por penalizaciones o endgame.");
+    if (Math.abs(diff) < avgScore * 0.05) insights.push({ key: "technicalTie" });
 
     return {
         redAlliance: { score: redScore, teams: redTeams },

@@ -71,6 +71,11 @@ export const MX_GROWTH = {
      * appears from its later seasons on. That thins the fixed cohort's early
      * years (season 1 rests on 4 teams) — the shape there is indicative, not
      * settled. The all-teams curve is well powered through season 4.
+     *
+     * No prose here — windowStart/windowEnd are params for the "GrowthCurves.
+     * caveat" translation key (docs/architecture/i18n.md); the UI supplies the
+     * sentence per locale.
      */
-    caveat: "Ventana 2019-2025: los programas anteriores a 2019 sólo aparecen desde temporadas tardías.",
+    caveatWindowStart: 2019,
+    caveatWindowEnd: 2025,
 } as const;

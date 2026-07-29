@@ -250,22 +250,40 @@ export function alliancesFromOfficial(
 }
 
 /**
+ * Why a pair's synergy score is what it is — as a translation KEY plus its
+ * (already rounded) params, NOT formed prose. The analysis layer must not
+ * bake a language in: the UI renders these via next-intl (namespace
+ * "AllianceUtils"). Same pattern as lib/draft-odds.ts — see
+ * docs/architecture/i18n.md.
+ */
+export type SynergyReason =
+    | { key: "combinedPower"; opr1: number; opr2: number; combinedOPR: number }
+    | { key: "dominantAuto"; autoSynergy: number }
+    | { key: "foulRisk"; risk: number; penalty: number }
+    | { key: "disciplinedDuo"; risk: number };
+
+/**
  * Synergy score for a pair, with the human-readable justification derived from
  * the SAME computation (no LLM, no post-hoc narrative: each reason is emitted
  * exactly when its factor fires, with the real numbers). Deterministic and
  * offline-safe — critical for venue use.
  */
-export function explainSynergyScore(t1: TeamEvolution, t2: TeamEvolution): { score: number; reasons: string[] } {
-    const reasons: string[] = [];
+export function explainSynergyScore(t1: TeamEvolution, t2: TeamEvolution): { score: number; reasons: SynergyReason[] } {
+    const reasons: SynergyReason[] = [];
     const combinedOPR = (t1.opr || 0) + (t2.opr || 0);
-    reasons.push(`Potencia combinada: ${(t1.opr || 0).toFixed(0)} + ${(t2.opr || 0).toFixed(0)} = ${combinedOPR.toFixed(0)} pts proyectados (la base del score).`);
+    reasons.push({
+        key: "combinedPower",
+        opr1: Math.round(t1.opr || 0),
+        opr2: Math.round(t2.opr || 0),
+        combinedOPR: Math.round(combinedOPR),
+    });
 
     // Auto Synergy
     const autoSynergy = (t1.autoOPR || 0) + (t2.autoOPR || 0);
     let synergyBonus = 0;
     if (autoSynergy > 30) {
         synergyBonus += 10;
-        reasons.push(`Autónomo dominante: ${autoSynergy.toFixed(0)} pts combinados de auto (+10) — arrancar arriba presiona al rival todo el match.`);
+        reasons.push({ key: "dominantAuto", autoSynergy: Math.round(autoSynergy) });
     }
 
     // Discipline Penalty
@@ -273,9 +291,9 @@ export function explainSynergyScore(t1: TeamEvolution, t2: TeamEvolution): { sco
     if (risk < -5) {
         const penalty = Math.min(Math.abs(risk) * 0.8, 30);
         synergyBonus -= penalty;
-        reasons.push(`Riesgo de fouls: disciplina neta combinada ${risk.toFixed(0)} (−${penalty.toFixed(0)}) — juntos tienden a regalar puntos de penalización.`);
+        reasons.push({ key: "foulRisk", risk: Math.round(risk), penalty: Math.round(penalty) });
     } else if (risk > 5) {
-        reasons.push(`Dupla disciplinada: disciplina neta combinada +${risk.toFixed(0)} — provocan más fouls de los que cometen.`);
+        reasons.push({ key: "disciplinedDuo", risk: Math.round(risk) });
     }
 
     return { score: combinedOPR + synergyBonus, reasons };

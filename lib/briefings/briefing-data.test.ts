@@ -82,7 +82,9 @@ describe("buildBriefingData", () => {
         const ghost = b.redAlliance.teams.find(t => t.teamNumber === 99999);
         expect(ghost).toBeDefined();
         expect(ghost!.projectedPoints).toBe(0);
-        expect(ghost!.redFlags).toContain("Sin datos");
+        // redFlags is a translation key + params (never prose) — see
+        // docs/architecture/i18n.md.
+        expect(ghost!.redFlags).toContainEqual({ key: "noData" });
     });
 
     it("attaches up to 2 most recent scouting notes per team, sorted newest-first", () => {
@@ -144,8 +146,9 @@ describe("buildBriefingData", () => {
             teams: redHeavy,
             scoutingEntries: [],
         });
-        expect(b.strategicFocus.some(f => f.toLowerCase().includes("auto"))).toBe(true);
-        expect(b.strategicFocus.some(f => f.toLowerCase().includes("ventaja roja"))).toBe(true);
+        // strategicFocus is a translation key + params (never prose) — see
+        // docs/architecture/i18n.md.
+        expect(b.strategicFocus.some(f => f.key === "autoAdvantageRed")).toBe(true);
     });
 
     it("derives a 'favoritos' bullet when win probability is high", () => {
@@ -165,7 +168,29 @@ describe("buildBriefingData", () => {
             scoutingEntries: [],
         });
         expect(b.winProbabilityRed).toBeGreaterThan(0.75);
-        expect(b.strategicFocus.some(f => f.toLowerCase().includes("favoritos"))).toBe(true);
+        expect(b.strategicFocus.some(f => f.key === "clearFavorite")).toBe(true);
+    });
+
+    it("surfaces the opposing alliance's red flags as structured params, not a joined string", () => {
+        // Team 99999 doesn't exist in `teams` → blue gets a "noData" red flag,
+        // which must propagate into the "opponentWeaknesses" bullet as a
+        // RedFlag[] param (the UI joins/translates it, not this module).
+        const b = buildBriefingData({
+            matchNumber: 1,
+            eventCode: "MXTOL",
+            season: 2025,
+            orgId: "30311",
+            redTeamNumbers: [30311, 16768],
+            blueTeamNumbers: [8744, 99999],
+            teams,
+            scoutingEntries: [],
+        });
+        const weaknesses = b.strategicFocus.find(f => f.key === "opponentWeaknesses");
+        expect(weaknesses).toBeDefined();
+        expect(weaknesses).toMatchObject({ key: "opponentWeaknesses" });
+        if (weaknesses?.key === "opponentWeaknesses") {
+            expect(weaknesses.flags).toContainEqual({ key: "noData" });
+        }
     });
 
     it("always returns at least one strategic focus bullet (fallback for balanced matches)", () => {

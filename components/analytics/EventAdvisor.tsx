@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EventProfile, projectAtEvent, strategyNote, Verdict } from "@/lib/event-selector";
 import { Compass, Info } from "lucide-react";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 /**
  * Event advisor — compares historical event fields ("¿dónde me conviene
@@ -14,6 +15,7 @@ import clsx from "clsx";
  * (Not to be confused with EventSelector.tsx, the Data Lab event picker.)
  */
 export default function EventAdvisor() {
+    const tSelector = useTranslations("EventSelector");
     const [profiles, setProfiles] = useState<EventProfile[] | null>(null);
     const [myOPR, setMyOPR] = useState<string>("");
     const [region, setRegion] = useState<string>("all");
@@ -114,7 +116,7 @@ export default function EventAdvisor() {
                     </thead>
                     <tbody className="divide-y divide-border/50">
                         {rows.map(({ p, proj }) => (
-                            <tr key={`${p.season}-${p.code}`} className="hover:bg-muted/40 transition-colors" title={proj ? strategyNote(proj) : undefined}>
+                            <tr key={`${p.season}-${p.code}`} className="hover:bg-muted/40 transition-colors" title={proj ? tSelector(`strategy.${strategyNote(proj)}`) : undefined}>
                                 <td className="p-3">
                                     <div className="font-bold text-foreground leading-tight">{p.name}</div>
                                     <div className="text-[10px] text-muted-foreground font-mono">{p.code} · {p.season} · {p.region ?? "—"}</div>
@@ -148,26 +150,33 @@ export default function EventAdvisor() {
 }
 
 function VolatilityChip({ sigma }: { sigma: number }) {
+    const tSelector = useTranslations("EventSelector");
     const cls = sigma <= 40
         ? "bg-success/10 text-success border-success/20"
         : sigma >= 60
             ? "bg-danger/10 text-danger border-danger/20"
             : "bg-warning/10 text-warning border-warning/20";
-    const label = sigma <= 40 ? "Ordenado" : sigma >= 60 ? "Caótico" : "Medio";
+    // Volatility class comes straight from lib/event-selector.ts's own threshold
+    // (the σ<=40/>=60 split), so the label is keyed off the same enum it returns.
+    const volatilityKey = sigma <= 40 ? "ordenado" : sigma >= 60 ? "caotico" : "medio";
     return (
         <span className={clsx("inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap", cls)}>
-            {label} · {sigma.toFixed(0)}
+            {tSelector(`volatility.${volatilityKey}`)} · {sigma.toFixed(0)}
         </span>
     );
 }
 
 function VerdictChip({ v }: { v: Verdict }) {
-    const map: Record<Verdict, [string, string]> = {
-        capitan: ["Capitán probable", "bg-primary/10 text-primary border-primary/20"],
-        pick: ["Pick probable", "bg-secondary/10 text-secondary border-secondary/20"],
-        burbuja: ["Burbuja", "bg-warning/10 text-warning border-warning/20"],
-        fuera: ["Fuera de playoffs", "bg-muted text-muted-foreground border-border"],
+    const tSelector = useTranslations("EventSelector");
+    const cls: Record<Verdict, string> = {
+        capitan: "bg-primary/10 text-primary border-primary/20",
+        pick: "bg-secondary/10 text-secondary border-secondary/20",
+        burbuja: "bg-warning/10 text-warning border-warning/20",
+        fuera: "bg-muted text-muted-foreground border-border",
     };
-    const [label, cls] = map[v];
-    return <span className={clsx("inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap", cls)}>{label}</span>;
+    return (
+        <span className={clsx("inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap", cls[v])}>
+            {tSelector(`verdictChip.${v}`)}
+        </span>
+    );
 }

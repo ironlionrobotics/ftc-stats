@@ -88,18 +88,35 @@ export function projectAtEvent(myOPR: number, p: EventProfile): EventProjection 
     return { percentile, expectedSeed, alliances, verdict, volatility };
 }
 
-/** Strategy note combining verdict × volatility (σ decision rule, #57). */
-export function strategyNote(proj: EventProjection): string {
+/**
+ * Translation key for the strategy note combining verdict × volatility (σ
+ * decision rule, #57). No params needed — every variant is a fixed sentence —
+ * so unlike DraftBasis this is a plain key union rather than key+params
+ * objects. The UI renders it via next-intl (namespace "EventSelector.strategy"),
+ * same rule as every other lib/ module that used to return Spanish sentences:
+ * the analysis layer returns a KEY, never prose. See docs/architecture/i18n.md.
+ */
+export type StrategyKey =
+    | "topOrdered"
+    | "topChaotic"
+    | "topTypical"
+    | "bubbleChaotic"
+    | "bubbleTypical"
+    | "outChaoticUpside"
+    | "outAboveLevel";
+
+/** Strategy note key combining verdict × volatility (σ decision rule, #57). */
+export function strategyNote(proj: EventProjection): StrategyKey {
     const { verdict, volatility } = proj;
     if (verdict === "capitan" || verdict === "pick") {
-        if (volatility === "ordenado") return "Field ordenado y llegas arriba: el resultado suele respetar el OPR. Ideal.";
-        if (volatility === "caotico") return "Llegas arriba pero el field es volátil: favorito con riesgo de upset — asegura el seed en quals.";
-        return "Posición competitiva en un field típico: el seed en quals define tu suerte.";
+        if (volatility === "ordenado") return "topOrdered";
+        if (volatility === "caotico") return "topChaotic";
+        return "topTypical";
     }
     if (verdict === "burbuja") {
-        if (volatility === "caotico") return "Zona de burbuja en field caótico: los upsets abundan — un buen día te mete a playoffs.";
-        return "Zona de burbuja: necesitas un evento por encima de tu promedio para entrar a playoffs.";
+        if (volatility === "caotico") return "bubbleChaotic";
+        return "bubbleTypical";
     }
-    if (volatility === "caotico") return "Field fuerte pero volátil: difícil, aunque el caos da más oportunidades que un field ordenado.";
-    return "Field por encima de tu nivel actual: valioso como experiencia, improbable para playoffs.";
+    if (volatility === "caotico") return "outChaoticUpside";
+    return "outAboveLevel";
 }

@@ -5,6 +5,8 @@ import {
     initializeBracket,
     updateBracket,
     runMonteCarloSimulation,
+    explainSynergyScore,
+    calculateSynergyScore,
 } from "./alliance-utils";
 import { playoffWinProbability } from "./win-probability";
 import type { TeamEvolution } from "@/app/actions/analytics";
@@ -123,6 +125,67 @@ describe("combineSigmas", () => {
         // not identical — the change is intentional: alliances of consistent
         // teams should have lower variance than alliances of erratic teams.
         expect(combineSigmas([30, 30, 30])).toBeCloseTo(Math.sqrt(2700), 5);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// explainSynergyScore — reasons are translation keys + rounded params, never
+// prose (see docs/architecture/i18n.md).
+// ---------------------------------------------------------------------------
+
+function evo(overrides: Partial<TeamEvolution> = {}): TeamEvolution {
+    return {
+        ...teamWith([]),
+        opr: 0,
+        autoOPR: 0,
+        netDiscipline: 0,
+        ...overrides,
+    };
+}
+
+describe("explainSynergyScore", () => {
+    it("always includes combinedPower with rounded params, never prose", () => {
+        const t1 = evo({ opr: 60.4 });
+        const t2 = evo({ opr: 40.6 });
+        const { score, reasons } = explainSynergyScore(t1, t2);
+        expect(reasons[0]).toEqual({ key: "combinedPower", opr1: 60, opr2: 41, combinedOPR: 101 });
+        expect(score).toBeCloseTo(101, 5);
+    });
+
+    it("adds dominantAuto when combined auto OPR exceeds 30", () => {
+        const t1 = evo({ opr: 50, autoOPR: 20 });
+        const t2 = evo({ opr: 50, autoOPR: 15 });
+        const { reasons } = explainSynergyScore(t1, t2);
+        expect(reasons).toContainEqual({ key: "dominantAuto", autoSynergy: 35 });
+    });
+
+    it("does not add dominantAuto when combined auto OPR is at or below 30", () => {
+        const t1 = evo({ opr: 50, autoOPR: 15 });
+        const t2 = evo({ opr: 50, autoOPR: 15 });
+        const { reasons } = explainSynergyScore(t1, t2);
+        expect(reasons.some(r => r.key === "dominantAuto")).toBe(false);
+    });
+
+    it("adds foulRisk when combined net discipline is clearly negative", () => {
+        const t1 = evo({ opr: 50, netDiscipline: -6 });
+        const t2 = evo({ opr: 50, netDiscipline: -4 });
+        const { reasons } = explainSynergyScore(t1, t2);
+        const foul = reasons.find(r => r.key === "foulRisk");
+        expect(foul).toBeDefined();
+        expect(foul).toEqual({ key: "foulRisk", risk: -10, penalty: 8 }); // min(|−10|·0.8, 30)
+    });
+
+    it("adds disciplinedDuo when combined net discipline is clearly positive", () => {
+        const t1 = evo({ opr: 50, netDiscipline: 4 });
+        const t2 = evo({ opr: 50, netDiscipline: 5 });
+        const { reasons } = explainSynergyScore(t1, t2);
+        expect(reasons).toContainEqual({ key: "disciplinedDuo", risk: 9 });
+    });
+
+    it("delegates its score to calculateSynergyScore (no divergence)", () => {
+        const t1 = evo({ opr: 50, autoOPR: 20 });
+        const t2 = evo({ opr: 55, autoOPR: 15 });
+        expect(calculateSynergyScore(t1, t2)).toBe(explainSynergyScore(t1, t2).score);
     });
 });
 

@@ -13,6 +13,7 @@ import clsx from "clsx";
 import { guessActiveEventCode } from "@/lib/active-event";
 import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { useTranslations } from "next-intl";
 
 interface MatchSimulatorProps {
     teams: AggregatedTeamStats[];
@@ -21,6 +22,9 @@ interface MatchSimulatorProps {
 export default function MatchSimulator({ teams }: MatchSimulatorProps) {
     const { season } = useProgram();
     const { orgId } = useAuth();
+    // predictMatch returns insights as translation key + params (never
+    // prose); render them here. Namespace "Projections" — see lib/projections.ts.
+    const tProjections = useTranslations("Projections");
     const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
     const scoutReliabilities = useScoutReliabilities();
     const [redAlliance, setRedAlliance] = useState<number[]>([]);
@@ -189,7 +193,7 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
                                             <div className="mt-1 flex-shrink-0 w-5 h-5 bg-primary/20 rounded-full flex items-center justify-center">
                                                 <div className="w-1.5 h-1.5 bg-primary rounded-full" />
                                             </div>
-                                            <p className="text-sm text-foreground leading-relaxed font-medium">{insight}</p>
+                                            <p className="text-sm text-foreground leading-relaxed font-medium">{tProjections(insight.key)}</p>
                                         </div>
                                     ))}
                                 </div>
