@@ -716,3 +716,21 @@ Primer bloqueante de la apertura (decisión #75), resuelto en dos fases. Antes, 
 **Caveat legacy:** entradas `match_scouting` sin `orgId` quedan fuera de las **listas** (el filtro no matchea campo ausente); los gets sí las alcanzan. Improbable que existan (las escrituras setean `orgId` desde Sprint 1); si hicieran falta, backfill puntual a `"30311"`.
 
 Verificado: typecheck 0, lint 0, 307 tests, `firebase_validate_security_rules` OK, build de producción OK. **Requiere `firebase deploy --only firestore:rules,firestore:indexes` + test dev cross-org** antes de aplicar (no desplegado — política de no-deploy sin OK). Ver `docs/ESTRATEGIA-PRODUCTO-Y-APERTURA.md` Parte IV y [[project-apertura-y-monetizacion]].
+
+---
+
+## #79 · Motor de juego declarativo conectado (cutover FTC) (2026-07-29)
+
+Segundo bloqueante-por-calendario resuelto. El juego FTC 2026-27 se anuncia en septiembre; el objetivo era que adaptarse cueste *escribir un archivo*, no *reescribir formularios* en pretemporada.
+
+**Hallazgo: la infra estaba a medio construir.** El plan registrado ("cambiar un import de `FTC_DecodeForm` a `DynamicGameForm`") no era real: `DynamicGameForm` es **solo el render de inputs**. No existía el wrapper que hace `useForm` + mapeo `values→MatchScouting` + guardado + lista de observaciones. Se construyó `GameScoutingForm` (genérico, no se toca por temporada) + `lib/games/build-entry.ts` (mapeo, única fuente de verdad testeable sin React).
+
+**Trampa de paridad — `autoParked`.** El form hardcodeado *derivaba* `autoParked: endgameBaseParking !== "None"` y lo persistía, y `lib/scouting-aggregation.ts` lo lee como categórico. La definición declarativa no podía expresar "derivado de otro campo". Se añadió el contrato **`toEntry`** a `GameDefinition`: derivaciones y constantes que viajan con la definición del juego (para DECODE: `autoParked` + `autoPoints:0`). Eso es lo que hace que un juego nuevo sea de verdad un solo archivo — si no, cada temporada repite el bug.
+
+**Cutover ahora, no staging.** La temporada DECODE (2025-26) ya terminó (FPEMX fue en julio), así que no hay scouts en vivo que interrumpir y la advertencia de "no cambiar el form entrenado" no aplica. Cablear la rama FTC a `GameScoutingForm` **prueba el plumbing en vivo** → máxima confianza para septiembre. `FTC_DecodeForm.tsx` queda como referencia (nadie lo importa); borrar tras validar en un evento real.
+
+**Paridad probada** (`lib/games/decode-parity.test.ts`): mismo set de claves de schema, mismos valores parseados en input válido, y `buildEntryGameFields` produce **la entrada idéntica** al `onSubmit` hardcodeado (transcrito a mano en el test para que rompa si cualquiera de los dos deriva). Diferencia intencional documentada: los `max` por campo de la definición son más estrictos que el `counter` compartido (999) — rechaza absurdos, no cambia entradas realistas.
+
+**Trade-offs aceptados:** layout genérico (secciones apiladas vs grid custom de 4 col) y lista de observaciones genérica (cada campo con su valor vs tarjetas bespoke). Ambos son el precio de lo genérico y funcionan para cualquier juego; si una temporada amerita layout a medida, se escribe un componente de ese año.
+
+`docs/architecture/game-schema-migration.md` **escrito** (era citado 3× — CLAUDE.md:83, PENDING, y ahora el comentario en MatchScoutingForm — y no existía). Verificado: typecheck 0, lint 0, 312 tests, build OK. FRC sigue en `FRC_ReefscapeForm` (mismo patrón cuando haga falta; la prioridad FRC es la red).

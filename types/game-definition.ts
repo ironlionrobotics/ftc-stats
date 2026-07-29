@@ -21,6 +21,18 @@ export interface GameDefinition {
     /** Season year per FTC convention (Sept-Aug season → start year). */
     season: number;
     sections: GameSection[];
+    /**
+     * Optional game-specific derivation. Returns the entry fields that are NOT
+     * direct form inputs — values computed from other fields, or constants the
+     * persisted document needs. Merged into the entry AFTER the raw field
+     * values, so it can add or override.
+     *
+     * DECODE derives `autoParked` from `endgameBaseParking` (read by
+     * lib/scouting-aggregation.ts) and pins `autoPoints: 0`. Keeping these on
+     * the definition is exactly what makes a new season a single-file change:
+     * its derivations travel with it instead of living inside a React form.
+     */
+    toEntry?: (values: Record<string, unknown>) => Record<string, unknown>;
 }
 
 export interface GameSection {

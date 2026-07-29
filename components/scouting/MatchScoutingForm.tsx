@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useProgram } from "@/lib/stores/program-store";
 import { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
-import FTC_DecodeForm from "./games/FTC_DecodeForm";
+import GameScoutingForm from "./games/GameScoutingForm";
+import { FTC_DECODE_2025 } from "@/lib/games/ftc-decode-2025";
 import FRC_ReefscapeForm from "./games/FRC_ReefscapeForm";
 import QRExport from "./QRExport";
 import QRScanner from "./QRScanner";
@@ -92,7 +93,10 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
     const programEntries = entries.filter(e => e.program === program);
 
     if (program === "FTC") {
-        FormComponent = <FTC_DecodeForm team={team} entries={programEntries} />;
+        // Declarative engine (DynamicGameForm ← FTC_DECODE_2025). The old
+        // hand-written FTC_DecodeForm stays in the tree as reference until this
+        // path is validated in a live event; see game-schema-migration.md.
+        FormComponent = <GameScoutingForm definition={FTC_DECODE_2025} team={team} entries={programEntries} />;
     } else if (program === "FRC") {
         FormComponent = <FRC_ReefscapeForm team={team} entries={programEntries} onSaveSuccess={loadPending} />;
     }

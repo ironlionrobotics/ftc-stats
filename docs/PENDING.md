@@ -36,9 +36,17 @@ La sesión 18 cambió la dirección del producto. El documento de estrategia es 
 
 **Falta la atribución a la API de FIRST.** La página de la API exige un enlace de retorno en el footer o el "About" de cualquier app que muestre sus datos. Grep sobre `app/` y `components/` no encuentra ninguna referencia a `firstinspires.org`. Desplegado sin ella desde el 25 jul. **Se arregla con una línea.**
 
-### ⏳ Urgente por calendario (~6 semanas)
+### 🟢 Motor de juego declarativo — CONECTADO (29 jul, sesión 19)
 
-**Conectar el motor de juego declarativo.** `lib/games/ftc-decode-2025.ts` + `types/game-definition.ts` + `zod-from-definition.ts` + `DynamicGameForm.tsx` son ~600 líneas ya escritas y testeadas que **nadie importa**. Falta un cambio de import en `MatchScoutingForm.tsx` + QA de paridad. El juego FTC 2026-27 se anuncia en septiembre: con el motor conectado, adaptarse cuesta *escribir un archivo*; sin conectarlo, cuesta *reescribir formularios* en plena pretemporada. Va acompañado de `docs/architecture/game-schema-migration.md`, **citado 3 veces (`CLAUDE.md:83`, aquí en :137 y :229) y nunca escrito**.
+**Cutover FTC hecho.** La rama FTC de `MatchScoutingForm` ya no usa el form hardcodeado; renderiza `GameScoutingForm` con `FTC_DECODE_2025`. Adaptarse al juego 2026-27 (septiembre) es ahora **escribir un archivo de definición + cambiar un import**. Decisión #79.
+
+- La infra estaba a **medio construir**: `DynamicGameForm` era solo el render de inputs; faltaba el wrapper (useForm + mapeo + guardado + lista). Se construyó `GameScoutingForm` (genérico) + `lib/games/build-entry.ts` (mapeo, única fuente de verdad).
+- **Trampa de paridad resuelta:** el form hardcodeado *derivaba* `autoParked` de `endgameBaseParking` y lo persistía, y `scouting-aggregation.ts` lo lee. La definición no podía expresar derivados → se añadió el contrato `toEntry` a `GameDefinition`. DECODE deriva `autoParked` + `autoPoints:0` ahí.
+- **Tests de paridad** (`lib/games/decode-parity.test.ts`, 6 tests): mismas claves de schema, mismos valores en input válido, y `buildEntryGameFields` produce **la entrada idéntica** al form hardcodeado. Bounds de la definición son más estrictos (max por campo vs 999) — mejor, no regresión.
+- **`docs/architecture/game-schema-migration.md` ESCRITO** (era citado 3× y no existía) — runbook de septiembre.
+- Verificado: typecheck 0, lint 0, 312 tests, build OK.
+
+`FTC_DecodeForm.tsx` queda como **referencia**; nadie lo importa. Borrar tras validar el camino declarativo en un evento en vivo. FRC sigue en su form hardcodeado (mismo patrón cuando haga falta).
 
 ### 🧹 Matar (verificado, con evidencia)
 
@@ -190,7 +198,7 @@ Los críticos/altos de esa auditoría (identidad season/eventCode, captura FTC o
 13. ~~**Server actions que lanzan en vez de `{ok:false}`**~~ ✅ HECHO 29 jul (decisión #64, Sonnet + revisión Opus). Los 4 archivos + `CalibrationDashboard.refresh()`.
 14. ~~**`fetchTeam` cachea `null`**~~ ✅ HECHO 29 jul (decisión #64). Ya no escribe `null`: `readThrough` trata falsy como miss, así que era una escritura inútil.
 15. ~~**Pit scouting sin cola offline**~~ ✅ HECHO 29 jul (decisión #66, Sonnet + revisión Opus). Tabla Dexie `pendingPits` (esquema v2, migración probada), `useSavePitScouting` con fallback remote→local, drenado en `OnlineSync`. De paso: el hook era **código muerto** — `ScoutingClient` llamaba `savePitScouting` directo; ya está cableado. **Falta verificación visual con sesión iniciada** (igual que #12).
-16. **Juego 2026-2027** — ✅ renombre HECHO 29 jul (decisión #68): `FTC_DecodeForm` + identificadores de schema/tipos. **Falta** (cuando salga el juego nuevo): cablear `DynamicGameForm` según `docs/architecture/game-schema-migration.md`.
+16. **Juego 2026-2027** — ✅ renombre HECHO 29 jul (decisión #68) + ✅ **motor declarativo CONECTADO** 29 jul (decisión #79, ver sección "🟢 Motor de juego declarativo" arriba). Cuando salga el juego nuevo: escribir `lib/games/ftc-<nombre>-2026.ts` + cambiar un import, según `docs/architecture/game-schema-migration.md`.
 
 ---
 

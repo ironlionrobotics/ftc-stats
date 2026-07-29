@@ -119,4 +119,11 @@ export const FTC_DECODE_2025: GameDefinition = {
             ],
         },
     ],
+    // Derived entry fields the raw inputs don't carry. Mirrors exactly what the
+    // hand-written FTC_DecodeForm.onSubmit set: `autoParked` (consumed by
+    // scouting-aggregation as a categorical) and the `autoPoints` placeholder.
+    toEntry: (v) => ({
+        autoParked: v.endgameBaseParking !== "None",
+        autoPoints: 0,
+    }),
 };
