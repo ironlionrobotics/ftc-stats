@@ -214,3 +214,23 @@ Sesión larga (22 commits, todos pusheados a `feat/oracle-alliance_maker-260210`
 **Mejoras derivadas.** (1) Explicación determinística del "¿por qué este partner?" en Oracle — sin LLM, offline-safe. (2) Reenfoque de la IA: fuera el "AI Analysis" redundante, el chat ahora sintetiza **notas de scouting** (lo único que el motor no puede fusionar) + botón "Notas IA" en Pro Scouting. (3) **Consola superadmin** `/admin` (config runtime en Firestore, secretos solo como estado, raíz de confianza `SUPERADMIN_EMAILS`). (4) Columna **schedule strength**. (5) **σ de playoffs 2.4×** aprendida de 10,800 matches (log-loss −27%, decisión #59). (6) **Selector de eventos** (#60) con 1,213 perfiles históricos.
 
 **Visión.** `docs/VISION-PRIDE.md`: PRIDE como proyecto insignia para premios FTC/FRC — 8 territorios, 3 horizontes, matriz de premios. La base FRC ya existe en el repo (~2-3 semanas a paridad).
+
+---
+
+## Sesión 17 — 29 jul 2026 · Cierre del backlog de análisis + dos despliegues
+
+Sesión larga de ejecución sobre el backlog acumulado. **Producción quedó al día** (dos rollouts autorizados explícitamente por Héctor: uno al inicio con lo de la sesión 16, otro al cierre con 12 commits nuevos).
+
+**Deuda técnica cerrada** (#10-#16 de PENDING): `pro-scouting.ts` (NaN en consistency + join que nunca empataba + un tercer bug en el lookup de `scoreBreakdown`), server actions que fallaban abierto sin firebase-admin, `fetchTeam` cacheando `null`, **ground-truth idempotente** (marcador `ground_truth_runs` + WriteBatch atómico, #63), **dead-letter visible** en la cola offline con export JSON, **pit scouting con cola offline** (tabla Dexie v2, migración probada), renombre `FTC_DecodeForm`.
+
+**Rendimiento (#65).** El diagnóstico que llevaba meses en PENDING era incorrecto: no era dónde se monta `AuthProvider` sino que `Sidebar → InviteGenerator → lib/orgs → lib/firebase` metía el SDK en el chunk de toda página pública. Trazando el grafo de imports estáticos: `/event` de 1271 a 762 KB y Firebase fuera de las 4 rutas públicas. Después `/` bajó a 677 KB al sacar Dexie del critical path (#67).
+
+**Offline en `/event` (#67).** Antes mostraba "Event Not Found" cuando la API no respondía. Verificado end-to-end simulando la API caída.
+
+**Análisis nuevos.** Tracker de consistencia (#61, la dispersión de 30311 es **crecimiento** r²=0.77, no volatilidad; el driver de volatilidad real es teleop, no auto), **página pública `/oracle`** (#69, cifras recomputadas desde la data cruda + diagrama de fiabilidad que muestra el modelo original sobreconfiado junto al corregido), **curvas de crecimiento** (#71, 30311 en percentil 79.2 como rookie = donde el programa mexicano típico llega en su 6ª temporada, con control de sesgo de supervivencia), **ciencia del draft** (#72, 606 eventos: a igualdad de seed, el decil alto de OPR sube la selección de 50% a 94%), **consDiff integrado** (#73).
+
+**Tres cosas documentadas que resultaron falsas.** (1) El `−0.13` de consDiff en la decisión #59 era un **bug de convergencia** del fit — el valor real es −0.696, 5× mayor; corregido el fit y la decisión. (2) `useSavePitScouting` era **código muerto**; un comentario en otro archivo afirmaba lo contrario. (3) El detector de meta defensivo se **descartó tras falsificar su premisa** (#70): la σ por evento ya absorbe la dificultad y todas las brechas son negativas, así que ensancharla habría empeorado la calibración. Power Play fue la temporada **mejor calibrada** de las siete.
+
+**Método.** Probar la premisa antes que la implementación se pagó tres veces. Y dos falsos negativos propios al medir bundles cruzando contra `.next/` local — App Hosting reconstruye en la nube, hay que descargar los chunks reales.
+
+307 tests (era 242 al abrir). Scripts nuevos reutilizables: `oracle-noise-analysis.mjs`, `growth-curves.mjs`, `draft-science.mjs`, `draft-analysis.mjs`.
