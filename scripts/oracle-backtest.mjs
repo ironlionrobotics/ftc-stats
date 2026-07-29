@@ -139,7 +139,9 @@ async function runSeason(season, limit) {
             const ev = queue.shift();
             if (!ev) return;
             try {
-                const d = await gql(`query{ eventByCode(season:${season}, code:"${ev.code}"){ matches { tournamentLevel scores { ... on MatchScores${season} { red { totalPointsNp totalPoints } blue { totalPointsNp totalPoints } } } teams { teamNumber alliance station } } } }`);
+                // 2021 (Freight Frenzy) split scores into Trad/Remote types.
+                const scoreType = season === 2021 ? "MatchScores2021Trad" : `MatchScores${season}`;
+                const d = await gql(`query{ eventByCode(season:${season}, code:"${ev.code}"){ matches { tournamentLevel scores { ... on ${scoreType} { red { totalPointsNp totalPoints } blue { totalPointsNp totalPoints } } } teams { teamNumber alliance station } } } }`);
                 const matches = d.eventByCode?.matches ?? [];
                 const r = analyzeEvent(matches);
                 const row = { season, code: ev.code, name: ev.name, type: ev.type, region: ev.regionCode, ...(r ?? { skipped: true }) };
