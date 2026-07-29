@@ -545,3 +545,17 @@ Hallazgo nuevo que la prosa no tenía: **el diagrama de fiabilidad**. Sobre los 
 Detalle de honestidad en la tabla: cada modelo lleva **su propio conteo de partidos por tramo**, porque corregir la incertidumbre reordena predicciones entre tramos (el 90-100% pasa de 6,241 a 2,400 partidos). Una sola columna de conteo compartida daría a entender que ambos porcentajes describen los mismos partidos — no lo hacen. Se detectó revisando la página en navegador, no en el código.
 
 Enlazada desde el nav principal: una página que nadie encuentra no es transparencia. Server Component sobre datos estáticos ⇒ no agrega JS de cliente.
+
+## #70 · Detector de meta defensivo: hipótesis FALSIFICADA, no se construye (2026-07-29)
+
+PENDING proponía "ensanchar σ automáticamente cuando los residuales huelen a defensa", nacido de que Power Play 2022 fue la temporada menos precisa (72.3% vs ~75.7%). Antes de construirlo se probó la premisa. **No se sostiene, y construirlo habría empeorado el modelo.** Script reproducible: `scripts/oracle-noise-analysis.mjs`.
+
+**Prueba 1 — ¿la σ por evento ya absorbe la dificultad?** Agrupando los eventos de cada temporada por su propia σ ajustada: al subir σ, la precisión baja *y la confianza declarada baja con ella*. La brecha de calibración se mantiene en una banda de ~1 punto (ej. 2024: −1.8 / −2.8 / −3.3). Es decir, el mecanismo que el detector iba a añadir **ya existe**: σ se ajusta por evento y el modelo ya reporta menos confianza donde acierta menos.
+
+**Prueba 2 — ¿queda señal después de normalizar?** La σ cruda está confundida con cuánto se anota en cada juego. Con un índice libre de escala (σ / marcador típico de alianza) la precisión queda **plana** entre cuartiles: 2024 → 74.6 / 77.3 / 74.8 / 76.7; 2025 → 75.4 / 76.6 / 76.2 / 75.7. El "ruido" de un evento no predice nada que el modelo no esté usando ya.
+
+**Y el signo va al revés.** Todas las brechas son negativas: el modelo ya es ligeramente **infra**-confiado. Ensanchar σ lo alejaría más de la calibración, no la acercaría.
+
+**Relectura de Power Play:** su baja precisión no fue un fallo de calibración que el modelo no vio — fue **la temporada mejor calibrada de las siete** (−1.9 pp, la brecha más chica). Perdió precisión, no honestidad. La conclusión estratégica correcta no es "desconfía más del modelo en metas defensivos" sino "en un meta defensivo el marcador explica menos, así que el scouting humano aporta más" — que es la tesis que la app ya sostiene. Se añadió ese matiz a `/oracle`.
+
+Lección de método: el ítem llevaba meses en el backlog como algo obviamente bueno. Dos consultas sobre datos que ya teníamos bastaron para descartarlo. Vale la pena probar la premisa antes que la implementación.

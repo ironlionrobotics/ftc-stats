@@ -22,6 +22,10 @@ export const metadata: Metadata = {
  * so it costs no client JS beyond the layout.
  */
 export default function OracleCalibrationPage() {
+    // Looked up rather than indexed: the seasons array grows every year, and a
+    // positional index would silently point at the wrong game.
+    const powerPlay = C.seasons.find(s => s.season === 2022);
+
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 md:py-14 max-w-5xl">
             {/* ── Hero ──────────────────────────────────────────────────── */}
@@ -162,9 +166,13 @@ export default function OracleCalibrationPage() {
                     <strong className="text-foreground">Cómo leerla.</strong> <em>Brier</em> mide el error de la probabilidad
                     (0 es perfecto; 0.25 equivale a decir siempre 50/50). <em>Calibración</em> es la confianza declarada menos
                     la precisión lograda: negativo significa que el modelo fue algo más pesimista de lo necesario.
-                    {" "}<strong className="text-foreground">Power Play (2022)</strong> es el punto bajo de la serie, y es
+                    {" "}<strong className="text-foreground">Power Play (2022)</strong> es el punto bajo en precisión, y es
                     explicable: fue una temporada de meta defensivo, y la defensa no aparece en una métrica ofensiva.
-                    Es justo el hueco que el scouting humano llena.
+                    Es justo el hueco que el scouting humano llena.{powerPlay && <>
+                        {" "}Vale la pena notar que <strong className="text-foreground">esa misma temporada tuvo la
+                        calibración más ajustada de las siete</strong> ({powerPlay.gap} pp): el modelo acertó menos,
+                        pero no se sobrevendió. Perdió precisión, no honestidad.
+                    </>}
                 </p>
             </Section>
 

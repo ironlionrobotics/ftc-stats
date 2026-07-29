@@ -19,7 +19,7 @@ Verificado en producción: `theme-color #08090c` y `--primary #c4f135` (Nightshi
 ## 🔭 Siguientes análisis/features propuestos (no arrancados)
 
 Del menú discutido en sesión 16 (los 3 primeros ya se hicieron: schedule strength, modelo de eliminatorias, selector de eventos):
-- **Detector de meta defensivo** — ensanchar σ automáticamente cuando los residuales huelen a defensa (lección PowerPlay 2022).
+- ~~**Detector de meta defensivo**~~ ❌ DESCARTADO 29 jul tras probar la premisa (decisión #70, `scripts/oracle-noise-analysis.mjs`). La σ por evento **ya** absorbe la dificultad: al subir σ, precisión y confianza bajan juntas y la brecha se mantiene. Normalizado por escala, el ruido no predice nada. Además todas las brechas son negativas (infra-confianza), así que ensanchar σ empeoraría la calibración. Power Play fue la temporada **mejor calibrada** de las siete.
 - **Curvas de crecimiento** rookie→veterano por región (7 temporadas de datos ya disponibles).
 - **Ciencia del draft** — priors históricos de selección de alianzas para el asesor de invitación.
 - ~~**Página pública de calibración**~~ ✅ HECHO 29 jul (decisión #69). `/oracle`, enlazada en el nav. Cifras recomputadas desde la data cruda, no transcritas. Incluye el diagrama de fiabilidad con la curva del modelo original (sobreconfiado) junto a la corregida.
