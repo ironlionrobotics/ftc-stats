@@ -71,7 +71,15 @@ Inglés por defecto + `es`, `next-intl` **cookie-based sin routing de URL** (dec
 - **Patrón de capa de análisis probado en `draft-odds.ts`** (el caso que la memoria marcaba): `basis` pasó de frase a `DraftBasis` discriminado (**clave + params**); consumidor `ConsistencyTracker` lo traduce con `useTranslations`. Test asserta estructura, no cadena.
 - Verificado: typecheck 0, lint 0, 313 tests, build OK.
 
-**Barrido pendiente (delegable a Sonnet, mismo patrón):** 12 módulos de `lib/` con prosa/mensajes en español — prioridad `consistency.ts`, `schemas/scouting.ts` (Zod), `event-selector.ts`; luego `projections`, `alliance-utils`, `briefings/briefing-data`, `reports/growth-curves`, `reports/team-30311-decode`, `games/ftc-decode-2025` (labels), `constants`, `orgs`, `invite-redemption`. Más el grueso de strings de UI en componentes (extracción incremental). **Regla activa: ningún string nuevo hardcodeado.**
+**Barrido de capa de análisis — HECHO 8 de los módulos de prosa** (sesión 19, decisión #80). draft-odds (yo) + 7 vía 2 agentes Sonnet en paralelo: `consistency`, `event-selector`, `projections`, `alliance-utils`, `briefings/briefing-data`, `reports/growth-curves`, `reports/team-30311-decode`. Namespaces `Consistency/EventSelector/GrowthCurves/TeamReport/Projections/AllianceUtils/Briefing` en los catálogos (paridad en/es 118 claves). 336 tests, build OK.
+
+**Pendiente i18n:**
+- **`constants.ts`: nada** — los "strings en español" son nombres propios de eventos ("Regional Cuautitlán", "México"), no se traducen.
+- **i18n de mensajes de error/validación (NO mecánico, decisión de patrón pendiente):** `schemas/scouting.ts` (mensajes de Zod, que se evalúan a nivel de módulo → hay que pasarlos a claves y traducir en el render de `errors.x.message`), `invite-redemption.ts` + `app/actions/redeem-invite.ts` (varios strings de error de retorno), `lib/orgs.ts` (lanza `Error` con mensaje ES → pasar a código y traducir en el catch de OnboardingModal). Es una categoría coherente: definir el patrón de **códigos de error** una vez, luego aplicarlo. Toca flujos de auth/onboarding — hacer con cuidado, no barrido.
+- **`games/ftc-decode-2025.ts` (labels-como-data):** entrelazado con el motor declarativo (los labels viven en la definición y `DynamicGameForm` los renderiza directo). Decidir si `DynamicGameForm` traduce labels vía `useTranslations` o si la definición lleva claves. Patrón nuevo.
+- **Grueso de strings de UI en componentes** (nav, botones, JSX estático): extracción incremental al tocar cada archivo.
+
+**Regla activa: ningún string nuevo hardcodeado.**
 
 El andamiaje va **antes** de construir "Hoy" y las vistas de red (ya está) para no escribir esos strings dos veces.
 
