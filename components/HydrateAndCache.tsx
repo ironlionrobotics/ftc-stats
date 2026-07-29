@@ -1,8 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { cacheGet, cacheSet } from "@/lib/client-cache";
 import { CloudOff } from "lucide-react";
+
+// lib/client-cache pulls Dexie (~170 KB). Both components below only touch it
+// from inside an effect — CacheWriter renders nothing at all, and
+// OfflineFallback shows a loading line first — so importing it dynamically
+// keeps IndexedDB off the first-paint critical path of every page that caches.
+// Measured: /event went 762 -> 939 KB with a static import, and back down with
+// this one.
+const clientCache = () => import("@/lib/client-cache");
 
 /**
  * Two thin Client Components that bridge Server-rendered data with the
@@ -40,7 +47,7 @@ interface CacheWriterProps<T> {
  */
 export function CacheWriter<T>({ cacheKey, payload, ttlMs = 24 * 60 * 60 * 1000 }: CacheWriterProps<T>) {
     useEffect(() => {
-        cacheSet(cacheKey, payload, ttlMs);
+        clientCache().then(({ cacheSet }) => cacheSet(cacheKey, payload, ttlMs));
     }, [cacheKey, payload, ttlMs]);
     return null;
 }
@@ -72,6 +79,7 @@ export function OfflineFallback({ cacheKey, render, rendererMeta }: OfflineFallb
     useEffect(() => {
         let cancelled = false;
         (async () => {
+            const { cacheGet } = await clientCache();
             const cached = await cacheGet<unknown>(cacheKey);
             if (cancelled) return;
             if (!cached) {
@@ -123,9 +131,19 @@ function OfflineBanner({ cachedAt }: { cachedAt: number }) {
 // Add a case when a new page needs offline fallback.
 // ---------------------------------------------------------------------------
 
-import StatsTable from "@/components/StatsTable";
-import EventList from "@/components/EventList";
+import dynamic from "next/dynamic";
 import type { AggregatedTeamStats, FTCEvent } from "@/types/scouting";
+import type { CachedEventPayload } from "@/components/event/CachedEventView";
+
+// EVERY renderer is loaded lazily, including the home one. This module is
+// imported by both the home page and the event page, so a static import here
+// puts one page's renderer into the OTHER page's bundle — measured at +199 KB
+// on /event when StatsTable/EventList were static. Each page's happy path
+// imports what it actually renders; these are only for the offline fallback,
+// which by definition isn't the common case (decisions.md #65).
+const CachedEventView = dynamic(() => import("@/components/event/CachedEventView"));
+const StatsTable = dynamic(() => import("@/components/StatsTable"));
+const EventList = dynamic(() => import("@/components/EventList"));
 
 interface HomeStatsPayload {
     teamStats: AggregatedTeamStats[];
@@ -156,8 +174,6 @@ function RenderCachedPayload({
             );
         }
         case "event-stats":
-            // Placeholder — caller currently doesn't use this kind. Add the
-            // renderer when /event/[code] gets offline fallback wiring.
-            return null;
+            return <CachedEventView payload={payload as CachedEventPayload} />;
     }
 }

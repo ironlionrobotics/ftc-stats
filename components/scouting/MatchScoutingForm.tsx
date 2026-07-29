@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useProgram } from "@/lib/stores/program-store";
 import { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
-import FTC_IntoTheDeepForm from "./games/FTC_IntoTheDeepForm";
+import FTC_DecodeForm from "./games/FTC_DecodeForm";
 import FRC_ReefscapeForm from "./games/FRC_ReefscapeForm";
 import QRExport from "./QRExport";
 import QRScanner from "./QRScanner";
@@ -92,7 +92,7 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
     const programEntries = entries.filter(e => e.program === program);
 
     if (program === "FTC") {
-        FormComponent = <FTC_IntoTheDeepForm team={team} entries={programEntries} />;
+        FormComponent = <FTC_DecodeForm team={team} entries={programEntries} />;
     } else if (program === "FRC") {
         FormComponent = <FRC_ReefscapeForm team={team} entries={programEntries} onSaveSuccess={loadPending} />;
     }

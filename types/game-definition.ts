@@ -4,7 +4,7 @@
  * a Zod schema automatically, render via DynamicGameForm.
  *
  * Status: infrastructure ready, NOT wired to production forms. The current
- * `FTC_IntoTheDeepForm` and `FRC_ReefscapeForm` continue to be used until a
+ * `FTC_DecodeForm` and `FRC_ReefscapeForm` continue to be used until a
  * post-Premier QA pass validates the dynamic renderer produces identical
  * output. Switching is a one-import change in `MatchScoutingForm` once
  * ready. See `lib/games/ftc-decode-2025.ts` for a reference definition.

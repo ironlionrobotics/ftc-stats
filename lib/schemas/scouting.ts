@@ -23,10 +23,10 @@ const likert = z.coerce.number().int().min(1, "1-5").max(5, "1-5");
 const counter = z.coerce.number().int().min(0).max(999);
 
 // ---------------------------------------------------------------------------
-// FTC IntoTheDeep — match scouting form
+// FTC DECODE — match scouting form
 // ---------------------------------------------------------------------------
 
-export const ftcIntoTheDeepFormSchema = z.object({
+export const ftcDecodeFormSchema = z.object({
     matchNumber,
     // Auto
     autoLaunchLine: z.boolean().default(false),
@@ -49,7 +49,7 @@ export const ftcIntoTheDeepFormSchema = z.object({
     notes: z.string().max(2000, "Máx 2000 caracteres").default(""),
 });
 
-export type FTCIntoTheDeepFormValues = z.infer<typeof ftcIntoTheDeepFormSchema>;
+export type FTCDecodeFormValues = z.infer<typeof ftcDecodeFormSchema>;
 
 // ---------------------------------------------------------------------------
 // FRC Reefscape — match scouting form

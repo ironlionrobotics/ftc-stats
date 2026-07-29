@@ -4,7 +4,7 @@ import type { GameDefinition, GameField } from "@/types/game-definition";
 /**
  * Build a Zod object schema directly from a GameDefinition. Each field
  * becomes a column in the resulting object; values validate at form-submit
- * time the same way the hand-written ftcIntoTheDeepFormSchema does today.
+ * time the same way the hand-written ftcDecodeFormSchema does today.
  *
  * Always coerces numerics with `z.coerce.number()` because HTML inputs
  * return strings — same trick used in the existing schemas.

@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID, scoutIdFromUser, scoutNameFromUser } from "@/lib/orgs";
 import { useSaveMatchScouting, type MatchScoutingSaveResult } from "@/lib/hooks/use-scouting-mutations";
-import { ftcIntoTheDeepFormSchema, type FTCIntoTheDeepFormValues } from "@/lib/schemas/scouting";
+import { ftcDecodeFormSchema, type FTCDecodeFormValues } from "@/lib/schemas/scouting";
 import { Card } from "@/components/ui/Card";
 import { Save, Plus, User, Trophy, Minus, ClipboardList, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
@@ -20,7 +20,7 @@ interface MatchScoutingFormProps {
     entries: MatchScouting[];
 }
 
-const DEFAULTS: FTCIntoTheDeepFormValues = {
+const DEFAULTS: FTCDecodeFormValues = {
     matchNumber: 1,
     autoLaunchLine: false,
     autoPurpleArtifacts: 0,
@@ -48,7 +48,7 @@ const DEFAULTS: FTCIntoTheDeepFormValues = {
  * uncontrolled and only triggers re-renders for the specific Controllers
  * that subscribe — important on slower tablets in the venue.
  */
-export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingFormProps) {
+export default function FTC_DecodeForm({ team, entries }: MatchScoutingFormProps) {
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const [isAdding, setIsAdding] = useState(false);
@@ -60,12 +60,12 @@ export default function FTC_IntoTheDeepForm({ team, entries }: MatchScoutingForm
         handleSubmit,
         formState: { errors, isSubmitting },
         reset,
-    } = useForm<FTCIntoTheDeepFormValues>({
-        resolver: zodResolver(ftcIntoTheDeepFormSchema) as Resolver<FTCIntoTheDeepFormValues>,
+    } = useForm<FTCDecodeFormValues>({
+        resolver: zodResolver(ftcDecodeFormSchema) as Resolver<FTCDecodeFormValues>,
         defaultValues: DEFAULTS,
     });
 
-    const onSubmit = async (values: FTCIntoTheDeepFormValues) => {
+    const onSubmit = async (values: FTCDecodeFormValues) => {
         if (!user) {
             toast.error("Debes iniciar sesión");
             return;
@@ -461,8 +461,8 @@ function Counter({
     label,
     color = "primary",
 }: {
-    control: Control<FTCIntoTheDeepFormValues>;
-    name: keyof FTCIntoTheDeepFormValues;
+    control: Control<FTCDecodeFormValues>;
+    name: keyof FTCDecodeFormValues;
     label: string;
     color?: "primary" | "purple" | "green";
 }) {
@@ -502,8 +502,8 @@ function BooleanCheckbox({
     name,
     label,
 }: {
-    control: Control<FTCIntoTheDeepFormValues>;
-    name: keyof FTCIntoTheDeepFormValues;
+    control: Control<FTCDecodeFormValues>;
+    name: keyof FTCDecodeFormValues;
     label: string;
 }) {
     const { field } = useController({ control, name });

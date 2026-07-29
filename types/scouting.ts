@@ -239,7 +239,7 @@ export function scoutNameOf(entry: Pick<BaseMatchScouting, "scoutName" | "scoute
 // but Super-scouting ("super" mode) entries leave them undefined so they don't
 // pollute the federated numeric consensus. The aggregator already skips
 // undefined values per field.
-export interface FTCIntoTheDeepData {
+export interface FTCDecodeData {
     // Auto
     autoParked?: boolean;
     autoLaunchLine?: boolean;
@@ -269,12 +269,12 @@ export interface FTCIntoTheDeepData {
     wouldPick?: boolean;    // "would your team pick this team in alliance selection?"
 }
 
-export interface FTCMatchScouting extends BaseMatchScouting, FTCIntoTheDeepData {
+export interface FTCMatchScouting extends BaseMatchScouting, FTCDecodeData {
     program: 'FTC';
 }
 
 // --- FRC: Reefscape (2025) ---
-// Same shape contract as FTC IntoTheDeep: all numeric/categorical fields are
+// Same shape contract as FTC DECODE: all numeric/categorical fields are
 // optional so super-scouting entries can omit them safely.
 export interface FRCReefscapeData {
     // Auto

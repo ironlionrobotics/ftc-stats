@@ -3,6 +3,7 @@ import { getCurrentSeason, CHAMPIONSHIP_EVENTS_2025, PREMIER_EVENTS_2025 } from 
 import Link from "next/link";
 import EventViewManager from "@/components/event/EventViewManager";
 import EventStats from "@/components/event/EventStats";
+import { CacheWriter, OfflineFallback } from "@/components/HydrateAndCache";
 import { cookies } from "next/headers";
 
 interface EventPageProps {
@@ -36,11 +37,16 @@ export default async function EventPage(props: EventPageProps) {
     let event = allEvents.find(
         (e) => e.code.toLowerCase() === (eventCode || "").toLowerCase()
     );
+    // Distinguishes "the FIRST API is unreachable" from "that code doesn't
+    // exist": fetchEvents returns [] on failure, so if EVERY season we tried
+    // came back empty the API is down, not the code wrong.
+    let sawAnyEvents = allEvents.length > 0;
 
     if (!event) {
         for (const candidate of candidateSeasons) {
             if (candidate === primarySeason) continue;
             const events = await fetchEvents(candidate);
+            if (events.length > 0) sawAnyEvents = true;
             const found = events.find(
                 (e) => e.code.toLowerCase() === (eventCode || "").toLowerCase()
             );
@@ -51,6 +57,23 @@ export default async function EventPage(props: EventPageProps) {
                 break;
             }
         }
+    }
+
+    // Keyed by event code alone, not code+season: offline we don't know which
+    // season the visitor last viewed, and "show me what I had for FPEMX" is
+    // the behavior they expect. The season travels inside the payload.
+    const cacheKey = `event:${(eventCode || "").toUpperCase()}`;
+
+    // API unreachable — fall back to whatever this device cached last time.
+    // Deliberately NOT triggered when the event was found but has no matches
+    // yet: that is a legitimate state for an upcoming event, and serving stale
+    // cache there would be worse than showing the empty schedule.
+    if (!event && !sawAnyEvents) {
+        return (
+            <div className="container mx-auto px-4 md:px-8 py-8 md:py-12">
+                <OfflineFallback cacheKey={cacheKey} render="event-stats" />
+            </div>
+        );
     }
 
     if (!event) {
@@ -131,6 +154,21 @@ export default async function EventPage(props: EventPageProps) {
                     </div>
                 );
             })()}
+
+            {/* Persist this render to IndexedDB so the same event is browsable
+                offline later — the venue-wifi case the whole offline contract
+                exists for. Side-effect only; renders nothing. */}
+            <CacheWriter
+                cacheKey={cacheKey}
+                payload={{
+                    event: {
+                        name: event.name, code: event.code, venue: event.venue,
+                        city: event.city, stateProv: event.stateProv,
+                    },
+                    matches, rankings, advancement, awards, advancementPoints,
+                    schedule, alliances, season,
+                }}
+            />
 
             <EventStats matches={matches} rankings={rankings} />
 

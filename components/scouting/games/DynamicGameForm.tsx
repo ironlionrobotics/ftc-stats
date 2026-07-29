@@ -27,7 +27,7 @@ interface DynamicGameFormProps {
  * fields stacked inside in the order declared.
  *
  * Layout is intentionally simple (1 column on mobile, 2 columns on lg). The
- * hand-written FTC_IntoTheDeepForm uses a custom 3-column layout — that's
+ * hand-written FTC_DecodeForm uses a custom 3-column layout — that's
  * the trade-off of going generic. If a season really needs a custom layout,
  * write a one-off component for that season (still saves work on every other
  * year). For the common case, generic is fine.

@@ -93,10 +93,7 @@ Actualizar `lib/constants.ts` con los `eventCode` reales del:
    - Probar offline en venue-like conditions (DevTools Offline + recargar)
    - Capturar issues en este mismo documento bajo "🟡 Encontrado en QA"
 
-2. **Wire `HydrateAndCache` en `/event/[code]` y `/analytics`**
-   - Hoy solo el home tiene el patrón offline-fallback
-   - El renderer `RenderCachedPayload` tiene un `case "event-stats"` placeholder listo
-   - ~30 min cada uno
+2. **Wire `HydrateAndCache`** — ✅ `/event/[code]` HECHO 29 jul (decisión #67), verificado end-to-end en navegador. Antes mostraba "Event Not Found" cuando la API no respondía. **Falta `/analytics`** (menos crítico: sus datos ya son secundarios y la pestaña Data Lab es exploratoria).
 
 3. **Splash screens iOS reales** (`scripts/generate-pwa-assets.ts` ampliar)
    - `pwa-asset-generator` o agregar al script las 20+ resoluciones iOS device-specific
@@ -135,7 +132,7 @@ Los críticos/altos de esa auditoría (identidad season/eventCode, captura FTC o
 13. ~~**Server actions que lanzan en vez de `{ok:false}`**~~ ✅ HECHO 29 jul (decisión #64, Sonnet + revisión Opus). Los 4 archivos + `CalibrationDashboard.refresh()`.
 14. ~~**`fetchTeam` cachea `null`**~~ ✅ HECHO 29 jul (decisión #64). Ya no escribe `null`: `readThrough` trata falsy como miss, así que era una escritura inútil.
 15. ~~**Pit scouting sin cola offline**~~ ✅ HECHO 29 jul (decisión #66, Sonnet + revisión Opus). Tabla Dexie `pendingPits` (esquema v2, migración probada), `useSavePitScouting` con fallback remote→local, drenado en `OnlineSync`. De paso: el hook era **código muerto** — `ScoutingClient` llamaba `savePitScouting` directo; ya está cableado. **Falta verificación visual con sesión iniciada** (igual que #12).
-16. **Juego 2026-2027** — el form FTC actual (`FTC_IntoTheDeepForm.tsx`) ya captura campos DECODE (fue reutilizado; solo el nombre del archivo es engañoso — renombrarlo a `FTC_DecodeForm`). Para el juego nuevo: cablear `DynamicGameForm` según `docs/architecture/game-schema-migration.md`.
+16. **Juego 2026-2027** — ✅ renombre HECHO 29 jul (decisión #68): `FTC_DecodeForm` + identificadores de schema/tipos. **Falta** (cuando salga el juego nuevo): cablear `DynamicGameForm` según `docs/architecture/game-schema-migration.md`.
 
 ---
 

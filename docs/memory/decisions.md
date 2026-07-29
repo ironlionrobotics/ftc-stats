@@ -517,3 +517,19 @@ Detalle de diseño que simplifica el pit respecto al match: su doc de Firestore 
 Migración Dexie v1→v2: `pendingMatches` NO se redeclara — una versión sólo describe el delta, y una tabla omitida conserva esquema y filas. Cubierto por un test que abre una conexión Dexie v1 cruda, inserta una fila, y verifica que sobrevive al abrir el esquema real v1+v2. Perder scouting encolado en una migración sería peor que el bug que se arregla. 13 tests nuevos entre ambos items (290 total).
 
 **Pendiente de verificación**: el pill y el panel sólo renderizan con sesión iniciada, así que no se pudieron ver en navegador — falta revisión visual en dev con usuario autenticado (incluye confirmar que no chocan con la burbuja del AssistantChat, que ocupa la misma esquina).
+
+## #67 · Fallback offline en /event + renderers de caché todos lazy (2026-07-29)
+
+`/event/[code]` no tenía el patrón offline: si la API de FIRST no respondía, `fetchEvents` devolvía `[]`, `event` quedaba `undefined` y la página mostraba **"Event Not Found"** — el peor mensaje posible, porque afirma que el evento no existe cuando lo que falla es la red. Ahora escribe su render a Dexie (`CacheWriter`) y, cuando la API no responde, sirve lo cacheado con banner de "datos cacheados".
+
+Dos decisiones de diseño:
+- **Clave por código de evento, no por código+temporada** (`event:FPEMX`). Offline no sabemos qué temporada vio el usuario la última vez; "muéstrame lo que tenía de FPEMX" es lo que espera. La temporada viaja dentro del payload.
+- **El fallback sólo se dispara si NINGUNA temporada devolvió eventos**, señal inequívoca de API caída. Si el evento se encontró pero no tiene partidos, se renderiza normal: eso es legítimo para un evento futuro, y servir caché ahí sería peor que mostrar el calendario vacío.
+
+Hallazgo de bundle al medir: `HydrateAndCache` lo importan **home y event**, así que un import estático de un renderer mete el de una página en el bundle de la OTRA — medido **+199 KB en /event** por `StatsTable`/`EventList`. Ahora TODOS los renderers son `next/dynamic`. Además `lib/client-cache` (Dexie, ~170 KB) se importa dinámicamente dentro de los effects: `CacheWriter` no renderiza nada y `OfflineFallback` muestra primero un estado de carga, así que IndexedDB no tiene por qué bloquear el primer pintado. Neto: **`/` 776 → 677 KB** (mejora de 99 KB) y `/event` 762 → 845 KB (costo real de la funcionalidad).
+
+Verificado end-to-end en navegador: se puebla la caché con servidor sano, se reinicia con credenciales FTC y Redis inválidas → el servidor renderiza el fallback (no "Event Not Found") y el cliente pinta el evento completo desde IndexedDB con el banner. **Nota de método**: hubo que desregistrar el service worker para probarlo — Serwist sirve el HTML cacheado y es la PRIMERA línea de defensa; este fallback es la segunda (servidor vivo pero sin datos de la API).
+
+## #68 · `FTC_IntoTheDeepForm` → `FTC_DecodeForm` (2026-07-29)
+
+El form capturaba campos DECODE desde hace temporadas pero conservaba el nombre del juego anterior. Renombrado el archivo y, para no dejarlo a medias, también los identificadores: `ftcIntoTheDeepFormSchema` → `ftcDecodeFormSchema`, `FTCIntoTheDeepFormValues` → `FTCDecodeFormValues`, `FTCIntoTheDeepData` → `FTCDecodeData`. Renombre puro verificado por typecheck; las referencias a IntoTheDeep que quedan son históricas y correctas (formas de `scoreBreakdown` por temporada en `analytics.ts`).

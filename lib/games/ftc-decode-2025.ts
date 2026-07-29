@@ -3,7 +3,7 @@ import type { GameDefinition } from "@/types/game-definition";
 /**
  * FTC DECODE 2025-2026 as a declarative game definition.
  *
- * Mirrors the field set the hand-written FTC_IntoTheDeepForm captures today.
+ * Mirrors the field set the hand-written FTC_DecodeForm captures today.
  * NOT yet wired to production (the hand-rolled form keeps shipping until a
  * post-Premier QA pass validates the DynamicGameForm renderer produces
  * identical entries). When the 2026-2027 game launches in September,

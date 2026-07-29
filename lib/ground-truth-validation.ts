@@ -58,7 +58,7 @@ function clamp01(x: number): number {
 // ---------------------------------------------------------------------------
 
 /**
- * Reconstructs the FTC IntoTheDeep point contribution of a single team from
+ * Reconstructs the FTC DECODE point contribution of a single team from
  * the federated consensus over scout observations. Uses the official scoring
  * formula at a coarse level — the components we capture in scouting today
  * cover the bulk of the score but not RP-only bonuses (which don't add to the
