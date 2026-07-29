@@ -5,16 +5,14 @@
 
 ---
 
-## 🚨 ACCIÓN INMEDIATA — producción desactualizada
+## ✅ Producción al día (desplegado 2026-07-28)
 
-**23 commits pusheados a `origin/feat/oracle-alliance_maker-260210` SIN desplegar** (Héctor pidió commit+push sin rollout el 2026-07-28). Producción sirve la versión de la sesión 15.
+Los 24 commits de la sesión 16 están **en vivo** en https://ftc-stats--ironlion-scouting.us-central1.hosted.app.
+Reglas de Firestore desplegadas (bloque `app_config`) + rollout de App Hosting completo.
 
-Para desplegar cuando Héctor lo autorice:
-1. `firebase deploy --only apphosting --project ironlion-scouting`
-2. `firebase deploy --only firestore:rules` ← **necesario**: bloque nuevo de `app_config` (consola superadmin)
-3. Verificar `SUPERADMIN_EMAILS` en `apphosting.yaml` (ya cableado) y agregarlo a `.env.local` para dev.
+Verificado en producción: `theme-color #08090c` y `--primary #c4f135` (Nightshift), utilidad `live-scanline`, script anti-FOUC, reporte de temporada 30311 (Inspire "torneo debut" + Reach Award), tab "Selector de eventos" en `/analytics`, y `/admin` `/strategy` `/team/30311` respondiendo 200.
 
-Lo que producción NO tiene aún: rediseño Nightshift (dark-first), reporte de temporada 30311, consola `/admin`, selector de eventos, σ de playoffs 2.4×, columna schedule strength, explicación de partners, reenfoque de IA a notas.
+**Pendiente de acción del usuario**: agregar `SUPERADMIN_EMAILS=hector.hturrubiates@gmail.com` a `.env.local` para poder abrir `/admin` en dev (en producción ya va por `apphosting.yaml`).
 
 ---
 
