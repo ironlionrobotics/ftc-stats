@@ -270,3 +270,37 @@ Dos suposiciones nuestras cayeron: **sí existe producto de pago en FTC** (FTC T
 ### Método
 
 Los tres agentes corrieron **solo-lectura y en paralelo**, con instrucción explícita de no ejecutar ningún git que cambiara estado — la lección de la sesión 17 se aplicó desde el arranque. Los hechos con consecuencia (la cláusula de la API, los datos FRC falsos, las reglas de Firestore, la falta de atribución) se verificaron de primera mano antes de escribirlos, no se tomaron del reporte del agente.
+
+## Sesión 19 — 29 jul 2026 · Los tres bloqueantes + el barrido i18n con Sonnet + Trading Card
+
+Sesión de ejecución sobre el plan de la sesión 18. Cinco commits en `feat/oracle-alliance_maker-260210`, todos verificados (typecheck 0, lint 0, tests, build de producción). **Nada desplegado** — política de no-deploy sin OK de Héctor.
+
+### 1. Gate de lectura de Firestore — Fase 1 (`6acd300`, decisión #78)
+
+El primer bloqueante de la apertura. `match_scouting` y `pit_scouting` tenían `allow read: if isAuthed()` → cualquier autenticado leía el scouting de toda org, **incluidas las notas privadas de pit** (que comparten doc con el `publicSummary`, y las reglas no enmascaran campos). Se resolvió con **lockdown a org propia**: la regla exige `resource.data.orgId == myOrgId()` y cada query añade `where("orgId","==", miOrg)`.
+
+El hallazgo que forzó el diseño: **las reglas de Firestore no son filtros** — una query de lista se rechaza entera si algún doc no pasa, así que no cabe "lo mío + lo objetivo de otros" en una query cuando la regla ramifica sobre un campo por-doc. Por eso se partió en Fase 1 (lockdown, ahora) y **Fase 2** (federación selectiva: marcador de participación, split pit público/privado, super scouting en colección aparte — con la primera invitación, cuando haya 2 orgs para probarla). Guarda `resource == null` (para el existence-probe de create y el fallback de `getPitScouting`) + rama legacy para docs pre-1.4. Requiere `firebase deploy --only firestore:rules,firestore:indexes` + test dev cross-org antes de aplicar.
+
+### 2. Motor de juego declarativo — cutover FTC (`49f4a79`, decisión #79)
+
+El plan registrado ("cambiar un import de `FTC_DecodeForm` a `DynamicGameForm`") **era imposible**: `DynamicGameForm` es solo el render de inputs; faltaba el wrapper (useForm + mapeo + guardado + lista). Se construyó `GameScoutingForm` + `lib/games/build-entry.ts`. La trampa de paridad: el form hardcodeado *derivaba* `autoParked` de `endgameBaseParking` y lo persistía, y la agregación lo lee → se añadió el contrato **`toEntry`** a `GameDefinition`. Tests de paridad prueban que `buildEntryGameFields` produce la entrada **idéntica** al form viejo. `docs/architecture/game-schema-migration.md` **escrito** (citado 3×, nunca existía). Cutover en vivo porque la temporada DECODE ya terminó (sin scouts que interrumpir). Septiembre 2026 = escribir un archivo de definición.
+
+### 3–4. i18n: andamiaje + barrido de 8 módulos (`fccdd1b` + `cfe93c6`, decisión #80)
+
+`next-intl` **cookie-based, sin routing de URL** (se descartó el prefijo `/en /es` por superficie/riesgo). Andamiaje en `i18n/`, plugin en `next.config`, provider + `<html lang>`, `LocaleSwitcher` en el sidebar. El **patrón de capa de análisis** (claves+params, no prosa) probado en `draft-odds.ts` (`basis` → `DraftBasis` discriminado). Luego **2 agentes Sonnet en paralelo** barrieron 7 módulos más (consistency, event-selector, projections, alliance-utils, briefings/briefing-data, reports/growth-curves, reports/team-30311-decode).
+
+**Método de delegación:** conjuntos de archivos **disjuntos** por agente (sin consumidor compartido), y prohibición de tocar `messages/*.json` — devolvían el JSON del namespace, yo lo fusioné con un script node (paridad en/es verificada). Así, cero colisiones en el árbol compartido. Verifiqué de forma autoritativa con el código de ambos + mi catálogo juntos (build real resuelve mensajes). Los casos **no mecánicos** (Zod de `schemas/scouting`, labels-como-data de `games/ftc-decode-2025`) se reservaron para el modelo principal — patrón nuevo, no barrido. `constants` no tiene nada (nombres propios de eventos).
+
+### 5. Benchmark WikiScout + Trading Card V1 (`e80a357`, decisión #81)
+
+Héctor mandó 11 capturas de **WikiScout** (competidor directo, logueado como 30311 en el mismo México Premier Event). Hallazgo estratégico: su "Trading Card" **es** el autorreporte federado (#76) ya en producción, **pero sin ancla de ground-truth** (cheap talk; sus stats salen vacías sin captura manual). Valida la dirección y afila el foso.
+
+Se construyó **Trading Card V1** en `/card`: editor de autodescripción del propio equipo (capacidades, rangos de puntos, descripciones, foto por URL) → colección `team_profiles` (era stub de reglas sin usar; **pública, write solo a tu equipo**, distinta de pit que es privado por-org). El diferenciador ya presente: la carta muestra los rangos autorreportados **junto a** rank/récord/puntos **medidos** de la FIRST API. i18n desde el inicio. Fase 2: vista pública de otras cartas + reconciliación formal contra ground-truth + OPR/SoS medidos + subida real de foto.
+
+Otras ideas del benchmark anotadas en PENDING (no arrancadas): home "Hoy" + des-hardcodear 30311; rankings tri-columna + tag "UNLUCKY"; scouts nombrados bajo la org; Custom Questions.
+
+### Pendientes al cierre
+
+- **Acción de usuario:** deploy de reglas+índices de Firestore + test cross-org; validar el camino declarativo del motor en un evento en vivo (luego borrar `FTC_DecodeForm`).
+- **i18n restante:** mensajes de error/validación (Zod de scouting, invite-redemption, orgs) como categoría de patrón nuevo; labels del motor de juego; grueso de strings de UI (incremental). Regla activa: ningún string nuevo hardcodeado.
+- **Trading Card Fase 2** y las demás ideas WikiScout.
