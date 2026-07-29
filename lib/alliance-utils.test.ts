@@ -6,7 +6,7 @@ import {
     updateBracket,
     runMonteCarloSimulation,
 } from "./alliance-utils";
-import { winProbabilityFromNormalModel } from "./win-probability";
+import { playoffWinProbability } from "./win-probability";
 import type { TeamEvolution } from "@/app/actions/analytics";
 import type { Alliance } from "@/types/oracle";
 
@@ -152,11 +152,13 @@ describe("updateBracket — unified win probability", () => {
         const a2 = alliance(2, 90, 20);
         const bracket = updateBracket(initializeBracket(2), [a1, a2]);
 
-        const expected = winProbabilityFromNormalModel(120, 90, combineSigmas([20, 20]));
+        // Playoff context uses elimination-calibrated noise (decisions.md #59):
+        // σ_diff inflated by PLAYOFF_SIGMA_INFLATION, learned from 10,800 real
+        // playoff matches. Φ(30/(28.28·2.4)) ≈ 0.671 — deliberately humbler
+        // than the quals-derived 0.856 (playoffs are noisier than quals).
+        const expected = playoffWinProbability(120, 90, combineSigmas([20, 20]));
         expect(bracket[0].winProbabilityRed).toBeCloseTo(expected, 10);
-        // Φ(30/28.28) ≈ 0.856 — the old Elo-80 formula gave
-        // 1/(1+10^(−30/80)) ≈ 0.703 for the same matchup.
-        expect(bracket[0].winProbabilityRed).toBeCloseTo(0.8556, 3);
+        expect(bracket[0].winProbabilityRed).toBeCloseTo(0.6707, 3);
     });
 
     it("favors the higher-OPR alliance more when both are consistent", () => {
@@ -177,8 +179,10 @@ describe("runMonteCarloSimulation — agrees with the analytic model", () => {
         // buys: bracket numbers and simulator numbers describe ONE model).
         const a1 = alliance(1, 120, 20);
         const a2 = alliance(2, 90, 20);
-        const p = winProbabilityFromNormalModel(120, 90, combineSigmas([20, 20]));
-        const seriesP = p * p * (3 - 2 * p); // ≈ 0.944
+        // Per-match p uses the playoff-calibrated model — the MC samples with
+        // the same inflated σ, so both still describe ONE model.
+        const p = playoffWinProbability(120, 90, combineSigmas([20, 20]));
+        const seriesP = p * p * (3 - 2 * p);
 
         const results = runMonteCarloSimulation([a1, a2], 2, 4000);
         const champ1 = results.find(r => r.allianceId === 1)!;

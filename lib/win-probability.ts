@@ -100,3 +100,33 @@ export function winProbabilityFromNormalModel(
     }
     return clampProb(normalCdf((redMean - blueMean) / sigmaDiff));
 }
+
+/**
+ * Playoff-specific σ inflation — learned, not assumed.
+ *
+ * Fit on 10,800 real playoff matches (seasons 2024-2025, every region, via
+ * scripts/oracle-backtest.mjs `matches` + `fit`, decisions.md #59): a logistic
+ * regression over [z, consistency-diff, field level] against the quals-derived
+ * baseline Φ(z) improved held-out log-loss 0.685 → 0.500 (−27%) with the
+ * dominant learned effect being SHRINKAGE of z (weight 0.666 vs the ≈1.7
+ * probit↔logit equivalence). Translated back into the normal model, that
+ * shrinkage is equivalent to playoff scores being ~2.4× noisier than the
+ * quals residuals suggest. Accuracy barely moves (74.7→75.0%) — what this
+ * fixes is OVERCONFIDENCE at the extremes (e.g. the 98.7% Finals miss in
+ * decisions.md #51), which log-loss punishes and picks/brackets feel.
+ *
+ * Secondary learned effect (consDiff weight −0.13): volatility slightly
+ * favors its owner in single-elimination — variance is the underdog's
+ * friend. Not integrated yet (needs per-team σ plumbing at call sites);
+ * tracked in decisions.md #59.
+ */
+export const PLAYOFF_SIGMA_INFLATION = 2.4;
+
+/** Playoff entry point: the normal model with elimination-calibrated noise. */
+export function playoffWinProbability(
+    redMean: number,
+    blueMean: number,
+    sigmaDiff: number,
+): number {
+    return winProbabilityFromNormalModel(redMean, blueMean, sigmaDiff * PLAYOFF_SIGMA_INFLATION);
+}

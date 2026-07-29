@@ -1,6 +1,6 @@
 import { TeamEvolution } from "@/app/actions/analytics";
 import { Alliance, PlayoffMatch } from "@/types/oracle";
-import { winProbabilityFromNormalModel } from "@/lib/win-probability";
+import { playoffWinProbability, PLAYOFF_SIGMA_INFLATION } from "@/lib/win-probability";
 
 // --- Per-team sigma estimation ---
 
@@ -481,7 +481,7 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], ad
                 m.redScorePrediction = r;
                 m.blueScorePrediction = b;
                 m.winProbabilityRed = hasAdjustment(adj)
-                    ? winProbabilityFromNormalModel(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]))
+                    ? playoffWinProbability(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]))
                     : calculateWinProbability(red, blue);
                 m.redAllianceId = 1;
                 m.blueAllianceId = 2;
@@ -518,7 +518,7 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], ad
                     const adj = adjustments?.[match.id];
                     const { r, b } = adjustedPredictions(red, blue, adj);
                     match.winProbabilityRed = hasAdjustment(adj)
-                        ? winProbabilityFromNormalModel(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]))
+                        ? playoffWinProbability(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]))
                         : calculateWinProbability(red, blue);
                     match.redScorePrediction = r;
                     match.blueScorePrediction = b;
@@ -615,7 +615,8 @@ function calculateWinProbability(red: Alliance, blue: Alliance): number {
         red.totalSigma || SIGMA_FALLBACK,
         blue.totalSigma || SIGMA_FALLBACK,
     ]);
-    return winProbabilityFromNormalModel(red.totalOPR, blue.totalOPR, sigmaDiff);
+    // Playoff context: elimination-calibrated noise (see PLAYOFF_SIGMA_INFLATION).
+    return playoffWinProbability(red.totalOPR, blue.totalOPR, sigmaDiff);
 }
 
 // --- Monte Carlo Simulation ---
@@ -653,8 +654,10 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 |
                     const blue = allianceMap.get(match.blueAllianceId)!;
 
                     // Simulate Match — per-alliance sigma derived from team variance.
-                    const redScore = getSimulatedScore(red.totalOPR, red.totalSigma);
-                    const blueScore = getSimulatedScore(blue.totalOPR, blue.totalSigma);
+                    // Playoff-calibrated noise so MC and analytic bracket agree
+                    // (see PLAYOFF_SIGMA_INFLATION in lib/win-probability.ts).
+                    const redScore = getSimulatedScore(red.totalOPR, (red.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION);
+                    const blueScore = getSimulatedScore(blue.totalOPR, (blue.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION);
 
                     match.winnerId = redScore > blueScore ? match.redAllianceId : match.blueAllianceId;
 

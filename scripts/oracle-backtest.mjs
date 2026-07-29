@@ -17,7 +17,7 @@
  *   node scripts/oracle-backtest.mjs report            # aggregate all seasons
  */
 
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { readFileSync, appendFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const API = "https://api.ftcscout.org/graphql";
@@ -102,25 +102,56 @@ function analyzeEvent(matches) {
     const sigma = Math.sqrt(residuals.reduce((s, r) => s + r * r, 0) / residuals.length) * Math.SQRT2;
     if (!(sigma > 0)) return null;
 
+    // Per-team consistency: RMS of the residuals of the alliances the team
+    // played in during quals (their own volatility, feature for the elim model).
+    const teamRes = new Map();
+    for (const m of quals) {
+        for (const color of ["Red", "Blue"]) {
+            const members = m.teams.filter(t => t.alliance === color);
+            const mu = members.reduce((s, t) => s + (opr.get(t.teamNumber) ?? 0), 0);
+            const r = (color === "Red" ? m.redNp : m.blueNp) - mu;
+            for (const t of members) {
+                const arr = teamRes.get(t.teamNumber) ?? [];
+                arr.push(r); teamRes.set(t.teamNumber, arr);
+            }
+        }
+    }
+    const teamSigma = (t) => {
+        const arr = teamRes.get(t);
+        if (!arr || arr.length < 2) return sigma / Math.SQRT2; // fall back to event level
+        return Math.sqrt(arr.reduce((s, r) => s + r * r, 0) / arr.length);
+    };
+
     let hits = 0, n = 0, sumP = 0, brier = 0;
+    const matchRows = [];
     for (const m of playoffs) {
         if (m.redTot === m.blueTot) continue; // ties carry no verdict
-        const mu = (color) => m.teams
-            .filter(t => t.alliance === color && t.station !== "NotOnField")
-            .reduce((s, t) => s + (opr.get(t.teamNumber) ?? 0), 0);
-        const pRed = phi((mu("Red") - mu("Blue")) / sigma);
+        const fielded = (color) => m.teams.filter(t => t.alliance === color && t.station !== "NotOnField");
+        const mu = (color) => fielded(color).reduce((s, t) => s + (opr.get(t.teamNumber) ?? 0), 0);
+        const cons = (color) => {
+            const f = fielded(color);
+            return f.length ? f.reduce((s, t) => s + teamSigma(t.teamNumber), 0) / f.length : sigma / Math.SQRT2;
+        };
+        const muR = mu("Red"), muB = mu("Blue");
+        const pRed = phi((muR - muB) / sigma);
         const redWon = m.redTot > m.blueTot;
         const pWinner = redWon ? pRed : 1 - pRed;
         n++; sumP += pWinner; brier += (pRed - (redWon ? 1 : 0)) ** 2;
         if ((pRed >= 0.5) === redWon) hits++;
+        matchRows.push({
+            z: (muR - muB) / sigma,               // baseline predictor (normal-model z)
+            consDiff: (cons("Blue") - cons("Red")) / sigma, // + = blue less consistent
+            level: (muR + muB) / (2 * sigma),     // field-strength context
+            redWon: redWon ? 1 : 0,
+        });
     }
     if (n < 2) return null;
-    return { quals: quals.length, playoffN: n, hits, meanP: sumP / n, brier: brier / n, sigma };
+    return { quals: quals.length, playoffN: n, hits, meanP: sumP / n, brier: brier / n, sigma, matchRows };
 }
 
-async function runSeason(season, limit) {
+async function runSeason(season, limit, matchesMode = false) {
     mkdirSync(OUT_DIR, { recursive: true });
-    const outFile = join(OUT_DIR, `season-${season}.jsonl`);
+    const outFile = join(OUT_DIR, matchesMode ? `matches-${season}.jsonl` : `season-${season}.jsonl`);
     const done = new Set(
         existsSync(outFile)
             ? readFileSync(outFile, "utf8").split("\n").filter(Boolean).map(l => JSON.parse(l).code)
@@ -146,8 +177,18 @@ async function runSeason(season, limit) {
                 const d = await gql(`query{ eventByCode(season:${season}, code:"${ev.code}"){ matches { tournamentLevel scores { ... on ${scoreType} { red { totalPointsNp totalPoints } blue { totalPointsNp totalPoints } } } teams { teamNumber alliance station } } } }`);
                 const matches = d.eventByCode?.matches ?? [];
                 const r = analyzeEvent(matches);
-                const row = { season, code: ev.code, name: ev.name, type: ev.type, region: ev.regionCode, ...(r ?? { skipped: true }) };
-                appendFileSync(outFile, JSON.stringify(row) + "\n");
+                if (matchesMode) {
+                    // One line per playoff match (features for the elim-model fit),
+                    // or a skip marker so resume still works for barren events.
+                    const lines = r
+                        ? r.matchRows.map(mr => JSON.stringify({ season, code: ev.code, type: ev.type, region: ev.regionCode, ...mr }))
+                        : [JSON.stringify({ season, code: ev.code, skipped: true })];
+                    appendFileSync(outFile, lines.join("\n") + "\n");
+                } else {
+                    const agg = r ? { quals: r.quals, playoffN: r.playoffN, hits: r.hits, meanP: r.meanP, brier: r.brier, sigma: r.sigma } : { skipped: true };
+                    const row = { season, code: ev.code, name: ev.name, type: ev.type, region: ev.regionCode, ...agg };
+                    appendFileSync(outFile, JSON.stringify(row) + "\n");
+                }
             } catch (e) {
                 appendFileSync(outFile, JSON.stringify({ season, code: ev.code, type: ev.type, region: ev.regionCode, error: String(e.message).slice(0, 120) }) + "\n");
             }
@@ -182,12 +223,62 @@ function report() {
     console.log("== Temporada × tipo =="); console.table(agg(r => `${r.season}·${r.type}`));
 }
 
+/**
+ * Elim-model fit: logistic regression P(redWin) over playoff-match features
+ * [z, consDiff, level] vs the baseline Φ(z). Deterministic 80/20 split by
+ * event code so both models are scored on the same held-out matches.
+ */
+function fit() {
+    const rows = readdirSync(OUT_DIR).filter(f => f.startsWith("matches-"))
+        .flatMap(f => readFileSync(join(OUT_DIR, f), "utf8").split("\n").filter(Boolean).map(l => JSON.parse(l)))
+        .filter(r => !r.skipped && Number.isFinite(r.z));
+    const hash = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 0);
+    const train = rows.filter(r => hash(r.code + r.season) % 5 !== 0);
+    const test = rows.filter(r => hash(r.code + r.season) % 5 === 0);
+    console.log(`fit: ${rows.length} matches (${train.length} train / ${test.length} test)`);
+
+    const feats = (r) => [1, r.z, r.consDiff, r.level];
+    let w = [0, 1.2, 0, 0]; // start near the probit≈logit equivalence for z
+    const lr = 0.05;
+    for (let epoch = 0; epoch < 400; epoch++) {
+        const g = [0, 0, 0, 0];
+        for (const r of train) {
+            const x = feats(r);
+            const p = 1 / (1 + Math.exp(-x.reduce((s, xi, i) => s + xi * w[i], 0)));
+            const err = p - r.redWon;
+            for (let i = 0; i < 4; i++) g[i] += err * x[i];
+        }
+        for (let i = 0; i < 4; i++) w[i] -= lr * g[i] / train.length;
+    }
+
+    const score = (rows, pFn) => {
+        let ll = 0, br = 0, hits = 0;
+        for (const r of rows) {
+            const p = Math.min(1 - 1e-9, Math.max(1e-9, pFn(r)));
+            ll += -(r.redWon * Math.log(p) + (1 - r.redWon) * Math.log(1 - p));
+            br += (p - r.redWon) ** 2;
+            if ((p >= 0.5) === (r.redWon === 1)) hits++;
+        }
+        return { logloss: (ll / rows.length).toFixed(4), brier: (br / rows.length).toFixed(4), acc: (100 * hits / rows.length).toFixed(1) };
+    };
+    const baseline = (r) => phi(r.z);
+    const model = (r) => 1 / (1 + Math.exp(-feats(r).reduce((s, xi, i) => s + xi * w[i], 0)));
+    console.log("pesos [bias, z, consDiff, level]:", w.map(x => x.toFixed(4)).join(", "));
+    console.log("TEST  baseline Φ(z):", score(test, baseline));
+    console.log("TEST  logistic fit :", score(test, model));
+    console.log("TRAIN logistic fit :", score(train, model));
+}
+
 const [cmd, arg, flag, flagVal] = process.argv.slice(2);
 if (cmd === "run" && arg) {
     const limit = flag === "--limit" ? Number(flagVal) : undefined;
     runSeason(Number(arg), limit).catch(e => { console.error(e); process.exit(1); });
+} else if (cmd === "matches" && arg) {
+    runSeason(Number(arg), flag === "--limit" ? Number(flagVal) : undefined, true).catch(e => { console.error(e); process.exit(1); });
+} else if (cmd === "fit") {
+    fit();
 } else if (cmd === "report") {
     report();
 } else {
-    console.log("Uso: node scripts/oracle-backtest.mjs run <season> [--limit N] | report");
+    console.log("Uso: node scripts/oracle-backtest.mjs run|matches <season> [--limit N] | fit | report");
 }
