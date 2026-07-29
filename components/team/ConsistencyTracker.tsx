@@ -4,9 +4,10 @@ import { useState } from "react";
 import { TEAM_30311_DECODE } from "@/lib/reports/team-30311-decode";
 import { buildConsistencyProfile, projectFormBands, pointsToNextTier, consistencyNote, FormDiagnosis } from "@/lib/consistency";
 import { EventProfile, Verdict } from "@/lib/event-selector";
-import { draftOdds, type DraftOdds } from "@/lib/draft-odds";
+import { draftOdds, type DraftOdds, type DraftBasis } from "@/lib/draft-odds";
 import { TrendingUp, Radar, Info, ArrowRight } from "lucide-react";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 const R = TEAM_30311_DECODE;
 
@@ -53,6 +54,12 @@ const VERDICT_STYLE: Record<Verdict, { label: string; cls: string }> = {
 
 export function ConsistencyTracker() {
     const [fieldCode, setFieldCode] = useState(FIELDS[0].code);
+    const tOdds = useTranslations("DraftOdds");
+    // draftOdds returns a translation key + params (never prose); render it here.
+    const basisText = (basis: DraftBasis) => {
+        const { key, ...params } = basis;
+        return tOdds(key, params);
+    };
 
     const profile = buildConsistencyProfile(
         R.events.map(e => ({ label: e.code, opr: e.totOpr, auto: e.autoOpr, dc: e.dcOpr })),
@@ -203,7 +210,7 @@ export function ConsistencyTracker() {
                                     {/* Measured selection rate at that seed (606 events), rather than
                                         the verdict's eyeballed thresholds — "burbuja" reads the same
                                         at 45% and 85%, and those plan very differently. */}
-                                    <td className="px-4 py-3 text-center font-mono tabular-nums" title={draftOdds(b.projection.expectedSeed, b.projection.alliances, b.projection.percentile).basis}>
+                                    <td className="px-4 py-3 text-center font-mono tabular-nums" title={basisText(draftOdds(b.projection.expectedSeed, b.projection.alliances, b.projection.percentile).basis)}>
                                         <PickOdds
                                             odds={draftOdds(b.projection.expectedSeed, b.projection.alliances, b.projection.percentile)}
                                         />

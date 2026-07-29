@@ -734,3 +734,17 @@ Segundo bloqueante-por-calendario resuelto. El juego FTC 2026-27 se anuncia en s
 **Trade-offs aceptados:** layout genérico (secciones apiladas vs grid custom de 4 col) y lista de observaciones genérica (cada campo con su valor vs tarjetas bespoke). Ambos son el precio de lo genérico y funcionan para cualquier juego; si una temporada amerita layout a medida, se escribe un componente de ese año.
 
 `docs/architecture/game-schema-migration.md` **escrito** (era citado 3× — CLAUDE.md:83, PENDING, y ahora el comentario en MatchScoutingForm — y no existía). Verificado: typecheck 0, lint 0, 312 tests, build OK. FRC sigue en `FRC_ReefscapeForm` (mismo patrón cuando haga falta; la prioridad FRC es la red).
+
+---
+
+## #80 · i18n: andamiaje next-intl (cookie, sin routing) + patrón de capa de análisis (2026-07-29)
+
+Ejecución de #77 (inglés por defecto + multilenguaje). Detalle: `docs/architecture/i18n.md`.
+
+**Estrategia elegida: cookie-based, sin prefijo de URL.** El locale vive en la cookie `NEXT_LOCALE` (detección: cookie → `Accept-Language` → default `en`); las URLs no cambian. Se descartó el prefijo `/en` `/es` porque obligaba a middleware de routing, reescribir todos los `<Link>`/`push`/`redirect`, y revisar PWA/service worker + deep-links — mucha más superficie y riesgo, para una audiencia que elige idioma una vez. Herramienta: `next-intl` v4 en modo *without i18n routing*.
+
+**Andamiaje conectado:** `i18n/config.ts` (constantes), `i18n/locale.ts` (server actions `get/setUserLocale`), `i18n/request.ts` (`getRequestConfig`), plugin `createNextIntlPlugin` en `next.config.ts` (aplicado al config base, luego Serwist/analyzer/Sentry lo envuelven), `<NextIntlClientProvider>` + `<html lang={locale}>` en el layout, catálogos `messages/{en,es}.json`, y `LocaleSwitcher` en el sidebar.
+
+**El patrón que la memoria marcaba como la trampa, probado en `draft-odds.ts`.** El campo `basis` generaba una de 4 frases en español con params interpolados. Ahora `draftOdds().basis` devuelve un `DraftBasis` **discriminado** (`{ key, ...params }`), y el consumidor (`ConsistencyTracker`) traduce con `useTranslations("DraftOdds")`. El redondeo (`toFixed(0)`) se hace en el análisis (params ya redondeados), no en el mensaje. Regla: la capa de análisis devuelve **clave + params**, nunca prosa; el test asserta la estructura.
+
+**Barrido pendiente = 12 módulos** (delegable a Sonnet con el patrón sentado): `consistency`, `schemas/scouting`, `event-selector`, `projections`, `alliance-utils`, `briefings/briefing-data`, `reports/growth-curves`, `reports/team-30311-decode`, `games/ftc-decode-2025`, `constants`, `orgs`, `invite-redemption`; más los strings de UI en componentes (incremental). **Regla activa: ningún string nuevo hardcodeado.** Verificado: typecheck 0, lint 0, 313 tests, build OK. Ver [[project-i18n-ingles-default]].

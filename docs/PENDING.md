@@ -63,9 +63,17 @@ Diagnóstico: **la app está organizada por conjuntos de datos, no por el moment
 
 Otros: el Oracle se monta en 2 lugares (2 clics vs 5 niveles); hay **dos simuladores que no se conocen** (`TournamentSimulator`, 1164 líneas, está enterrado); `TeamSeasonReport` está **cableado a 30311** (los demás ven página vacía — bloquea la apertura); renombrar "Iron Lion Intelligence" en `/pro`; nav en un solo idioma; **`lead` y `admin` son indistinguibles** (ningún check en el repo los separa).
 
-### 🌐 i18n
+### 🌐 i18n — ANDAMIAJE CONECTADO + patrón probado (29 jul, sesión 19)
 
-Inglés por defecto + `es`. **No es refactor de UI**: 13 módulos de `lib/` tienen español en la capa de análisis (`draft-odds.ts` genera frases, `consistency.ts` escribe notas, `schemas/scouting.ts` tiene mensajes de Zod). El patrón correcto es que esa capa devuelva **claves + parámetros**, no prosa. Meter el andamiaje **antes** de construir "Hoy" y las vistas de red. **Regla desde hoy: ningún string nuevo hardcodeado.**
+Inglés por defecto + `es`, `next-intl` **cookie-based sin routing de URL** (decisión #80). Detalle completo en `docs/architecture/i18n.md`.
+
+- **Andamiaje:** `i18n/config.ts` + `i18n/locale.ts` (server actions cookie) + `i18n/request.ts`, plugin en `next.config.ts`, `<NextIntlClientProvider>` + `<html lang>` en el layout, `messages/{en,es}.json`, y **`LocaleSwitcher` visible en el sidebar** (escribe cookie + `router.refresh()`).
+- **Patrón de capa de análisis probado en `draft-odds.ts`** (el caso que la memoria marcaba): `basis` pasó de frase a `DraftBasis` discriminado (**clave + params**); consumidor `ConsistencyTracker` lo traduce con `useTranslations`. Test asserta estructura, no cadena.
+- Verificado: typecheck 0, lint 0, 313 tests, build OK.
+
+**Barrido pendiente (delegable a Sonnet, mismo patrón):** 12 módulos de `lib/` con prosa/mensajes en español — prioridad `consistency.ts`, `schemas/scouting.ts` (Zod), `event-selector.ts`; luego `projections`, `alliance-utils`, `briefings/briefing-data`, `reports/growth-curves`, `reports/team-30311-decode`, `games/ftc-decode-2025` (labels), `constants`, `orgs`, `invite-redemption`. Más el grueso de strings de UI en componentes (extracción incremental). **Regla activa: ningún string nuevo hardcodeado.**
+
+El andamiaje va **antes** de construir "Hoy" y las vistas de red (ya está) para no escribir esos strings dos veces.
 
 ---
 

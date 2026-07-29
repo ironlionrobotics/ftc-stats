@@ -80,7 +80,15 @@ describe("draftOdds", () => {
         const o = draftOdds(9, 6);
         expect(o.oprAdjustment).toBe(0);
         expect(o.probability).toBeCloseTo(seedPickRate(9), 10);
-        expect(o.basis.length).toBeGreaterThan(10);
+        // basis is now a translation key + params (no prose in the analysis layer).
+        expect(o.basis).toEqual({ key: "seedRate", seed: 9 });
+    });
+
+    it("returns a structured basis (key + params), never prose", () => {
+        expect(draftOdds(1, 8).basis).toEqual({ key: "captain", seed: 1, alliances: 8 });
+        const up = draftOdds(9, 6, 95).basis;
+        expect(up.key).toBe("oprUp");
+        expect(up).toMatchObject({ seed: 9, oprPct: 95 });
     });
 });
 

@@ -12,6 +12,8 @@ import DeferredGlobals from "@/components/DeferredGlobals";
 import { Toaster } from "sonner";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 
 // Direction C "Nightshift" typography. Space Grotesk carries both display and
 // body with an "instrument panel" voice; JetBrains Mono handles tabular data.
@@ -88,11 +90,13 @@ export default async function RootLayout({
 }>) {
   // Runtime config (superadmin console). Redis-cached; degrades to defaults.
   const appConfig = await getAppConfig();
+  // Active locale (cookie/Accept-Language) for <html lang> and the intl provider.
+  const locale = await getLocale();
   return (
     // suppressHydrationWarning: the themeInitScript below sets the `dark` class
     // on <html> before hydration, which intentionally differs from the server
     // markup. Scoped to this element only (standard next-themes pattern).
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
@@ -100,27 +104,29 @@ export default async function RootLayout({
         className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
         <ThemeSync />
-        <QueryProvider>
-          <AuthProvider>
-            <ConfirmProvider>
-              <Sidebar />
-              <div className="md:ml-60 min-h-screen transition-all duration-300 pb-20 md:pb-0">
-                {children}
-              </div>
-              <DeferredGlobals aiAssistant={appConfig.features.aiAssistant} />
-              <PWAInstallPrompt />
-              <Toaster
-                theme="dark"
-                position="top-right"
-                richColors
-                closeButton
-                toastOptions={{
-                  style: { fontSize: "13px" },
-                }}
-              />
-            </ConfirmProvider>
-          </AuthProvider>
-        </QueryProvider>
+        <NextIntlClientProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <ConfirmProvider>
+                <Sidebar />
+                <div className="md:ml-60 min-h-screen transition-all duration-300 pb-20 md:pb-0">
+                  {children}
+                </div>
+                <DeferredGlobals aiAssistant={appConfig.features.aiAssistant} />
+                <PWAInstallPrompt />
+                <Toaster
+                  theme="dark"
+                  position="top-right"
+                  richColors
+                  closeButton
+                  toastOptions={{
+                    style: { fontSize: "13px" },
+                  }}
+                />
+              </ConfirmProvider>
+            </AuthProvider>
+          </QueryProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

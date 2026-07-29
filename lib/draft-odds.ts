@@ -13,6 +13,19 @@
 
 import { DRAFT_PRIORS as P } from "./reports/draft-priors";
 
+/**
+ * Why the estimate is what it is — as a translation KEY plus its parameters,
+ * NOT formed prose. The analysis layer must not bake a language in: the UI
+ * renders these via next-intl (namespace "DraftOdds"). This is the pattern
+ * every lib/ module that used to return Spanish sentences follows. See
+ * docs/architecture/i18n.md.
+ */
+export type DraftBasis =
+    | { key: "captain"; seed: number; alliances: number }
+    | { key: "seedRate"; seed: number }
+    | { key: "oprUp"; seed: number; basePct: number; oprPct: number }
+    | { key: "oprDown"; seed: number; basePct: number; oprPct: number };
+
 export interface DraftOdds {
     /** 0-1 probability of ending up on a playoff alliance. */
     probability: number;
@@ -24,7 +37,7 @@ export interface DraftOdds {
      */
     oprAdjustment: number;
     /** Reason the estimate is what it is, for UI that must explain itself. */
-    basis: string;
+    basis: DraftBasis;
 }
 
 /**
@@ -79,8 +92,8 @@ export function draftOdds(seed: number, alliances: number, oprPct?: number): Dra
             wouldCaptain,
             oprAdjustment: 0,
             basis: wouldCaptain
-                ? `Seed ${seed} alcanza para capitanear una de las ${alliances} alianzas.`
-                : `Tasa histórica de selección en el seed ${seed}.`,
+                ? { key: "captain", seed, alliances }
+                : { key: "seedRate", seed },
         };
     }
 
@@ -91,13 +104,15 @@ export function draftOdds(seed: number, alliances: number, oprPct?: number): Dra
     // compose correctly and land inside (0,1) by construction.
     const odds = (base / (1 - base)) * or;
     const adjusted = odds / (1 + odds);
+    const basePct = Math.round(base * 100);
+    const oprPctRounded = Math.round(oprPct);
     return {
         probability: adjusted,
         wouldCaptain: false,
         oprAdjustment: adjusted - base,
         basis: or >= 1
-            ? `Seed ${seed} da ${(base * 100).toFixed(0)}%, pero estar en el percentil ${oprPct.toFixed(0)} de OPR del evento sube la probabilidad: los capitanes miran capacidad, no solo la tabla.`
-            : `Seed ${seed} da ${(base * 100).toFixed(0)}%, pero un OPR en el percentil ${oprPct.toFixed(0)} la baja — a igualdad de seed, los capitanes prefieren al que anota más.`,
+            ? { key: "oprUp", seed, basePct, oprPct: oprPctRounded }
+            : { key: "oprDown", seed, basePct, oprPct: oprPctRounded },
     };
 }
 

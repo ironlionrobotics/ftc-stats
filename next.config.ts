@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 import withSerwistInit from "@serwist/next";
 import withBundleAnalyzerInit from "@next/bundle-analyzer";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -17,6 +18,12 @@ const nextConfig: NextConfig = {
   },
 };
 
+// next-intl (cookie-based locale, no URL routing). The plugin injects the
+// request config alias (i18n/request.ts). Applied to the base config first so
+// Serwist/analyzer/Sentry wrap the intl-aware config.
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+const nextConfigWithIntl = withNextIntl(nextConfig);
+
 // Serwist wraps the Next.js config to inject the service-worker build step.
 // SW is disabled in development because hot-reload + cached SW makes for a
 // confusing debug experience; the production build emits public/sw.js and
@@ -28,7 +35,7 @@ const withSerwist = withSerwistInit({
   reloadOnOnline: false, // we handle online events via React (components/OnlineSync.tsx)
 });
 
-const withPwa = withSerwist(nextConfig);
+const withPwa = withSerwist(nextConfigWithIntl);
 
 // Bundle analyzer: emit treemap reports under .next/analyze/ when
 // ANALYZE=true is set. Use `ANALYZE=true npm run build` to inspect bundle

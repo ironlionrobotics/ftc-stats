@@ -1,0 +1,16 @@
+{
+  "Common": {
+    "loading": "Loading…"
+  },
+  "LocaleSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "es": "Español"
+  },
+  "DraftOdds": {
+    "captain": "Seed {seed} is high enough to captain one of the {alliances} alliances.",
+    "seedRate": "Historical selection rate at seed {seed}.",
+    "oprUp": "Seed {seed} gives {basePct}%, but sitting in the event's {oprPct}th OPR percentile raises it: captains look at capability, not just the standings.",
+    "oprDown": "Seed {seed} gives {basePct}%, but an OPR in the {oprPct}th percentile lowers it — at equal seed, captains prefer the higher scorer."
+  }
+}

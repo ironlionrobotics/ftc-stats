@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/lib/stores/theme-store";
 import { useProgram } from "@/lib/stores/program-store";
 import dynamic from "next/dynamic";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 // Admin/lead-only panels, rendered inside the signed-in block below. They reach
 // Firestore through lib/orgs, and the Sidebar lives in the root layout — so
@@ -158,6 +159,10 @@ export default function Sidebar() {
                                     )} />
                                 </div>
                             </button>
+
+                            <div className="mt-3">
+                                <LocaleSwitcher />
+                            </div>
 
                             <button
                                 onClick={() => setProgram(program === 'FTC' ? 'FRC' : 'FTC')}
