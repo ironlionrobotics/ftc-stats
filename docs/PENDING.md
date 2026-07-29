@@ -5,14 +5,16 @@
 
 ---
 
-## ✅ Producción al día (desplegado 2026-07-28)
+## ✅ Producción al día (desplegado 2026-07-29)
 
-Los 24 commits de la sesión 16 están **en vivo** en https://ftc-stats--ironlion-scouting.us-central1.hosted.app.
-Reglas de Firestore desplegadas (bloque `app_config`) + rollout de App Hosting completo.
+En vivo en https://ftc-stats--ironlion-scouting.us-central1.hosted.app.
+Reglas de Firestore desplegadas (bloques `app_config` + `ground_truth_runs`) y rollout de App Hosting completo.
 
-Verificado en producción: `theme-color #08090c` y `--primary #c4f135` (Nightshift), utilidad `live-scanline`, script anti-FOUC, reporte de temporada 30311 (Inspire "torneo debut" + Reach Award), tab "Selector de eventos" en `/analytics`, y `/admin` `/strategy` `/team/30311` respondiendo 200.
+Este despliegue llevó 12 commits: página pública `/oracle`, secciones de consistencia / trayectoria / probabilidad de alianza en el reporte de equipo, ground-truth idempotente, cola offline de pit scouting, panel de entradas atascadas, fallback offline en `/event`, y el trabajo de bundle.
 
-**Pendiente de acción del usuario**: agregar `SUPERADMIN_EMAILS=hector.hturrubiates@gmail.com` a `.env.local` para poder abrir `/admin` en dev (en producción ya va por `apphosting.yaml`).
+Verificado en producción: las 7 rutas responden 200; `/oracle` sirve las cifras del expediente (21,436 partidos, 74.8%, diagrama de fiabilidad); el reporte muestra las tres secciones nuevas; y **Firebase quedó en 0 KB en la carga inicial de `/`, `/event`, `/team` y `/oracle`**, conservándose sólo en `/scouting` (397 KB), que es donde corresponde.
+
+**Pendiente de acción del usuario**: `SUPERADMIN_EMAILS` en `.env.local` para abrir `/admin` en dev (en producción ya va por `apphosting.yaml`).
 
 ---
 
