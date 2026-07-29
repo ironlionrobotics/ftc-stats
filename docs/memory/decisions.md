@@ -559,3 +559,19 @@ PENDING proponía "ensanchar σ automáticamente cuando los residuales huelen a 
 **Relectura de Power Play:** su baja precisión no fue un fallo de calibración que el modelo no vio — fue **la temporada mejor calibrada de las siete** (−1.9 pp, la brecha más chica). Perdió precisión, no honestidad. La conclusión estratégica correcta no es "desconfía más del modelo en metas defensivos" sino "en un meta defensivo el marcador explica menos, así que el scouting humano aporta más" — que es la tesis que la app ya sostiene. Se añadió ese matiz a `/oracle`.
 
 Lección de método: el ítem llevaba meses en el backlog como algo obviamente bueno. Dos consultas sobre datos que ya teníamos bastaron para descartarlo. Vale la pena probar la premisa antes que la implementación.
+
+## #71 · Curvas de crecimiento rookie→veterano (México) (2026-07-29)
+
+Responde la pregunta de planeación "¿a qué ritmo mejora un programa como el nuestro y dónde deberíamos estar en dos años?". Script: `scripts/growth-curves.mjs` (FTCScout, `teamsSearch` por región + `quickStats` por temporada, 10 equipos por request vía alias). Datos en `data/growth-curves/MX.json`, curados a `lib/reports/growth-curves.ts`; UI en la sección 05 del reporte de equipo.
+
+**Decisión metodológica que cambia el resultado: se mide en PERCENTIL, no en OPR.** El OPR no es comparable entre temporadas — cada juego de FTC anota distinto, así que graficar OPR crudo contra "años desde rookie" mezcla unidades e **inventa** una tendencia. Cada equipo se rankea primero dentro de su cohorte (temporada, región). Además es la cantidad más útil: competitivamente importa si subes respecto a los equipos que enfrentas.
+
+**Curva de México (189 equipos con año rookie conocido):** mediana p33.8 (T1) → p52.7 (T2) → p48.1 (T3) → p54.6 (T4) → p59.3 (T5) → p80.4 (T6) → p87.5 (T7).
+
+Dos lecturas accionables:
+1. **El salto grande es el año 2**: +18.9 puntos de percentil, el mayor de toda la curva y el mejor medido (140 y 86 equipos). Luego hay meseta en T3-T5.
+2. **La cola engaña.** Se pasa de 140 equipos a 19: el repunte de T6-T7 es en parte attrition, no mejora. Se añadió un **control de sesgo de supervivencia**: una segunda curva sobre la cohorte fija de los 20 programas con 5+ temporadas. Los que duran ya arrancaban **~10 puntos de percentil por encima** en su T1 — o sea, buena parte del "crecimiento" tardío es selección desde el inicio. Ambas curvas se muestran juntas; cualquiera sola engaña.
+
+**Posición de 30311**: percentil **79.2** de México en su temporada rookie (28º de 131 equipos con datos 2025), contra una mediana rookie de 33.8. Es el nivel que el programa mexicano típico alcanza hasta su **sexta temporada**.
+
+Caveat documentado en la UI: la ventana 2019-2025 trunca por la izquierda (un programa anterior a 2019 sólo aparece desde temporadas tardías), lo que adelgaza los primeros años de la cohorte fija (T1 descansa en 4 equipos) — indicativo, no asentado.

@@ -2,9 +2,10 @@ import { Fragment } from "react";
 import { TEAM_30311_DECODE } from "@/lib/reports/team-30311-decode";
 import { RookieComparison } from "@/components/team/RookieComparison";
 import { ConsistencyTracker } from "@/components/team/ConsistencyTracker";
+import { GrowthCurve } from "@/components/team/GrowthCurve";
 import {
     Trophy, TrendingUp, Award, Target, Globe, Medal,
-    Flame, ArrowUpRight, Sparkles, MapPin, Rocket, ExternalLink, Activity,
+    Flame, ArrowUpRight, Sparkles, MapPin, Rocket, ExternalLink, Activity, LineChart,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -137,9 +138,19 @@ export function TeamSeasonReport() {
                 </div>
             </ReportSection>
 
-            {/* ── Mexico cohort ────────────────────────────────────────── */}
+            {/* ── Growth trajectory ────────────────────────────────────── */}
             <ReportSection
                 n="05"
+                title="La trayectoria: dónde estamos vs. dónde llega un programa mexicano"
+                desc="Cómo evoluciona el lugar que ocupa un equipo de México temporada tras temporada desde su año rookie, y en qué punto de esa curva cae Iron Lion hoy. Se mide en percentil dentro del país, no en OPR: cada juego de FTC anota distinto y los OPR de temporadas diferentes no son comparables."
+                icon={<LineChart size={20} />}
+            >
+                <GrowthCurve />
+            </ReportSection>
+
+            {/* ── Mexico cohort ────────────────────────────────────────── */}
+            <ReportSection
+                n="06"
                 title="Frente a los grandes de México"
                 desc="Los 8 programas mexicanos más consolidados (3 a 9 temporadas) por OPR — la vara del tier veterano. No es la tabla de posiciones nacional: Iron Lion es rookie (1ª temporada) y aparece al final para medir la distancia a ese tier, no como un 9° lugar."
                 icon={<MapPin size={20} />}
@@ -157,7 +168,7 @@ export function TeamSeasonReport() {
 
             {/* ── Rookie comparison · national + international ──────────── */}
             <ReportSection
-                n="06"
+                n="07"
                 title="Contra otros rookies"
                 desc="Cómo se ubica Iron Lion entre los equipos rookie (debut 2025) a nivel nacional e internacional — por desempeño del robot (OPR) y por premios. Ambas cohortes son exhaustivas contra el registro de FTCScout."
                 icon={<Sparkles size={20} />}
@@ -167,7 +178,7 @@ export function TeamSeasonReport() {
 
             {/* ── World context ────────────────────────────────────────── */}
             <ReportSection
-                n="07"
+                n="08"
                 title="El horizonte mundial"
                 desc="El top 5 del planeta esta temporada — programas consolidados con años de historia. Marca la ambición, no la vara de hoy."
                 icon={<Globe size={20} />}
@@ -197,7 +208,7 @@ export function TeamSeasonReport() {
 
             {/* ── Learnings ────────────────────────────────────────────── */}
             <ReportSection
-                n="08"
+                n="09"
                 title="Aprendizajes y próximos objetivos"
                 desc="Lo que la data dice sobre dónde crecer."
                 icon={<Target size={20} />}
