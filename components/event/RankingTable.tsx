@@ -17,6 +17,7 @@ interface OprStats {
     autoOPR: number;
     teleOPR: number;
     netDiscipline: number;
+    scheduleLuck: number;
 }
 
 type TableRow = TeamRanking & OprStats & { highScore: number; wlt: string };
@@ -130,6 +131,27 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
         const drawnFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreBlueFoul : m.scoreRedFoul);
         const committedFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedFoul : m.scoreBlueFoul);
 
+        // Schedule strength (suerte de calendario): over QUAL matches, mean
+        // partner OPR minus mean opponent OPR. Positive = easy draw (strong
+        // partners / weak opponents); negative = hard draw. Lets a team read
+        // "ranked 12th but with the 3rd-hardest schedule" — rank alone lies.
+        const schedAgg = new Map<number, { p: number; o: number; n: number }>();
+        matches.forEach(m => {
+            if (m.tournamentLevel !== 'QUALIFICATION') return;
+            (['Red', 'Blue'] as const).forEach(alliance => {
+                const mine = m.teams.filter(t => t.station.startsWith(alliance));
+                const opp = m.teams.filter(t => !t.station.startsWith(alliance));
+                const oppAvg = opp.reduce((s, t) => s + (overall.get(t.teamNumber) || 0), 0) / (opp.length || 1);
+                mine.forEach(t => {
+                    const partners = mine.filter(x => x.teamNumber !== t.teamNumber);
+                    const pAvg = partners.reduce((s, x) => s + (overall.get(x.teamNumber) || 0), 0) / (partners.length || 1);
+                    const a = schedAgg.get(t.teamNumber) ?? { p: 0, o: 0, n: 0 };
+                    a.p += pAvg; a.o += oppAvg; a.n += 1;
+                    schedAgg.set(t.teamNumber, a);
+                });
+            });
+        });
+
         const merged = new Map();
         rankings.forEach(r => {
             const t = r.teamNumber;
@@ -137,7 +159,9 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
             const autoOPR = auto.get(t) || 0;
             const teleOPR = opr - autoOPR;
             const netDiscipline = (drawnFoul.get(t) || 0) - (committedFoul.get(t) || 0);
-            merged.set(t, { opr, autoOPR, teleOPR, netDiscipline });
+            const sa = schedAgg.get(t);
+            const scheduleLuck = sa && sa.n > 0 ? (sa.p - sa.o) / sa.n : 0;
+            merged.set(t, { opr, autoOPR, teleOPR, netDiscipline, scheduleLuck });
         });
         return merged;
     }, [matches, rankings]);
@@ -156,7 +180,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
         });
 
         return rankings.map(rank => {
-            const stats = oprData.get(rank.teamNumber) || { opr: 0, autoOPR: 0, teleOPR: 0, netDiscipline: 0 };
+            const stats = oprData.get(rank.teamNumber) || { opr: 0, autoOPR: 0, teleOPR: 0, netDiscipline: 0, scheduleLuck: 0 };
             return {
                 ...rank,
                 ...stats,
@@ -182,7 +206,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
 
     // 4. Calculate Column Extremes for Highlighting
     const extremes = useMemo(() => {
-        const keys: (string)[] = ['opr', 'autoOPR', 'teleOPR', 'netDiscipline', 'sortOrder1', 'sortOrder2', 'sortOrder3', 'sortOrder4', 'highScore'];
+        const keys: (string)[] = ['opr', 'autoOPR', 'teleOPR', 'netDiscipline', 'scheduleLuck', 'sortOrder1', 'sortOrder2', 'sortOrder3', 'sortOrder4', 'highScore'];
         const result: Record<string, { max: number, min: number }> = {};
 
         keys.forEach(k => {
@@ -257,6 +281,11 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                                 tooltip={<><strong>Net Discipline:</strong> Diferencia entre faltas provocadas y cometidas. <br /> <span className="text-success">(+) Mastermind</span></>}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
+                            <HeaderWithTooltip
+                                label="Sched" column="scheduleLuck"
+                                tooltip={<><strong>Suerte de calendario:</strong> OPR medio de tus aliados menos el de tus rivales en quals. <br /> <span className="text-danger">(−) Negativo:</span> calendario difícil — tu rank subestima al equipo.</>}
+                                sortConfig={sortConfig} handleSort={handleSort}
+                            />
                             <th className="p-4 font-bold text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('wins')}>
                                 <div className="flex items-center justify-center gap-1">W-L-T <SortIcon column="wins" sortConfig={sortConfig} /></div>
                             </th>
@@ -310,6 +339,12 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                                         formatted={(rank.netDiscipline > 0 ? "+" : "") + rank.netDiscipline.toFixed(1)}
                                         extremes={extremes}
                                     />
+                                </td>
+                                <td className="p-4 text-center font-mono text-xs">
+                                    <span className={rank.scheduleLuck < -3 ? "text-danger font-bold" : rank.scheduleLuck > 3 ? "text-success" : "text-muted-foreground"}
+                                        title={rank.scheduleLuck < -3 ? "Calendario difícil — el rank subestima al equipo" : rank.scheduleLuck > 3 ? "Calendario favorable" : "Calendario neutral"}>
+                                        {(rank.scheduleLuck > 0 ? "+" : "") + rank.scheduleLuck.toFixed(1)}
+                                    </span>
                                 </td>
                                 <td className="p-4 text-center">
                                     <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted font-mono text-[10px]">
