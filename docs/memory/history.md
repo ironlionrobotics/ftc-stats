@@ -234,3 +234,39 @@ Sesión larga de ejecución sobre el backlog acumulado. **Producción quedó al 
 **Método.** Probar la premisa antes que la implementación se pagó tres veces. Y dos falsos negativos propios al medir bundles cruzando contra `.next/` local — App Hosting reconstruye en la nube, hay que descargar los chunks reales.
 
 307 tests (era 242 al abrir). Scripts nuevos reutilizables: `oracle-noise-analysis.mjs`, `growth-curves.mjs`, `draft-science.mjs`, `draft-analysis.mjs`.
+
+---
+
+## Sesión 18 — 29 jul 2026 · Estrategia de producto: benchmark, modelo de apertura y la inversión del scouting
+
+Sesión sin código de producción. El entregable es `docs/ESTRATEGIA-PRODUCTO-Y-APERTURA.md` (6 partes) y las decisiones #74–#77. Tres agentes en paralelo (mapa de arquitectura de información, cacería de funcionalidad muerta, benchmark competitivo) más análisis propio de la parte de negocio.
+
+### El hallazgo que reordenó todo
+
+Se preguntó si convenía cobrar suscripción. **La respuesta no es cultural, es contractual**: la API de FIRST prohíbe expresamente el uso comercial ("There can be no financial gain from acquiring an access token"). Verificado directamente en la fuente, no vía agente. PRIDE está construida sobre esos datos, así que cualquier suscripción choca de frente. La misma página exige una **atribución con enlace de retorno que la app no tiene** y lleva sin tener desde el despliegue del 25 jul.
+
+### La apertura no era el dilema que parecía
+
+La premisa "si abro la app pierdo competitividad" resultó parcialmente falsa. De cinco capas de ventaja, solo una es genuinamente rival (los datos de scouting); operar la red tiene **rendimientos crecientes**. La inversión clave: **el problema no es de secreto, es de escasez** — 2-4 scouts no cubren 40 equipos, y cada equipo que entra multiplica la cobertura propia.
+
+Pero el gate no existía. `firestore.rules` tiene `allow read: if isAuthed()` para `match_scouting` y `pit_scouting`, con un TODO sin cerrar que lo admite, y `pit_scouting` mezcla notas privadas con el resumen público **en el mismo documento** (las reglas de Firestore no pueden enmascarar campos). Login Google sin allowlist. **La decisión de abrir ya estaba medio tomada, en la dirección equivocada.**
+
+### La inversión del primitivo (propuesta de Héctor)
+
+De "scouteo a otros y comparto observaciones" a **"reporto sobre mí y comparto eso"**. Colapsa el costo de cobertura de 20 scouts a 2 y disuelve la objeción de privacidad documentada en Chief Delphi.
+
+Su problema central es que el autorreporte es *cheap talk* — todos tienen incentivo a verse pickeable. **PRIDE ya tiene el antídoto y probablemente es la única del ecosistema que lo tiene**: `ground-truth-validation.ts` contrasta contra el puntaje oficial, que es infalsificable. De ahí salieron la taxonomía de qué se puede autorreportar (criterio: ¿verificable contra el score?), la defensa contra la omisión (el calendario da un **denominador conocido** → gatear por cobertura %, no por volumen), y la regla de que el autorreporte **agrega una fuente en lugar de reemplazar** — para lo cual el blend bayesiano de `projections.ts` ya sirve tal cual.
+
+### Lo que dijo el benchmark
+
+El ecosistema está partido en tres capas que casi nunca se cruzan (datos / captura / modelo) y **ninguna herramienta las combina**. Huecos confirmados: **ningún tool de FTC predice partidos con probabilidad**; nadie en FTC publica calibración (y en FRC solo Statbotics, congelado desde 2023); **offline-first es la queja #1 de la comunidad** y las soluciones reales son USBs con corredores humanos; y todo el ecosistema tiene bus factor de 1 (TBA opera con ~$5,000/año pidiendo ayuda en público).
+
+Dos suposiciones nuestras cayeron: **sí existe producto de pago en FTC** (FTC Tracker Pro, $1.99/mes) y **sí existe app FTC en español** (la misma). Y un usuario de Chief Delphi escribió, sin saberlo, la especificación de PRIDE: *"ease of linking data sets together between many scouters even on different teams"*.
+
+### Deuda encontrada
+
+`app/scouting/page.tsx:20-51` sirve **OPRs fabricados atribuidos a equipos mexicanos reales** (Cerbotics, PrepaTec LamBot, Botbusters) cuando se activa el toggle FRC. El motor de juego declarativo (~600 loc, testeado) sigue sin importarse y su ventana se cierra en ~6 semanas, cuando se anuncie el juego 2026-27. `docs/architecture/game-schema-migration.md` se cita 3 veces y nunca se escribió. `lib/tba-api.ts` y `lib/frc-alliance-utils.ts` no los importa nadie. `lead` y `admin` son indistinguibles: ningún check en el repo los separa.
+
+### Método
+
+Los tres agentes corrieron **solo-lectura y en paralelo**, con instrucción explícita de no ejecutar ningún git que cambiara estado — la lección de la sesión 17 se aplicó desde el arranque. Los hechos con consecuencia (la cláusula de la API, los datos FRC falsos, las reglas de Firestore, la falta de atribución) se verificaron de primera mano antes de escribirlos, no se tomaron del reporte del agente.

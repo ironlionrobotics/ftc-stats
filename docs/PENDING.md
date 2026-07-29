@@ -1,7 +1,49 @@
-# Pendientes — FTC Stats México
+# Pendientes — PRIDE
 
-**Última actualización:** 28 jul 2026 (sesión 16 — rediseño Nightshift, reporte 30311, validación masiva del Oracle)
+**Última actualización:** 29 jul 2026 (sesión 18 — estrategia de producto, benchmark, modelo de apertura)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
+
+---
+
+## 🚦 NUEVA FASE — leer `docs/ESTRATEGIA-PRODUCTO-Y-APERTURA.md` antes de retomar
+
+La sesión 18 cambió la dirección del producto. El documento de estrategia es ahora insumo obligatorio junto a este archivo. Resumen de lo que decidió:
+
+- **No se monetiza.** La API de FIRST lo prohíbe contractualmente (decisión #74). Sostenibilidad = patrocinio de infraestructura.
+- **Se abre la app con reciprocidad**, 4 anillos (decisión #75). **El gate de lectura va ANTES de invitar a nadie.**
+- **Se invierte el primitivo del scouting** a autorreporte federado (decisión #76).
+- **Inglés por defecto + i18n** (decisión #77).
+
+### 🔴 Bloqueante absoluto de la apertura
+
+**Cerrar el gate de lectura de Firestore.** Hoy `firestore.rules` tiene `allow read: if isAuthed()` en `match_scouting` (línea 139) y `pit_scouting` (línea 152), con un TODO sin cerrar que lo reconoce. `pit_scouting` guarda `notes` privadas y `publicSummary` en el **mismo documento**, y las reglas no pueden enmascarar campos. Login Google **sin allowlist**. **Invitar equipos con esto es entregar todo, en silencio, incluidas las notas privadas.** Requiere: gating por contribución/evento + separar pit público y privado en documentos distintos.
+
+### 🔴 Incumplimiento de licencia, en producción hoy
+
+**Falta la atribución a la API de FIRST.** La página de la API exige un enlace de retorno en el footer o el "About" de cualquier app que muestre sus datos. Grep sobre `app/` y `components/` no encuentra ninguna referencia a `firstinspires.org`. Desplegado sin ella desde el 25 jul. **Se arregla con una línea.**
+
+### ⏳ Urgente por calendario (~6 semanas)
+
+**Conectar el motor de juego declarativo.** `lib/games/ftc-decode-2025.ts` + `types/game-definition.ts` + `zod-from-definition.ts` + `DynamicGameForm.tsx` son ~600 líneas ya escritas y testeadas que **nadie importa**. Falta un cambio de import en `MatchScoutingForm.tsx` + QA de paridad. El juego FTC 2026-27 se anuncia en septiembre: con el motor conectado, adaptarse cuesta *escribir un archivo*; sin conectarlo, cuesta *reescribir formularios* en plena pretemporada. Va acompañado de `docs/architecture/game-schema-migration.md`, **citado 3 veces (`CLAUDE.md:83`, aquí en :137 y :229) y nunca escrito**.
+
+### 🧹 Matar (verificado, con evidencia)
+
+- **Datos FRC fabricados** — `app/scouting/page.tsx:20-51` asigna OPRs inventados (45.2 / 52.4 / 60.1) a **equipos mexicanos reales**: Cerbotics 4400, PrepaTec LamBot 3478, Botbusters 4635. Corre en producción con el toggle FRC. Incompatible con la narrativa de "cada número es auditable".
+- **Toggle FTC/FRC visible** — promete un modo sin datos reales detrás. Ocultar hasta que TBA esté conectado.
+- **`share_target` del manifest** (`public/manifest.webmanifest:54-62`) — declara recibir `title`/`text`/`url`; `/scouting` no lee `searchParams`. Quitar o implementar.
+- **Sección react-hooks de este archivo** (líneas ~194-197) — ya resuelto en `deab1f6` (42 → 0, decisión #41). Pendiente fantasma.
+
+**Conservar sin activar** (253 loc correctas, semilla real de FRC): `lib/tba-api.ts`, `lib/frc-alliance-utils.ts`.
+
+### 🎨 Arquitectura de información
+
+Diagnóstico: **la app está organizada por conjuntos de datos, no por el momento en que estás.** Mayor palanca: **`/` deja de ser tabla global y se vuelve "Hoy"** (próximo partido, ranking proyectado, cobertura de scouting, probabilidad de alianza). **No requiere matemática nueva** — `LiveRankingProjection`, el `nextMatch` de `MatchList`, `draftOdds()` y `lib/consistency.ts` ya lo calculan todo. Es ensamblaje.
+
+Otros: el Oracle se monta en 2 lugares (2 clics vs 5 niveles); hay **dos simuladores que no se conocen** (`TournamentSimulator`, 1164 líneas, está enterrado); `TeamSeasonReport` está **cableado a 30311** (los demás ven página vacía — bloquea la apertura); renombrar "Iron Lion Intelligence" en `/pro`; nav en un solo idioma; **`lead` y `admin` son indistinguibles** (ningún check en el repo los separa).
+
+### 🌐 i18n
+
+Inglés por defecto + `es`. **No es refactor de UI**: 13 módulos de `lib/` tienen español en la capa de análisis (`draft-odds.ts` genera frases, `consistency.ts` escribe notas, `schemas/scouting.ts` tiene mensajes de Zod). El patrón correcto es que esa capa devuelva **claves + parámetros**, no prosa. Meter el andamiaje **antes** de construir "Hoy" y las vistas de red. **Regla desde hoy: ningún string nuevo hardcodeado.**
 
 ---
 

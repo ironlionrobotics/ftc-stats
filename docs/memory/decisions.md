@@ -622,3 +622,80 @@ Subestimado **5×**. El peso de z casi no se movió, así que la σ×2.4 de #59 
 **Integración.** La derivación sale limpia: con consDiff = (σ̄_blue − σ̄_red)/σ_evento y pesos 0.6568/−0.6956, el modelo equivale a desplazar z en −1.059·consDiff; como z ya es un margen dividido entre σ_evento, esa σ **se cancela** y todo se reduce a sumar `1.059 × (σ̄_red − σ̄_blue)` al margen de red. Sin aproximación de escala. `CONSISTENCY_MARGIN_WEIGHT` + `consistencyMarginAdjustment()` en lib/win-probability.ts; `Alliance.meanSigma` (la MEDIA por equipo, distinta de `totalSigma` que combina en cuadratura) en types/oracle.ts.
 
 Aplicado en el camino analítico **y en el Monte Carlo** con el mismo desplazamiento — un muestreador que no coincide con la forma cerrada es peor que cualquiera de los dos solo. Inerte cuando falta σ de cualquiera de los dos lados: el efecto es una diferencia, y usar medio dato sesgaría hacia la alianza que sí la tenga. 5 tests nuevos (307 total), incluida la equivalencia entre desplazar el margen y pasar consistencia.
+
+---
+
+## #74 · No se monetiza: la API de FIRST lo prohíbe contractualmente (2026-07-29)
+
+Se evaluó cobrar suscripción a otros equipos. **Descartado, y la razón que decide no es cultural.**
+
+La página de la API de FIRST dice, verbatim (verificado directamente en [ftc-events.firstinspires.org/services/API](https://ftc-events.firstinspires.org/services/API)):
+
+> *"The data from this API may not be used for commercial purposes. There can be no financial gain from acquiring an access token."*
+
+PRIDE está construida sobre esos datos. No es una norma cultural negociable: es la condición bajo la cual tenemos acceso. Cualquier esquema de suscripción choca de frente.
+
+Las razones secundarias siguen en pie y apuntan igual: (1) cobrar por ventaja competitiva contradice *Gracious Professionalism* y sacrificaría Connect/Inspire, que valen más que cualquier ingreso plausible; (2) el mercado es diminuto — el Mexico Championship 2025 tuvo 52 equipos; (3) cobrar nos volvería procesador **pagado** de datos sobre menores; (4) convierte la historia de "regalo a la comunidad" en una de "proveedor".
+
+Contexto de escala del ecosistema: **The Blue Alliance opera con ~$5,000 USD/año** y se financia con donaciones, pidiendo ayuda en público. Statbotics lo paga su autor de su bolsillo. La sostenibilidad se resuelve con **patrocinio de infraestructura**, no con suscripciones.
+
+**Hallazgo adjunto, incumplido hoy:** la misma página exige un enlace de retorno a la API en el footer o el "About" de cualquier app que muestre sus datos. Un grep sobre `app/` y `components/` no encuentra ninguna referencia a `firstinspires.org`. La app lleva desplegada desde el 25 jul sin esa atribución. Pendiente en `docs/PENDING.md`.
+
+Ver `docs/ESTRATEGIA-PRODUCTO-Y-APERTURA.md` Parte IV.
+
+---
+
+## #75 · Modelo de apertura: 4 anillos con reciprocidad, y el gate va ANTES de invitar (2026-07-29)
+
+La premisa "si abro la app pierdo competitividad" es parcialmente falsa. La ventaja se descompone en cinco capas y solo una es genuinamente rival: **los datos de scouting**. El software no es rival, la analítica de datos públicos ya está commoditizada (FTCScout, Statbotics), la habilidad de uso no se transfiere, y **operar la red tiene rendimientos crecientes**.
+
+La inversión que decide: **el problema no es de secreto, es de escasez.** 30311 tiene 2-4 scouts para ~40 equipos y ~60 partidos de quals. Guardarse la herramienta mantiene al equipo pobre en el único insumo que importa.
+
+**Modelo: abrir la herramienta, cerrar el dato por reciprocidad.** Cuatro anillos — (0) público sin cuenta: stats oficiales, `/oracle`, rankings nacionales; (1) equipo registrado: sus propios datos y herramientas; (2) red federada: consenso del evento **proporcional a lo que aportas**; (3) Iron Lion: notas privadas, subjetivos por-org, picklist, DNP, calibración.
+
+**Línea ética explícita:** la asimetría debe ser "mis datos privados son míos", **nunca** "el operador lee en secreto a sus rivales". Operar la red y competir contra sus miembros ya es conflicto de interés; lectura privilegiada destruiría la narrativa de Connect/Inspire si se descubre. Mitigación: publicar las reglas de visibilidad como artefacto público, al estilo `/oracle`.
+
+**BLOQUEANTE TÉCNICO — el gate va antes que la invitación.** Hoy `firestore.rules` tiene `allow read: if isAuthed()` para `match_scouting` (línea 139) y `pit_scouting` (152), con un TODO sin cerrar que lo reconoce. Agravante: pit scouting guarda `notes` (privadas) y `publicSummary` (opt-in) **en el mismo documento**, y las reglas de Firestore **no pueden enmascarar campos**. El login es Google **sin allowlist**. La separación por org que describe CLAUDE.md vive solo en la capa de aplicación (`lib/scouting-aggregation.ts`); la base de datos no la respalda. **Invitar equipos con las reglas actuales = entregar todo, en silencio, incluidas las notas privadas.**
+
+Bien protegidos, en cambio: `picklists`, `calibration_log` y `org_secrets` sí están acotados por `orgId`.
+
+Ajuste de prioridad: **el primer territorio de VISION-PRIDE ya no es T2 (outreach) sino T5 (red federada)**, porque T5 *es* el modelo de apertura. T2 viene incluido.
+
+---
+
+## #76 · Autorreporte federado: se invierte el primitivo del scouting (2026-07-29)
+
+Propuesta de Héctor. En vez de *"scouteo a otros y comparto mis observaciones"*, el modelo es *"reporto sobre mí mismo y comparto eso"*. Un equipo pasa de necesitar 20 scouts a necesitar 1-2.
+
+**Por qué es más fuerte que el pooling de Purple Warehouse** (el único federado probado, 323 equipos, y solo FRC): colapsa el costo de cobertura; **disuelve la objeción de privacidad documentada** en Chief Delphi (*"storing qualitative notes and picklists on another team's platform would give me a little pause"*) porque no compartes tu juicio sobre otros sino hechos sobre ti; y nadie lo hace en ningún programa.
+
+**Propiedad emergente:** participar es una **señal costosa**. Un equipo fuerte gana con ser visto, uno débil con esconderse — no compartir se lee como "no tengo nada que mostrar". La red se refuerza sin imponer nada.
+
+**El problema central: el autorreporte es *cheap talk*.** Todos tienen incentivo a verse pickeable; si declarar es gratis, la señal vale cero. **PRIDE tiene el antídoto y probablemente es la única del ecosistema que lo tiene:** `lib/ground-truth-validation.ts` ya contrasta la reconstrucción contra el puntaje oficial de la FIRST API. No puedes declarar 8 artifacts si la alianza anotó 30 puntos. La inflación sistemática sale como error de reconstrucción y el EWMA baja la confiabilidad sola. Purple Warehouse aplica su accuracy score donde el error es **ruido aleatorio**; aquí se aplicaría donde el sesgo es **direccional**, que es donde más vale.
+
+**Regla de diseño — qué se puede autorreportar** (criterio: ¿verificable contra el score oficial?):
+- **Sí**: conteos por partido, rutina de auto, parking, ciclos, specs, bitácora de fallas.
+- **Nunca**: driver skill, defensa, would-pick. Juicio ajeno, no verificable, incentivo puro a inflar. Siguen observados y por-org.
+- **Preferencia declarada** (no es afirmación de desempeño): "en qué somos buenos / qué buscamos en un aliado".
+
+**El ataque real es la omisión, no la mentira** — no reportar los partidos malos. Defensa: el calendario es público, así que existe un **denominador conocido**. La métrica de reputación y el gate deben ser **cobertura %, no volumen**.
+
+**No reemplaza: agrega una fuente.** Con pocos participantes el autorreporte cubre menos que los propios scouts, así que planteado como sustituto el primer evento fracasa. Entra como fuente adicional con su propia clase de confiabilidad — **el blend bayesiano de varianza inversa de `lib/projections.ts` ya está diseñado exactamente para eso**, no hace falta matemática nueva.
+
+**El gate debe ser natural, no artificial.** Capar features a propósito se siente punitivo y obliga a defender una política. "El pool solo contiene lo que la gente aportó" es simplemente cierto y se aplica solo.
+
+Costo para 30311: menos ventaja informativa, pero el hallazgo de FPEMX ya decía que **ser pickeable vale más**, y la diferencia se muda a la calidad del análisis. Como narrativa de premios, *"diseñamos un sistema donde compartir es la estrategia dominante"* es **diseño de mecanismos** — apunta a Innovate y Think.
+
+---
+
+## #77 · Inglés por defecto + i18n, y por qué no es un refactor de UI (2026-07-29)
+
+La app pasa a **inglés por defecto** y se vuelve multilenguaje (`en` default, `es`). El modelo de autorreporte lo hace más urgente: una red que funcione no se queda mexicana.
+
+**La trampa: 13 módulos de `lib/` tienen strings en español dentro de la capa de análisis**, no solo en componentes — `event-selector`, `projections`, `draft-odds`, `invite-redemption`, `constants`, `orgs`, `schemas/scouting`, `alliance-utils`, `games/ftc-decode-2025`, `consistency`, `briefings/briefing-data`, `reports/growth-curves`, `reports/team-30311-decode`.
+
+Casos concretos: `draft-odds.ts` **genera frases explicativas** (campo `basis`), `consistency.ts` escribe notas interpretativas, `schemas/scouting.ts` tiene los mensajes de Zod. Tratar i18n como "traducir componentes" deja al Oracle hablando español desde el motor.
+
+El patrón correcto: la capa de análisis devuelve **claves + parámetros**, no prosa. Es un cambio de contrato en funciones que hoy retornan strings formados.
+
+**Secuenciación:** no es lo primero (el gate de lectura y el motor de juego pesan más), pero **el andamiaje va antes de construir las superficies nuevas** (home "Hoy", vistas de red) o esos strings se escriben dos veces. **Regla desde hoy: ningún string nuevo hardcodeado.** Herramienta sugerida: `next-intl`.
