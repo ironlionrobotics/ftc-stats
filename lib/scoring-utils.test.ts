@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { levelsMatch, computeStdDev } from "./pro-scouting";
+import { levelsMatch, computeStdDev } from "./scoring-utils";
 
 describe("levelsMatch", () => {
     it("matches FTCMatch's all-caps tournamentLevel against a title-cased matchLevel", () => {

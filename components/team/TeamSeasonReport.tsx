@@ -1,9 +1,10 @@
 import { Fragment } from "react";
 import { TEAM_30311_DECODE } from "@/lib/reports/team-30311-decode";
 import { RookieComparison } from "@/components/team/RookieComparison";
+import { ConsistencyTracker } from "@/components/team/ConsistencyTracker";
 import {
     Trophy, TrendingUp, Award, Target, Globe, Medal,
-    Flame, ArrowUpRight, Sparkles, MapPin, Rocket, ExternalLink,
+    Flame, ArrowUpRight, Sparkles, MapPin, Rocket, ExternalLink, Activity,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -57,9 +58,19 @@ export function TeamSeasonReport() {
                 <GrowthChart />
             </ReportSection>
 
-            {/* ── Skill breakdown ──────────────────────────────────────── */}
+            {/* ── Consistency tracker ──────────────────────────────────── */}
             <ReportSection
                 n="02"
+                title="Consistencia: ¿crecimiento o volatilidad?"
+                desc="Un promedio de temporada esconde dos historias muy distintas. Aquí se separan: cuánta de la dispersión evento a evento es una tendencia de mejora, y cuánta es ruido — porque cada una se corrige de forma opuesta."
+                icon={<Activity size={20} />}
+            >
+                <ConsistencyTracker />
+            </ReportSection>
+
+            {/* ── Skill breakdown ──────────────────────────────────────── */}
+            <ReportSection
+                n="03"
                 title="Desglose de habilidad vs. el mundo"
                 desc="Percentil mundial de la temporada por fase de juego. Fuertes en teleoperado y endgame; el autónomo es la palanca de crecimiento."
                 icon={<Target size={20} />}
@@ -73,7 +84,7 @@ export function TeamSeasonReport() {
 
             {/* ── Results per event ────────────────────────────────────── */}
             <ReportSection
-                n="03"
+                n="04"
                 title="Resultados por evento"
                 desc="Cada parada de la temporada: field, ranking, récord, RP, OPR y reconocimientos."
                 icon={<Medal size={20} />}
@@ -128,7 +139,7 @@ export function TeamSeasonReport() {
 
             {/* ── Mexico cohort ────────────────────────────────────────── */}
             <ReportSection
-                n="04"
+                n="05"
                 title="Frente a los grandes de México"
                 desc="Los 8 programas mexicanos más consolidados (3 a 9 temporadas) por OPR — la vara del tier veterano. No es la tabla de posiciones nacional: Iron Lion es rookie (1ª temporada) y aparece al final para medir la distancia a ese tier, no como un 9° lugar."
                 icon={<MapPin size={20} />}
@@ -146,7 +157,7 @@ export function TeamSeasonReport() {
 
             {/* ── Rookie comparison · national + international ──────────── */}
             <ReportSection
-                n="05"
+                n="06"
                 title="Contra otros rookies"
                 desc="Cómo se ubica Iron Lion entre los equipos rookie (debut 2025) a nivel nacional e internacional — por desempeño del robot (OPR) y por premios. Ambas cohortes son exhaustivas contra el registro de FTCScout."
                 icon={<Sparkles size={20} />}
@@ -156,7 +167,7 @@ export function TeamSeasonReport() {
 
             {/* ── World context ────────────────────────────────────────── */}
             <ReportSection
-                n="06"
+                n="07"
                 title="El horizonte mundial"
                 desc="El top 5 del planeta esta temporada — programas consolidados con años de historia. Marca la ambición, no la vara de hoy."
                 icon={<Globe size={20} />}
@@ -186,7 +197,7 @@ export function TeamSeasonReport() {
 
             {/* ── Learnings ────────────────────────────────────────────── */}
             <ReportSection
-                n="07"
+                n="08"
                 title="Aprendizajes y próximos objetivos"
                 desc="Lo que la data dice sobre dónde crecer."
                 icon={<Target size={20} />}

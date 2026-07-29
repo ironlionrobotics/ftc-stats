@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 // avoided in unit tests, so we don't need the next.js plugin or jsdom.
 export default defineConfig({
     test: {
-        include: ["lib/**/*.test.ts", "lib/**/__tests__/**/*.test.ts", "app/actions/**/*.test.ts"],
+        include: ["lib/**/*.test.ts", "lib/**/__tests__/**/*.test.ts"],
         environment: "node",
         // Speeds up CI and prevents accidental network calls slipping in.
         testTimeout: 5000,

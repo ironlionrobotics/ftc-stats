@@ -2,23 +2,8 @@
 
 import { fetchTeamEvents, fetchRankings, fetchMatches, fetchMatchScores, getCachedData, setCachedData, fetchTeam, FTCMatchScoreEntry, FTCAllianceScoreBreakdown } from "@/lib/ftc-api";
 import { TeamRanking, FTCMatch } from "@/types/scouting";
-
-// Match score entries from the FIRST API `/scores` endpoint use a
-// `matchLevel` string ("Qualification", "Playoff", etc.) that doesn't
-// necessarily match FTCMatch.tournamentLevel's casing/wording
-// ("QUALIFICATION", "PLAYOFF"). Compare via a normalized prefix match,
-// mirroring the already-correct pattern in app/actions/analytics.ts.
-export function levelsMatch(tournamentLevel: string, matchLevel: string): boolean {
-    return matchLevel.toUpperCase().startsWith(tournamentLevel.substring(0, 4).toUpperCase());
-}
-
-// Guards the zero-length case so `consistency` is never persisted as NaN
-// (e.g. a team whose events are all still upcoming, or a data gap).
-export function computeStdDev(scores: number[], mean: number): number {
-    if (scores.length === 0) return 0;
-    const variance = scores.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / scores.length;
-    return Math.sqrt(variance);
-}
+// Kept in lib/ because a "use server" module may only export async functions.
+import { levelsMatch, computeStdDev } from "@/lib/scoring-utils";
 
 export interface TeamSeasonStats {
     teamNumber: number;

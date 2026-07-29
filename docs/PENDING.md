@@ -23,7 +23,7 @@ Del menú discutido en sesión 16 (los 3 primeros ya se hicieron: schedule stren
 - **Curvas de crecimiento** rookie→veterano por región (7 temporadas de datos ya disponibles).
 - **Ciencia del draft** — priors históricos de selección de alianzas para el asesor de invitación.
 - **Página pública de calibración** del Oracle (transparencia radical; base para "informar al público").
-- **Tracker de consistencia 30311** — cerrar la brecha OPR temporada (63.4) vs pico (80.8), la métrica que decide burbuja vs pick (decisión #58).
+- ~~**Tracker de consistencia 30311**~~ ✅ HECHO 28 jul (decisión #61). `lib/consistency.ts` +24 tests, sección 02 del reporte de equipo. Hallazgo: la dispersión es **crecimiento** (r² 0.77, +8.4 OPR/evento), no volatilidad — y el OPR público va 15.2 puntos por detrás de la forma actual. El driver de volatilidad real es **teleop**, no auto (contradice el learning previo del reporte, que habría que actualizar).
 - **consDiff** en el modelo de eliminatorias (requiere plomería de σ por equipo en call sites, decisión #59).
 
 Este documento es la **fuente autoritativa** de qué falta. Leer al iniciar cualquier sesión nueva. Después de hacer trabajo, actualizar moviendo items entre secciones.
