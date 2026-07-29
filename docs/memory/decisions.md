@@ -533,3 +533,15 @@ Verificado end-to-end en navegador: se puebla la caché con servidor sano, se re
 ## #68 · `FTC_IntoTheDeepForm` → `FTC_DecodeForm` (2026-07-29)
 
 El form capturaba campos DECODE desde hace temporadas pero conservaba el nombre del juego anterior. Renombrado el archivo y, para no dejarlo a medias, también los identificadores: `ftcIntoTheDeepFormSchema` → `ftcDecodeFormSchema`, `FTCIntoTheDeepFormValues` → `FTCDecodeFormValues`, `FTCIntoTheDeepData` → `FTCDecodeData`. Renombre puro verificado por typecheck; las referencias a IntoTheDeep que quedan son históricas y correctas (formas de `scoreBreakdown` por temporada en `analytics.ts`).
+
+## #69 · Página pública de calibración del Oracle (`/oracle`) (2026-07-29)
+
+Publica en abierto y sin autenticación qué tan bien predice el Oracle. Razón: una herramienta de predicción que no enseña su tasa de error está pidiendo una confianza que no se ha ganado. Sirve además al objetivo de "informar al público" y da material citable ante jueces y patrocinadores.
+
+**Todas las cifras se RECOMPUTARON desde `data/oracle-backtest/*.jsonl`**, no se transcribieron de la prosa de decisiones previas — el módulo `lib/reports/oracle-calibration.ts` se generó por script para eliminar el riesgo de transcripción. Reproduce el expediente: 7 temporadas, 2,793 eventos, **21,436 partidos, 74.8%** global.
+
+Hallazgo nuevo que la prosa no tenía: **el diagrama de fiabilidad**. Sobre los 10,800 partidos de 2024-2025 (el conteo cuadra exacto con #59 tras filtrar 1,326 marcadores `{skipped:true}` que NO son partidos), el modelo original resulta fuertemente sobreconfiado en los extremos — decía 98% y ganaba 86%; decía 85% y ganaba 69% — mientras que su calibración *promedio* era ligeramente infra-confiada (73.1% declarado vs 75.8% logrado). Ambas cosas a la vez, que es justo lo que un promedio esconde y un diagrama revela. Con la σ×2.4 de #59 todos los tramos caen dentro de 3pp. La página muestra **las dos curvas**: ocultar la mala sería marketing, no evidencia.
+
+Detalle de honestidad en la tabla: cada modelo lleva **su propio conteo de partidos por tramo**, porque corregir la incertidumbre reordena predicciones entre tramos (el 90-100% pasa de 6,241 a 2,400 partidos). Una sola columna de conteo compartida daría a entender que ambos porcentajes describen los mismos partidos — no lo hacen. Se detectó revisando la página en navegador, no en el código.
+
+Enlazada desde el nav principal: una página que nadie encuentra no es transparencia. Server Component sobre datos estáticos ⇒ no agrega JS de cliente.

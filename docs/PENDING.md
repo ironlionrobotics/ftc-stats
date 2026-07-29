@@ -22,7 +22,7 @@ Del menú discutido en sesión 16 (los 3 primeros ya se hicieron: schedule stren
 - **Detector de meta defensivo** — ensanchar σ automáticamente cuando los residuales huelen a defensa (lección PowerPlay 2022).
 - **Curvas de crecimiento** rookie→veterano por región (7 temporadas de datos ya disponibles).
 - **Ciencia del draft** — priors históricos de selección de alianzas para el asesor de invitación.
-- **Página pública de calibración** del Oracle (transparencia radical; base para "informar al público").
+- ~~**Página pública de calibración**~~ ✅ HECHO 29 jul (decisión #69). `/oracle`, enlazada en el nav. Cifras recomputadas desde la data cruda, no transcritas. Incluye el diagrama de fiabilidad con la curva del modelo original (sobreconfiado) junto a la corregida.
 - ~~**Tracker de consistencia 30311**~~ ✅ HECHO 28 jul (decisión #61). `lib/consistency.ts` +24 tests, sección 02 del reporte de equipo. Hallazgo: la dispersión es **crecimiento** (r² 0.77, +8.4 OPR/evento), no volatilidad — y el OPR público va 15.2 puntos por detrás de la forma actual. El driver de volatilidad real es **teleop**, no auto (contradice el learning previo del reporte, que habría que actualizar).
 - **consDiff** en el modelo de eliminatorias (requiere plomería de σ por equipo en call sites, decisión #59).
 

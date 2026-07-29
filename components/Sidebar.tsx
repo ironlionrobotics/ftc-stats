@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { Home, ClipboardList, Menu, X, BarChart2, Sun, Moon, Swords } from "lucide-react";
+import { Home, ClipboardList, Menu, X, BarChart2, Sun, Moon, Swords, Target } from "lucide-react";
 import clsx from "clsx";
 import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
@@ -129,6 +129,11 @@ export default function Sidebar() {
                         </NavItem>
                         <NavItem href="/analytics" icon={BarChart2} isActive={pathname === "/analytics"} onClick={handleLinkClick}>
                             Data Lab <span className="ml-auto text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold">NEW</span>
+                        </NavItem>
+                        {/* Public accuracy record. Linked from the main nav on purpose:
+                            a page nobody can find is not transparency. */}
+                        <NavItem href="/oracle" icon={Target} isActive={pathname === "/oracle"} onClick={handleLinkClick}>
+                            Precisión del Oracle
                         </NavItem>
                     </nav>
 
