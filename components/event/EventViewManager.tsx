@@ -18,6 +18,11 @@ import { Users as LucideUsers } from "lucide-react";
 import AwardList from "./AwardList";
 import AdvancementList from "./AdvancementList";
 import Link from "next/link";
+// useAuth only reads context; AuthProvider is already mounted app-wide in the
+// root layout, so this adds no Firebase to the public event bundle (the SDK
+// itself stays behind the dynamic import in the effect below).
+import { useAuth } from "@/context/AuthContext";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 interface EventViewManagerProps {
     matches: FTCMatch[];
@@ -36,6 +41,8 @@ export default function EventViewManager({ matches, rankings, advancement, award
     const [activeTab, setActiveTab] = useState<"matches" | "rankings" | "oracle" | "teams" | "advancement" | "awards">("teams");
     const [scoutingData, setScoutingData] = useState<MatchScouting[]>([]);
     const [filterTeam, setFilterTeam] = useState<number | null>(null);
+    const { orgId } = useAuth();
+    const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
 
     // Determine total rounds based on max plays by any team, defaults to 5 if not found
     const totalRounds = useMemo(() => {
@@ -53,12 +60,12 @@ export default function EventViewManager({ matches, rankings, advancement, award
         (async () => {
             const { listenToMatchScouting } = await import("@/lib/scouting-service");
             if (cancelled) return;
-            unsubscribe = listenToMatchScouting(season, eventCode, (data) => {
+            unsubscribe = listenToMatchScouting(season, eventCode, effectiveOrgId, (data) => {
                 setScoutingData(data);
             });
         })();
         return () => { cancelled = true; unsubscribe?.(); };
-    }, [activeTab, eventCode, season]);
+    }, [activeTab, eventCode, season, effectiveOrgId]);
 
     const matchesPerRound = useMemo(() => {
         if (!rankings.length) return 0;

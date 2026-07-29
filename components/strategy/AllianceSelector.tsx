@@ -10,6 +10,8 @@ import { FTCMatchScouting } from "@/types/scouting";
 import clsx from "clsx";
 import { toast } from "sonner";
 import { guessActiveEventCode } from "@/lib/active-event";
+import { useAuth } from "@/context/AuthContext";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 interface AllianceSelectorProps {
     teams: AggregatedTeamStats[];
@@ -23,6 +25,7 @@ interface ScoutingSummary {
 
 export default function AllianceSelector({ teams }: AllianceSelectorProps) {
     const { season } = useProgram();
+    const { orgId } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedTeams, setSelectedTeams] = useState<AggregatedTeamStats[]>([]);
     const [scoutingEntries, setScoutingEntries] = useState<MatchScouting[]>([]);
@@ -31,11 +34,12 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
     // Real-time listen to scouting data to inform strategy
     useEffect(() => {
         const eventCode = guessActiveEventCode(teams) ?? "MXTOL";
-        const unsubscribe = listenToMatchScouting(season, eventCode, (entries) => {
+        const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
+        const unsubscribe = listenToMatchScouting(season, eventCode, effectiveOrgId, (entries) => {
             setScoutingEntries(entries);
         });
         return () => unsubscribe();
-    }, [season, teams]);
+    }, [season, teams, orgId]);
 
     // Helper to get aggregated scouting info for a team
     const getScoutingSummary = (teamNumber: number) => {

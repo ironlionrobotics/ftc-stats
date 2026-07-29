@@ -11,6 +11,8 @@ import SourceBadge from "@/components/scouting/SourceBadge";
 import { useScoutReliabilities } from "@/lib/hooks/use-scout-reliabilities";
 import clsx from "clsx";
 import { guessActiveEventCode } from "@/lib/active-event";
+import { useAuth } from "@/context/AuthContext";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 interface MatchSimulatorProps {
     teams: AggregatedTeamStats[];
@@ -18,6 +20,8 @@ interface MatchSimulatorProps {
 
 export default function MatchSimulator({ teams }: MatchSimulatorProps) {
     const { season } = useProgram();
+    const { orgId } = useAuth();
+    const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
     const scoutReliabilities = useScoutReliabilities();
     const [redAlliance, setRedAlliance] = useState<number[]>([]);
     const [blueAlliance, setBlueAlliance] = useState<number[]>([]);
@@ -28,22 +32,22 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
     // Listen for live scouting data
     useEffect(() => {
         const eventCode = guessActiveEventCode(teams) ?? "MXTOL";
-        const unsubscribe = listenToMatchScouting(season, eventCode, (entries) => {
+        const unsubscribe = listenToMatchScouting(season, eventCode, effectiveOrgId, (entries) => {
             setScoutingData(entries);
         });
         return () => unsubscribe();
-    }, [season, teams]);
+    }, [season, teams, effectiveOrgId]);
 
     // Load Pit Data for selected teams
     useEffect(() => {
         const uniqueTeams = Array.from(new Set([...redAlliance, ...blueAlliance]));
         uniqueTeams.forEach(async (t) => {
             if (!pitData[t]) {
-                const data = await getPitScouting(season, t);
+                const data = await getPitScouting(season, t, effectiveOrgId);
                 if (data) setPitData(prev => ({ ...prev, [t]: data }));
             }
         });
-    }, [redAlliance, blueAlliance, season, pitData]);
+    }, [redAlliance, blueAlliance, season, pitData, effectiveOrgId]);
 
     // Projection is pure derived state — a function of the picks, scouting,
     // pit data and the manual adjustments. useMemo (not an effect + setState)

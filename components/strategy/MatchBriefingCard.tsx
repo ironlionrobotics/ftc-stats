@@ -39,9 +39,9 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
     const [scoutingEntries, setScoutingEntries] = useState<MatchScouting[]>([]);
 
     useEffect(() => {
-        const unsub = listenToMatchScouting(season, eventCode, setScoutingEntries);
+        const unsub = listenToMatchScouting(season, eventCode, effectiveOrgId, setScoutingEntries);
         return () => unsub();
-    }, [season, eventCode]);
+    }, [season, eventCode, effectiveOrgId]);
 
     const ready = redTeams.length === 2 && blueTeams.length === 2;
 

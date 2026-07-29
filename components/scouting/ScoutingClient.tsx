@@ -54,11 +54,12 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
     useEffect(() => {
         // For now, we assume a default event code or use the one from the teams' first event
         const eventCode = guessActiveEventCode(initialTeams) ?? "MXTOL";
-        const unsubscribe = listenToMatchScouting(season, eventCode, (entries) => {
+        const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
+        const unsubscribe = listenToMatchScouting(season, eventCode, effectiveOrgId, (entries) => {
             setMatchScoutingEntries(entries);
         });
         return () => unsubscribe();
-    }, [season, initialTeams]);
+    }, [season, initialTeams, orgId]);
 
     const handleSavePitData = async (data: PitScouting) => {
         if (!user) {

@@ -8,14 +8,30 @@ rules_version = '2';
 //   - org create writes only by the document creator
 //   - invite redemption increments use counter without rewriting other fields
 //
-// Still TODO (Sprint 1.7+): per-event subscription gating for reads. Today any
-// authed user can read all match_scouting in any event.
+// Sprint 1.7 — PHASE 1 READ LOCKDOWN (openness prerequisite). Reads of
+// match_scouting and pit_scouting are now scoped to the reader's OWN org.
+// Before this, any authed user could read every org's scouting — including
+// private pit notes, which share a document with the opt-in public summary
+// (Firestore rules can't field-mask, so the note rode along with the summary).
+// Inviting a second org with that in place would have handed over everything
+// silently. Phase 1 closes it completely by never letting one org read
+// another's data. Cross-org FEDERATION (participation-gated pool + a dedicated
+// public_pit_summaries collection so a shared summary can't drag notes with it)
+// is Phase 2, built with the first real invite when it can be tested with two
+// orgs. See docs/ESTRATEGIA-PRODUCTO-Y-APERTURA.md Parte IV.
 
 service cloud.firestore {
     match /databases/{database}/documents {
 
         function isAuthed() {
             return request.auth != null;
+        }
+
+        // Org that owns pre-federation (pre-Sprint-1.4) documents. Those legacy
+        // docs lack an `orgId` field; they were all written by FTC 30311, the
+        // only org before federation. Mirrors DEFAULT_ORG_ID in lib/constants.
+        function legacyOrgId() {
+            return '30311';
         }
 
         function myUserDoc() {
@@ -132,24 +148,48 @@ service cloud.firestore {
         }
 
         // Match scouting (federated):
-        //   - Anyone authed can read (Sprint 1.7 will scope by event subscription).
+        //   - PHASE 1: reads scoped to the reader's own org. Firestore rules
+        //     aren't filters — a list query must add where("orgId","==", myOrg)
+        //     so every returned doc passes this rule; a query for another org's
+        //     data is rejected wholesale. `resource == null` lets the
+        //     create-if-not-exists existence probe (getDoc before write, see
+        //     saveMatchScouting) succeed for a brand-new id. Legacy entries with
+        //     no orgId are excluded from list results (the orgId filter can't
+        //     match a missing field) — an accepted gap; a one-time backfill can
+        //     reclaim them if any exist. Super-scouting entries live here too
+        //     (scoutingMode:"super"); own-org scoping already keeps another
+        //     org's subjective ratings private.
         //   - Writers must set scoutId == their uid and orgId == their actual org.
         //     This prevents impersonation across orgs.
         //   - No updates after the fact. Re-scout = new entry. Audit trail.
         match /match_scouting/{entryId} {
-            allow read: if isAuthed();
+            allow read: if isAuthed() && (
+                resource == null
+                || (('orgId' in resource.data) && resource.data.orgId == myOrgId())
+            );
             allow create: if isAuthed()
                 && request.resource.data.scoutId == request.auth.uid
                 && request.resource.data.orgId == myOrgId();
             allow update, delete: if false;
         }
 
-        // Pit scouting: any authed user reads (the public summary is included
-        // alongside private fields — Sprint 1.7 will split into public/private
-        // views via Firestore subcollections or denormalized public docs).
+        // Pit scouting: PHASE 1 — readable only by the owning org. The doc
+        // holds private `notes` AND the opt-in `publicSummary` together, and
+        // rules can't field-mask, so the only safe stance until Phase 2 splits
+        // the public summary into its own collection is: no cross-org reads.
+        //   - resource == null: getPitScouting probes the new-format id and, on
+        //     miss, falls back to the legacy `${season}_${team}` id; neither
+        //     probe may be denied or the fallback throws instead of returning null.
+        //   - legacy branch: pre-1.4 docs have no orgId and belong to 30311, so
+        //     only a 30311 reader may see them (single-doc gets; list queries
+        //     filter on orgId and won't return orgId-less docs anyway).
         // Writes restricted to the doc's own org members.
         match /pit_scouting/{pitId} {
-            allow read: if isAuthed();
+            allow read: if isAuthed() && (
+                resource == null
+                || (('orgId' in resource.data) && resource.data.orgId == myOrgId())
+                || (!('orgId' in resource.data) && myOrgId() == legacyOrgId())
+            );
             allow create: if isAuthed()
                 && request.resource.data.orgId == myOrgId();
             allow update: if isAuthed()

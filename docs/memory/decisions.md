@@ -699,3 +699,20 @@ Casos concretos: `draft-odds.ts` **genera frases explicativas** (campo `basis`),
 El patrón correcto: la capa de análisis devuelve **claves + parámetros**, no prosa. Es un cambio de contrato en funciones que hoy retornan strings formados.
 
 **Secuenciación:** no es lo primero (el gate de lectura y el motor de juego pesan más), pero **el andamiaje va antes de construir las superficies nuevas** (home "Hoy", vistas de red) o esos strings se escriben dos veces. **Regla desde hoy: ningún string nuevo hardcodeado.** Herramienta sugerida: `next-intl`.
+
+---
+
+## #78 · Gate de lectura de Firestore — Fase 1: lockdown a org propia (2026-07-29)
+
+Primer bloqueante de la apertura (decisión #75), resuelto en dos fases. Antes, `match_scouting` y `pit_scouting` tenían `allow read: if isAuthed()`: cualquier usuario autenticado leía el scouting de toda org, **incluidas las notas privadas de pit** (que comparten documento con el `publicSummary` opt-in, y las reglas de Firestore no pueden enmascarar campos). Invitar a una segunda org con eso puesto habría entregado todo en silencio.
+
+**Por qué dos fases.** Las reglas de Firestore **no son filtros**: una query de lista se evalúa por-documento-devuelto y se rechaza entera si algún doc no pasa. Eso impide que una sola query devuelva "mis docs + los objetivos de otros" cuando la regla ramifica sobre un campo por-doc (orgId, scoutingMode) que la query no fija. La federación cross-org selectiva (pool gateado por contribución, split de pit público/privado, super scouting en colección aparte) necesita maquinaria nueva **y** dos orgs para probarse. Como hoy solo existe 30311 y no hay invitaciones emitidas, se partió:
+
+- **Fase 1 (esta):** lockdown total a org propia. Regla `resource.data.orgId == myOrgId()`; cada query añade `where("orgId","==", miOrg)`. Cierra **todas** las fugas (notas privadas, subjetivos, pool objetivo) de una vez, es pequeña, segura y testeable con una sola org. No pierde nada hoy: no hay org #2.
+- **Fase 2 (con la 1ª invitación):** federación selectiva. Se construye cuando haya a quién onboardear y con qué probarla.
+
+**Implementación.** `firestore.rules` (guarda `resource == null` para el existence-probe de `saveMatchScouting` y el fallback de `getPitScouting`; rama legacy para docs pre-1.4 sin `orgId`, implícitamente 30311). `firestore.indexes.json` +2 índices `[orgId, season, eventCode|teamNumber, timestamp]`. `lib/scouting-service.ts`: las 3 lecturas reciben `orgId` y filtran; `getPublicPitSummaries` queda como stub `[]` (seam de Fase 2 — su versión vieja leía el doc completo con notas antes de descartar en JS, así que la nota ya cruzaba el cable). 6 callers cableados con `effectiveOrgId`.
+
+**Caveat legacy:** entradas `match_scouting` sin `orgId` quedan fuera de las **listas** (el filtro no matchea campo ausente); los gets sí las alcanzan. Improbable que existan (las escrituras setean `orgId` desde Sprint 1); si hicieran falta, backfill puntual a `"30311"`.
+
+Verificado: typecheck 0, lint 0, 307 tests, `firebase_validate_security_rules` OK, build de producción OK. **Requiere `firebase deploy --only firestore:rules,firestore:indexes` + test dev cross-org** antes de aplicar (no desplegado — política de no-deploy sin OK). Ver `docs/ESTRATEGIA-PRODUCTO-Y-APERTURA.md` Parte IV y [[project-apertura-y-monetizacion]].

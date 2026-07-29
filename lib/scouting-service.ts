@@ -88,37 +88,23 @@ export async function getPitScouting(
 }
 
 /**
- * Fetches public pit summaries published by any org for a given team. Used by
- * the pit form's "Public summaries from other orgs" section so scouts can see
- * what other teams have shared instead of re-interviewing the same team.
+ * Cross-org public pit summaries for a team — the "summaries from other orgs"
+ * feature.
  *
- * Strips private fields (notes, scoutedBy uid) before returning. Sprint 1.6
- * will additionally gate this on event subscription membership.
+ * DISABLED under the Phase 1 read lockdown. It queried `pit_scouting` across
+ * orgs and read each full doc (including the private `notes`) before stripping
+ * fields in JS — but the private note had already crossed the wire, and the
+ * new own-org read rule rejects the cross-org query outright. Phase 2 rebuilds
+ * this against a dedicated `public_pit_summaries` collection that holds ONLY the
+ * shared summary, so notes can never ride along. Until then there are no
+ * cross-org summaries to show (only 30311 exists), so returning [] is correct.
+ *
+ * Kept (rather than deleted) as the Phase 2 seam. Phase 2 restores the
+ * `(season, teamNumber)` parameters and queries `public_pit_summaries`; for now
+ * there are no callers and nothing cross-org to return, so it takes none.
  */
-export async function getPublicPitSummaries(
-    season: number,
-    teamNumber: number,
-): Promise<PublicPitSummary[]> {
-    const colRef = collection(db, PIT_COLLECTION);
-    const q = query(
-        colRef,
-        where("season", "==", season),
-        where("teamNumber", "==", teamNumber),
-    );
-    const snap = await getDocs(q);
-    const out: PublicPitSummary[] = [];
-    snap.forEach(d => {
-        const data = d.data() as PitScouting;
-        if (!data.publicSummary || data.publicSummary.trim().length === 0) return;
-        out.push({
-            teamNumber: data.teamNumber,
-            season: data.season,
-            orgId: data.orgId ?? DEFAULT_ORG_ID,
-            summary: data.publicSummary,
-            sharedAt: data.publicSummarySharedAt ?? null,
-        });
-    });
-    return out;
+export async function getPublicPitSummaries(): Promise<PublicPitSummary[]> {
+    return [];
 }
 
 // Stable per-capture id used as the Firestore document id (see below). Same
@@ -193,13 +179,18 @@ export async function saveMatchScouting(data: MatchScouting, docId?: string) {
 export function listenToMatchScouting(
     season: number,
     eventCode: string,
+    orgId: string,
     callback: (data: MatchScouting[]) => void,
     options?: { maxEntries?: number },
 ) {
     const maxEntries = options?.maxEntries ?? DEFAULT_LISTENER_LIMIT;
     const colRef = collection(db, MATCH_COLLECTION);
+    // PHASE 1 read lockdown: scope to the caller's own org. The Firestore rule
+    // (match_scouting) requires resource.data.orgId == myOrgId(), and rules
+    // aren't filters — without this where() the whole query is rejected.
     const q = query(
         colRef,
+        where("orgId", "==", orgId),
         where("season", "==", season),
         where("eventCode", "==", eventCode),
         orderBy("timestamp", "desc"),
@@ -234,12 +225,15 @@ export function listenToMatchScouting(
 export async function getMatchScoutingOnce(
     season: number,
     eventCode: string,
+    orgId: string,
     options?: { maxEntries?: number },
 ): Promise<MatchScouting[]> {
     const maxEntries = options?.maxEntries ?? DEFAULT_LISTENER_LIMIT;
     const colRef = collection(db, MATCH_COLLECTION);
+    // PHASE 1 read lockdown: own-org scope (see listenToMatchScouting).
     const q = query(
         colRef,
+        where("orgId", "==", orgId),
         where("season", "==", season),
         where("eventCode", "==", eventCode),
         orderBy("timestamp", "desc"),
@@ -256,12 +250,15 @@ export async function getMatchScoutingOnce(
 export async function getMatchScoutingForTeam(
     season: number,
     teamNumber: number,
+    orgId: string,
     options?: { maxEntries?: number },
 ): Promise<MatchScouting[]> {
     const maxEntries = options?.maxEntries ?? DEFAULT_LISTENER_LIMIT;
     const colRef = collection(db, MATCH_COLLECTION);
+    // PHASE 1 read lockdown: own-org scope (see listenToMatchScouting).
     const q = query(
         colRef,
+        where("orgId", "==", orgId),
         where("season", "==", season),
         where("teamNumber", "==", teamNumber),
         orderBy("timestamp", "desc"),

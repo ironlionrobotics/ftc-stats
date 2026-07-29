@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Bot, Send, MessageSquare, ChevronDown, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { getMatchScoutingOnce } from "@/lib/scouting-service";
-import { getCurrentSeason } from "@/lib/constants";
+import { getCurrentSeason, DEFAULT_ORG_ID } from "@/lib/constants";
 import type { MatchScouting } from "@/types/scouting";
 
 /**
@@ -37,7 +37,7 @@ function buildNotesDigest(entries: MatchScouting[]): string {
 }
 
 export default function AssistantChat() {
-    const { user } = useAuth();
+    const { user, orgId } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
         { role: 'assistant', content: "¡Hola! Soy el asistente de estrategia de PRIDE. Mi especialidad: sintetizar las notas de scouting del evento (\"¿qué dicen las notas del 12887?\") y responder dudas de estrategia. En páginas de evento leo las notas automáticamente." }
@@ -85,7 +85,7 @@ export default function AssistantChat() {
                     if (notesCacheRef.current?.eventCode !== eventCode) {
                         const cookieSeason = Number(document.cookie.match(/(?:^|; )ftc_season=(\d+)/)?.[1]);
                         const season = cookieSeason || getCurrentSeason();
-                        const entries = await getMatchScoutingOnce(season, eventCode);
+                        const entries = await getMatchScoutingOnce(season, eventCode, orgId ?? DEFAULT_ORG_ID);
                         notesCacheRef.current = { eventCode, digest: buildNotesDigest(entries) };
                     }
                     scoutingNotes = notesCacheRef.current.digest || undefined;
@@ -114,7 +114,7 @@ export default function AssistantChat() {
         } finally {
             setLoading(false);
         }
-    }, [loading, pathname, messages, user]);
+    }, [loading, pathname, messages, user, orgId]);
 
     useEffect(() => {
         const handleOpenChat = (e: Event) => {

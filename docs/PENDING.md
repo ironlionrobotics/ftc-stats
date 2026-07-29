@@ -14,9 +14,23 @@ La sesión 18 cambió la dirección del producto. El documento de estrategia es 
 - **Se invierte el primitivo del scouting** a autorreporte federado (decisión #76).
 - **Inglés por defecto + i18n** (decisión #77).
 
-### 🔴 Bloqueante absoluto de la apertura
+### 🟢 Gate de lectura de Firestore — FASE 1 HECHA (29 jul, sesión 19)
 
-**Cerrar el gate de lectura de Firestore.** Hoy `firestore.rules` tiene `allow read: if isAuthed()` en `match_scouting` (línea 139) y `pit_scouting` (línea 152), con un TODO sin cerrar que lo reconoce. `pit_scouting` guarda `notes` privadas y `publicSummary` en el **mismo documento**, y las reglas no pueden enmascarar campos. Login Google **sin allowlist**. **Invitar equipos con esto es entregar todo, en silencio, incluidas las notas privadas.** Requiere: gating por contribución/evento + separar pit público y privado en documentos distintos.
+**Lockdown a org propia.** `match_scouting` y `pit_scouting` ya no son `allow read: if isAuthed()`: la regla exige `resource.data.orgId == myOrgId()`. Como las reglas de Firestore **no son filtros**, cada query de lista añade `where("orgId","==", miOrg)` (si no, se rechaza entera); un cliente que filtre por otra org recibe deny porque `myOrgId()` sigue siendo el suyo. Esto cierra **todas** las fugas de golpe: notas privadas de pit, ratings subjetivos (super scouting vive en `match_scouting` con `scoutingMode:"super"`) y el pool objetivo. No hizo falta separar pit todavía —solo lees tus propios docs—; eso es Fase 2. Decisión #78.
+
+- **Reglas** (`firestore.rules`): `match_scouting` + `pit_scouting` read scopeado a org propia, con guarda `resource == null` (para el existence-probe de create-if-not-exists y el fallback de `getPitScouting`) y rama legacy para docs pre-1.4 sin `orgId` (implícitamente 30311).
+- **Índices** (`firestore.indexes.json`): +2 compuestos `[orgId, season, eventCode, timestamp]` y `[orgId, season, teamNumber, timestamp]`.
+- **Servicio** (`lib/scouting-service.ts`): `listenToMatchScouting` / `getMatchScoutingOnce` / `getMatchScoutingForTeam` reciben `orgId` y filtran; `getPublicPitSummaries` deshabilitada (stub `[]`, es seam de Fase 2).
+- **6 callers** cableados con su `effectiveOrgId`: MatchBriefingCard, ScoutingClient, AllianceSelector, MatchSimulator, EventViewManager, AssistantChat.
+- Verificado: typecheck 0, lint 0, 307 tests, `firebase_validate_security_rules` OK, build de producción OK (sin regresión del chunk público de `/event`).
+
+**⚠️ Acción de usuario ANTES de que aplique:** `firebase deploy --only firestore:rules,firestore:indexes`. Y testear en dev: un usuario de org A **no** puede leer `match_scouting`/`pit_scouting` de org B (query con `where(orgId==B)` → permission-denied), y 30311 sigue viendo lo suyo.
+
+**Caveat legacy:** entradas `match_scouting` pre-Sprint-1 sin `orgId` quedan **fuera de las listas** (el filtro `where(orgId==)` no matchea campo ausente). Los gets sí las alcanzan (rama legacy). Si existieran y hicieran falta en listas, un backfill puntual les pone `orgId="30311"`. Improbable que haya: las escrituras setean `orgId` desde Sprint 1.
+
+### 🔴 Bloqueante de la apertura — FASE 2 (con la primera invitación)
+
+**Federación selectiva cross-org.** Recién cuando se onboardee la org #2 (y se pueda probar con 2 orgs): (1) marcador `event_participation/{org__season__event}` para gatear el pool objetivo por contribución (contribuir-para-leer), (2) mover super scouting a colección propia org-privada, (3) separar pit en doc privado (notas+specs) + colección pública `public_pit_summaries` (solo `publicSummary`, para que las notas nunca viajen con el resumen), (4) allowlist de login. Ver `docs/ESTRATEGIA-PRODUCTO-Y-APERTURA.md` Parte IV.
 
 ### 🔴 Incumplimiento de licencia, en producción hoy
 
