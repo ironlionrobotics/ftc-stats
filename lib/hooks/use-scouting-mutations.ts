@@ -2,11 +2,16 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { saveMatchScouting, savePitScouting } from "@/lib/scouting-service";
-import { saveToLocal } from "@/lib/localDatabase";
+import { saveToLocal, savePitToLocal } from "@/lib/localDatabase";
 import type { MatchScouting, PitScouting } from "@/types/scouting";
 
 /** Where a match-scouting entry ended up when the mutation resolved. */
 export type MatchScoutingSaveResult =
+    | { savedTo: "remote" }
+    | { savedTo: "local"; id: string };
+
+/** Where a pit-scouting record ended up when the mutation resolved. */
+export type PitScoutingSaveResult =
     | { savedTo: "remote" }
     | { savedTo: "local"; id: string };
 
@@ -52,11 +57,29 @@ export function useSaveLocalScouting() {
     });
 }
 
-/** Mutation hook for pit scouting writes. */
+/**
+ * Mutation hook for saving a pit-scouting record. Same remote-first /
+ * local-fallback shape as useSaveMatchScouting: pit interviews happen once
+ * per team per event, often in the noisiest-wifi corner of the venue, so a
+ * transient Firestore failure must queue the record (keyed by the same
+ * deterministic id Firestore would have used — see pitRecordId in
+ * lib/constants) rather than lose the interview outright.
+ */
 export function useSavePitScouting() {
     return useMutation({
-        mutationFn: async (data: PitScouting) => {
-            await savePitScouting(data);
+        mutationFn: async (data: PitScouting): Promise<PitScoutingSaveResult> => {
+            try {
+                await savePitScouting(data);
+                return { savedTo: "remote" };
+            } catch (err) {
+                console.warn("[scouting] pit remote save failed, queueing locally:", err);
+                const id = await savePitToLocal(data);
+                return { savedTo: "local", id };
+            }
         },
+        // Same rationale as useSaveMatchScouting: the remote→local fallback
+        // already handles transient failures; only a Dexie failure rejects,
+        // and retrying that won't fix it.
+        retry: false,
     });
 }

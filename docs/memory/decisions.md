@@ -503,3 +503,17 @@ Medido sirviendo el build y sumando los `<script>` del HTML (los chunks de `next
 | `/strategy` | — | 1154 KB | 397 (legítimo) |
 
 **−40% en la página de evento.** Las dos rutas autenticadas conservan el SDK, que es lo correcto. Nota de método: la primera medición (`rootMainFiles` del build-manifest) dio un falso negativo — ese es el bundle de framework compartido, no el grupo de chunks del layout; sólo la lista de `<script>` del HTML servido responde la pregunta.
+
+## #66 · Cola offline: dead-letter visible + pit scouting encolado (2026-07-29)
+
+Dos huecos del contrato offline-first, ambos con la misma consecuencia: **captura real perdida en silencio**.
+
+**(a) Dead-letter invisible.** `drain()` salta filas con `syncAttempts >= 5` (guarda antipoison correcta), pero `getPendingScouting()` filtraba sólo por `syncedAt === 0`, así que esas filas **seguían contando en el badge "N pend."**. El scout veía un contador que nunca bajaba y asumía lentitud. Y no había forma de ver qué estaba atascado, por qué, reintentarlo ni sacar los datos: si la causa era transitoria (token vencido, deploy de reglas a media competencia), la captura estaba perdida de facto. Ahora el badge cuenta sólo filas dentro de su presupuesto de reintentos, las atascadas tienen su propio indicador y un panel con equipo/match/evento/error, **Reintentar**, **Reintentar todas** y **Exportar JSON** — el export funciona sin red, que es lo que importa para el runbook de failover.
+
+**(b) Pit scouting sin cola.** `useSavePitScouting` escribía directo a Firestore sin fallback… y además **era código muerto**: `ScoutingClient.handleSavePitData` llamaba `savePitScouting` directamente. La entrevista de pit se hace una vez por equipo, normalmente en la zona del venue con peor señal. Ahora sigue el mismo patrón remote-first/local-fallback del match scouting, con tabla Dexie `pendingPits` (esquema v2).
+
+Detalle de diseño que simplifica el pit respecto al match: su doc de Firestore ya tiene id determinista `${season}_${teamNumber}_${orgId}`, así que **esa misma string es la primary key en Dexie**. Recapturar offline sobreescribe la fila encolada en vez de duplicar (correcto: hay exactamente un registro de pit por equipo/org/temporada) y el drain no necesita el truco de id local estable que sí requiere `pendingMatches`. El constructor del id vive en `lib/constants` (`pitRecordId`) y lo importan **ambos** lados, así que no pueden derivar — y `localDatabase` sigue sin tocar el grafo de Firebase, que es lo que mantiene el bundle limpio (#65).
+
+Migración Dexie v1→v2: `pendingMatches` NO se redeclara — una versión sólo describe el delta, y una tabla omitida conserva esquema y filas. Cubierto por un test que abre una conexión Dexie v1 cruda, inserta una fila, y verifica que sobrevive al abrir el esquema real v1+v2. Perder scouting encolado en una migración sería peor que el bug que se arregla. 13 tests nuevos entre ambos items (290 total).
+
+**Pendiente de verificación**: el pill y el panel sólo renderizan con sesión iniciada, así que no se pudieron ver en navegador — falta revisión visual en dev con usuario autenticado (incluye confirmar que no chocan con la burbuja del AssistantChat, que ocupa la misma esquina).

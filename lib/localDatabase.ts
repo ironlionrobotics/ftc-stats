@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import { get as idbGet, del as idbDel, keys as idbKeys } from "idb-keyval";
-import type { MatchScouting } from "@/types/scouting";
-import { DEFAULT_ORG_ID } from "@/lib/constants";
+import type { MatchScouting, PitScouting } from "@/types/scouting";
+import { DEFAULT_ORG_ID, pitRecordId } from "@/lib/constants";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -33,8 +33,33 @@ export interface PendingMatchRow {
     lastError?: string;
 }
 
+/**
+ * Pending-pit-scouting row. Unlike match scouting there is exactly ONE pit
+ * record per (season, teamNumber, orgId) — a pit interview isn't repeated
+ * per-match — so `id` is the SAME deterministic id Firestore uses for the
+ * doc, built by the shared `pitRecordId()` in lib/constants (which is
+ * dependency-free, so this module stays clear of the firebase/firestore
+ * graph). Re-capturing the same team's pit data while offline `put()`s over
+ * the existing queued row
+ * instead of enqueuing a duplicate — which is the correct semantic, and
+ * means (unlike `pendingMatches`) the drain needs no stable-local-id trick:
+ * the id IS the eventual Firestore doc id from the moment it's queued.
+ */
+export interface PendingPitRow {
+    id: string;
+    season: number;
+    teamNumber: number;
+    orgId: string;
+    data: PitScouting;
+    createdAt: number;
+    syncedAt: number;       // 0 = pending, ms epoch = synced
+    syncAttempts: number;
+    lastError?: string;
+}
+
 class LocalDatabase extends Dexie {
     pendingMatches!: Table<PendingMatchRow, string>;
+    pendingPits!: Table<PendingPitRow, string>;
 
     constructor() {
         super("FTCStatsLocal");
@@ -46,6 +71,18 @@ class LocalDatabase extends Dexie {
             pendingMatches:
                 "id, scoutId, orgId, eventCode, season, syncedAt, createdAt, " +
                 "[teamNumber+matchNumber], [scoutId+syncedAt], [eventCode+syncedAt]",
+        });
+        // v2: adds `pendingPits` for the offline pit-scouting queue (item #15).
+        // `pendingMatches` is deliberately NOT redeclared here — Dexie only
+        // needs a version's `.stores()` to describe what CHANGED relative to
+        // the previous version; any store omitted from a later version keeps
+        // its existing schema (and rows) untouched. This is what makes the
+        // v1 -> v2 upgrade safe for real users with rows already queued in
+        // `pendingMatches`: Dexie runs no migration function against that
+        // table at all, it's simply carried forward as-is. Verified by a
+        // dedicated test in localDatabase.test.ts.
+        this.version(2).stores({
+            pendingPits: "id, season, teamNumber, orgId, syncedAt, createdAt, [orgId+syncedAt]",
         });
     }
 }
@@ -290,8 +327,125 @@ export async function pruneSyncedOlderThan(maxAgeMs: number = 30 * 24 * 60 * 60 
     return ids.length;
 }
 
+// ---------------------------------------------------------------------------
+// Pit scouting queue (item #15 — pit scouting had no offline fallback)
+// ---------------------------------------------------------------------------
+
+/**
+ * The Dexie row's primary key IS the eventual Firestore document id, so a
+ * queued row and its synced counterpart are provably the same record. Both
+ * sides build it from the same shared function — they cannot drift.
+ */
+const pitPendingId = pitRecordId;
+
+function rowFromPitScouting(data: PitScouting): PendingPitRow {
+    const orgId = data.orgId ?? DEFAULT_ORG_ID;
+    return {
+        id: pitPendingId(data.season, data.teamNumber, orgId),
+        season: data.season,
+        teamNumber: data.teamNumber,
+        orgId,
+        data,
+        createdAt: Date.now(),
+        syncedAt: 0,
+        syncAttempts: 0,
+    };
+}
+
+/**
+ * Queues a pit-scouting record locally. Because the primary key is
+ * deterministic (season+team+org), capturing the same team's pit data twice
+ * while offline REPLACES the queued row rather than enqueuing a duplicate —
+ * there is exactly one pit record per team per org per season, so this is
+ * the correct semantic, not a bug.
+ */
+export async function savePitToLocal(data: PitScouting): Promise<string> {
+    await migrateLegacyKeysOnce();
+    const row = rowFromPitScouting(data);
+    await db().pendingPits.put(row);
+    return row.id;
+}
+
+/** Pending pit records (payload only), analogous to getPendingScouting. */
+export async function getPendingPitScouting(): Promise<PitScouting[]> {
+    await migrateLegacyKeysOnce();
+    const rows = await db().pendingPits.where("syncedAt").equals(0).toArray();
+    return rows.map(r => r.data);
+}
+
+export async function markPitAsSynced(id: string): Promise<void> {
+    await migrateLegacyKeysOnce();
+    await db().pendingPits.update(id, { syncedAt: Date.now() });
+}
+
+/**
+ * Pending pit rows including sync metadata (syncAttempts, lastError) that
+ * `getPendingPitScouting` strips out. OnlineSync's drain loop needs this to
+ * skip entries that have exhausted their retry budget — analogous to
+ * `getPendingScoutingRows` for matches.
+ */
+export async function getPendingPitRows(): Promise<PendingPitRow[]> {
+    await migrateLegacyKeysOnce();
+    return db().pendingPits.where("syncedAt").equals(0).toArray();
+}
+
+/** Records a pit sync failure so the drain loop's retry budget can track it. */
+export async function recordPitSyncFailure(id: string, error: string): Promise<void> {
+    await migrateLegacyKeysOnce();
+    const row = await db().pendingPits.get(id);
+    if (!row) return;
+    await db().pendingPits.update(id, {
+        syncAttempts: row.syncAttempts + 1,
+        lastError: error,
+    });
+}
+
+/**
+ * Pit rows the drain loop has given up on (syncAttempts >= MAX_SYNC_ATTEMPTS).
+ * Reuses the SAME threshold as match scouting — no second knob — so the
+ * dead-letter semantics stay identical between the two queues.
+ */
+export async function getStuckPitRows(): Promise<PendingPitRow[]> {
+    await migrateLegacyKeysOnce();
+    return db().pendingPits
+        .where("syncedAt")
+        .equals(0)
+        .and(r => r.syncAttempts >= MAX_SYNC_ATTEMPTS)
+        .toArray();
+}
+
+/** Pit rows still within their retry budget — mirrors getLivePendingScoutingRows. */
+export async function getLivePendingPitRows(): Promise<PendingPitRow[]> {
+    await migrateLegacyKeysOnce();
+    return db().pendingPits
+        .where("syncedAt")
+        .equals(0)
+        .and(r => r.syncAttempts < MAX_SYNC_ATTEMPTS)
+        .toArray();
+}
+
+/** Clears the dead-letter state for one pit row; the actual retry happens on
+ *  the next drain(). Mirrors retryStuckRow. */
+export async function retryStuckPitRow(id: string): Promise<void> {
+    await migrateLegacyKeysOnce();
+    await db().pendingPits.update(id, { syncAttempts: 0, lastError: undefined });
+}
+
+/** Same as retryStuckPitRow but for every currently-stuck pit row at once. */
+export async function retryAllStuckPitRows(): Promise<number> {
+    await migrateLegacyKeysOnce();
+    const stuck = await getStuckPitRows();
+    await Promise.all(
+        stuck.map(r => db().pendingPits.update(r.id, { syncAttempts: 0, lastError: undefined })),
+    );
+    return stuck.length;
+}
+
 /** Test/dev helper: tears down the Dexie instance so a fresh schema can be
- *  used in the next test. Not exported for production callers. */
+ *  used in the next test. Deleting the database drops BOTH `pendingMatches`
+ *  and `pendingPits` — there is no per-table reset needed since they live in
+ *  the same underlying IndexedDB database. Not exported for production
+ *  callers. */
 export async function __resetLocalDbForTests(): Promise<void> {
     if (_db) {
         await _db.delete();

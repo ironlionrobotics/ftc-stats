@@ -7,6 +7,7 @@
 // global indexedDB at module-load time.
 import "fake-indexeddb/auto";
 
+import Dexie from "dexie";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
     saveToLocal,
@@ -24,9 +25,18 @@ import {
     retryStuckRow,
     retryAllStuckRows,
     MAX_SYNC_ATTEMPTS,
+    savePitToLocal,
+    getPendingPitScouting,
+    getPendingPitRows,
+    markPitAsSynced,
+    recordPitSyncFailure,
+    getStuckPitRows,
+    getLivePendingPitRows,
+    retryStuckPitRow,
+    retryAllStuckPitRows,
     __resetLocalDbForTests,
 } from "./localDatabase";
-import type { FTCMatchScouting } from "@/types/scouting";
+import type { FTCMatchScouting, PitScouting } from "@/types/scouting";
 
 beforeEach(async () => {
     await __resetLocalDbForTests();
@@ -276,5 +286,171 @@ describe("clearPending wipes everything", () => {
         await clearPending();
 
         expect(await getPendingScouting()).toHaveLength(0);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Pit scouting offline queue (item #15)
+// ---------------------------------------------------------------------------
+
+function makePitEntry(overrides: Partial<PitScouting> = {}): PitScouting {
+    return {
+        teamNumber: 30311,
+        season: 2025,
+        orgId: "30311",
+        robotName: "Iron Lion Bot",
+        driveTrain: "Mecanno",
+        notes: "",
+        ...overrides,
+    };
+}
+
+describe("v1 -> v2 schema upgrade preserves pendingMatches (migration safety)", () => {
+    it("existing pendingMatches rows survive the upgrade that adds pendingPits", async () => {
+        // Start from a clean slate so this test doesn't inherit state from a
+        // previous test's Dexie instance.
+        await __resetLocalDbForTests();
+
+        // Simulate a real user's browser BEFORE this feature shipped: a raw
+        // Dexie connection opened against the v1-only schema (no pendingPits
+        // table at all), with a row already queued in pendingMatches.
+        const legacyDb = new Dexie("FTCStatsLocal");
+        legacyDb.version(1).stores({
+            pendingMatches:
+                "id, scoutId, orgId, eventCode, season, syncedAt, createdAt, " +
+                "[teamNumber+matchNumber], [scoutId+syncedAt], [eventCode+syncedAt]",
+        });
+        await legacyDb.open();
+        await legacyDb.table("pendingMatches").put({
+            id: "legacy-1",
+            scoutId: "scout-A",
+            orgId: "30311",
+            teamNumber: 30311,
+            matchNumber: 1,
+            eventCode: "MXTOL",
+            season: 2025,
+            program: "FTC",
+            data: { ...makeFTCEntry(), id: "legacy-1" },
+            createdAt: Date.now(),
+            syncedAt: 0,
+            syncAttempts: 0,
+        });
+        legacyDb.close();
+
+        // Now go through the app's real (v1 + v2) LocalDatabase. Dexie opens
+        // the same underlying "FTCStatsLocal" database, sees it's at version
+        // 1, and runs the v2 upgrade — which only ADDS pendingPits and does
+        // not touch pendingMatches at all.
+        const pending = await getPendingScouting();
+        expect(pending).toHaveLength(1);
+        expect(pending[0].id).toBe("legacy-1");
+        expect(pending[0].teamNumber).toBe(30311);
+
+        // And the newly-added table is fully usable in the same session.
+        const pitId = await savePitToLocal(makePitEntry());
+        const pits = await getPendingPitScouting();
+        expect(pits).toHaveLength(1);
+        expect(pits[0].robotName).toBe("Iron Lion Bot");
+        expect(pitId).toBe("2025_30311_30311");
+    });
+});
+
+describe("savePitToLocal + getPendingPitScouting", () => {
+    it("round-trips a single pit record with the deterministic id", async () => {
+        const id = await savePitToLocal(makePitEntry());
+        expect(id).toBe("2025_30311_30311");
+
+        const pending = await getPendingPitScouting();
+        expect(pending).toHaveLength(1);
+        expect(pending[0].teamNumber).toBe(30311);
+    });
+
+    it("re-queuing the same team/org/season REPLACES the row instead of duplicating it", async () => {
+        await savePitToLocal(makePitEntry({ robotName: "First draft" }));
+        await savePitToLocal(makePitEntry({ robotName: "Updated after re-interview" }));
+
+        const pending = await getPendingPitScouting();
+        // Still exactly one row — the deterministic id collapsed the second
+        // capture onto the first instead of enqueuing a duplicate.
+        expect(pending).toHaveLength(1);
+        expect(pending[0].robotName).toBe("Updated after re-interview");
+    });
+
+    it("a different org queues a SEPARATE row for the same team", async () => {
+        await savePitToLocal(makePitEntry({ orgId: "30311" }));
+        await savePitToLocal(makePitEntry({ orgId: "9999" }));
+
+        const pending = await getPendingPitScouting();
+        expect(pending).toHaveLength(2);
+    });
+
+    it("excludes synced pit rows from getPendingPitScouting", async () => {
+        const id = await savePitToLocal(makePitEntry());
+        await markPitAsSynced(id);
+
+        expect(await getPendingPitScouting()).toHaveLength(0);
+    });
+
+    it("getPendingPitRows exposes sync metadata for the drain loop", async () => {
+        const id = await savePitToLocal(makePitEntry());
+        await recordPitSyncFailure(id, "Firestore offline");
+
+        const rows = await getPendingPitRows();
+        expect(rows).toHaveLength(1);
+        expect(rows[0].syncAttempts).toBe(1);
+        expect(rows[0].lastError).toBe("Firestore offline");
+        expect(rows[0].data.robotName).toBe("Iron Lion Bot");
+    });
+});
+
+describe("pit stuck vs live partitioning", () => {
+    it("getStuckPitRows / getLivePendingPitRows split on MAX_SYNC_ATTEMPTS", async () => {
+        const stuckId = await savePitToLocal(makePitEntry({ orgId: "30311" }));
+        const liveId = await savePitToLocal(makePitEntry({ orgId: "9999" }));
+        for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+            await recordPitSyncFailure(stuckId, "permission-denied");
+        }
+        await recordPitSyncFailure(liveId, "transient blip");
+
+        const stuck = await getStuckPitRows();
+        expect(stuck).toHaveLength(1);
+        expect(stuck[0].id).toBe(stuckId);
+
+        const live = await getLivePendingPitRows();
+        expect(live).toHaveLength(1);
+        expect(live[0].id).toBe(liveId);
+    });
+
+    it("retryStuckPitRow resets syncAttempts/lastError so the row moves back to live", async () => {
+        const id = await savePitToLocal(makePitEntry());
+        for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+            await recordPitSyncFailure(id, "attempt");
+        }
+        expect(await getStuckPitRows()).toHaveLength(1);
+
+        await retryStuckPitRow(id);
+
+        expect(await getStuckPitRows()).toHaveLength(0);
+        const live = await getLivePendingPitRows();
+        expect(live).toHaveLength(1);
+        expect(live[0].syncAttempts).toBe(0);
+        expect(live[0].lastError).toBeUndefined();
+    });
+
+    it("retryAllStuckPitRows resets every stuck pit row and reports the count", async () => {
+        const id1 = await savePitToLocal(makePitEntry({ orgId: "30311" }));
+        const id2 = await savePitToLocal(makePitEntry({ orgId: "9999" }));
+        const liveId = await savePitToLocal(makePitEntry({ orgId: "8888" }));
+        for (const id of [id1, id2]) {
+            for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+                await recordPitSyncFailure(id, "attempt");
+            }
+        }
+        await recordPitSyncFailure(liveId, "one transient failure");
+
+        const resetCount = await retryAllStuckPitRows();
+        expect(resetCount).toBe(2);
+        expect(await getStuckPitRows()).toHaveLength(0);
+        expect(await getLivePendingPitRows()).toHaveLength(3);
     });
 });

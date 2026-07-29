@@ -10,10 +10,18 @@ import {
     recordSyncFailure,
     retryStuckRow,
     retryAllStuckRows,
+    getPendingPitRows,
+    getLivePendingPitRows,
+    getStuckPitRows,
+    markPitAsSynced,
+    recordPitSyncFailure,
+    retryStuckPitRow,
+    retryAllStuckPitRows,
     MAX_SYNC_ATTEMPTS,
     type PendingMatchRow,
+    type PendingPitRow,
 } from "@/lib/localDatabase";
-import { saveMatchScouting } from "@/lib/scouting-service";
+import { saveMatchScouting, savePitScouting } from "@/lib/scouting-service";
 import { cachePruneOlderThan } from "@/lib/client-cache";
 import { notifyDiscordAction } from "@/app/actions/notify-discord";
 import { Cloud, CloudOff, Loader2, AlertTriangle } from "lucide-react";
@@ -24,6 +32,17 @@ import clsx from "clsx";
 // channel for transient blips. Webhook is also rate-limited server-side
 // (60s default) so even if this counter overshoots, channel stays quiet.
 const SYNC_FAILURE_NOTIFY_THRESHOLD = 3;
+
+/**
+ * The dead-letter inspector shows both queues in one list. Match and pit rows
+ * have different shapes (a pit row has no matchNumber/eventCode), so we tag
+ * each with its origin instead of merging into one loosely-typed row —
+ * callers pattern-match on `kind` to know which local-db functions to call
+ * and how to render/label it ("Match N" vs "Pit").
+ */
+type StuckRow =
+    | { kind: "match"; row: PendingMatchRow }
+    | { kind: "pit"; row: PendingPitRow };
 
 /**
  * Background-sync coordinator. Lives outside the service worker because our
@@ -57,7 +76,7 @@ export default function OnlineSync() {
     // separately from pendingCount — they must NOT inflate the "N pend."
     // badge, since drain() will never pick them up on its own again.
     const [stuckCount, setStuckCount] = useState(0);
-    const [stuckRows, setStuckRows] = useState<PendingMatchRow[]>([]);
+    const [stuckRows, setStuckRows] = useState<StuckRow[]>([]);
     const [showStuckPanel, setShowStuckPanel] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [lastError, setLastError] = useState<string | null>(null);
@@ -77,15 +96,22 @@ export default function OnlineSync() {
     const refreshPendingCount = useCallback(async () => {
         try {
             // Fetched together so the badge and the stuck indicator always
-            // reflect the same snapshot of the queue.
-            const [live, stuck] = await Promise.all([
+            // reflect the same snapshot of BOTH queues (match + pit).
+            const [liveMatches, stuckMatches, livePits, stuckPits] = await Promise.all([
                 getLivePendingScoutingRows(),
                 getStuckScoutingRows(),
+                getLivePendingPitRows(),
+                getStuckPitRows(),
             ]);
-            pendingCountRef.current = live.length;
-            setPendingCount(live.length);
-            setStuckCount(stuck.length);
-            setStuckRows(stuck);
+            const liveTotal = liveMatches.length + livePits.length;
+            pendingCountRef.current = liveTotal;
+            setPendingCount(liveTotal);
+            const combinedStuck: StuckRow[] = [
+                ...stuckMatches.map((row): StuckRow => ({ kind: "match", row })),
+                ...stuckPits.map((row): StuckRow => ({ kind: "pit", row })),
+            ];
+            setStuckCount(combinedStuck.length);
+            setStuckRows(combinedStuck);
         } catch {
             // Dexie not ready yet; ignore.
         }
@@ -104,8 +130,13 @@ export default function OnlineSync() {
         setLastError(null);
         let failed = false;
         try {
-            const rows = await getPendingScoutingRows();
-            for (const row of rows) {
+            // Both queues are drained in the same pass — a bad row in either
+            // one must not block the other (or the rest of its own queue).
+            const [matchRows, pitRows] = await Promise.all([
+                getPendingScoutingRows(),
+                getPendingPitRows(),
+            ]);
+            for (const row of matchRows) {
                 // Dead-letter: this entry has failed repeatedly (malformed
                 // payload, permission error, etc). Skip it permanently instead
                 // of retrying forever and blocking everything queued behind it.
@@ -124,6 +155,23 @@ export default function OnlineSync() {
                     failed = true;
                     // Keep draining the rest of the queue — one bad entry
                     // (poison pill) shouldn't block every other pending entry.
+                }
+            }
+            for (const row of pitRows) {
+                // Same poison-pill semantics as match rows above.
+                if (row.syncAttempts >= MAX_SYNC_ATTEMPTS) continue;
+                try {
+                    // savePitScouting itself is idempotent (setDoc with merge
+                    // on the deterministic season+team+org doc id), so unlike
+                    // match scouting there's no separate docId param needed —
+                    // re-sending the same queued row can never create a dup.
+                    await savePitScouting(row.data);
+                    await markPitAsSynced(row.id);
+                } catch (e) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    await recordPitSyncFailure(row.id, msg);
+                    setLastError(msg);
+                    failed = true;
                 }
             }
             await refreshPendingCount();
@@ -161,19 +209,23 @@ export default function OnlineSync() {
         }
     }, [user, refreshPendingCount]);
 
-    const handleRetryOne = async (id: string) => {
+    const handleRetryOne = async (item: StuckRow) => {
         // Resetting only clears the dead-letter flag; the actual re-send
         // happens on the next drain(). We trigger one immediately here (same
         // gesture as tap-to-retry on the main pill) so a scout sees it move
         // right away instead of waiting for the next `online` event or the
         // 5s poll.
-        await retryStuckRow(id);
+        if (item.kind === "match") {
+            await retryStuckRow(item.row.id);
+        } else {
+            await retryStuckPitRow(item.row.id);
+        }
         await refreshPendingCount();
         if (online) drain();
     };
 
     const handleRetryAll = async () => {
-        await retryAllStuckRows();
+        await Promise.all([retryAllStuckRows(), retryAllStuckPitRows()]);
         await refreshPendingCount();
         if (online) drain();
     };
@@ -183,23 +235,45 @@ export default function OnlineSync() {
         // Escape hatch for data that transient retries can't fix (expired
         // token, a rules deploy mid-event, etc). Must work with no network —
         // it only reads from Dexie and triggers a client-side download.
-        const payload = stuckRows.map(r => ({
-            id: r.id,
-            teamNumber: r.teamNumber,
-            matchNumber: r.matchNumber,
-            eventCode: r.eventCode,
-            scoutId: r.scoutId,
-            orgId: r.orgId,
-            season: r.season,
-            program: r.program,
-            createdAt: r.createdAt,
-            syncAttempts: r.syncAttempts,
-            lastError: r.lastError,
-            data: r.data,
-        }));
+        // Covers both queues; `kind` tags which one each entry came from
+        // since pit rows have no matchNumber/eventCode.
+        const payload = stuckRows.map(item => {
+            if (item.kind === "match") {
+                const r = item.row;
+                return {
+                    kind: "match" as const,
+                    id: r.id,
+                    teamNumber: r.teamNumber,
+                    matchNumber: r.matchNumber,
+                    eventCode: r.eventCode,
+                    scoutId: r.scoutId,
+                    orgId: r.orgId,
+                    season: r.season,
+                    program: r.program,
+                    createdAt: r.createdAt,
+                    syncAttempts: r.syncAttempts,
+                    lastError: r.lastError,
+                    data: r.data,
+                };
+            }
+            const r = item.row;
+            return {
+                kind: "pit" as const,
+                id: r.id,
+                teamNumber: r.teamNumber,
+                orgId: r.orgId,
+                season: r.season,
+                createdAt: r.createdAt,
+                syncAttempts: r.syncAttempts,
+                lastError: r.lastError,
+                data: r.data,
+            };
+        });
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        const eventCodes = Array.from(new Set(stuckRows.map(r => r.eventCode))).join("-") || "sin-evento";
+        const eventCodes = Array.from(
+            new Set(stuckRows.map(item => (item.kind === "match" ? item.row.eventCode : `pit-${item.row.orgId}`))),
+        ).join("-") || "sin-evento";
         const a = document.createElement("a");
         a.href = url;
         a.download = `pride-scouting-atascadas-${eventCodes}.json`;
@@ -272,31 +346,36 @@ export default function OnlineSync() {
                         el problema era temporal, o exporta el JSON para no perder la captura.
                     </p>
                     <div className="space-y-2">
-                        {stuckRows.map(row => (
-                            <div
-                                key={row.id}
-                                className="p-2 rounded-lg bg-muted border border-border text-xs space-y-1"
-                            >
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="font-bold text-foreground">
-                                        Equipo {row.teamNumber} · Match {row.matchNumber}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRetryOne(row.id)}
-                                        className="px-2 py-1 rounded-md bg-secondary/20 text-secondary font-bold hover:bg-secondary/30 shrink-0"
-                                    >
-                                        Reintentar
-                                    </button>
+                        {stuckRows.map(item => {
+                            const row = item.row;
+                            return (
+                                <div
+                                    key={`${item.kind}-${row.id}`}
+                                    className="p-2 rounded-lg bg-muted border border-border text-xs space-y-1"
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="font-bold text-foreground">
+                                            Equipo {row.teamNumber} ·{" "}
+                                            {item.kind === "match" ? `Match ${item.row.matchNumber}` : "Pit"}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRetryOne(item)}
+                                            className="px-2 py-1 rounded-md bg-secondary/20 text-secondary font-bold hover:bg-secondary/30 shrink-0"
+                                        >
+                                            Reintentar
+                                        </button>
+                                    </div>
+                                    <div className="text-muted-foreground">
+                                        {item.kind === "match" ? item.row.eventCode : `Org ${row.orgId}`} ·{" "}
+                                        {new Date(row.createdAt).toLocaleString()}
+                                    </div>
+                                    {row.lastError && (
+                                        <div className="text-danger break-words">{row.lastError}</div>
+                                    )}
                                 </div>
-                                <div className="text-muted-foreground">
-                                    {row.eventCode} · {new Date(row.createdAt).toLocaleString()}
-                                </div>
-                                {row.lastError && (
-                                    <div className="text-danger break-words">{row.lastError}</div>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                     <div className="flex gap-2 pt-1">
                         <button

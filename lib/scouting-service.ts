@@ -13,7 +13,7 @@ import {
     limit,
 } from "firebase/firestore";
 import { PitScouting, MatchScouting, PublicPitSummary, CURRENT_GAME_SCHEMA } from "@/types/scouting";
-import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { DEFAULT_ORG_ID, pitRecordId } from "@/lib/constants";
 
 // Default cap for match-scouting listeners. At ~80 matches × 6 robots × 3 scouts
 // × 4 orgs federated, an event can produce ~5760 entries — way more than any
@@ -33,9 +33,8 @@ const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
 // private to the org; only `publicSummary` is exposed cross-org via
 // getPublicPitSummaries (see design doc §2.5 + §4.2).
 
-function pitDocId(season: number, teamNumber: number, orgId: string): string {
-    return `${season}_${teamNumber}_${orgId}`;
-}
+// Shared with lib/localDatabase's offline queue — see lib/constants.
+const pitDocId = pitRecordId;
 
 /**
  * Legacy docId used before Sprint 1.4 added orgId scoping. Reads still fall

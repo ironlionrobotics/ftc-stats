@@ -57,3 +57,18 @@ export const SEASON = getCurrentSeason();
  * layer's chunk, and from there onto every page that touches offline storage.
  */
 export const DEFAULT_ORG_ID = "30311";
+
+/**
+ * Firestore document id for a pit-scouting record. There is exactly one per
+ * (season, team, org) — a pit interview isn't repeated per match.
+ *
+ * Lives here, dependency-free, because BOTH lib/scouting-service (which writes
+ * the Firestore doc) and lib/localDatabase (whose offline queue uses the same
+ * string as its primary key, so a queued row and its synced counterpart are
+ * provably the same record) need it. localDatabase must not import
+ * scouting-service — that would drag the Firebase SDK into the offline layer
+ * and back onto every page's critical path (see decisions.md #65).
+ */
+export function pitRecordId(season: number, teamNumber: number, orgId: string): string {
+    return `${season}_${teamNumber}_${orgId}`;
+}

@@ -6,7 +6,8 @@ import TeamList from "@/components/scouting/TeamList";
 import ScoutingForm from "@/components/scouting/ScoutingForm";
 import MatchScoutingForm from "@/components/scouting/MatchScoutingForm";
 import SuperScoutingForm from "@/components/scouting/SuperScoutingForm";
-import { getPitScouting, savePitScouting, listenToMatchScouting } from "@/lib/scouting-service";
+import { getPitScouting, listenToMatchScouting } from "@/lib/scouting-service";
+import { useSavePitScouting } from "@/lib/hooks/use-scouting-mutations";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID } from "@/lib/orgs";
@@ -28,6 +29,7 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
         initialTeams.length > 0 ? initialTeams[0].teamNumber : null
     );
     const [pitData, setPitData] = useState<PitScouting | null>(null);
+    const savePitMutation = useSavePitScouting();
     const [matchScoutingEntries, setMatchScoutingEntries] = useState<MatchScouting[]>([]);
     // Mobile master-detail: below md the list and the form are alternate
     // screens (picking a team slides to the form; ChevronLeft goes back).
@@ -71,12 +73,21 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
             lastUpdatedBy: user.displayName || user.email || "Anonymous",
             season,
         };
+        // useSavePitScouting tries Firestore first and, on failure (bad venue
+        // wifi — pit areas often have the worst signal on-site), queues the
+        // record in Dexie instead of losing the interview. `savedTo` tells us
+        // which happened so the scout is never left thinking a queued
+        // capture is safely on the server (or, worse, lost).
         try {
-            await savePitScouting(enriched);
+            const result = await savePitMutation.mutateAsync(enriched);
             setPitData(enriched);
-            toast.success("Pit scouting guardado");
+            if (result.savedTo === "local") {
+                toast.success("Pit scouting guardado offline — se sincronizará al volver la conexión");
+            } else {
+                toast.success("Pit scouting guardado");
+            }
         } catch (e) {
-            toast.error("Error al guardar pit scouting", {
+            toast.error("No se pudo guardar el pit scouting — revisa e intenta de nuevo", {
                 description: e instanceof Error ? e.message : undefined,
             });
         }
