@@ -8,7 +8,11 @@ import AlliancePredictor from "../analytics/AlliancePredictor";
 import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, AdvancementPoints, FTCMatchScouting, FTCHybridScheduleMatch, FTCAllianceSelection } from "@/types/scouting";
 import { TeamEvolution } from "@/app/actions/analytics";
 import { Trophy, LayoutList, History, Sparkles, Medal, Target, Zap as LucideZap } from "lucide-react";
-import { listenToMatchScouting } from "@/lib/scouting-service";
+// lib/scouting-service is imported dynamically in the effect below: it reaches
+// the Firebase client SDK, and this is the public event page — the one people
+// load most on venue wifi. Statically importing it put ~397 KB of Firestore in
+// front of the first paint of a page that server-renders its rankings and
+// matches from the FTC API and only needs live scouting for two of its tabs.
 import clsx from "clsx";
 import { Users as LucideUsers } from "lucide-react";
 import AwardList from "./AwardList";
@@ -43,12 +47,17 @@ export default function EventViewManager({ matches, rankings, advancement, award
 
     // Fetch scouting data when Oracle or Matches is active
     useEffect(() => {
-        if ((activeTab === 'oracle' || activeTab === 'matches') && eventCode) {
-            const unsubscribe = listenToMatchScouting(season, eventCode, (data) => {
+        if (!((activeTab === 'oracle' || activeTab === 'matches') && eventCode)) return;
+        let cancelled = false;
+        let unsubscribe: (() => void) | undefined;
+        (async () => {
+            const { listenToMatchScouting } = await import("@/lib/scouting-service");
+            if (cancelled) return;
+            unsubscribe = listenToMatchScouting(season, eventCode, (data) => {
                 setScoutingData(data);
             });
-            return () => unsubscribe();
-        }
+        })();
+        return () => { cancelled = true; unsubscribe?.(); };
     }, [activeTab, eventCode, season]);
 
     const matchesPerRound = useMemo(() => {

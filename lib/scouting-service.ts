@@ -13,7 +13,7 @@ import {
     limit,
 } from "firebase/firestore";
 import { PitScouting, MatchScouting, PublicPitSummary, CURRENT_GAME_SCHEMA } from "@/types/scouting";
-import { DEFAULT_ORG_ID } from "./orgs";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 // Default cap for match-scouting listeners. At ~80 matches × 6 robots × 3 scouts
 // × 4 orgs federated, an event can produce ~5760 entries — way more than any

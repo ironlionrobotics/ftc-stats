@@ -1,10 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
-import { User, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebase";
-import { loadOrCreateUserDoc, refreshUserDoc } from "@/lib/orgs";
+// TYPE-ONLY import: erased at build time, so it does not pull the Firebase Auth
+// SDK into this module's chunk. Every value import of firebase below is dynamic
+// — see the LAZY LOADING note on AuthProvider.
+import type { User } from "firebase/auth";
 import type { AppUser } from "@/types/orgs";
 
 interface AuthContextType {
@@ -34,10 +34,61 @@ const AuthContext = createContext<AuthContextType>({
     reloadUserDoc: async () => { },
 });
 
+/**
+ * LAZY LOADING. This provider sits in the root layout, so anything it imports
+ * statically lands in the chunk every page downloads — including the fully
+ * public ones (/, /event, /analytics, /team) where nobody is signed in. The
+ * Firebase client SDK (app + auth + firestore + analytics) is ~380 KB of that,
+ * and `lib/firebase` initializes all of it at module scope, so a single static
+ * import was enough to put the whole thing on the critical path of a page that
+ * never calls it.
+ *
+ * So every Firebase value import here is dynamic:
+ *   - the auth subscription is established in an effect, after hydration;
+ *   - sign-in and logout import on click, which is the ideal moment;
+ *   - the user-doc loader (lib/orgs, which pulls Firestore) imports only once
+ *     there is actually a user.
+ *
+ * The public shape of `useAuth()` is unchanged, so consumers need no edits.
+ * `user` starts `undefined` and `loading` starts `true` exactly as the previous
+ * `useAuthState` implementation did — consumers that branch on those keep
+ * working, they just resolve a moment later on the first visit.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, loading] = useAuthState(auth);
+    const [user, setUser] = useState<User | null | undefined>(undefined);
+    const [loading, setLoading] = useState(true);
     const [userDoc, setUserDoc] = useState<AppUser | null>(null);
     const [userDocLoading, setUserDocLoading] = useState(false);
+
+    // Subscribe to auth state once, after mount.
+    useEffect(() => {
+        let cancelled = false;
+        let unsubscribe: (() => void) | undefined;
+
+        (async () => {
+            try {
+                const [{ auth }, { onAuthStateChanged }] = await Promise.all([
+                    import("@/lib/firebase"),
+                    import("firebase/auth"),
+                ]);
+                if (cancelled) return;
+                unsubscribe = onAuthStateChanged(
+                    auth,
+                    u => { setUser(u); setLoading(false); },
+                    e => { console.error("[auth] subscription error", e); setUser(null); setLoading(false); },
+                );
+            } catch (e) {
+                // Firebase failed to load (offline on first visit, or missing
+                // config). Resolve to signed-out rather than leaving every
+                // consumer stuck on `loading` forever — the app's public
+                // surface works fine without auth.
+                console.error("[auth] failed to initialize Firebase Auth", e);
+                if (!cancelled) { setUser(null); setLoading(false); }
+            }
+        })();
+
+        return () => { cancelled = true; unsubscribe?.(); };
+    }, []);
 
     // Load/create the Firestore user doc on every auth state change. The first
     // login creates the doc with orgId=null so onboarding can kick in.
@@ -50,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             setUserDocLoading(true);
             try {
+                const { loadOrCreateUserDoc } = await import("@/lib/orgs");
                 const doc = await loadOrCreateUserDoc(user);
                 if (!cancelled) setUserDoc(doc);
             } catch (e) {
@@ -65,26 +117,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const reloadUserDoc = useCallback(async () => {
         if (!user) return;
+        const { refreshUserDoc } = await import("@/lib/orgs");
         const fresh = await refreshUserDoc(user.uid);
         setUserDoc(fresh);
     }, [user]);
 
-    const signInWithGoogle = async () => {
+    const signInWithGoogle = useCallback(async () => {
         try {
-            const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            const [{ auth }, { GoogleAuthProvider, signInWithPopup }] = await Promise.all([
+                import("@/lib/firebase"),
+                import("firebase/auth"),
+            ]);
+            await signInWithPopup(auth, new GoogleAuthProvider());
         } catch (e) {
             console.error("Error signing in with Google", e);
         }
-    };
+    }, []);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         try {
+            const [{ auth }, { signOut }] = await Promise.all([
+                import("@/lib/firebase"),
+                import("firebase/auth"),
+            ]);
             await signOut(auth);
         } catch (e) {
             console.error("Error signing out", e);
         }
-    };
+    }, []);
 
     return (
         <AuthContext.Provider

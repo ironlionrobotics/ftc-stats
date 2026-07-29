@@ -1,7 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import { get as idbGet, del as idbDel, keys as idbKeys } from "idb-keyval";
 import type { MatchScouting } from "@/types/scouting";
-import { DEFAULT_ORG_ID } from "@/lib/orgs";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 // ---------------------------------------------------------------------------
 // Schema

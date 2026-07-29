@@ -45,3 +45,15 @@ export function getCurrentSeason(): number {
 }
 
 export const SEASON = getCurrentSeason();
+
+/**
+ * Fallback org for data written before the federated model existed, and for
+ * anonymous capture. Iron Lion (FTC #30311) is the app's home team.
+ *
+ * Lives here rather than in lib/orgs so that modules needing only this string —
+ * lib/localDatabase and lib/scouting-service — don't transitively import
+ * lib/firebase, which initializes the whole Firebase client SDK at module
+ * scope. That one edge was enough to put ~380 KB of Firestore into the offline
+ * layer's chunk, and from there onto every page that touches offline storage.
+ */
+export const DEFAULT_ORG_ID = "30311";

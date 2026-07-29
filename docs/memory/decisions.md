@@ -476,3 +476,30 @@ De paso: el mapeo era `{ id: d.id, ...d.data() }` — el spread iba **después**
 ## #64 · Server actions fallan cerrado cuando falta firebase-admin (2026-07-29)
 
 `getAdminDb()` lanza si no hay `FIREBASE_SERVICE_ACCOUNT_KEY` — un estado esperado en dev. Estaba fuera de todo try en 4 actions (`calibration`, `validate-ground-truth`, `notify-discord`, `train-rp-models`), así que la promesa se rechazaba en vez de devolver el `{ok:false}` que esas mismas funciones ya usan en todos sus otros caminos. Ahora cada call site del Admin SDK cae al shape de resultado propio de su archivo (`error` o `reason: "no-admin"`). Mensaje deliberadamente honesto — "No se pudo acceder a Firestore (¿falta configurar Firebase Admin?)" — porque el catch también atrapa fallos de red o permisos, y afirmar "no está configurado" mandaría a depurar lo que no es. `CalibrationDashboard.refresh()` ya distingue "cargó vacío" de "falló al cargar". Además `fetchTeam` dejó de escribir `null` a Redis: `readThrough` trata falsy como miss, así que era una escritura sin ningún beneficio.
+
+## #65 · Firebase fuera de la carga inicial de las rutas públicas (2026-07-29)
+
+`/event` bajaba **1271 KB de JS inicial, 380 KB de ellos Firebase**, en la página que más se abre en competencia y sobre wifi de venue. La hipótesis registrada en PENDING ("mover AuthProvider a rutas con login") era inviable: `Sidebar`, `OnboardingModal` y `OnlineSync` son globales y consumen auth. El problema real no era *dónde se monta* el provider sino *qué se importa estáticamente* desde el layout raíz.
+
+Trazando el grafo de imports estáticos (script en scratchpad, sigue `import` y excluye `import type`/`import()`) el camino resultó ser uno solo y nada obvio:
+
+```
+app/layout.tsx -> components/Sidebar.tsx -> components/auth/InviteGenerator.tsx -> lib/orgs.ts -> lib/firebase.ts
+```
+
+Un panel de invitaciones **de admin** metía el SDK entero de Firebase en el chunk que descarga toda página pública. `lib/firebase.ts` inicializa app+auth+firestore+analytics a nivel de módulo, así que un único import estático basta.
+
+Cortes aplicados: los 4 paneles admin del Sidebar y los globales diferidos (`OnboardingModal`, `OnlineSync`, `AssistantChat`) pasan por `next/dynamic({ssr:false})` — `DeferredGlobals` existe porque `ssr:false` no se permite en un Server Component; `AuthContext` importa firebase dinámicamente (API pública intacta: `user` sigue empezando en `undefined` y `loading` en `true`); `EventViewManager` importa `lib/scouting-service` dentro del effect ya condicionado por tab; y **`DEFAULT_ORG_ID` (el string `"30311"`) se movió a `lib/constants`** porque importarlo desde `lib/orgs` hacía que toda la capa offline (`lib/localDatabase`) arrastrara Firestore.
+
+Medido sirviendo el build y sumando los `<script>` del HTML (los chunks de `next/dynamic` no aparecen ahí — es exactamente la carga inicial):
+
+| ruta | antes | después | Firebase |
+|---|---|---|---|
+| `/event/FPEMX` | 1271 KB | **762 KB** | 380 → **0** |
+| `/` | — | 776 KB | 0 |
+| `/team/30311` | — | 645 KB | 0 |
+| `/analytics` | — | 682 KB | 0 |
+| `/scouting` | — | 1819 KB | 397 (legítimo) |
+| `/strategy` | — | 1154 KB | 397 (legítimo) |
+
+**−40% en la página de evento.** Las dos rutas autenticadas conservan el SDK, que es lo correcto. Nota de método: la primera medición (`rootMainFiles` del build-manifest) dio un falso negativo — ese es el bundle de framework compartido, no el grupo de chunks del layout; sólo la lista de `<script>` del HTML servido responde la pregunta.

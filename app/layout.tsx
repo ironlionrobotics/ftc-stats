@@ -3,12 +3,12 @@ import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/context/AuthContext";
-import AssistantChat from "@/components/ai/AssistantChat";
 import { getAppConfig } from "@/lib/app-config";
-import OnboardingModal from "@/components/auth/OnboardingModal";
 import ThemeSync from "@/components/ThemeSync";
 import QueryProvider from "@/components/QueryProvider";
-import OnlineSync from "@/components/OnlineSync";
+// OnboardingModal + OnlineSync, deferred so the Firebase client SDK they pull
+// in stays off the first-paint critical path. See the module for the rationale.
+import DeferredGlobals from "@/components/DeferredGlobals";
 import { Toaster } from "sonner";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
@@ -107,9 +107,7 @@ export default async function RootLayout({
               <div className="md:ml-60 min-h-screen transition-all duration-300 pb-20 md:pb-0">
                 {children}
               </div>
-              {appConfig.features.aiAssistant && <AssistantChat />}
-              <OnboardingModal />
-              <OnlineSync />
+              <DeferredGlobals aiAssistant={appConfig.features.aiAssistant} />
               <PWAInstallPrompt />
               <Toaster
                 theme="dark"

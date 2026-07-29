@@ -15,7 +15,11 @@ import type { Org, AppUser, OrgInvite, OrgProgram } from "@/types/orgs";
 // doc, and (b) brand-new auth states that haven't completed onboarding yet
 // (in which case writes should be blocked at the UI layer, but the cache
 // would otherwise return undefined).
-export const DEFAULT_ORG_ID = "30311";
+// Defined in lib/constants so that modules needing only this string do not
+// pull the Firebase SDK through this module. Imported here for internal use
+// and re-exported so existing importers keep working.
+import { DEFAULT_ORG_ID } from "@/lib/constants";
+export { DEFAULT_ORG_ID };
 
 // Email → orgId overrides, useful in dev so multiple Gmail accounts can simulate
 // distinct orgs without going through the onboarding flow. Keys are lowercased.

@@ -105,11 +105,7 @@ Actualizar `lib/constants.ts` con los `eventCode` reales del:
 
 ### Si hay tiempo extra antes de Premier
 
-4. **Firebase Auth lazy-load** (refactor ~2h, alto impacto bundle)
-   - Hoy el chunk común tiene 560 KB de Firebase eager porque `AuthProvider` está en root layout
-   - Mover Auth a un wrapper opt-in solo en rutas con login (/scouting, /strategy parts)
-   - Routes públicas (/, /event, /analytics tab Data Lab) no necesitan Firebase eagerly
-   - **Mejora más grande pendiente de bundle**
+4. ~~**Firebase Auth lazy-load**~~ ✅ HECHO 29 jul (decisión #65). El diagnóstico de este item era incorrecto: no era *dónde se monta* `AuthProvider` sino que `Sidebar -> InviteGenerator -> lib/orgs -> lib/firebase` metía el SDK en el chunk de toda página pública. `/event` pasó de **1271 KB a 762 KB (−40%)** y Firebase salió por completo de `/`, `/event`, `/analytics` y `/team`. Sólo `/scouting` y `/strategy` lo conservan, que es lo correcto.
 
 5. **Entrenar modelos RP con datos reales**
    - Una vez `FIREBASE_SERVICE_ACCOUNT_KEY` + `UPSTASH_REDIS_REST_URL` configurados

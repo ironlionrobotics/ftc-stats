@@ -10,10 +10,18 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/lib/stores/theme-store";
 import { useProgram } from "@/lib/stores/program-store";
-import InviteGenerator from "@/components/auth/InviteGenerator";
-import GroundTruthValidator from "@/components/auth/GroundTruthValidator";
-import DiscordSettings from "@/components/auth/DiscordSettings";
-import RpModelTrainer from "@/components/auth/RpModelTrainer";
+import dynamic from "next/dynamic";
+
+// Admin/lead-only panels, rendered inside the signed-in block below. They reach
+// Firestore through lib/orgs, and the Sidebar lives in the root layout — so
+// importing them statically put the entire Firebase client SDK (~397 KB) into
+// the chunk EVERY page downloads, including the fully public ones where nobody
+// is signed in and these never render. Deferred so that cost is paid only by
+// the sessions that actually open them.
+const InviteGenerator = dynamic(() => import("@/components/auth/InviteGenerator"), { ssr: false });
+const GroundTruthValidator = dynamic(() => import("@/components/auth/GroundTruthValidator"), { ssr: false });
+const DiscordSettings = dynamic(() => import("@/components/auth/DiscordSettings"), { ssr: false });
+const RpModelTrainer = dynamic(() => import("@/components/auth/RpModelTrainer"), { ssr: false });
 
 // Returns false during SSR + the initial (hydrating) client render, true after
 // hydration — the standard useSyncExternalStore idiom. Replaces the
