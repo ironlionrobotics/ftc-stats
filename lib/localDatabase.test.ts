@@ -19,6 +19,10 @@ import {
     clearPending,
     recordSyncFailure,
     pruneSyncedOlderThan,
+    getStuckScoutingRows,
+    getLivePendingScoutingRows,
+    retryStuckRow,
+    retryAllStuckRows,
     MAX_SYNC_ATTEMPTS,
     __resetLocalDbForTests,
 } from "./localDatabase";
@@ -171,6 +175,70 @@ describe("getPendingScoutingRows (M2 poison-pill support)", () => {
         // check, not the data layer silently dropping it.
         expect(rows).toHaveLength(1);
         expect(rows[0].syncAttempts).toBe(MAX_SYNC_ATTEMPTS);
+    });
+});
+
+describe("stuck vs live pending partitioning (item #12)", () => {
+    it("getStuckScoutingRows / getLivePendingScoutingRows split on MAX_SYNC_ATTEMPTS", async () => {
+        const stuckId = await saveToLocal(makeFTCEntry({ matchNumber: 1 }));
+        const liveId = await saveToLocal(makeFTCEntry({ matchNumber: 2 }));
+        for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+            await recordSyncFailure(stuckId, "permission-denied");
+        }
+        await recordSyncFailure(liveId, "transient blip");
+
+        const stuck = await getStuckScoutingRows();
+        expect(stuck).toHaveLength(1);
+        expect(stuck[0].id).toBe(stuckId);
+        expect(stuck[0].lastError).toBe("permission-denied");
+
+        const live = await getLivePendingScoutingRows();
+        expect(live).toHaveLength(1);
+        expect(live[0].id).toBe(liveId);
+    });
+
+    it("synced rows never show up as stuck, even past the attempt threshold", async () => {
+        const id = await saveToLocal(makeFTCEntry());
+        for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+            await recordSyncFailure(id, "attempt");
+        }
+        await markAsSynced(id);
+
+        expect(await getStuckScoutingRows()).toHaveLength(0);
+        expect(await getLivePendingScoutingRows()).toHaveLength(0);
+    });
+
+    it("retryStuckRow resets syncAttempts/lastError so the row moves back to live", async () => {
+        const id = await saveToLocal(makeFTCEntry());
+        for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+            await recordSyncFailure(id, "attempt");
+        }
+        expect(await getStuckScoutingRows()).toHaveLength(1);
+
+        await retryStuckRow(id);
+
+        expect(await getStuckScoutingRows()).toHaveLength(0);
+        const live = await getLivePendingScoutingRows();
+        expect(live).toHaveLength(1);
+        expect(live[0].syncAttempts).toBe(0);
+        expect(live[0].lastError).toBeUndefined();
+    });
+
+    it("retryAllStuckRows resets every stuck row and reports the count", async () => {
+        const id1 = await saveToLocal(makeFTCEntry({ matchNumber: 1 }));
+        const id2 = await saveToLocal(makeFTCEntry({ matchNumber: 2 }));
+        const liveId = await saveToLocal(makeFTCEntry({ matchNumber: 3 }));
+        for (const id of [id1, id2]) {
+            for (let i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+                await recordSyncFailure(id, "attempt");
+            }
+        }
+        await recordSyncFailure(liveId, "one transient failure");
+
+        const resetCount = await retryAllStuckRows();
+        expect(resetCount).toBe(2);
+        expect(await getStuckScoutingRows()).toHaveLength(0);
+        expect(await getLivePendingScoutingRows()).toHaveLength(3);
     });
 });
 

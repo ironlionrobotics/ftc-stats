@@ -220,6 +220,60 @@ export async function recordSyncFailure(id: string, error: string): Promise<void
     });
 }
 
+/**
+ * Rows the drain loop has given up on (syncAttempts >= MAX_SYNC_ATTEMPTS).
+ * These are NOT counted by `getPendingScouting`'s callers-facing "pending"
+ * concept — they're dead-lettered until a human retries or exports them, so
+ * showing them as ordinary "pending" would make the badge look permanently
+ * stuck. Returns full rows (not just the payload) because the UI needs
+ * `lastError`/`createdAt`/etc. to explain what's wrong.
+ */
+export async function getStuckScoutingRows(): Promise<PendingMatchRow[]> {
+    await migrateLegacyKeysOnce();
+    return db().pendingMatches
+        .where("syncedAt")
+        .equals(0)
+        .and(r => r.syncAttempts >= MAX_SYNC_ATTEMPTS)
+        .toArray();
+}
+
+/**
+ * Pending rows still within their retry budget — this is the count that
+ * should drive the "N pend." badge (stuck rows are surfaced separately, see
+ * `getStuckScoutingRows`).
+ */
+export async function getLivePendingScoutingRows(): Promise<PendingMatchRow[]> {
+    await migrateLegacyKeysOnce();
+    return db().pendingMatches
+        .where("syncedAt")
+        .equals(0)
+        .and(r => r.syncAttempts < MAX_SYNC_ATTEMPTS)
+        .toArray();
+}
+
+/**
+ * Clears the dead-letter state for one row so the next `drain()` treats it
+ * as a fresh attempt. Does not re-send anything itself — the actual retry
+ * happens the next time OnlineSync drains the queue.
+ */
+export async function retryStuckRow(id: string): Promise<void> {
+    await migrateLegacyKeysOnce();
+    await db().pendingMatches.update(id, { syncAttempts: 0, lastError: undefined });
+}
+
+/**
+ * Same as `retryStuckRow` but for every currently-stuck row at once (the
+ * "Reintentar todas" bulk action). Returns how many rows were reset.
+ */
+export async function retryAllStuckRows(): Promise<number> {
+    await migrateLegacyKeysOnce();
+    const stuck = await getStuckScoutingRows();
+    await Promise.all(
+        stuck.map(r => db().pendingMatches.update(r.id, { syncAttempts: 0, lastError: undefined })),
+    );
+    return stuck.length;
+}
+
 /** Removes synced rows older than `maxAgeMs` (default 30 days) to keep the
  *  local DB small. Safe to call any time. */
 export async function pruneSyncedOlderThan(maxAgeMs: number = 30 * 24 * 60 * 60 * 1000): Promise<number> {

@@ -3,11 +3,15 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-    getPendingScouting,
     getPendingScoutingRows,
+    getLivePendingScoutingRows,
+    getStuckScoutingRows,
     markAsSynced,
     recordSyncFailure,
+    retryStuckRow,
+    retryAllStuckRows,
     MAX_SYNC_ATTEMPTS,
+    type PendingMatchRow,
 } from "@/lib/localDatabase";
 import { saveMatchScouting } from "@/lib/scouting-service";
 import { cachePruneOlderThan } from "@/lib/client-cache";
@@ -49,6 +53,12 @@ export default function OnlineSync() {
         typeof navigator !== "undefined" ? navigator.onLine : true,
     );
     const [pendingCount, setPendingCount] = useState(0);
+    // Dead-lettered rows (syncAttempts >= MAX_SYNC_ATTEMPTS) are tracked
+    // separately from pendingCount — they must NOT inflate the "N pend."
+    // badge, since drain() will never pick them up on its own again.
+    const [stuckCount, setStuckCount] = useState(0);
+    const [stuckRows, setStuckRows] = useState<PendingMatchRow[]>([]);
+    const [showStuckPanel, setShowStuckPanel] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [lastError, setLastError] = useState<string | null>(null);
     const consecutiveFailuresRef = useRef(0);
@@ -66,13 +76,26 @@ export default function OnlineSync() {
 
     const refreshPendingCount = useCallback(async () => {
         try {
-            const items = await getPendingScouting();
-            pendingCountRef.current = items.length;
-            setPendingCount(items.length);
+            // Fetched together so the badge and the stuck indicator always
+            // reflect the same snapshot of the queue.
+            const [live, stuck] = await Promise.all([
+                getLivePendingScoutingRows(),
+                getStuckScoutingRows(),
+            ]);
+            pendingCountRef.current = live.length;
+            setPendingCount(live.length);
+            setStuckCount(stuck.length);
+            setStuckRows(stuck);
         } catch {
             // Dexie not ready yet; ignore.
         }
     }, []);
+
+    // The inspector panel only makes sense while there's something stuck to
+    // show — auto-close it once the last entry has been retried/exported.
+    useEffect(() => {
+        if (stuckCount === 0) setShowStuckPanel(false);
+    }, [stuckCount]);
 
     const drain = useCallback(async () => {
         if (!user || drainingRef.current) return;
@@ -138,6 +161,54 @@ export default function OnlineSync() {
         }
     }, [user, refreshPendingCount]);
 
+    const handleRetryOne = async (id: string) => {
+        // Resetting only clears the dead-letter flag; the actual re-send
+        // happens on the next drain(). We trigger one immediately here (same
+        // gesture as tap-to-retry on the main pill) so a scout sees it move
+        // right away instead of waiting for the next `online` event or the
+        // 5s poll.
+        await retryStuckRow(id);
+        await refreshPendingCount();
+        if (online) drain();
+    };
+
+    const handleRetryAll = async () => {
+        await retryAllStuckRows();
+        await refreshPendingCount();
+        if (online) drain();
+    };
+
+    const handleExportStuck = () => {
+        if (stuckRows.length === 0) return;
+        // Escape hatch for data that transient retries can't fix (expired
+        // token, a rules deploy mid-event, etc). Must work with no network —
+        // it only reads from Dexie and triggers a client-side download.
+        const payload = stuckRows.map(r => ({
+            id: r.id,
+            teamNumber: r.teamNumber,
+            matchNumber: r.matchNumber,
+            eventCode: r.eventCode,
+            scoutId: r.scoutId,
+            orgId: r.orgId,
+            season: r.season,
+            program: r.program,
+            createdAt: r.createdAt,
+            syncAttempts: r.syncAttempts,
+            lastError: r.lastError,
+            data: r.data,
+        }));
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const eventCodes = Array.from(new Set(stuckRows.map(r => r.eventCode))).join("-") || "sin-evento";
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `pride-scouting-atascadas-${eventCodes}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     // Initial count + connectivity listeners.
     useEffect(() => {
         refreshPendingCount();
@@ -175,47 +246,135 @@ export default function OnlineSync() {
     if (!user) return null;
 
     return (
-        <button
-            type="button"
-            onClick={() => online && drain()}
-            disabled={syncing || !online}
-            className={clsx(
-                "fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40",
-                "flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold shadow-sm border transition-all",
-                online
-                    ? lastError
-                        ? "bg-warning/20 border-warning/40 text-warning hover:bg-warning/30"
-                        : pendingCount > 0
-                            ? "bg-secondary/20 border-secondary/40 text-secondary hover:bg-secondary/30"
-                            : "bg-success/15 border-success/30 text-success"
-                    : "bg-muted border-border text-muted-foreground",
+        <>
+            {showStuckPanel && stuckRows.length > 0 && (
+                <div
+                    className={clsx(
+                        // Clears the stuck pill (bottom-16/20 + its ~33px height)
+                        // with breathing room instead of sitting flush on it.
+                        "fixed bottom-28 right-4 md:bottom-32 md:right-6 z-50",
+                        "w-[90vw] max-w-sm max-h-[70vh] overflow-y-auto",
+                        "bg-card border border-border rounded-xl shadow-sm p-4 space-y-3",
+                    )}
+                >
+                    <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-sm font-black text-foreground">Entradas atascadas</h3>
+                        <button
+                            type="button"
+                            onClick={() => setShowStuckPanel(false)}
+                            className="text-muted-foreground hover:text-foreground text-xs font-bold"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        Fallaron {MAX_SYNC_ATTEMPTS}+ veces y ya no se reintentan solas. Reintenta si
+                        el problema era temporal, o exporta el JSON para no perder la captura.
+                    </p>
+                    <div className="space-y-2">
+                        {stuckRows.map(row => (
+                            <div
+                                key={row.id}
+                                className="p-2 rounded-lg bg-muted border border-border text-xs space-y-1"
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="font-bold text-foreground">
+                                        Equipo {row.teamNumber} · Match {row.matchNumber}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRetryOne(row.id)}
+                                        className="px-2 py-1 rounded-md bg-secondary/20 text-secondary font-bold hover:bg-secondary/30 shrink-0"
+                                    >
+                                        Reintentar
+                                    </button>
+                                </div>
+                                <div className="text-muted-foreground">
+                                    {row.eventCode} · {new Date(row.createdAt).toLocaleString()}
+                                </div>
+                                {row.lastError && (
+                                    <div className="text-danger break-words">{row.lastError}</div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                        <button
+                            type="button"
+                            onClick={handleRetryAll}
+                            className="flex-1 px-3 py-2 rounded-lg bg-secondary/20 text-secondary font-bold text-xs hover:bg-secondary/30"
+                        >
+                            Reintentar todas
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleExportStuck}
+                            className="flex-1 px-3 py-2 rounded-lg bg-muted border border-border text-foreground font-bold text-xs hover:bg-muted/70"
+                        >
+                            Exportar JSON
+                        </button>
+                    </div>
+                </div>
             )}
-            title={
-                online
-                    ? pendingCount > 0
-                        ? `Sincronizando ${pendingCount} pendientes — click para forzar`
-                        : "Online · todo sincronizado"
-                    : "Offline — los datos se guardan localmente y se enviarán al recuperar conexión"
-            }
-        >
-            {syncing ? (
-                <Loader2 size={13} className="animate-spin" />
-            ) : !online ? (
-                <CloudOff size={13} />
-            ) : lastError ? (
-                <AlertTriangle size={13} />
-            ) : (
-                <Cloud size={13} />
+
+            {stuckCount > 0 && (
+                <button
+                    type="button"
+                    onClick={() => setShowStuckPanel(v => !v)}
+                    className={clsx(
+                        "fixed bottom-16 right-4 md:bottom-20 md:right-6 z-40",
+                        "flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold shadow-sm border transition-all",
+                        "bg-danger/15 border-danger/40 text-danger hover:bg-danger/25",
+                    )}
+                    title={`${stuckCount} entrada${stuckCount === 1 ? "" : "s"} atascada${stuckCount === 1 ? "" : "s"} — click para revisar`}
+                >
+                    <AlertTriangle size={13} />
+                    <span>{stuckCount} atascada{stuckCount === 1 ? "" : "s"}</span>
+                </button>
             )}
-            <span>
-                {!online
-                    ? "Offline"
-                    : syncing
-                        ? `Sync ${pendingCount}`
-                        : pendingCount > 0
-                            ? `${pendingCount} pend.`
-                            : "Online"}
-            </span>
-        </button>
+
+            <button
+                type="button"
+                onClick={() => online && drain()}
+                disabled={syncing || !online}
+                className={clsx(
+                    "fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40",
+                    "flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold shadow-sm border transition-all",
+                    online
+                        ? lastError
+                            ? "bg-warning/20 border-warning/40 text-warning hover:bg-warning/30"
+                            : pendingCount > 0
+                                ? "bg-secondary/20 border-secondary/40 text-secondary hover:bg-secondary/30"
+                                : "bg-success/15 border-success/30 text-success"
+                        : "bg-muted border-border text-muted-foreground",
+                )}
+                title={
+                    online
+                        ? pendingCount > 0
+                            ? `Sincronizando ${pendingCount} pendientes — click para forzar`
+                            : "Online · todo sincronizado"
+                        : "Offline — los datos se guardan localmente y se enviarán al recuperar conexión"
+                }
+            >
+                {syncing ? (
+                    <Loader2 size={13} className="animate-spin" />
+                ) : !online ? (
+                    <CloudOff size={13} />
+                ) : lastError ? (
+                    <AlertTriangle size={13} />
+                ) : (
+                    <Cloud size={13} />
+                )}
+                <span>
+                    {!online
+                        ? "Offline"
+                        : syncing
+                            ? `Sync ${pendingCount}`
+                            : pendingCount > 0
+                                ? `${pendingCount} pend.`
+                                : "Online"}
+                </span>
+            </button>
+        </>
     );
 }
