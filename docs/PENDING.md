@@ -1,7 +1,32 @@
 # Pendientes — FTC Stats México
 
-**Última actualización:** 16 jul 2026 (cierre de auditoría + remediación 2026-07-08/09)
-**Premier Event objetivo:** julio 2026
+**Última actualización:** 28 jul 2026 (sesión 16 — rediseño Nightshift, reporte 30311, validación masiva del Oracle)
+**Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
+
+---
+
+## 🚨 ACCIÓN INMEDIATA — producción desactualizada
+
+**23 commits pusheados a `origin/feat/oracle-alliance_maker-260210` SIN desplegar** (Héctor pidió commit+push sin rollout el 2026-07-28). Producción sirve la versión de la sesión 15.
+
+Para desplegar cuando Héctor lo autorice:
+1. `firebase deploy --only apphosting --project ironlion-scouting`
+2. `firebase deploy --only firestore:rules` ← **necesario**: bloque nuevo de `app_config` (consola superadmin)
+3. Verificar `SUPERADMIN_EMAILS` en `apphosting.yaml` (ya cableado) y agregarlo a `.env.local` para dev.
+
+Lo que producción NO tiene aún: rediseño Nightshift (dark-first), reporte de temporada 30311, consola `/admin`, selector de eventos, σ de playoffs 2.4×, columna schedule strength, explicación de partners, reenfoque de IA a notas.
+
+---
+
+## 🔭 Siguientes análisis/features propuestos (no arrancados)
+
+Del menú discutido en sesión 16 (los 3 primeros ya se hicieron: schedule strength, modelo de eliminatorias, selector de eventos):
+- **Detector de meta defensivo** — ensanchar σ automáticamente cuando los residuales huelen a defensa (lección PowerPlay 2022).
+- **Curvas de crecimiento** rookie→veterano por región (7 temporadas de datos ya disponibles).
+- **Ciencia del draft** — priors históricos de selección de alianzas para el asesor de invitación.
+- **Página pública de calibración** del Oracle (transparencia radical; base para "informar al público").
+- **Tracker de consistencia 30311** — cerrar la brecha OPR temporada (63.4) vs pico (80.8), la métrica que decide burbuja vs pick (decisión #58).
+- **consDiff** en el modelo de eliminatorias (requiere plomería de σ por equipo en call sites, decisión #59).
 
 Este documento es la **fuente autoritativa** de qué falta. Leer al iniciar cualquier sesión nueva. Después de hacer trabajo, actualizar moviendo items entre secciones.
 
