@@ -200,3 +200,17 @@ Sesión larga y multi-tema, con la app YA en producción y usada en vivo durante
 - **Corrección de semántica de fouls del API** (estaba invertida en medio código — `scoreXFoul` = cometidos, no recibidos) + capa de realidad del bracket (falla por robot, foul points, resultados reales, import API) + bracket en bandas upper/lower. Decisión #48.
 - **Validación**: modelo acertó 9/10 ganadores de playoffs reales de FPEMX; único upset fue de 30311. Ver decisiones.md "Validación del modelo contra FPEMX".
 - **Estado**: rama `feat/oracle-alliance_maker-260210`, 224 tests verdes, tsc/lint limpios. Todo commiteado y desplegado a producción.
+
+## Sesión 16 — 2026-07-28 · Rediseño Nightshift, reporte 30311, validación masiva del Oracle
+
+Sesión larga (22 commits, todos pusheados a `feat/oracle-alliance_maker-260210`; **producción NO actualizada** — el último rollout es de la sesión 15).
+
+**Diseño.** Investigación de dirección visual → prototipo interactivo con 3 direcciones → Héctor eligió **C "Nightshift"** (dark-first, chartreuse `#c4f135` + cobalto, Space Grotesk + JetBrains Mono). Implementado por tokens (cero reescritura de componentes), con script anti-FOUC, default oscuro, focus-glow, View Transitions en tabs y el scanline de firma en el match "Próximo". Prototipos versionados en `docs/design/`.
+
+**Reporte 30311 (`/team/30311`).** Retrospectiva grado-sponsor con datos citados de FTCScout: arco de OPR, percentiles mundiales, cohortes rookie nacional/internacional (único rookie mexicano con Inspire; top 2.7% mundial), tarjetas de evento enriquecidas con rol de playoffs + avance + premios (arreglado el Reach Award faltante usando el endpoint por-evento). Correcciones pedidas por Héctor: "torneo debut", tabla de México aclarada como tier veterano (no ranking nacional), "Resultados por evento".
+
+**Validación masiva del Oracle (decisiones #51-#59).** Backtests con metodología uniforme: Houston 2025 por división (65.5%), 7 Premier Events (69.9%), Into The Deep, y luego el **script reanudable `scripts/oracle-backtest.mjs`** sobre **7 temporadas / 2,793 eventos / 21,436 matches de playoffs de todas las regiones**. Constante ~76% con calibración a <3pp siempre; PowerPlay 2022 outlier por meta defensivo; jerarquía estable regional > Premier > Worlds > Finals. Contrafactual de 30311 en Worlds/Premiers (#58).
+
+**Mejoras derivadas.** (1) Explicación determinística del "¿por qué este partner?" en Oracle — sin LLM, offline-safe. (2) Reenfoque de la IA: fuera el "AI Analysis" redundante, el chat ahora sintetiza **notas de scouting** (lo único que el motor no puede fusionar) + botón "Notas IA" en Pro Scouting. (3) **Consola superadmin** `/admin` (config runtime en Firestore, secretos solo como estado, raíz de confianza `SUPERADMIN_EMAILS`). (4) Columna **schedule strength**. (5) **σ de playoffs 2.4×** aprendida de 10,800 matches (log-loss −27%, decisión #59). (6) **Selector de eventos** (#60) con 1,213 perfiles históricos.
+
+**Visión.** `docs/VISION-PRIDE.md`: PRIDE como proyecto insignia para premios FTC/FRC — 8 territorios, 3 horizontes, matriz de premios. La base FRC ya existe en el repo (~2-3 semanas a paridad).
