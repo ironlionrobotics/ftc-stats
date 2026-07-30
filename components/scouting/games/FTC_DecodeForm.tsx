@@ -9,6 +9,7 @@ import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID, scoutIdFromUser, scoutNameFromUser } from "@/lib/orgs";
 import { useSaveMatchScouting, type MatchScoutingSaveResult } from "@/lib/hooks/use-scouting-mutations";
 import { ftcDecodeFormSchema, type FTCDecodeFormValues } from "@/lib/schemas/scouting";
+import { useZodMessage } from "@/lib/hooks/use-zod-message";
 import { Card } from "@/components/ui/Card";
 import { Save, Plus, User, Trophy, Minus, ClipboardList, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
@@ -53,6 +54,7 @@ export default function FTC_DecodeForm({ team, entries }: MatchScoutingFormProps
     const { season } = useProgram();
     const [isAdding, setIsAdding] = useState(false);
     const saveMutation = useSaveMatchScouting();
+    const zodMsg = useZodMessage();
 
     // See SuperScoutingForm for the resolver-cast rationale (Zod coerce TInput/TOutput mismatch).
     const {
@@ -169,7 +171,7 @@ export default function FTC_DecodeForm({ team, entries }: MatchScoutingFormProps
                                         )}
                                     />
                                     {errors.matchNumber && (
-                                        <p className="text-xs text-danger mt-1">{errors.matchNumber.message}</p>
+                                        <p className="text-xs text-danger mt-1">{zodMsg(errors.matchNumber.message)}</p>
                                     )}
                                 </div>
 

@@ -7,6 +7,30 @@
     "en": "English",
     "es": "Español"
   },
+  "Errors": {
+    "generic": "Algo salió mal. Intenta de nuevo.",
+    "auth": {
+      "missingToken": "Falta token de autenticación",
+      "invalidToken": "Token inválido o expirado",
+      "userNotFound": "Usuario no encontrado"
+    },
+    "invite": {
+      "tooShort": "Código demasiado corto",
+      "notFound": "Código de invitación no encontrado",
+      "expired": "Este código de invitación ya expiró",
+      "maxUses": "Este código de invitación alcanzó el límite de usos",
+      "orgMissing": "El equipo asociado a esta invitación ya no existe"
+    },
+    "org": {
+      "alreadyExists": "Ese equipo ya tiene un espacio. Pide un código de invitación a un admin o lead del equipo para unirte.",
+      "codeGeneration": "No se pudo generar código único después de varios intentos"
+    },
+    "validation": {
+      "teamNumber": "Ingresa un número de equipo válido",
+      "teamName": "Ingresa el nombre del equipo",
+      "wouldPick": "Indica si recomendarías escoger este equipo"
+    }
+  },
   "DraftOdds": {
     "captain": "Seed {seed} alcanza para capitanear una de las {alliances} alianzas.",
     "seedRate": "Tasa histórica de selección en el seed {seed}.",

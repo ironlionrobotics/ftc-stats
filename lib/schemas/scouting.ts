@@ -88,8 +88,10 @@ export const superScoutingFormSchema = z.object({
     driverSkill: likert.default(3),
     defenseRating: likert.default(1),
     reliability: likert.default(3),
+    // Message is an Errors catalog code, not prose — schemas have no locale.
+    // Rendered through useZodMessage() (lib/hooks/use-zod-message.ts).
     wouldPick: z.boolean({
-        message: "Indica si recomendarías escoger este equipo",
+        message: "validation.wouldPick",
     }),
     notes: z.string().max(2000).default(""),
 });

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { createOrJoinOrgByTeamNumber } from "@/lib/orgs";
 import { redeemInviteAction } from "@/app/actions/redeem-invite";
+import { toErrorCode, type ErrorCode } from "@/lib/errors";
 import type { OrgProgram } from "@/types/orgs";
 import { Users, KeyRound, Loader2, X, AlertCircle } from "lucide-react";
 import clsx from "clsx";
@@ -20,6 +22,7 @@ import clsx from "clsx";
  */
 export default function OnboardingModal() {
     const { user, userDoc, userDocLoading, orgId, reloadUserDoc, logout } = useAuth();
+    const tErr = useTranslations("Errors");
     const [tab, setTab] = useState<"create" | "code">("create");
 
     // Form state
@@ -28,7 +31,9 @@ export default function OnboardingModal() {
     const [program, setProgram] = useState<OrgProgram>("FTC");
     const [code, setCode] = useState("");
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    // Errors are held as codes, not prose: the producers (lib/orgs,
+    // redeemInviteAction) have no locale, so translation happens at render.
+    const [error, setError] = useState<ErrorCode | null>(null);
 
     // Show only when authed + user doc loaded + missing orgId.
     if (!user || userDocLoading || !userDoc || orgId) return null;
@@ -37,11 +42,11 @@ export default function OnboardingModal() {
         setError(null);
         const n = parseInt(teamNumber, 10);
         if (!n || n <= 0) {
-            setError("Ingresa un número de equipo válido");
+            setError("validation.teamNumber");
             return;
         }
         if (!displayName.trim()) {
-            setError("Ingresa el nombre del equipo");
+            setError("validation.teamName");
             return;
         }
         setBusy(true);
@@ -53,7 +58,7 @@ export default function OnboardingModal() {
             });
             await reloadUserDoc();
         } catch (e) {
-            setError(e instanceof Error ? e.message : "Error al crear el equipo");
+            setError(toErrorCode(e));
         } finally {
             setBusy(false);
         }
@@ -62,7 +67,7 @@ export default function OnboardingModal() {
     const handleRedeem = async () => {
         setError(null);
         if (code.trim().length < 4) {
-            setError("Código demasiado corto");
+            setError("invite.tooShort");
             return;
         }
         setBusy(true);
@@ -72,12 +77,12 @@ export default function OnboardingModal() {
             const idToken = await user.getIdToken();
             const result = await redeemInviteAction({ idToken, code });
             if (!result.ok) {
-                setError(result.error);
+                setError(result.code);
                 return;
             }
             await reloadUserDoc();
         } catch (e) {
-            setError(e instanceof Error ? e.message : "Error al usar el código");
+            setError(toErrorCode(e));
         } finally {
             setBusy(false);
         }
@@ -185,7 +190,7 @@ export default function OnboardingModal() {
                     {error && (
                         <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-xs">
                             <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                            <span>{error}</span>
+                            <span>{tErr(error)}</span>
                         </div>
                     )}
                 </div>

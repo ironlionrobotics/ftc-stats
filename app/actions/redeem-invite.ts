@@ -3,6 +3,7 @@
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { validateInvite, normalizeInviteCode, type InviteDoc } from "@/lib/invite-redemption";
+import { CodedError, toErrorCode, type ErrorCode } from "@/lib/errors";
 import type { Org } from "@/types/orgs";
 
 /**
@@ -19,23 +20,28 @@ import type { Org } from "@/types/orgs";
  * Runs in a Firestore transaction so the invite validation, the `uses`
  * increment, and the membership write are atomic — this also closes the small
  * race the old client path had (concurrent redemptions could exceed maxUses).
+ *
+ * Failures come back as stable ErrorCodes, not prose: the action has no locale
+ * and the client translates. It also means an unexpected internal exception
+ * (Firestore error, admin-SDK misconfiguration) collapses to "generic" instead
+ * of leaking its message to the browser — the original is logged server-side.
  */
 export async function redeemInviteAction(input: {
     idToken: string;
     code: string;
-}): Promise<{ ok: true; org: Org } | { ok: false; error: string }> {
+}): Promise<{ ok: true; org: Org } | { ok: false; code: ErrorCode }> {
     const { idToken } = input;
-    if (!idToken) return { ok: false, error: "Falta token de autenticación" };
+    if (!idToken) return { ok: false, code: "auth.missingToken" };
 
     const code = normalizeInviteCode(input.code ?? "");
-    if (code.length < 4) return { ok: false, error: "Código demasiado corto" };
+    if (code.length < 4) return { ok: false, code: "invite.tooShort" };
 
     let uid: string;
     try {
         const decoded = await getAdminAuth().verifyIdToken(idToken);
         uid = decoded.uid;
     } catch {
-        return { ok: false, error: "Token inválido o expirado" };
+        return { ok: false, code: "auth.invalidToken" };
     }
 
     const db = getAdminDb();
@@ -49,16 +55,16 @@ export async function redeemInviteAction(input: {
             const invite = inviteSnap.exists ? (inviteSnap.data() as InviteDoc) : null;
 
             // Need the invite's orgId to locate the org; bail early if missing.
-            if (!invite) throw new Error("Código de invitación no encontrado");
+            if (!invite) throw new CodedError("invite.notFound");
 
             const orgRef = db.collection("orgs").doc(invite.orgId);
             const orgSnap = await tx.get(orgRef);
             const userSnap = await tx.get(userRef);
 
             const validation = validateInvite(invite, orgSnap.exists, Date.now());
-            if (!validation.ok) throw new Error(validation.error);
+            if (!validation.ok) throw new CodedError(validation.code);
 
-            if (!userSnap.exists) throw new Error("Usuario no encontrado");
+            if (!userSnap.exists) throw new CodedError("auth.userNotFound");
 
             // Writes.
             tx.update(inviteRef, { uses: FieldValue.increment(1) });
@@ -68,7 +74,10 @@ export async function redeemInviteAction(input: {
         });
         return { ok: true, org };
     } catch (e) {
-        const message = e instanceof Error ? e.message : "Error al usar el código";
-        return { ok: false, error: message };
+        const code = toErrorCode(e);
+        // Only expected failures carry a code; anything else is an internal
+        // fault whose message must not reach the client.
+        if (code === "generic") console.error("[redeem-invite]", e);
+        return { ok: false, code };
     }
 }

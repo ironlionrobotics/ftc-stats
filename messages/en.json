@@ -7,6 +7,30 @@
     "en": "English",
     "es": "Español"
   },
+  "Errors": {
+    "generic": "Something went wrong. Try again.",
+    "auth": {
+      "missingToken": "Missing authentication token",
+      "invalidToken": "Invalid or expired token",
+      "userNotFound": "User not found"
+    },
+    "invite": {
+      "tooShort": "Code is too short",
+      "notFound": "Invite code not found",
+      "expired": "This invite code has already expired",
+      "maxUses": "This invite code reached its usage limit",
+      "orgMissing": "The team this invite points to no longer exists"
+    },
+    "org": {
+      "alreadyExists": "That team already has a workspace. Ask an admin or lead of the team for an invite code to join.",
+      "codeGeneration": "Could not generate a unique code after several attempts"
+    },
+    "validation": {
+      "teamNumber": "Enter a valid team number",
+      "teamName": "Enter the team name",
+      "wouldPick": "Say whether you would recommend picking this team"
+    }
+  },
   "DraftOdds": {
     "captain": "Seed {seed} is high enough to captain one of the {alliances} alliances.",
     "seedRate": "Historical selection rate at seed {seed}.",

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { createInvite } from "@/lib/orgs";
+import { toErrorCode, type ErrorCode } from "@/lib/errors";
 import type { OrgInvite } from "@/types/orgs";
 import { Copy, Plus, Loader2, KeyRound, Check } from "lucide-react";
 
@@ -14,10 +16,11 @@ import { Copy, Plus, Loader2, KeyRound, Check } from "lucide-react";
  */
 export default function InviteGenerator() {
     const { user, userDoc, orgId } = useAuth();
+    const tErr = useTranslations("Errors");
     const [busy, setBusy] = useState(false);
     const [invite, setInvite] = useState<OrgInvite | null>(null);
     const [copied, setCopied] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<ErrorCode | null>(null);
 
     if (!user || !userDoc || !orgId) return null;
 
@@ -32,7 +35,9 @@ export default function InviteGenerator() {
             setInvite(result);
             setCopied(false);
         } catch (e) {
-            setError(e instanceof Error ? e.message : "Error al generar código");
+            // The message was rendered verbatim before: a raw Firestore
+            // permission error is not something the user can act on.
+            setError(toErrorCode(e));
         } finally {
             setBusy(false);
         }
@@ -97,7 +102,7 @@ export default function InviteGenerator() {
             )}
 
             {error && (
-                <p className="text-[10px] text-danger">{error}</p>
+                <p className="text-[10px] text-danger">{tErr(error)}</p>
             )}
         </div>
     );

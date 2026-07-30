@@ -5,6 +5,7 @@ import { useForm, Controller, type Control, type FieldPathByValue, type Resolver
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AggregatedTeamStats, PitScouting } from "@/types/scouting";
 import { pitScoutingFormSchema, type PitScoutingFormValues } from "@/lib/schemas/scouting";
+import { useZodMessage } from "@/lib/hooks/use-zod-message";
 import { Save, Edit2, Lock, Share2, Globe, Loader2 } from "lucide-react";
 import clsx from "clsx";
 
@@ -52,6 +53,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
  */
 export default function ScoutingForm({ team, initialData, onSave }: ScoutingFormProps) {
     const [isEditing, setIsEditing] = useState(false);
+    const zodMsg = useZodMessage();
 
     // See SuperScoutingForm for the `as any` rationale (Zod coerce TInput/TOutput mismatch).
     const {
@@ -154,9 +156,9 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                 <section>
                     <SectionTitle>Especificaciones Técnicas</SectionTitle>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <TextField control={control} name="robotName" label="Nombre del Robot" placeholder="Ej: Iron Lion Bot" disabled={!isEditing} error={errors.robotName?.message} />
+                        <TextField control={control} name="robotName" label="Nombre del Robot" placeholder="Ej: Iron Lion Bot" disabled={!isEditing} error={zodMsg(errors.robotName?.message)} />
                         <SelectField control={control} name="driveTrain" label="Tipo de Tracción" options={['Mecanno', 'X-Drive', 'Tanque', 'Omnidireccional', 'Swerve', 'Otros']} disabled={!isEditing} />
-                        <NumberField control={control} name="servoCount" label="Cantidad de Servos (Max 20)" disabled={!isEditing} error={errors.servoCount?.message} />
+                        <NumberField control={control} name="servoCount" label="Cantidad de Servos (Max 20)" disabled={!isEditing} error={zodMsg(errors.servoCount?.message)} />
                         <TextField control={control} name="dimensions" label="Dimensiones (Pulgadas)" placeholder="Ej: 18x18x18" disabled={!isEditing} />
                         <TextField control={control} name="weight" label="Peso (Kg)" placeholder="Ej: 12.5" disabled={!isEditing} />
                         <TextField control={control} name="motors" label="Motores" placeholder="Ej: 4 Rev HD Hex" disabled={!isEditing} />
@@ -219,7 +221,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                                 />
                             )}
                         />
-                        {errors.notes && <p className="text-xs text-danger">{errors.notes.message}</p>}
+                        {errors.notes && <p className="text-xs text-danger">{zodMsg(errors.notes.message)}</p>}
                     </div>
                 </section>
 
@@ -249,7 +251,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                                 />
                             )}
                         />
-                        {errors.publicSummary && <p className="text-xs text-danger">{errors.publicSummary.message}</p>}
+                        {errors.publicSummary && <p className="text-xs text-danger">{zodMsg(errors.publicSummary.message)}</p>}
                         {initialData?.publicSummarySharedAt?.seconds && (
                             <div className="text-[10px] text-success/60 font-medium">
                                 Compartido por última vez:{" "}

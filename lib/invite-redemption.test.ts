@@ -21,7 +21,7 @@ describe("validateInvite", () => {
     it("rejects a missing invite (code not found)", () => {
         expect(validateInvite(null, true, NOW)).toEqual({
             ok: false,
-            error: "Código de invitación no encontrado",
+            code: "invite.notFound",
         });
     });
 
@@ -29,7 +29,7 @@ describe("validateInvite", () => {
         const expired = invite({ expiresAt: { seconds: Math.floor(NOW / 1000) - 1 } });
         expect(validateInvite(expired, true, NOW)).toEqual({
             ok: false,
-            error: "Este código de invitación ya expiró",
+            code: "invite.expired",
         });
     });
 
@@ -41,7 +41,7 @@ describe("validateInvite", () => {
     it("rejects when the use cap is reached", () => {
         expect(validateInvite(invite({ uses: 5, maxUses: 5 }), true, NOW)).toEqual({
             ok: false,
-            error: "Este código de invitación alcanzó el límite de usos",
+            code: "invite.maxUses",
         });
     });
 
@@ -52,7 +52,7 @@ describe("validateInvite", () => {
     it("rejects when the target org no longer exists", () => {
         expect(validateInvite(invite(), false, NOW)).toEqual({
             ok: false,
-            error: "El equipo asociado a esta invitación ya no existe",
+            code: "invite.orgMissing",
         });
     });
 
@@ -60,7 +60,7 @@ describe("validateInvite", () => {
         const both = invite({ expiresAt: { seconds: Math.floor(NOW / 1000) - 1 }, uses: 5, maxUses: 5 });
         expect(validateInvite(both, true, NOW)).toEqual({
             ok: false,
-            error: "Este código de invitación ya expiró",
+            code: "invite.expired",
         });
     });
 });

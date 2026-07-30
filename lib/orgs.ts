@@ -7,6 +7,7 @@ import {
     Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { CodedError } from "@/lib/errors";
 import type { Org, AppUser, OrgInvite, OrgProgram } from "@/types/orgs";
 
 // Until the user document is loaded from Firestore we fall back to this org.
@@ -127,11 +128,9 @@ export async function createOrJoinOrgByTeamNumber(
     const orgRef = doc(db, ORGS_COLLECTION, orgId);
     const existing = await getDoc(orgRef);
 
-    if (existing.exists()) {
-        throw new Error(
-            "Ese equipo ya tiene un espacio. Pide un código de invitación a un admin o lead del equipo para unirte.",
-        );
-    }
+    // Prose lives in messages/{en,es}.json under Errors.org.alreadyExists —
+    // it tells the user to ask for an invite code, so it must stay translated.
+    if (existing.exists()) throw new CodedError("org.alreadyExists");
 
     const org: Omit<Org, "id"> = {
         teamNumber: input.teamNumber,
@@ -204,7 +203,7 @@ export async function createInvite(
         await setDoc(ref, invite);
         return { code, ...invite };
     }
-    throw new Error("No se pudo generar código único después de varios intentos");
+    throw new CodedError("org.codeGeneration");
 }
 
 // Invite REDEMPTION lives server-side in app/actions/redeem-invite.ts

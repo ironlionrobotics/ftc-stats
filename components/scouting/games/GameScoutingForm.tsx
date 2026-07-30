@@ -14,6 +14,7 @@ import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID, scoutIdFromUser, scoutNameFromUser } from "@/lib/orgs";
 import { useSaveMatchScouting, type MatchScoutingSaveResult } from "@/lib/hooks/use-scouting-mutations";
 import DynamicGameForm from "./DynamicGameForm";
+import { useZodMessage } from "@/lib/hooks/use-zod-message";
 import { Card } from "@/components/ui/Card";
 import { Save, Plus, User, Trophy, ClipboardList, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
@@ -45,6 +46,7 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
     const { season } = useProgram();
     const [isAdding, setIsAdding] = useState(false);
     const saveMutation = useSaveMatchScouting();
+    const zodMsg = useZodMessage();
 
     // Definition schema + the universal matchNumber. Mirrors the shared
     // `matchNumber` primitive in lib/schemas/scouting.ts.
@@ -151,7 +153,7 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
                                 )}
                             />
                             {errors.matchNumber && (
-                                <p className="text-xs text-danger mt-1">{String(errors.matchNumber.message)}</p>
+                                <p className="text-xs text-danger mt-1">{zodMsg(String(errors.matchNumber.message))}</p>
                             )}
                         </div>
 

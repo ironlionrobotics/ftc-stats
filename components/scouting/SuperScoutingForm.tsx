@@ -9,6 +9,7 @@ import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID, scoutIdFromUser, scoutNameFromUser } from "@/lib/orgs";
 import { useSaveMatchScouting, type MatchScoutingSaveResult } from "@/lib/hooks/use-scouting-mutations";
 import { superScoutingFormSchema, type SuperScoutingFormValues } from "@/lib/schemas/scouting";
+import { useZodMessage } from "@/lib/hooks/use-zod-message";
 import { Card } from "@/components/ui/Card";
 import SourceBadge from "@/components/scouting/SourceBadge";
 import { useScoutReliabilities } from "@/lib/hooks/use-scout-reliabilities";
@@ -39,6 +40,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
     const scoutReliabilities = useScoutReliabilities();
     const [isAdding, setIsAdding] = useState(false);
     const saveMutation = useSaveMatchScouting();
+    const zodMsg = useZodMessage();
 
     // RHF replaces ~5 useState calls. Validation, default values, and the
     // submit handler all flow through the schema, which is the single source
@@ -182,7 +184,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                 )}
                             />
                             {errors.matchNumber && (
-                                <span className="text-xs text-danger">{errors.matchNumber.message}</span>
+                                <span className="text-xs text-danger">{zodMsg(errors.matchNumber.message)}</span>
                             )}
                         </div>
 
@@ -263,7 +265,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                 )}
                             />
                             {errors.wouldPick && (
-                                <span className="text-xs text-danger">{errors.wouldPick.message}</span>
+                                <span className="text-xs text-danger">{zodMsg(errors.wouldPick.message)}</span>
                             )}
                         </div>
 
@@ -283,7 +285,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                 )}
                             />
                             {errors.notes && (
-                                <span className="text-xs text-danger">{errors.notes.message}</span>
+                                <span className="text-xs text-danger">{zodMsg(errors.notes.message)}</span>
                             )}
                         </div>
 

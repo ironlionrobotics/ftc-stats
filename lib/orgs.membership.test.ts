@@ -24,6 +24,7 @@ vi.mock("firebase/firestore", () => ({
 }));
 
 import { createOrJoinOrgByTeamNumber } from "./orgs";
+import { CodedError } from "./errors";
 
 const user = { uid: "u1", email: "a@b.c", displayName: "A" } as unknown as User;
 
@@ -54,13 +55,14 @@ describe("createOrJoinOrgByTeamNumber (M4)", () => {
     it("refuses to join an EXISTING org by bare team number (throws, no writes)", async () => {
         getDocMock.mockResolvedValue({ exists: () => true, data: () => ({ teamNumber: 9999 }) });
 
-        await expect(
-            createOrJoinOrgByTeamNumber(user, {
-                teamNumber: 9999,
-                displayName: "Rivals",
-                program: "FTC",
-            }),
-        ).rejects.toThrow(/invitaci[oó]n/i);
+        // Asserted as a code, not prose: the message is localized at render.
+        const attempt = createOrJoinOrgByTeamNumber(user, {
+            teamNumber: 9999,
+            displayName: "Rivals",
+            program: "FTC",
+        });
+        await expect(attempt).rejects.toBeInstanceOf(CodedError);
+        await expect(attempt).rejects.toMatchObject({ code: "org.alreadyExists" });
 
         // No membership write happened — the user did NOT join the rival org.
         expect(setDocMock).not.toHaveBeenCalled();
