@@ -1,6 +1,7 @@
 "use client";
 
 import { type Control, useController } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import type {
     GameDefinition,
     GameField,
@@ -9,6 +10,20 @@ import type {
 import { Card } from "@/components/ui/Card";
 import { Plus, Minus } from "lucide-react";
 import clsx from "clsx";
+
+/**
+ * GameDefinition display strings (section/field labels, helpText,
+ * placeholder, enum option labels) are i18n dot-path keys relative to the
+ * `Games` catalog namespace, not literal prose. Same `t.has()` + fallback
+ * idiom as `useZodMessage` (lib/hooks/use-zod-message.ts): a key with no
+ * catalog entry — an uncataloged definition, or a future user-authored
+ * custom field — degrades to rendering the string verbatim instead of
+ * throwing or blanking the UI.
+ */
+function useGameLabel() {
+    const tGames = useTranslations("Games");
+    return (s?: string) => (s && tGames.has(s) ? tGames(s) : s);
+}
 
 interface DynamicGameFormProps {
     definition: GameDefinition;
@@ -65,10 +80,11 @@ function SectionCard({
     disabled?: boolean;
 }) {
     const accent = section.accent ? ACCENT_STYLES[section.accent] : "text-foreground";
+    const gameLabel = useGameLabel();
     return (
         <Card className="p-5 bg-muted border-border">
             <h3 className={clsx("text-xs font-bold uppercase tracking-widest mb-4", accent)}>
-                {section.label}
+                {gameLabel(section.label)}
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {section.fields.map(field => (
@@ -109,13 +125,14 @@ function FieldRenderer({
 }
 
 function FieldLabel({ field }: { field: GameField }) {
+    const gameLabel = useGameLabel();
     return (
         <div className="flex items-baseline justify-between mb-1.5">
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                {field.label}
+                {gameLabel(field.label)}
             </label>
             {field.helpText && (
-                <span className="text-[10px] text-muted-foreground italic">{field.helpText}</span>
+                <span className="text-[10px] text-muted-foreground italic">{gameLabel(field.helpText)}</span>
             )}
         </div>
     );
@@ -131,6 +148,8 @@ function CounterFieldRender({
     disabled?: boolean;
 }) {
     const { field: rhf } = useController({ control, name: field.id as never });
+    const gameLabel = useGameLabel();
+    const tGames = useTranslations("Games");
     const value = typeof rhf.value === "number" ? rhf.value : Number(rhf.value) || 0;
     const min = field.min ?? 0;
     const max = field.max ?? 999;
@@ -150,7 +169,7 @@ function CounterFieldRender({
                     onClick={() => rhf.onChange(Math.max(min, value - 1))}
                     disabled={disabled}
                     className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-muted rounded-md hover:bg-border text-muted-foreground active:bg-border disabled:opacity-50 transition-colors"
-                    aria-label={`Decrementar ${field.label}`}
+                    aria-label={tGames("aria.decrement", { label: gameLabel(field.label) ?? field.id })}
                 >
                     <Minus size={16} />
                 </button>
@@ -160,7 +179,7 @@ function CounterFieldRender({
                     onClick={() => rhf.onChange(Math.min(max, value + 1))}
                     disabled={disabled}
                     className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-muted rounded-md hover:bg-border text-muted-foreground active:bg-border disabled:opacity-50 transition-colors"
-                    aria-label={`Incrementar ${field.label}`}
+                    aria-label={tGames("aria.increment", { label: gameLabel(field.label) ?? field.id })}
                 >
                     <Plus size={16} />
                 </button>
@@ -179,6 +198,7 @@ function BooleanFieldRender({
     disabled?: boolean;
 }) {
     const { field: rhf } = useController({ control, name: field.id as never });
+    const gameLabel = useGameLabel();
     const checked = !!rhf.value;
     return (
         <label className={clsx(
@@ -197,7 +217,7 @@ function BooleanFieldRender({
                 "text-sm font-medium transition-colors",
                 checked ? "text-foreground" : "text-muted-foreground group-hover:text-foreground",
             )}>
-                {field.label}
+                {gameLabel(field.label)}
             </span>
         </label>
     );
@@ -213,6 +233,8 @@ function StarsFieldRender({
     disabled?: boolean;
 }) {
     const { field: rhf } = useController({ control, name: field.id as never });
+    const gameLabel = useGameLabel();
+    const tGames = useTranslations("Games");
     const value = typeof rhf.value === "number" ? rhf.value : Number(rhf.value) || 0;
     const max = field.max ?? 5;
     return (
@@ -231,7 +253,7 @@ function StarsFieldRender({
                                 ? "bg-primary border-primary text-primary-foreground"
                                 : "bg-muted border-border text-muted-foreground hover:border-foreground/20",
                         )}
-                        aria-label={`${field.label} ${star} de ${max}`}
+                        aria-label={tGames("aria.star", { label: gameLabel(field.label) ?? field.id, star, max })}
                     >
                         {star}
                     </button>
@@ -251,6 +273,7 @@ function EnumFieldRender({
     disabled?: boolean;
 }) {
     const { field: rhf } = useController({ control, name: field.id as never });
+    const gameLabel = useGameLabel();
     return (
         <div>
             <FieldLabel field={field} />
@@ -268,7 +291,7 @@ function EnumFieldRender({
                                 : "bg-muted border-border text-muted-foreground hover:border-foreground/20",
                         )}
                     >
-                        {option.label}
+                        {gameLabel(option.label)}
                     </button>
                 ))}
             </div>
@@ -286,6 +309,7 @@ function TextFieldRender({
     disabled?: boolean;
 }) {
     const { field: rhf } = useController({ control, name: field.id as never });
+    const gameLabel = useGameLabel();
     if (field.kind === "textarea") {
         return (
             <div className="col-span-full">
@@ -293,7 +317,7 @@ function TextFieldRender({
                 <textarea
                     {...rhf}
                     value={(rhf.value as string) ?? ""}
-                    placeholder={field.placeholder}
+                    placeholder={gameLabel(field.placeholder)}
                     disabled={disabled}
                     maxLength={field.maxLength}
                     className="w-full h-24 px-4 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
@@ -308,7 +332,7 @@ function TextFieldRender({
                 {...rhf}
                 value={(rhf.value as string) ?? ""}
                 type="text"
-                placeholder={field.placeholder}
+                placeholder={gameLabel(field.placeholder)}
                 disabled={disabled}
                 maxLength={field.maxLength}
                 className="w-full min-h-[44px] px-4 py-2 bg-muted border border-border rounded-lg text-foreground focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"

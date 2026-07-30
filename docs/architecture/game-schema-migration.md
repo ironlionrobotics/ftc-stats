@@ -50,6 +50,28 @@ observaciones) manejado por la definición.
    `driverSkill` es un campo normal del match; los de super-scouting viven en
    `SuperScoutingForm` con `scoutingMode:"super"` y no se mezclan cross-org.
 
+5. **Los strings de display de la definición son CLAVES i18n, no prosa.**
+   `section.label`, `field.label`, `field.helpText`, `field.placeholder` y
+   `option.label` son dot-paths relativos al namespace `Games` del catálogo
+   (`decode.sections.auto`, `decode.fields.driverSkillHelp`,
+   `decode.options.endgameBaseParking.Partial`...). El renderer
+   (`DynamicGameForm`/`GameScoutingForm`) los resuelve con el mismo idiom
+   `t.has()` + fallback que `useZodMessage`
+   (`lib/hooks/use-zod-message.ts`): si la clave existe en el catálogo se
+   traduce, si no se pinta el string tal cual — **degradación, no error**. Una
+   definición nueva de septiembre debe:
+   - usar claves `<juego>.sections.*` / `<juego>.fields.*` /
+     `<juego>.options.<field>.<value>` (ver `lib/games/ftc-decode-2025.ts`
+     como plantilla del patrón `decode.*`);
+   - añadir la entrada correspondiente en **ambos** catálogos
+     (`messages/en.json` y `messages/es.json`, namespace `Games`) con
+     paridad exacta de claves;
+   - si se omite el catálogo, el form no truena — muestra la clave/prosa
+     cruda, así que un campo custom de usuario sin traducir sigue siendo
+     usable.
+   El `label` top-level del `GameDefinition` (p. ej. `"FTC DECODE"`) es
+   nombre propio y NO sigue esta convención — queda como dato literal.
+
 ---
 
 ## Pasos para septiembre (juego 2026-2027)

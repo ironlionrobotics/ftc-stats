@@ -3,15 +3,25 @@ import type { GameDefinition } from "@/types/game-definition";
 /**
  * FTC DECODE 2025-2026 as a declarative game definition.
  *
- * Mirrors the field set the hand-written FTC_DecodeForm captures today.
- * NOT yet wired to production (the hand-rolled form keeps shipping until a
- * post-Premier QA pass validates the DynamicGameForm renderer produces
- * identical entries). When the 2026-2027 game launches in September,
- * create a sibling file (e.g. `ftc-galactic-2026.ts`) and swap which
- * definition `MatchScoutingForm` imports — no React changes needed.
+ * This IS the production FTC match-scouting form — wired in via
+ * `GameScoutingForm` since session 19 (decision #79). The retired
+ * hand-written `FTC_DecodeForm` is dead reference code (nothing imports it).
+ * When the 2026-2027 game launches in September, create a sibling file
+ * (e.g. `ftc-galactic-2026.ts`) and swap which definition
+ * `MatchScoutingForm` imports — no React changes needed. See
+ * `docs/architecture/game-schema-migration.md`.
  *
  * Field ids are preserved from the existing schema so federation, aggregation
  * and reporting code keep working without migration.
+ *
+ * **Label convention:** every display string below (section/field labels,
+ * helpText, placeholder, enum option labels) is an i18n dot-path key
+ * relative to the `Games` catalog namespace, NOT literal prose — the
+ * renderer (`DynamicGameForm`/`GameScoutingForm`) resolves it with a
+ * `t.has()` + fallback idiom (see `lib/hooks/use-zod-message.ts`), so a
+ * definition without a catalog entry still degrades to readable text. The
+ * top-level `label: "FTC DECODE"` is the one exception — it's the game's
+ * proper name, kept as literal data.
  */
 export const FTC_DECODE_2025: GameDefinition = {
     id: "ftc-decode-2025-2026",
@@ -21,15 +31,15 @@ export const FTC_DECODE_2025: GameDefinition = {
     sections: [
         {
             id: "auto",
-            label: "Periodo Autónomo",
+            label: "decode.sections.auto",
             accent: "primary",
             fields: [
-                { id: "autoLaunchLine", kind: "boolean", label: "Salió Launch Line" },
-                { id: "autoMotifStarted", kind: "boolean", label: "Detectó Motif Pattern" },
+                { id: "autoLaunchLine", kind: "boolean", label: "decode.fields.autoLaunchLine" },
+                { id: "autoMotifStarted", kind: "boolean", label: "decode.fields.autoMotifStarted" },
                 {
                     id: "autoPurpleArtifacts",
                     kind: "counter",
-                    label: "Purple Art. (Auto)",
+                    label: "decode.fields.autoPurpleArtifacts",
                     color: "purple",
                     min: 0,
                     max: 50,
@@ -37,23 +47,23 @@ export const FTC_DECODE_2025: GameDefinition = {
                 {
                     id: "autoGreenArtifacts",
                     kind: "counter",
-                    label: "Green Art. (Auto)",
+                    label: "decode.fields.autoGreenArtifacts",
                     color: "green",
                     min: 0,
                     max: 50,
                 },
-                { id: "movementRP", kind: "boolean", label: "Movement RP Achieved" },
+                { id: "movementRP", kind: "boolean", label: "decode.fields.movementRP" },
             ],
         },
         {
             id: "teleop",
-            label: "Driver Controlled (TeleOp)",
+            label: "decode.sections.teleop",
             accent: "primary",
             fields: [
                 {
                     id: "teleopPurpleArtifacts",
                     kind: "counter",
-                    label: "Purple Artifacts",
+                    label: "decode.fields.teleopPurpleArtifacts",
                     color: "purple",
                     min: 0,
                     max: 200,
@@ -61,7 +71,7 @@ export const FTC_DECODE_2025: GameDefinition = {
                 {
                     id: "teleopGreenArtifacts",
                     kind: "counter",
-                    label: "Green Artifacts",
+                    label: "decode.fields.teleopGreenArtifacts",
                     color: "green",
                     min: 0,
                     max: 200,
@@ -69,51 +79,51 @@ export const FTC_DECODE_2025: GameDefinition = {
                 {
                     id: "patternsCompleted",
                     kind: "counter",
-                    label: "Patrones/Motifs",
+                    label: "decode.fields.patternsCompleted",
                     color: "primary",
                     min: 0,
                     max: 20,
                 },
-                { id: "gatesUsed", kind: "boolean", label: "Usó Gates (Limpieza Rampa)" },
+                { id: "gatesUsed", kind: "boolean", label: "decode.fields.gatesUsed" },
                 {
                     id: "driverSkill",
                     kind: "stars",
-                    label: "Driver Skill",
-                    helpText: "¿Qué tan bien manejaba el robot?",
+                    label: "decode.fields.driverSkill",
+                    helpText: "decode.fields.driverSkillHelp",
                     max: 5,
                 },
             ],
         },
         {
             id: "endgame",
-            label: "Endgame & Rankings",
+            label: "decode.sections.endgame",
             accent: "primary",
             fields: [
                 {
                     id: "endgameBaseParking",
                     kind: "enum",
-                    label: "Base Parking",
+                    label: "decode.fields.endgameBaseParking",
                     options: [
-                        { value: "None", label: "N/A" },
-                        { value: "Partial", label: "Parcial" },
-                        { value: "Full", label: "Full" },
+                        { value: "None", label: "decode.options.endgameBaseParking.None" },
+                        { value: "Partial", label: "decode.options.endgameBaseParking.Partial" },
+                        { value: "Full", label: "decode.options.endgameBaseParking.Full" },
                     ],
                 },
-                { id: "dualParking", kind: "boolean", label: "Dual Parking (Aliado)" },
-                { id: "motifCompleted", kind: "boolean", label: "Motif Final Completado" },
-                { id: "goalRP", kind: "boolean", label: "Possible Goal RP" },
-                { id: "patternRP", kind: "boolean", label: "Possible Pattern RP" },
+                { id: "dualParking", kind: "boolean", label: "decode.fields.dualParking" },
+                { id: "motifCompleted", kind: "boolean", label: "decode.fields.motifCompleted" },
+                { id: "goalRP", kind: "boolean", label: "decode.fields.goalRP" },
+                { id: "patternRP", kind: "boolean", label: "decode.fields.patternRP" },
             ],
         },
         {
             id: "notes",
-            label: "Notas",
+            label: "decode.sections.notes",
             fields: [
                 {
                     id: "notes",
                     kind: "textarea",
-                    label: "Notas Críticas del Partido",
-                    placeholder: "Ej: Problemas de conexión en el minuto 1:20, defensa muy agresiva...",
+                    label: "decode.fields.notes",
+                    placeholder: "decode.fields.notesPlaceholder",
                     maxLength: 2000,
                 },
             ],

@@ -392,5 +392,47 @@
   "Attribution": {
     "prefix": "Event data provided by FIRST® —",
     "linkLabel": "firstinspires.org"
+  },
+  "Games": {
+    "decode": {
+      "sections": {
+        "auto": "Autonomous Period",
+        "teleop": "Driver Controlled (TeleOp)",
+        "endgame": "Endgame & Rankings",
+        "notes": "Notes"
+      },
+      "fields": {
+        "autoLaunchLine": "Left Launch Line",
+        "autoMotifStarted": "Detected Motif Pattern",
+        "autoPurpleArtifacts": "Purple Art. (Auto)",
+        "autoGreenArtifacts": "Green Art. (Auto)",
+        "movementRP": "Movement RP Achieved",
+        "teleopPurpleArtifacts": "Purple Artifacts",
+        "teleopGreenArtifacts": "Green Artifacts",
+        "patternsCompleted": "Patterns/Motifs",
+        "gatesUsed": "Used Gates (Ramp Clearing)",
+        "driverSkill": "Driver Skill",
+        "driverSkillHelp": "How well did they drive the robot?",
+        "endgameBaseParking": "Base Parking",
+        "dualParking": "Dual Parking (Partner)",
+        "motifCompleted": "Final Motif Completed",
+        "goalRP": "Possible Goal RP",
+        "patternRP": "Possible Pattern RP",
+        "notes": "Critical Match Notes",
+        "notesPlaceholder": "E.g.: Connection issues at minute 1:20, very aggressive defense..."
+      },
+      "options": {
+        "endgameBaseParking": {
+          "None": "N/A",
+          "Partial": "Partial",
+          "Full": "Full"
+        }
+      }
+    },
+    "aria": {
+      "decrement": "Decrease {label}",
+      "increment": "Increase {label}",
+      "star": "{label}: {star} of {max}"
+    }
   }
 }

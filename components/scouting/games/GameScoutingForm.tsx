@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useForm, Controller, type Resolver, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,6 +26,18 @@ interface GameScoutingFormProps {
     definition: GameDefinition;
     team: AggregatedTeamStats;
     entries: MatchScouting[];
+}
+
+/**
+ * GameDefinition display strings (field labels, enum option labels here) are
+ * i18n dot-path keys relative to the `Games` catalog namespace, not literal
+ * prose. Same `t.has()` + fallback idiom as `useZodMessage`
+ * (lib/hooks/use-zod-message.ts): a key with no catalog entry degrades to
+ * rendering the string verbatim.
+ */
+function useGameLabel() {
+    const tGames = useTranslations("Games");
+    return (s?: string) => (s && tGames.has(s) ? tGames(s) : s);
 }
 
 type FormValues = Record<string, unknown>;
@@ -211,6 +224,7 @@ function EntriesList({
     onAdd: () => void;
     isAdding: boolean;
 }) {
+    const gameLabel = useGameLabel();
     if (entries.length === 0) {
         return (
             <div className="text-center py-16 bg-muted rounded-2xl border border-dashed border-border text-muted-foreground flex flex-col items-center gap-4">
@@ -268,8 +282,8 @@ function EntriesList({
                                     .filter(f => f.kind !== "textarea" && f.kind !== "text")
                                     .map(field => (
                                         <div key={field.id} className="bg-muted p-3 rounded-xl border border-border">
-                                            <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">{field.label}</span>
-                                            <span className="text-sm font-black text-foreground">{formatFieldValue(field, record[field.id])}</span>
+                                            <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">{gameLabel(field.label)}</span>
+                                            <span className="text-sm font-black text-foreground">{formatFieldValue(field, record[field.id], gameLabel)}</span>
                                         </div>
                                     ))
                             )}
@@ -284,7 +298,7 @@ function EntriesList({
 }
 
 /** Human-readable value for a field in the entry list. */
-function formatFieldValue(field: GameField, value: unknown): string {
+function formatFieldValue(field: GameField, value: unknown, gameLabel: (s?: string) => string | undefined): string {
     switch (field.kind) {
         case "boolean":
             return value ? "Sí" : "—";
@@ -292,7 +306,7 @@ function formatFieldValue(field: GameField, value: unknown): string {
             return `${(value as number) ?? 0}/${field.max ?? 5}`;
         case "enum": {
             const opt = field.options.find(o => o.value === value);
-            return opt?.label ?? String(value ?? "—");
+            return gameLabel(opt?.label) ?? String(value ?? "—");
         }
         case "counter":
             return String((value as number) ?? 0);
