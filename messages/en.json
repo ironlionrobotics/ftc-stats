@@ -233,5 +233,9 @@
     "noMeasured": "No official results yet",
     "notPublished": "Not published yet",
     "none": "—"
+  },
+  "Attribution": {
+    "prefix": "Event data provided by FIRST® —",
+    "linkLabel": "firstinspires.org"
   }
 }

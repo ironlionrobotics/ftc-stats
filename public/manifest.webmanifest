@@ -50,14 +50,5 @@
             "url": "/strategy?tab=briefing",
             "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
         }
-    ],
-    "share_target": {
-        "action": "/scouting?from=share",
-        "method": "GET",
-        "params": {
-            "title": "title",
-            "text": "text",
-            "url": "url"
-        }
-    }
+    ]
 }

@@ -10,7 +10,6 @@ import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/lib/stores/theme-store";
-import { useProgram } from "@/lib/stores/program-store";
 import dynamic from "next/dynamic";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 
@@ -41,7 +40,7 @@ export default function Sidebar() {
     const { user, userDoc, signInWithGoogle, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const tCard = useTranslations("TradingCard");
-    const { program, setProgram } = useProgram();
+    const tAttr = useTranslations("Attribution");
 
     const mounted = useHydrated();
     const [isOpen, setIsOpen] = useState(false);
@@ -168,22 +167,6 @@ export default function Sidebar() {
                             <div className="mt-3">
                                 <LocaleSwitcher />
                             </div>
-
-                            <button
-                                onClick={() => setProgram(program === 'FTC' ? 'FRC' : 'FTC')}
-                                className="w-full mt-2 flex items-center justify-between px-4 py-2.5 rounded-xl bg-muted border border-border hover:bg-muted/80 transition-all group"
-                                disabled={!mounted}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={clsx("p-1.5 rounded-lg text-primary-foreground flex-shrink-0 font-black text-[10px]", program === 'FTC' ? "bg-primary" : "bg-secondary")}>
-                                        {mounted ? program : '...'}
-                                    </div>
-                                    <span className="text-sm font-bold text-muted-foreground group-hover:text-foreground">App Mode</span>
-                                </div>
-                                <div className="text-xs font-bold text-muted-foreground">
-                                    Swap
-                                </div>
-                            </button>
                         </div>
 
                         {mounted ? (
@@ -254,6 +237,18 @@ export default function Sidebar() {
                         ) : (
                             <div className="h-12 w-full bg-muted animate-pulse rounded-xl" />
                         )}
+
+                        <p className="text-[10px] text-muted-foreground px-2">
+                            {tAttr("prefix")}{" "}
+                            <a
+                                href="https://www.firstinspires.org"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-primary"
+                            >
+                                {tAttr("linkLabel")}
+                            </a>
+                        </p>
                     </div>
                 </div>
             </aside>
