@@ -56,7 +56,7 @@ Datos FRC fabricados eliminados (`app/scouting/page.tsx` — FRC muestra vacío 
 
 ### 🎨 Arquitectura de información
 
-Diagnóstico: **la app está organizada por conjuntos de datos, no por el momento en que estás.** Mayor palanca: **`/` deja de ser tabla global y se vuelve "Hoy"** (próximo partido, ranking proyectado, cobertura de scouting, probabilidad de alianza). **No requiere matemática nueva** — `LiveRankingProjection`, el `nextMatch` de `MatchList`, `draftOdds()` y `lib/consistency.ts` ya lo calculan todo. Es ensamblaje.
+Diagnóstico: **la app está organizada por conjuntos de datos, no por el momento en que estás.** ~~Mayor palanca: `/` se vuelve "Hoy"~~ ✅ HECHO 30 jul (decisión #83, commit `e4b9ebb`): panel "Hoy" (próximo partido, rank actual→proyectado, prob. de alianza, cobertura de scouting) para usuario con sesión cuya org compite en evento vivo; home público intacto y bundle protegido (+3.6 KB, Firebase sigue en 0 KB). **Pendiente: verificación visual con sesión + evento en vivo** (mismo caveat que el pill offline de #66) — la tabla global sigue debajo; convertir `/` por completo a "Hoy" queda para cuando el panel se valide en un evento real.
 
 Otros: el Oracle se monta en 2 lugares (2 clics vs 5 niveles); hay **dos simuladores que no se conocen** (`TournamentSimulator`, 1164 líneas, está enterrado); ~~`TeamSeasonReport` cableado a 30311~~ ✅ RESUELTO 30 jul (decisión #82, commit `8cacea3`): **Season Analysis en vivo para cualquier equipo** con ≥2 eventos (consistencia + prob. de alianza, proxy avgNP con nota de metodología); el retrospectivo curado queda exclusivo de 30311; renombrar "Iron Lion Intelligence" en `/pro`; nav en un solo idioma; **`lead` y `admin` son indistinguibles** (ningún check en el repo los separa).
 
