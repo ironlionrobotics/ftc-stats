@@ -1,6 +1,6 @@
 # Pendientes — PRIDE
 
-**Última actualización:** 29 jul 2026 (sesión 18 — estrategia de producto, benchmark, modelo de apertura)
+**Última actualización:** 30 jul 2026 (sesión 20 — cumplimiento FIRST, limpieza FRC, Season Analysis genérico)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
 
 ---
@@ -32,9 +32,9 @@ La sesión 18 cambió la dirección del producto. El documento de estrategia es 
 
 **Federación selectiva cross-org.** Recién cuando se onboardee la org #2 (y se pueda probar con 2 orgs): (1) marcador `event_participation/{org__season__event}` para gatear el pool objetivo por contribución (contribuir-para-leer), (2) mover super scouting a colección propia org-privada, (3) separar pit en doc privado (notas+specs) + colección pública `public_pit_summaries` (solo `publicSummary`, para que las notas nunca viajen con el resumen), (4) allowlist de login. Ver `docs/ESTRATEGIA-PRODUCTO-Y-APERTURA.md` Parte IV.
 
-### 🔴 Incumplimiento de licencia, en producción hoy
+### 🟢 Incumplimiento de licencia — RESUELTO EN CÓDIGO (30 jul, sesión 20)
 
-**Falta la atribución a la API de FIRST.** La página de la API exige un enlace de retorno en el footer o el "About" de cualquier app que muestre sus datos. Grep sobre `app/` y `components/` no encuentra ninguna referencia a `firstinspires.org`. Desplegado sin ella desde el 25 jul. **Se arregla con una línea.**
+Atribución con enlace de retorno a `firstinspires.org` en el footer del sidebar (i18n, namespace `Attribution`). Commit `8bc90a0`. **Aplica en producción con el próximo deploy de App Hosting** (requiere OK de Héctor).
 
 ### 🟢 Motor de juego declarativo — CONECTADO (29 jul, sesión 19)
 
@@ -48,12 +48,9 @@ La sesión 18 cambió la dirección del producto. El documento de estrategia es 
 
 `FTC_DecodeForm.tsx` queda como **referencia**; nadie lo importa. Borrar tras validar el camino declarativo en un evento en vivo. FRC sigue en su form hardcodeado (mismo patrón cuando haga falta).
 
-### 🧹 Matar (verificado, con evidencia)
+### 🟢 Matar — HECHO (30 jul, sesión 20, commit `8bc90a0`)
 
-- **Datos FRC fabricados** — `app/scouting/page.tsx:20-51` asigna OPRs inventados (45.2 / 52.4 / 60.1) a **equipos mexicanos reales**: Cerbotics 4400, PrepaTec LamBot 3478, Botbusters 4635. Corre en producción con el toggle FRC. Incompatible con la narrativa de "cada número es auditable".
-- **Toggle FTC/FRC visible** — promete un modo sin datos reales detrás. Ocultar hasta que TBA esté conectado.
-- **`share_target` del manifest** (`public/manifest.webmanifest:54-62`) — declara recibir `title`/`text`/`url`; `/scouting` no lee `searchParams`. Quitar o implementar.
-- **Sección react-hooks de este archivo** (líneas ~194-197) — ya resuelto en `deab1f6` (42 → 0, decisión #41). Pendiente fantasma.
+Datos FRC fabricados eliminados (`app/scouting/page.tsx` — FRC muestra vacío hasta que TBA esté conectado), toggle FTC/FRC oculto del sidebar (el store `program-store` y sus consumidores quedan intactos), `share_target` fuera del manifest, y sección fantasma react-hooks borrada de este archivo. Gate: tsc 0, lint 0 (restaurado en `eaa62b5`), 338 tests, build OK.
 
 **Conservar sin activar** (253 loc correctas, semilla real de FRC): `lib/tba-api.ts`, `lib/frc-alliance-utils.ts`.
 
@@ -61,7 +58,7 @@ La sesión 18 cambió la dirección del producto. El documento de estrategia es 
 
 Diagnóstico: **la app está organizada por conjuntos de datos, no por el momento en que estás.** Mayor palanca: **`/` deja de ser tabla global y se vuelve "Hoy"** (próximo partido, ranking proyectado, cobertura de scouting, probabilidad de alianza). **No requiere matemática nueva** — `LiveRankingProjection`, el `nextMatch` de `MatchList`, `draftOdds()` y `lib/consistency.ts` ya lo calculan todo. Es ensamblaje.
 
-Otros: el Oracle se monta en 2 lugares (2 clics vs 5 niveles); hay **dos simuladores que no se conocen** (`TournamentSimulator`, 1164 líneas, está enterrado); `TeamSeasonReport` está **cableado a 30311** (los demás ven página vacía — bloquea la apertura); renombrar "Iron Lion Intelligence" en `/pro`; nav en un solo idioma; **`lead` y `admin` son indistinguibles** (ningún check en el repo los separa).
+Otros: el Oracle se monta en 2 lugares (2 clics vs 5 niveles); hay **dos simuladores que no se conocen** (`TournamentSimulator`, 1164 líneas, está enterrado); ~~`TeamSeasonReport` cableado a 30311~~ ✅ RESUELTO 30 jul (decisión #82, commit `8cacea3`): **Season Analysis en vivo para cualquier equipo** con ≥2 eventos (consistencia + prob. de alianza, proxy avgNP con nota de metodología); el retrospectivo curado queda exclusivo de 30311; renombrar "Iron Lion Intelligence" en `/pro`; nav en un solo idioma; **`lead` y `admin` son indistinguibles** (ningún check en el repo los separa).
 
 ### 🌐 i18n — ANDAMIAJE CONECTADO + patrón probado (29 jul, sesión 19)
 
@@ -278,11 +275,6 @@ Solo después de A. Dirección guardada en memoria: **Modern technical (Linear /
 - README.md actualizar (lleva info desactualizada de pre-Sprint 0)
 - Diagrama de arquitectura (Mermaid) en `docs/architecture/overview.md`
 - Tutorial scout en 1 página (puede ser un PDF generado desde la app misma)
-
-### Limpieza react-hooks / React Compiler (de la auditoría, decisión #38 — bajo riesgo, no bloquea Premier)
-
-- **`static-components`** (24 hallazgos, `RankingTable.tsx` + `FRC_ReefscapeForm.tsx`): componentes (`SortIcon`, `HeaderWithTooltip`, `HighlightValue`, `Counter`, `Checkbox`) declarados dentro del render — se recrean cada render, reseteando su estado y rompiendo la optimización del compilador. Fix: sacarlos a scope de módulo y pasar lo que hoy capturan por closure como props explícitas. Mecánico pero superficie de UI amplia → **Sonnet, con dev server abierto para verificar visualmente** (no se hizo en la sesión de auditoría por no tener navegador disponible)
-- **`set-state-in-effect`** (6 restantes: `Sidebar.tsx`, `TournamentSimulator.tsx` x2, `MatchScoutingForm.tsx`, `ScoutingClient.tsx`, `MatchSimulator.tsx`), **`exhaustive-deps`** (5), **`preserve-manual-memoization`** (4, `MatchList.tsx`) — sin evaluar caso por caso; algunos pueden ser el mismo patrón SSR-safe legítimo documentado en `lib/hooks/use-tip-dismissed.ts`, otros bugs reales → **Sonnet** para el triage inicial, escalar a Opus si alguno resulta ser comportamiento real
 
 ---
 
