@@ -8,6 +8,7 @@ import type { AggregatedTeamStats, FTCEvent } from "@/types/scouting";
 import EventFilter from "@/components/EventFilter";
 import EventList from "@/components/EventList";
 import { CacheWriter, OfflineFallback } from "@/components/HydrateAndCache";
+import TodayPanelLoader from "@/components/home/TodayPanelLoader";
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -92,6 +93,14 @@ export default async function Home({ searchParams }: PageProps) {
             </div>
           </div>
         </header>
+
+        {/* "Today" — renders only for a signed-in user whose org is competing
+            at an event happening right now. Null in every other case, so the
+            public home page is unchanged. The loader is a thin gate; the panel
+            itself is a next/dynamic chunk fetched only when the gate opens.
+            `teamStats` is the same array StatsTable already gets: no extra
+            payload. */}
+        <TodayPanelLoader season={season} teams={teamStats} />
 
         <section className="mb-8">
           <EventFilter

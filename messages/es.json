@@ -302,6 +302,45 @@
     "notPublished": "Sin publicar",
     "none": "—"
   },
+  "Today": {
+    "kicker": "Ahora mismo",
+    "live": "En vivo",
+    "refresh": "Actualizar",
+    "updated": "Actualizado {time}",
+    "strategyLink": "Ver estrategia",
+    "loadError": "Los datos en vivo no están disponibles por ahora.",
+    "alliance": {
+      "Red": "Alianza roja",
+      "Blue": "Alianza azul"
+    },
+    "nextMatch": {
+      "title": "Próximo partido",
+      "none": "Sin partidos pendientes",
+      "noneHint": "Tu calendario en este evento está completo.",
+      "timeTbd": "Hora por definir",
+      "partners": "Con",
+      "opponents": "Contra"
+    },
+    "ranking": {
+      "title": "Ranking",
+      "now": "Actual",
+      "projected": "Proyectado",
+      "qualsLeft": "{n, plural, =0 {Sin quals restantes} one {# qual restante} other {# quals restantes}}",
+      "insufficient": "Aún sin partidos jugados",
+      "unranked": "Aún sin ranking"
+    },
+    "odds": {
+      "title": "Prob. de alianza",
+      "field": "Seed #{seed} · {fieldSize} equipos · {alliances} alianzas",
+      "unavailable": "Disponible al empezar el qualifying"
+    },
+    "coverage": {
+      "title": "Cobertura de scouting",
+      "matches": "{scouted} de {played} partidos",
+      "unavailable": "Sin datos de scouting",
+      "unavailableHint": "Todavía no hay registros para este evento."
+    }
+  },
   "Attribution": {
     "prefix": "Datos de eventos proporcionados por FIRST® —",
     "linkLabel": "firstinspires.org"

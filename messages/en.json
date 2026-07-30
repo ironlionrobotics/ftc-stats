@@ -302,6 +302,45 @@
     "notPublished": "Not published yet",
     "none": "—"
   },
+  "Today": {
+    "kicker": "Happening now",
+    "live": "Live",
+    "refresh": "Refresh",
+    "updated": "Updated {time}",
+    "strategyLink": "View strategy",
+    "loadError": "Live data is unavailable right now.",
+    "alliance": {
+      "Red": "Red alliance",
+      "Blue": "Blue alliance"
+    },
+    "nextMatch": {
+      "title": "Next match",
+      "none": "No matches pending",
+      "noneHint": "Your schedule at this event is complete.",
+      "timeTbd": "Time TBD",
+      "partners": "With",
+      "opponents": "Against"
+    },
+    "ranking": {
+      "title": "Ranking",
+      "now": "Now",
+      "projected": "Projected",
+      "qualsLeft": "{n, plural, =0 {No quals left} one {# qual left} other {# quals left}}",
+      "insufficient": "No matches played yet",
+      "unranked": "Not ranked yet"
+    },
+    "odds": {
+      "title": "Alliance odds",
+      "field": "Seed #{seed} · {fieldSize} teams · {alliances} alliances",
+      "unavailable": "Available once quals begin"
+    },
+    "coverage": {
+      "title": "Scouting coverage",
+      "matches": "{scouted} of {played} matches",
+      "unavailable": "No scouting data",
+      "unavailableHint": "Nothing recorded for this event yet."
+    }
+  },
   "Attribution": {
     "prefix": "Event data provided by FIRST® —",
     "linkLabel": "firstinspires.org"
