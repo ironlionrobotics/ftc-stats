@@ -52,7 +52,75 @@
         "label": "Peak",
         "hint": "Your best event of the season"
       }
+    },
+    "ui": {
+      "eventsAnalyzed": "{n} events analyzed",
+      "metric": {
+        "trendShare": {
+          "label": "Of the spread is trend",
+          "sub": "r² of the linear fit · {slope} OPR per event"
+        },
+        "volatility": {
+          "label": "Real volatility",
+          "sub": "What the trend does NOT explain (raw: ±{rawSigma})"
+        },
+        "scoutingGap": {
+          "label": "Scouting gap",
+          "sub": "How far your public OPR runs behind your current form"
+        },
+        "realization": {
+          "label": "Realization rate",
+          "sub": "Your public number ({publicNumber}) over your peak ({peak})"
+        }
+      },
+      "phases": {
+        "title": "Which phase is the unstable one?",
+        "desc": "The same decomposition, per game phase. A phase can vary a lot because it is <em>growing</em> (a good sign) or because it is <em>unpredictable</em> (a bad one). Only the variance the trend fails to explain is real instability.",
+        "driver": "This is the phase contributing the most instability — the lever for raising the floor."
+      },
+      "stat": {
+        "trend": "Trend",
+        "explained": "Explained",
+        "noise": "Noise"
+      },
+      "bands": {
+        "title": "What closing the gap buys you",
+        "desc": "The same season, projected onto a real event field. This is where consistency stops being a statistic and becomes <b>making playoffs or not</b>.",
+        "fieldLabel": "Reference field"
+      },
+      "table": {
+        "form": "Form",
+        "opr": "OPR",
+        "seed": "Est. seed",
+        "allianceProb": "Alliance odds",
+        "outcome": "Likely outcome"
+      },
+      "nextTier": {
+        "gap": "From your public number, going from <b>{from}</b> to <b>{to}</b> at this field takes <m>{opr} OPR</m> — you are <hi>{delta} points</hi> short.",
+        "reached": "From your public number, going from <b>{from}</b> to <b>{to}</b> at this field takes <m>{opr} OPR</m> — you already reach it."
+      },
+      "footnote": {
+        "directional": "Directional estimates over historical fields, not guarantees.",
+        "ftcScout": "FTCScout's OPR and the one computed internally use different methodologies (at FPEMX: 59.96 vs 80.8), so the comparison indicates magnitude, not an exact position."
+      },
+      "chart": {
+        "aria": "OPR per event with its fitted trend. The trend moves {slope} points per event and explains {r2Pct}% of the spread. The public season OPR is {publicNumber}, below the current form of {currentForm}.",
+        "publicNumberTag": "Public OPR {value}",
+        "legend": {
+          "observed": "Observed OPR",
+          "trend": "Trend {slope}/event",
+          "band": "Volatility band ±{sigma}",
+          "publicNumber": "Public season number"
+        }
+      },
+      "oprAdjustment": "{delta} from OPR"
     }
+  },
+  "SeasonAnalysis": {
+    "title": "Season Analysis",
+    "season": "{season} season",
+    "desc": "The season read live from official results: how the team's output moved event to event, how much of that movement is a trend rather than noise, and what it means for alliance selection.",
+    "methodology": "Per-event values are the team's average net points (score minus fouls) in qualification matches — the app's stand-in for OPR. It credits the whole alliance's output to the team, so it runs high compared with a least-squares OPR: read it as a within-team trend across this season, not as a figure comparable between teams."
   },
   "EventSelector": {
     "strategy": {

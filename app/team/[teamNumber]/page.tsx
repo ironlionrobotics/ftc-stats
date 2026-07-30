@@ -8,6 +8,7 @@ import { MapPin, Globe, Award, Calendar, Trophy, Users, Target } from "lucide-re
 import clsx from "clsx";
 import Link from "next/link";
 import { TeamSeasonReport } from "@/components/team/TeamSeasonReport";
+import { TeamSeasonAnalysis } from "@/components/team/TeamSeasonAnalysis";
 
 // Teams with a hand-curated season retrospective (sponsor-grade). 30311-only
 // for now — see lib/reports/team-30311-decode.ts.
@@ -116,7 +117,10 @@ export default async function TeamPage(props: TeamPageProps) {
         })
     );
 
-    const activeSeasons = historyData.filter(d => d.events.length > 0);
+    // Newest first — both the history list and the live season analysis, which
+    // reads the most recent active season, depend on this order.
+    const activeSeasons = historyData.filter(d => d.events.length > 0).sort((a, b) => b.season - a.season);
+    const latestSeason = activeSeasons[0];
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -193,6 +197,16 @@ export default async function TeamPage(props: TeamPageProps) {
                 </div>
             )}
 
+            {/* Live season analysis — every team without a curated report gets
+                one. 30311 is excluded because its retrospective already mounts
+                the same tracker on hand-verified data. */}
+            {!REPORT_TEAMS.has(teamNum) && latestSeason && (
+                <TeamSeasonAnalysis
+                    rankings={latestSeason.events.map(e => e.ranking)}
+                    season={latestSeason.season}
+                />
+            )}
+
             {/* Participation History (live FTC API — complements the report) */}
             <div className="space-y-12">
                 <div className="flex items-center gap-4">
@@ -207,7 +221,7 @@ export default async function TeamPage(props: TeamPageProps) {
                             <p className="text-muted-foreground text-xl font-medium italic">No recent match records found in our database.</p>
                         </div>
                     ) : (
-                        activeSeasons.sort((a, b) => b.season - a.season).map((year) => (
+                        activeSeasons.map((year) => (
                             <div key={year.season} className="space-y-6">
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-linear-to-r from-muted/50 to-transparent p-6 rounded-3xl border-l-8 border-secondary">
                                     <div className="space-y-1">

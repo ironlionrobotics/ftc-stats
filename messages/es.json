@@ -52,7 +52,75 @@
         "label": "Pico",
         "hint": "Tu mejor evento de la temporada"
       }
+    },
+    "ui": {
+      "eventsAnalyzed": "{n} eventos analizados",
+      "metric": {
+        "trendShare": {
+          "label": "De la dispersión es tendencia",
+          "sub": "r² del ajuste lineal · {slope} OPR por evento"
+        },
+        "volatility": {
+          "label": "Volatilidad real",
+          "sub": "Lo que la tendencia NO explica (bruto: ±{rawSigma})"
+        },
+        "scoutingGap": {
+          "label": "Brecha de scouting",
+          "sub": "Cuánto va tu OPR público por detrás de tu forma actual"
+        },
+        "realization": {
+          "label": "Tasa de realización",
+          "sub": "Tu número público ({publicNumber}) sobre tu pico ({peak})"
+        }
+      },
+      "phases": {
+        "title": "¿Qué fase es la inestable?",
+        "desc": "Misma descomposición por fase de juego. Una fase puede variar mucho porque está <em>creciendo</em> (buena señal) o porque es <em>impredecible</em> (mala). Sólo la varianza que la tendencia no explica es inestabilidad real.",
+        "driver": "Es la fase que más inestabilidad aporta — la palanca para subir el piso."
+      },
+      "stat": {
+        "trend": "Tendencia",
+        "explained": "Explicado",
+        "noise": "Ruido"
+      },
+      "bands": {
+        "title": "Qué compra cerrar la brecha",
+        "desc": "La misma temporada, proyectada sobre el field real de un evento. Es donde la consistencia deja de ser estadística y se vuelve <b>entrar o no a playoffs</b>.",
+        "fieldLabel": "Field de referencia"
+      },
+      "table": {
+        "form": "Forma",
+        "opr": "OPR",
+        "seed": "Seed est.",
+        "allianceProb": "Prob. de alianza",
+        "outcome": "Resultado probable"
+      },
+      "nextTier": {
+        "gap": "Desde tu número público, pasar de <b>{from}</b> a <b>{to}</b> en este field pide <m>{opr} OPR</m> — te faltan <hi>{delta} puntos</hi>.",
+        "reached": "Desde tu número público, pasar de <b>{from}</b> a <b>{to}</b> en este field pide <m>{opr} OPR</m> — ya lo alcanzas."
+      },
+      "footnote": {
+        "directional": "Estimaciones direccionales sobre fields históricos, no garantías.",
+        "ftcScout": "El OPR de FTCScout y el calculado internamente usan metodologías distintas (en FPEMX: 59.96 vs 80.8), así que la comparación indica magnitud, no posición exacta."
+      },
+      "chart": {
+        "aria": "OPR por evento con su tendencia ajustada. La tendencia se mueve {slope} puntos por evento y explica el {r2Pct}% de la dispersión. El OPR público de temporada es {publicNumber}, por debajo de la forma actual de {currentForm}.",
+        "publicNumberTag": "OPR público {value}",
+        "legend": {
+          "observed": "OPR observado",
+          "trend": "Tendencia {slope}/evento",
+          "band": "Banda de volatilidad ±{sigma}",
+          "publicNumber": "Número público de temporada"
+        }
+      },
+      "oprAdjustment": "{delta} por OPR"
     }
+  },
+  "SeasonAnalysis": {
+    "title": "Análisis de temporada",
+    "season": "Temporada {season}",
+    "desc": "La temporada leída en vivo desde resultados oficiales: cómo se movió el rendimiento del equipo evento a evento, cuánto de ese movimiento es tendencia y no ruido, y qué significa para la selección de alianzas.",
+    "methodology": "Los valores por evento son el promedio de puntos netos (score menos faltas) del equipo en partidos de clasificación — el proxy de OPR de la app. Le acredita al equipo la producción de toda la alianza, así que queda alto frente a un OPR por mínimos cuadrados: léelo como tendencia interna a lo largo de esta temporada, no como una cifra comparable entre equipos."
   },
   "EventSelector": {
     "strategy": {

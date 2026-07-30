@@ -45,10 +45,14 @@ export interface FTCTeamInfo {
 }
 
 // Per-event ranking + derived KPIs for a team across a season, built by
-// fetchTeamRankingsInSeason.
+// fetchTeamRankingsInSeason. The array it returns is sorted CHRONOLOGICALLY by
+// `dateStart` — any trend analysis over the season (lib/team-season-analysis.ts)
+// reads "per event" as "per position in this array".
 export interface TeamSeasonRanking extends TeamRanking {
     eventCode: string;
     eventName: string;
+    /** ISO start date of the event, carried over so callers can order a season. */
+    dateStart: string;
     avgNP: number;
     avgAuto: number;
     highScore: number;
@@ -588,6 +592,7 @@ export async function fetchTeamRankingsInSeason(season: number, teamNumber: numb
                     ...teamRank,
                     eventCode: event.code,
                     eventName: event.name,
+                    dateStart: event.dateStart,
                     avgNP: qualMatches > 0 ? totalNP / qualMatches : 0,
                     avgAuto: qualMatches > 0 ? totalAuto / qualMatches : 0,
                     highScore,
@@ -599,7 +604,17 @@ export async function fetchTeamRankingsInSeason(season: number, teamNumber: numb
         }
     }));
 
-    return results;
+    // The Promise.all above pushes in RESOLUTION order, which is whatever the
+    // network returns first — not chronological, and not even stable between
+    // requests. Anything that reads the season as a series (growth slope,
+    // "current form", the trend chart) would be reading noise. dateStart is an
+    // ISO string, so a plain string compare is the chronological order; ties
+    // fall back to the event code for determinism.
+    return results.sort((a, b) =>
+        a.dateStart === b.dateStart
+            ? a.eventCode.localeCompare(b.eventCode)
+            : a.dateStart < b.dateStart ? -1 : 1,
+    );
 }
 
 // Wrapped with React.cache so the entire event list for a season is fetched

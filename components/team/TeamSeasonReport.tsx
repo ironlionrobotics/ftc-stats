@@ -73,7 +73,11 @@ export async function TeamSeasonReport() {
                 desc="Un promedio de temporada esconde dos historias muy distintas. Aquí se separan: cuánta de la dispersión evento a evento es una tendencia de mejora, y cuánta es ruido — porque cada una se corrige de forma opuesta."
                 icon={<Activity size={20} />}
             >
-                <ConsistencyTracker />
+                <ConsistencyTracker
+                    points={R.events.map(e => ({ label: e.code, opr: e.totOpr, auto: e.autoOpr, dc: e.dcOpr }))}
+                    publicNumber={R.skills[0].value}
+                    showFtcScoutCaveat
+                />
             </ReportSection>
 
             {/* ── Skill breakdown ──────────────────────────────────────── */}
