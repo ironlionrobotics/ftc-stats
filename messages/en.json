@@ -12,7 +12,9 @@
     "auth": {
       "missingToken": "Missing authentication token",
       "invalidToken": "Invalid or expired token",
-      "userNotFound": "User not found"
+      "userNotFound": "User not found",
+      "noOrg": "No team assigned",
+      "notAdmin": "Only admins/leads can perform this action"
     },
     "invite": {
       "tooShort": "Code is too short",
@@ -25,10 +27,32 @@
       "alreadyExists": "That team already has a workspace. Ask an admin or lead of the team for an invite code to join.",
       "codeGeneration": "Could not generate a unique code after several attempts"
     },
+    "admin": {
+      "firestoreUnavailable": "Could not reach Firestore (is Firebase Admin configured on the server?)"
+    },
+    "groundTruth": {
+      "missingEventCode": "Missing eventCode"
+    },
+    "rpModel": {
+      "notConfigured": "Redis is not configured — models can't be cached"
+    },
+    "discord": {
+      "notConfigured": "This team doesn't have a Discord webhook configured",
+      "rateLimited": "Wait a few seconds before sending another message",
+      "sendFailed": "Could not send the message to Discord",
+      "invalidWebhookUrl": "Invalid URL — must be a Discord webhook",
+      "malformedWebhookUrl": "Malformed URL"
+    },
     "validation": {
       "teamNumber": "Enter a valid team number",
       "teamName": "Enter the team name",
-      "wouldPick": "Say whether you would recommend picking this team"
+      "wouldPick": "Say whether you would recommend picking this team",
+      "eventCode": "Enter an event code (e.g. MXTOL)",
+      "matchNumberPositive": "Match # must be positive",
+      "likertRange": "1-5",
+      "notesMax2000": "Max 2000 characters",
+      "notesMax5000": "Max 5000 characters",
+      "publicSummaryMax1000": "Max 1000 characters"
     }
   },
   "DraftOdds": {

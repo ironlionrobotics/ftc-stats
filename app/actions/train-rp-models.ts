@@ -9,6 +9,7 @@ import {
     type RPTarget,
 } from "@/lib/rp-inference";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
+import type { ErrorCode } from "@/lib/errors";
 
 /**
  * Trains per-RP logistic-regression models from a full season of FTC API
@@ -38,31 +39,31 @@ export async function trainRpModelsAction(input: {
               eventsProcessed: number;
           };
       }
-    | { ok: false; error: string }
+    | { ok: false; code: ErrorCode }
 > {
-    if (!input.idToken) return { ok: false, error: "Falta token de autenticación" };
+    if (!input.idToken) return { ok: false, code: "auth.missingToken" };
     let uid: string;
     try {
         const decoded = await getAdminAuth().verifyIdToken(input.idToken);
         uid = decoded.uid;
     } catch {
-        return { ok: false, error: "Token inválido o expirado" };
+        return { ok: false, code: "auth.invalidToken" };
     }
     let userSnap;
     try {
         userSnap = await getAdminDb().collection("users").doc(uid).get();
     } catch {
-        return { ok: false, error: "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)" };
+        return { ok: false, code: "admin.firestoreUnavailable" };
     }
-    if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
+    if (!userSnap.exists) return { ok: false, code: "auth.userNotFound" };
     const role = userSnap.data()?.role;
     if (role !== "admin" && role !== "lead") {
-        return { ok: false, error: "Solo admins/leads pueden entrenar modelos" };
+        return { ok: false, code: "auth.notAdmin" };
     }
 
     const redis = getRedis();
     if (!redis) {
-        return { ok: false, error: "Redis no configurado — los modelos no se pueden cachear" };
+        return { ok: false, code: "rpModel.notConfigured" };
     }
 
     // Pull the season's MEXICAN events, then their matches. fetchEvents

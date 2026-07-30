@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import {
     hasDiscordWebhookAction,
     setDiscordWebhookAction,
     notifyDiscordAction,
 } from "@/app/actions/notify-discord";
+import { type ErrorCode } from "@/lib/errors";
 import { Bell, Loader2, AlertCircle, Check, X as XIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,11 +22,14 @@ import { toast } from "sonner";
  */
 export default function DiscordSettings() {
     const { user, userDoc, orgId } = useAuth();
+    const tErr = useTranslations("Errors");
     const [configured, setConfigured] = useState<boolean | null>(null);
     const [showInput, setShowInput] = useState(false);
     const [url, setUrl] = useState("");
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    // Errors are held as codes, not prose — the producers (notify-discord
+    // actions) have no locale, so translation happens at render.
+    const [error, setError] = useState<ErrorCode | null>(null);
 
     const canEdit = userDoc?.role === "admin" || userDoc?.role === "lead";
 
@@ -54,7 +59,7 @@ export default function DiscordSettings() {
             const idToken = await user.getIdToken();
             const res = await setDiscordWebhookAction({ idToken, webhookUrl: url.trim() });
             if (!res.ok) {
-                setError(res.error);
+                setError(res.code);
                 return;
             }
             setConfigured(true);
@@ -74,7 +79,7 @@ export default function DiscordSettings() {
             const idToken = await user.getIdToken();
             const res = await setDiscordWebhookAction({ idToken, webhookUrl: null });
             if (!res.ok) {
-                setError(res.error);
+                setError(res.code);
                 return;
             }
             setConfigured(false);
@@ -98,11 +103,11 @@ export default function DiscordSettings() {
             });
             if (res.ok) {
                 toast.success("Mensaje de prueba enviado");
-            } else if (res.reason === "rate-limited") {
+            } else if (res.code === "discord.rateLimited") {
                 toast.warning("Espera unos segundos entre pruebas");
             } else {
                 toast.error("No se pudo enviar el mensaje", {
-                    description: res.reason ?? undefined,
+                    description: tErr(res.code),
                 });
             }
         } finally {
@@ -186,7 +191,7 @@ export default function DiscordSettings() {
             {error && (
                 <div className="flex items-start gap-1.5 text-[10px] text-danger">
                     <AlertCircle size={10} className="flex-shrink-0 mt-0.5" />
-                    <span>{error}</span>
+                    <span>{tErr(error)}</span>
                 </div>
             )}
         </div>

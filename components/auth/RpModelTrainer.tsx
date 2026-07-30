@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { trainRpModelsAction } from "@/app/actions/train-rp-models";
+import { toErrorCode } from "@/lib/errors";
 import { Brain, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +24,7 @@ import { toast } from "sonner";
 export default function RpModelTrainer() {
     const { user, userDoc } = useAuth();
     const { season } = useProgram();
+    const tErr = useTranslations("Errors");
     const [busy, setBusy] = useState(false);
     const [report, setReport] = useState<null | {
         models: Array<{
@@ -42,7 +45,7 @@ export default function RpModelTrainer() {
             const idToken = await user.getIdToken();
             const res = await trainRpModelsAction({ idToken, season });
             if (!res.ok) {
-                toast.error("No se pudo entrenar", { description: res.error });
+                toast.error("No se pudo entrenar", { description: tErr(res.code) });
                 return;
             }
             setReport(res.report);
@@ -55,7 +58,7 @@ export default function RpModelTrainer() {
             }
         } catch (e) {
             toast.error("Error de red durante entrenamiento", {
-                description: e instanceof Error ? e.message : undefined,
+                description: tErr(toErrorCode(e)),
             });
         } finally {
             setBusy(false);

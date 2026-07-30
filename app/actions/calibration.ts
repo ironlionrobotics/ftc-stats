@@ -9,6 +9,7 @@ import {
     type PredictionLog,
 } from "@/lib/calibration";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
+import { toErrorCode, type ErrorCode } from "@/lib/errors";
 
 /**
  * Bundle of calibration metrics for an org. Computed server-side from
@@ -42,30 +43,30 @@ export async function fetchCalibrationAction(input: {
     eventCode?: string;
 }): Promise<
     | { ok: true; snapshot: CalibrationSnapshot }
-    | { ok: false; error: string }
+    | { ok: false; code: ErrorCode }
 > {
-    if (!input.idToken) return { ok: false, error: "Falta token de autenticación" };
+    if (!input.idToken) return { ok: false, code: "auth.missingToken" };
     let uid: string;
     try {
         const decoded = await getAdminAuth().verifyIdToken(input.idToken);
         uid = decoded.uid;
     } catch {
-        return { ok: false, error: "Token inválido o expirado" };
+        return { ok: false, code: "auth.invalidToken" };
     }
 
     let userSnap;
     try {
         userSnap = await getAdminDb().collection("users").doc(uid).get();
     } catch {
-        return { ok: false, error: "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)" };
+        return { ok: false, code: "admin.firestoreUnavailable" };
     }
-    if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
+    if (!userSnap.exists) return { ok: false, code: "auth.userNotFound" };
     const data = userSnap.data() ?? {};
     const orgId = data.orgId as string | undefined;
-    if (!orgId) return { ok: false, error: "Sin equipo asignado" };
+    if (!orgId) return { ok: false, code: "auth.noOrg" };
     const role = data.role;
     if (role !== "admin" && role !== "lead") {
-        return { ok: false, error: "Solo admins/leads pueden ver calibración" };
+        return { ok: false, code: "auth.notAdmin" };
     }
 
     try {
@@ -108,7 +109,9 @@ export async function fetchCalibrationAction(input: {
             },
         };
     } catch (e) {
-        return { ok: false, error: e instanceof Error ? e.message : "Error desconocido" };
+        const code = toErrorCode(e);
+        if (code === "generic") console.error("[fetch-calibration]", e);
+        return { ok: false, code };
     }
 }
 

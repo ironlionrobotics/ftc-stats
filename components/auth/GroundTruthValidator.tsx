@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import {
     validateGroundTruthAction,
     fetchOrgReliabilityAction,
 } from "@/app/actions/validate-ground-truth";
+import { toErrorCode, type ErrorCode } from "@/lib/errors";
 import { ShieldCheck, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import clsx from "clsx";
 
@@ -25,6 +27,7 @@ import clsx from "clsx";
 export default function GroundTruthValidator() {
     const { user, userDoc, orgId } = useAuth();
     const { season } = useProgram();
+    const tErr = useTranslations("Errors");
 
     const [eventCode, setEventCode] = useState("");
     const [busy, setBusy] = useState(false);
@@ -40,7 +43,9 @@ export default function GroundTruthValidator() {
         reliability: number;
         matchesScouted: number;
     }>>([]);
-    const [error, setError] = useState<string | null>(null);
+    // Errors are held as codes, not prose: the producer (validateGroundTruthAction)
+    // has no locale, so translation happens at render (OnboardingModal pattern).
+    const [error, setError] = useState<ErrorCode | null>(null);
 
     if (!user || !userDoc || !orgId) return null;
     const canRun = userDoc.role === "admin" || userDoc.role === "lead";
@@ -49,7 +54,7 @@ export default function GroundTruthValidator() {
     const runValidation = async () => {
         setError(null);
         if (!eventCode.trim()) {
-            setError("Ingresa un código de evento (ej. MXTOL)");
+            setError("validation.eventCode");
             return;
         }
         setBusy(true);
@@ -61,7 +66,7 @@ export default function GroundTruthValidator() {
                 eventCode: eventCode.trim().toUpperCase(),
             });
             if (!result.ok) {
-                setError(result.error);
+                setError(result.code);
                 return;
             }
             setReport({
@@ -79,7 +84,7 @@ export default function GroundTruthValidator() {
                 );
             }
         } catch (e) {
-            setError(e instanceof Error ? e.message : "Error inesperado");
+            setError(toErrorCode(e));
         } finally {
             setBusy(false);
         }
@@ -116,7 +121,7 @@ export default function GroundTruthValidator() {
             {error && (
                 <div className="flex items-start gap-1.5 text-[10px] text-danger">
                     <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />
-                    <span>{error}</span>
+                    <span>{tErr(error)}</span>
                 </div>
             )}
 

@@ -12,7 +12,9 @@
     "auth": {
       "missingToken": "Falta token de autenticación",
       "invalidToken": "Token inválido o expirado",
-      "userNotFound": "Usuario no encontrado"
+      "userNotFound": "Usuario no encontrado",
+      "noOrg": "Sin equipo asignado",
+      "notAdmin": "Solo admins/leads pueden realizar esta acción"
     },
     "invite": {
       "tooShort": "Código demasiado corto",
@@ -25,10 +27,32 @@
       "alreadyExists": "Ese equipo ya tiene un espacio. Pide un código de invitación a un admin o lead del equipo para unirte.",
       "codeGeneration": "No se pudo generar código único después de varios intentos"
     },
+    "admin": {
+      "firestoreUnavailable": "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)"
+    },
+    "groundTruth": {
+      "missingEventCode": "Falta eventCode"
+    },
+    "rpModel": {
+      "notConfigured": "Redis no configurado — los modelos no se pueden cachear"
+    },
+    "discord": {
+      "notConfigured": "El equipo no tiene un webhook de Discord configurado",
+      "rateLimited": "Espera unos segundos antes de enviar otro mensaje",
+      "sendFailed": "No se pudo enviar el mensaje a Discord",
+      "invalidWebhookUrl": "URL inválida — debe ser un webhook de Discord",
+      "malformedWebhookUrl": "URL malformada"
+    },
     "validation": {
       "teamNumber": "Ingresa un número de equipo válido",
       "teamName": "Ingresa el nombre del equipo",
-      "wouldPick": "Indica si recomendarías escoger este equipo"
+      "wouldPick": "Indica si recomendarías escoger este equipo",
+      "eventCode": "Ingresa un código de evento (ej. MXTOL)",
+      "matchNumberPositive": "Match # debe ser positivo",
+      "likertRange": "1-5",
+      "notesMax2000": "Máx 2000 caracteres",
+      "notesMax5000": "Máx 5000 caracteres",
+      "publicSummaryMax1000": "Máx 1000 caracteres"
     }
   },
   "DraftOdds": {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import {
@@ -8,6 +9,7 @@ import {
     type CalibrationSnapshot,
 } from "@/app/actions/calibration";
 import { fetchOrgReliabilityAction } from "@/app/actions/validate-ground-truth";
+import { toErrorCode, type ErrorCode } from "@/lib/errors";
 import { Card } from "@/components/ui/Card";
 import Tip from "@/components/ui/Tip";
 import {
@@ -45,6 +47,7 @@ interface CalibrationDashboardProps {
 export default function CalibrationDashboard({ initialEventCode }: CalibrationDashboardProps) {
     const { user, userDoc } = useAuth();
     const { season } = useProgram();
+    const tErr = useTranslations("Errors");
     const [snapshot, setSnapshot] = useState<CalibrationSnapshot | null>(null);
     const [scouts, setScouts] = useState<Array<{
         scoutId: string;
@@ -54,7 +57,10 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
     }>>([]);
     const [eventCode, setEventCode] = useState(initialEventCode ?? "");
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    // Errors are held as codes, not prose — the producers (calibration +
+    // validate-ground-truth actions) have no locale, so translation happens
+    // at render (OnboardingModal pattern).
+    const [error, setError] = useState<ErrorCode | null>(null);
 
     const canView = userDoc?.role === "admin" || userDoc?.role === "lead";
 
@@ -73,7 +79,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
                 fetchOrgReliabilityAction({ idToken }),
             ]);
             if (!calibration.ok) {
-                setError(calibration.error);
+                setError(calibration.code);
                 setSnapshot(null);
             } else {
                 setSnapshot(calibration.snapshot);
@@ -85,14 +91,14 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
             if (reliability.ok) {
                 setScouts(reliability.scouts.sort((a, b) => b.reliability - a.reliability));
             } else if (calibration.ok) {
-                setError(reliability.error);
+                setError(reliability.code);
             }
         } catch (e) {
             // Distinguish "loaded, but empty" (handled above via ok:false
             // results) from "failed to load at all" (network error, thrown
             // rejection, etc.) — both must surface a message instead of
             // silently falling through to the empty state.
-            setError(e instanceof Error ? e.message : "Error al cargar datos de calibración");
+            setError(toErrorCode(e));
             setSnapshot(null);
         } finally {
             setLoading(false);
@@ -158,7 +164,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
             {error && (
                 <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-xs">
                     <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                    <span>{error}</span>
+                    <span>{tErr(error)}</span>
                 </div>
             )}
 

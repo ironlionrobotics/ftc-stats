@@ -6,6 +6,7 @@ import {
     type ValidationReport,
 } from "@/lib/ground-truth-validation";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
+import { toErrorCode, type ErrorCode } from "@/lib/errors";
 
 /**
  * Server action wrapper around runGroundTruthValidation. Verifies the caller is
@@ -14,47 +15,52 @@ import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
  *
  * Auth model: the client sends its Firebase ID token; we verify it server-side
  * via Admin SDK and look up the caller's role in users/{uid}.
+ *
+ * Failures come back as stable ErrorCodes, not prose (same rationale as
+ * redeemInviteAction): the action has no locale, and an unexpected internal
+ * exception must not leak its message to the browser.
  */
 export async function validateGroundTruthAction(input: {
     idToken: string;
     season: number;
     eventCode: string;
-}): Promise<{ ok: true; report: ValidationReport } | { ok: false; error: string }> {
+}): Promise<{ ok: true; report: ValidationReport } | { ok: false; code: ErrorCode }> {
     const { idToken, season, eventCode } = input;
-    if (!idToken) return { ok: false, error: "Falta token de autenticación" };
-    if (!eventCode) return { ok: false, error: "Falta eventCode" };
+    if (!idToken) return { ok: false, code: "auth.missingToken" };
+    if (!eventCode) return { ok: false, code: "groundTruth.missingEventCode" };
 
     let uid: string;
     try {
         const decoded = await getAdminAuth().verifyIdToken(idToken);
         uid = decoded.uid;
     } catch {
-        return { ok: false, error: "Token inválido o expirado" };
+        return { ok: false, code: "auth.invalidToken" };
     }
 
     let userSnap;
     try {
         userSnap = await getAdminDb().collection("users").doc(uid).get();
     } catch {
-        return { ok: false, error: "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)" };
+        return { ok: false, code: "admin.firestoreUnavailable" };
     }
-    if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
+    if (!userSnap.exists) return { ok: false, code: "auth.userNotFound" };
     const userData = userSnap.data() ?? {};
     const role = userData.role;
     if (role !== "admin" && role !== "lead") {
-        return { ok: false, error: "Solo admins/leads pueden ejecutar validación" };
+        return { ok: false, code: "auth.notAdmin" };
     }
     // Scope the run to the caller's own org (C4): reliability writes must never
     // reach scouts of other orgs. runGroundTruthValidation filters by this orgId.
     const orgId = userData.orgId as string | undefined;
-    if (!orgId) return { ok: false, error: "Sin equipo asignado" };
+    if (!orgId) return { ok: false, code: "auth.noOrg" };
 
     try {
         const report = await runGroundTruthValidation(season, eventCode, orgId);
         return { ok: true, report };
     } catch (e) {
-        const message = e instanceof Error ? e.message : "Error desconocido";
-        return { ok: false, error: message };
+        const code = toErrorCode(e);
+        if (code === "generic") console.error("[validate-ground-truth]", e);
+        return { ok: false, code };
     }
 }
 
@@ -63,32 +69,33 @@ export async function fetchOrgReliabilityAction(input: {
     idToken: string;
 }): Promise<
     | { ok: true; scouts: Array<{ scoutId: string; displayName: string; reliability: number; matchesScouted: number }> }
-    | { ok: false; error: string }
+    | { ok: false; code: ErrorCode }
 > {
-    if (!input.idToken) return { ok: false, error: "Falta token de autenticación" };
+    if (!input.idToken) return { ok: false, code: "auth.missingToken" };
     let uid: string;
     try {
         const decoded = await getAdminAuth().verifyIdToken(input.idToken);
         uid = decoded.uid;
     } catch {
-        return { ok: false, error: "Token inválido o expirado" };
+        return { ok: false, code: "auth.invalidToken" };
     }
 
     let userSnap;
     try {
         userSnap = await getAdminDb().collection("users").doc(uid).get();
     } catch {
-        return { ok: false, error: "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)" };
+        return { ok: false, code: "admin.firestoreUnavailable" };
     }
-    if (!userSnap.exists) return { ok: false, error: "Usuario no encontrado" };
+    if (!userSnap.exists) return { ok: false, code: "auth.userNotFound" };
     const orgId = userSnap.data()?.orgId;
-    if (!orgId) return { ok: false, error: "Sin equipo asignado" };
+    if (!orgId) return { ok: false, code: "auth.noOrg" };
 
     try {
         const scouts = await fetchReliabilitiesForOrg(orgId);
         return { ok: true, scouts };
     } catch (e) {
-        const message = e instanceof Error ? e.message : "Error desconocido";
-        return { ok: false, error: message };
+        const code = toErrorCode(e);
+        if (code === "generic") console.error("[fetch-org-reliability]", e);
+        return { ok: false, code };
     }
 }

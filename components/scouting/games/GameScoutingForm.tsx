@@ -49,9 +49,10 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
     const zodMsg = useZodMessage();
 
     // Definition schema + the universal matchNumber. Mirrors the shared
-    // `matchNumber` primitive in lib/schemas/scouting.ts.
+    // `matchNumber` primitive in lib/schemas/scouting.ts. Message is an Errors
+    // catalog code, not prose — resolved at render time by zodMsg() below.
     const schema = zodSchemaFromDefinition(definition).extend({
-        matchNumber: z.coerce.number().int().positive("Match # debe ser positivo"),
+        matchNumber: z.coerce.number().int().positive("validation.matchNumberPositive"),
     });
 
     const defaults: FormValues = { ...defaultsForDefinition(definition), matchNumber: 1 };

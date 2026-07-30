@@ -16,6 +16,10 @@ export type ErrorCode =
     | "auth.missingToken"
     | "auth.invalidToken"
     | "auth.userNotFound"
+    | "auth.noOrg"
+    // Shared across the admin-only actions (ground-truth validation, RP
+    // training, Discord config, calibration) — same role gate everywhere.
+    | "auth.notAdmin"
     | "invite.tooShort"
     | "invite.notFound"
     | "invite.expired"
@@ -23,11 +27,27 @@ export type ErrorCode =
     | "invite.orgMissing"
     | "org.alreadyExists"
     | "org.codeGeneration"
+    // Firebase Admin SDK unreachable/misconfigured — surfaced by every admin
+    // action that looks up users/{uid} or org_secrets/{orgId} server-side.
+    | "admin.firestoreUnavailable"
+    | "groundTruth.missingEventCode"
+    | "rpModel.notConfigured"
+    | "discord.notConfigured"
+    | "discord.rateLimited"
+    | "discord.sendFailed"
+    | "discord.invalidWebhookUrl"
+    | "discord.malformedWebhookUrl"
     // Form-level validation. `validation.wouldPick` is also used as a Zod
     // `message`, resolved at render time by useZodMessage().
     | "validation.teamNumber"
     | "validation.teamName"
-    | "validation.wouldPick";
+    | "validation.wouldPick"
+    | "validation.eventCode"
+    | "validation.matchNumberPositive"
+    | "validation.likertRange"
+    | "validation.notesMax2000"
+    | "validation.notesMax5000"
+    | "validation.publicSummaryMax1000";
 
 /**
  * Error carrying a stable code. `message` is the code itself so stack traces

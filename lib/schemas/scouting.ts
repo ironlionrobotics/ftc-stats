@@ -16,10 +16,12 @@ import { z } from "zod";
 // Shared primitives
 // ---------------------------------------------------------------------------
 
-const matchNumber = z.coerce.number().int().positive("Match # debe ser positivo");
+// Messages are Errors catalog codes, not prose — schemas have no locale.
+// Rendered through useZodMessage() (lib/hooks/use-zod-message.ts).
+const matchNumber = z.coerce.number().int().positive("validation.matchNumberPositive");
 const teamNumber = z.coerce.number().int().positive();
 const season = z.coerce.number().int().min(2000).max(2100);
-const likert = z.coerce.number().int().min(1, "1-5").max(5, "1-5");
+const likert = z.coerce.number().int().min(1, "validation.likertRange").max(5, "validation.likertRange");
 const counter = z.coerce.number().int().min(0).max(999);
 
 // ---------------------------------------------------------------------------
@@ -46,7 +48,7 @@ export const ftcDecodeFormSchema = z.object({
     motifCompleted: z.boolean().default(false),
     goalRP: z.boolean().default(false),
     patternRP: z.boolean().default(false),
-    notes: z.string().max(2000, "Máx 2000 caracteres").default(""),
+    notes: z.string().max(2000, "validation.notesMax2000").default(""),
 });
 
 export type FTCDecodeFormValues = z.infer<typeof ftcDecodeFormSchema>;
@@ -118,8 +120,8 @@ export const pitScoutingFormSchema = z.object({
     canDualPark: z.boolean().default(false),
     motifDetection: z.boolean().default(false),
     photoUrl: z.string().max(500).default(""),
-    notes: z.string().max(5000, "Máx 5000 caracteres").default(""),
-    publicSummary: z.string().max(1000, "Máx 1000 caracteres").default(""),
+    notes: z.string().max(5000, "validation.notesMax5000").default(""),
+    publicSummary: z.string().max(1000, "validation.publicSummaryMax1000").default(""),
 });
 
 export type PitScoutingFormValues = z.infer<typeof pitScoutingFormSchema>;
