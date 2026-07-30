@@ -304,3 +304,35 @@ Otras ideas del benchmark anotadas en PENDING (no arrancadas): home "Hoy" + des-
 - **Acción de usuario:** deploy de reglas+índices de Firestore + test cross-org; validar el camino declarativo del motor en un evento en vivo (luego borrar `FTC_DecodeForm`).
 - **i18n restante:** mensajes de error/validación (Zod de scouting, invite-redemption, orgs) como categoría de patrón nuevo; labels del motor de juego; grueso de strings de UI (incremental). Regla activa: ningún string nuevo hardcodeado.
 - **Trading Card Fase 2** y las demás ideas WikiScout.
+
+---
+
+## Sesión 20 — 30 jul 2026 · Cumplimiento, las dos palancas de apertura y el cierre completo de patrones i18n
+
+Primera sesión con la orquestación pedida por Héctor: **Fable 5 como orquestador** (análisis, specs, revisión de cada diff, gates independientes) y **el código delegado a subagentes** — 2 Opus (features nuevas) + 3 Sonnet (mecánico con patrón sentado). 16 commits, 4 decisiones (#82–#85), tests 338 → **366**, catálogos i18n en **288 claves** con paridad en/es verificada. Todas las extensiones de alcance de los agentes se verificaron y eran correctas; una premisa del orquestador (que `wouldPick` era el único mensaje Zod custom) fue refutada por un agente y quedó documentada.
+
+### 1. Cumplimiento y limpieza (`8bc90a0` + `eaa62b5`, Sonnet)
+
+**Atribución a la API de FIRST** en el footer del sidebar (requisito de licencia; producción llevaba desde el 25 jul sin ella) — i18n, namespace `Attribution`. **Datos FRC fabricados eliminados** (`app/scouting/page.tsx` asignaba OPRs inventados a Cerbotics/LamBot/Botbusters reales), toggle FTC/FRC oculto, `share_target` fuera del manifest, sección fantasma react-hooks borrada de PENDING. Lint restaurado a 0/0.
+
+### 2. Season Analysis en vivo para cualquier equipo (`8cacea3`, decisión #82, Opus)
+
+Des-hardcodeo del bloque analítico de `/team/[n]` — bloqueaba la apertura (solo 30311 tenía análisis). `lib/team-season-analysis.ts` mapea `TeamSeasonRanking[]` → serie de forma (proxy `avgNP`, convención de aggregation.ts; sesgo ~constante intra-equipo → válido para tendencia, con nota de metodología); `ConsistencyTracker` parametrizado; `TeamSeasonAnalysis` server component para todo equipo con ≥2 eventos medidos; 30311 conserva el retrospectivo curado sin doble render. **Hallazgo del agente:** `fetchTeamRankingsInSeason` devolvía orden de resolución de red (el slope habría leído ruido) — se propagó `dateStart` y se ordena cronológico; de paso el historial de participación dejó de salir en orden aleatorio. Verificado en navegador con 23619.
+
+### 3. Home "Hoy" (`e4b9ebb`, decisión #83, Opus)
+
+`/` abre con el momento actual para usuario con sesión cuya org compite en evento en ventana viva: próximo partido (hybrid schedule reducido server-side), rank actual→proyectado (action existente de Live Ranking), prob. de alianza (`draftOdds` client-side), cobertura de scouting org-scoped. **La decisión central fue de bundle:** el import estático costaba +18.7 KB en `/` → patrón gate-ligero (`TodayPanelLoader`) + panel en `next/dynamic` = **+3.6 KB**, chunk jamás solicitado por visitantes anónimos, **Firebase sigue en 0 KB** (verificado en chunks servidos). Home público intacto byte a byte. Primera ICU plural de los catálogos. **Al cierre de sesión se confirmó en vivo por qué no se ve hoy: no hay evento en ventana (FPEMX cerró el 27 jul) — pendiente la verificación visual con sesión + evento vivo.**
+
+### 4. i18n: cierre de TODAS las decisiones de patrón pendientes
+
+- **Errores como códigos** (`927a755` + `8bad04b`, decisión #84, Opus + barrido Sonnet): `lib/errors.ts` (`ErrorCode` dot-path relativo al namespace `Errors` + `CodedError` + `toErrorCode`), server actions devuelven `{ok:false, code}`, throws de cliente con `CodedError`, `useZodMessage()` con `t.has()` en los 9 sitios RHF. Aplicado a invite/orgs/onboarding/Zod Y a los 4 actions de admin con todos sus consumidores. **5 fugas de seguridad cerradas de paso** (mensajes de excepción internos que llegaban al navegador: redeem-invite, InviteGenerator, ground-truth, calibration ×2).
+- **Labels del motor de juego** (`e6158f1`, decisión #85, Sonnet): la definición lleva claves (`Games.decode.*`), el renderer resuelve con el mismo idiom has()+fallback → una definición sin catálogo degrada a texto, y los futuros Custom Questions renderizan prosa de usuario verbatim sin caso especial. Convención documentada en `game-schema-migration.md` (contrato de septiembre). Contrato de datos intacto (decode-parity verde). El orquestador añadió inline los `Games.aria.*` que el barrido dejó con andamiaje ES.
+
+Los tres patrones i18n del repo quedan así: análisis = clave+params (#80); errores = códigos `Errors` (#84); motor de juego = claves con fallback (#85). Lo restante no requiere decisiones (extracción incremental de UI + errorMap de Zod).
+
+### Pendientes al cierre (retomar aquí)
+
+1. **Acción de usuario, bloqueante:** `firebase deploy --only firestore:rules,firestore:indexes` (lockdown Fase 1 + `ground_truth_runs` no aplican hasta esto) + tests cross-org y de onboarding post-deploy.
+2. **Acción de usuario:** OK para deploy de App Hosting → la atribución FIRST llega a producción (riesgo de licencia vivo mientras tanto).
+3. **Verificación visual con sesión:** panel "Hoy" (requiere evento en ventana viva o bypass dev), pill de entradas atascadas y cola offline de pit (#66).
+4. Siguientes features: `HydrateAndCache` en `/analytics`, splash iOS, renombrar "Iron Lion Intelligence" en `/pro`, `lead` vs `admin`, Trading Card Fase 2, Firestore Fase 2 con la primera invitación.

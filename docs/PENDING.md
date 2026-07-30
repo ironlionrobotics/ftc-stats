@@ -1,7 +1,15 @@
 # Pendientes — PRIDE
 
-**Última actualización:** 30 jul 2026 (sesión 20 — cumplimiento FIRST, limpieza FRC, Season Analysis genérico)
+**Última actualización:** 30 jul 2026 (sesión 20 — cumplimiento FIRST, Season Analysis genérico, home "Hoy", cierre de patrones i18n; decisiones #82–#85)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
+
+## ▶️ RETOMAR AQUÍ (cierre sesión 20, 30 jul)
+
+1. **Acción de Héctor (bloqueante):** `firebase deploy --only firestore:rules,firestore:indexes` — el lockdown de lectura Fase 1 (#78) y `ground_truth_runs` NO aplican hasta esto. Después: probar que org A no lee scouting de org B + ambos flujos de onboarding (crear org → `admin`; redimir invitación → `scout`).
+2. **Acción de Héctor:** OK para deploy de App Hosting — la **atribución FIRST** (`8bc90a0`) solo llega a producción con eso; el incumplimiento de licencia sigue vivo en prod mientras tanto.
+3. **Verificación visual con sesión iniciada** (nada de esto se ha visto en navegador autenticado): panel "Hoy" en `/` (requiere evento en ventana viva [inicio−1d, fin+2d] o bypass dev de una línea en `TodayPanelLoader.tsx:57`), pill de entradas atascadas y cola offline de pit (#66).
+4. **Siguientes features candidatas:** `HydrateAndCache` en `/analytics` · splash screens iOS (~30 min) · renombrar "Iron Lion Intelligence" en `/pro` · distinguir `lead` vs `admin` · Trading Card Fase 2 · Firestore Fase 2 (con la 1ª invitación).
+5. **Método de trabajo vigente:** Fable 5 orquesta (análisis/spec/revisión); código → subagentes Opus (features/delicado) y Sonnet (mecánico). Funcionó bien en sesión 20 (5 delegaciones, 0 retrabajos).
 
 ---
 
