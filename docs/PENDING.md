@@ -73,8 +73,9 @@ Inglés por defecto + `es`, `next-intl` **cookie-based sin routing de URL** (dec
 **Pendiente i18n:**
 - **`constants.ts`: nada** — los "strings en español" son nombres propios de eventos ("Regional Cuautitlán", "México"), no se traducen.
 - ~~**i18n de mensajes de error/validación**~~ ✅ COMPLETO 30 jul (decisión #84, commits `927a755` + `8bad04b`): patrón de códigos estables (`lib/errors.ts` + namespace `Errors`, 30 códigos) aplicado a invite/orgs/onboarding/Zod Y a los 4 actions de admin + todos sus consumidores; `useZodMessage()` en los 9 sitios RHF; el `reason` ad-hoc de `notifyDiscordAction` plegado al patrón. De paso: **5 fugas de mensajes internos al navegador cerradas** (redeem-invite, InviteGenerator, ground-truth, calibration ×2). Único resto: **errorMap global de Zod** para los defaults ingleses (bounds/type) — mecánico, baja prioridad.
-- **`games/ftc-decode-2025.ts` (labels-como-data):** entrelazado con el motor declarativo (los labels viven en la definición y `DynamicGameForm` los renderiza directo). Decidir si `DynamicGameForm` traduce labels vía `useTranslations` o si la definición lleva claves. Patrón nuevo.
+- ~~**`games/ftc-decode-2025.ts` (labels-como-data)**~~ ✅ HECHO 30 jul (decisión #85, commit `e6158f1`): la definición lleva claves (`Games.decode.*`), el renderer traduce con fallback `t.has()` (idiom de #84); convención documentada en el runbook de septiembre; contrato de datos intacto.
 - **Grueso de strings de UI en componentes** (nav, botones, JSX estático): extracción incremental al tocar cada archivo.
+- **errorMap global de Zod** (defaults ingleses de bounds/type): mecánico, baja prioridad.
 
 **Regla activa: ningún string nuevo hardcodeado.**
 
