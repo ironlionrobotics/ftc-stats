@@ -1039,7 +1039,7 @@ function MatchRealityEditor({ match, red, blue, adj, onChange, onClose }: {
                             </button>
                         ))}
                     </div>
-                    <span className="block text-[10px] text-muted-foreground mt-0.5">Minor = 5 · Major = 15 (igual que "Penalty Points Committed" oficial).</span>
+                    <span className="block text-[10px] text-muted-foreground mt-0.5">Minor = 5 · Major = 15 (igual que &ldquo;Penalty Points Committed&rdquo; oficial).</span>
                 </label>
                 {alliance && (
                     <p className="font-mono text-[10px] text-muted-foreground">

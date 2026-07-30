@@ -28,7 +28,9 @@ describe("team profile form mapping", () => {
     it("round-trips profile → form → profile without loss", () => {
         const back = formToProfile(profileToForm(SAMPLE), SAMPLE.teamNumber, SAMPLE.season);
         // updatedAt is not a form field; compare the rest.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { updatedAt: _a, ...expected } = SAMPLE;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { updatedAt: _b, ...actual } = back;
         expect(actual).toEqual(expected);
     });
