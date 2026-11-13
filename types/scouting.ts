@@ -130,7 +130,16 @@ export interface PitScouting {
     patternMechanism?: string;
     visionSensors?: string[];
     canDualPark?: boolean;
-    motifDetection?: boolean;
+    motifDetection?: boolean; // DECODE 2025 only — kept to read historical docs
+    // BIOBUZZ 2026-27
+    canTipHive?: boolean;
+    scoresPollen?: boolean;
+    scoresNectar?: boolean;
+    scoresFlower?: boolean;
+    scoresGarden?: boolean;
+    maxCapacity?: number; // integer 0-4
+    launchRange?: "Close" | "Mid" | "Far";
+    autoTipsClaimed?: number; // integer 0-4
     photoUrl?: string;
 
     // Strategic / internal notes — ONLY visible to the owning org. Never shared.

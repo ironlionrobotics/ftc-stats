@@ -8,6 +8,8 @@ import { pitScoutingFormSchema, type PitScoutingFormValues } from "@/lib/schemas
 import { useZodMessage } from "@/lib/hooks/use-zod-message";
 import { Save, Edit2, Lock, Share2, Globe, Loader2 } from "lucide-react";
 import clsx from "clsx";
+import { useProgram } from "@/lib/stores/program-store";
+import { seasonRulesFor } from "@/lib/games/season-rules";
 
 interface ScoutingFormProps {
     team: AggregatedTeamStats;
@@ -54,6 +56,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 export default function ScoutingForm({ team, initialData, onSave }: ScoutingFormProps) {
     const [isEditing, setIsEditing] = useState(false);
     const zodMsg = useZodMessage();
+    const { season } = useProgram();
 
     // See SuperScoutingForm for the `as any` rationale (Zod coerce TInput/TOutput mismatch).
     const {
@@ -63,7 +66,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
         formState: { errors, isSubmitting },
     } = useForm<PitScoutingFormValues>({
         resolver: zodResolver(pitScoutingFormSchema) as Resolver<PitScoutingFormValues>,
-        defaultValues: initialDataToFormValues(team, initialData),
+        defaultValues: initialDataToFormValues(team, season, initialData),
     });
 
     // Re-initialize the form when the selected team or its pit data changes.
@@ -75,8 +78,8 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
     // per-team remount and by onSubmit after save (so no setState in this
     // effect — which the React Compiler flags as a cascading-render hazard).
     useEffect(() => {
-        reset(initialDataToFormValues(team, initialData));
-    }, [team, initialData, reset]);
+        reset(initialDataToFormValues(team, season, initialData));
+    }, [team, season, initialData, reset]);
 
     const onSubmit = async (values: PitScoutingFormValues) => {
         // Merge values back into PitScouting shape, preserving fields that the
@@ -96,7 +99,14 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
             scoringMechanism: values.scoringMechanism,
             patternMechanism: values.patternMechanism,
             canDualPark: values.canDualPark,
-            motifDetection: values.motifDetection,
+            canTipHive: values.canTipHive,
+            scoresPollen: values.scoresPollen,
+            scoresNectar: values.scoresNectar,
+            scoresFlower: values.scoresFlower,
+            scoresGarden: values.scoresGarden,
+            maxCapacity: values.maxCapacity,
+            launchRange: values.launchRange,
+            autoTipsClaimed: values.autoTipsClaimed,
             photoUrl: values.photoUrl,
             notes: values.notes,
             publicSummary: values.publicSummary,
@@ -122,7 +132,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                             <span className="text-primary font-display text-2xl md:text-3xl shrink-0">{team.teamNumber}</span>
                             <span className="truncate">{team.teamName}</span>
                         </h2>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Temporada 2025: DECODE</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Temporada {season}: {seasonRulesFor(season).gameName}</span>
                     </div>
                     <span className={clsx(
                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
@@ -178,10 +188,27 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                     <SectionTitle>Capacidades de Juego & Visión</SectionTitle>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4 bg-muted p-4 rounded-xl border border-border">
-                            <BooleanField control={control} name="motifDetection" label="¿Detecta Motif (Visión)?" disabled={!isEditing} />
                             <BooleanField control={control} name="canDualPark" label="¿Permite Dual Parking (18x18)?" disabled={!isEditing} />
                         </div>
                         <TextField control={control} name="sensors" label="Sensores / Cámaras" placeholder="Ej: Webcam C920, Sensores de color" disabled={!isEditing} />
+                    </div>
+                </section>
+
+                <section>
+                    <SectionTitle>Capacidades BIOBUZZ</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="space-y-4 bg-muted p-4 rounded-xl border border-border">
+                            <BooleanField control={control} name="canTipHive" label="¿Puede voltear la HIVE (TIP)?" disabled={!isEditing} />
+                            <BooleanField control={control} name="scoresPollen" label="¿Anota POLLEN?" disabled={!isEditing} />
+                            <BooleanField control={control} name="scoresNectar" label="¿Anota NECTAR?" disabled={!isEditing} />
+                            <BooleanField control={control} name="scoresFlower" label="¿Juega FLOWERS?" disabled={!isEditing} />
+                            <BooleanField control={control} name="scoresGarden" label="¿Llena GARDEN?" disabled={!isEditing} />
+                        </div>
+                        <div className="space-y-4">
+                            <NumberField control={control} name="maxCapacity" label="Capacidad máx. de elementos (≤4)" disabled={!isEditing} error={zodMsg(errors.maxCapacity?.message)} />
+                            <SelectField control={control} name="launchRange" label="Alcance de lanzamiento" options={['Close', 'Mid', 'Far']} disabled={!isEditing} />
+                            <NumberField control={control} name="autoTipsClaimed" label="TIPs en Auto (declarados)" disabled={!isEditing} error={zodMsg(errors.autoTipsClaimed?.message)} />
+                        </div>
                     </div>
                 </section>
 
@@ -392,11 +419,12 @@ function BooleanField({ control, name, label, disabled }: BaseFieldProps<boolean
 
 function initialDataToFormValues(
     team: AggregatedTeamStats,
+    currentSeason: number,
     data?: PitScouting,
 ): PitScoutingFormValues {
     return {
         teamNumber: team.teamNumber,
-        season: data?.season ?? 2025,
+        season: data?.season ?? currentSeason,
         robotName: data?.robotName ?? "",
         driveTrain: data?.driveTrain ?? "Mecano",
         dimensions: data?.dimensions ?? "",
@@ -408,7 +436,14 @@ function initialDataToFormValues(
         scoringMechanism: data?.scoringMechanism ?? "Lanzador",
         patternMechanism: data?.patternMechanism ?? "Rampa",
         canDualPark: data?.canDualPark ?? false,
-        motifDetection: data?.motifDetection ?? false,
+        canTipHive: data?.canTipHive ?? false,
+        scoresPollen: data?.scoresPollen ?? false,
+        scoresNectar: data?.scoresNectar ?? false,
+        scoresFlower: data?.scoresFlower ?? false,
+        scoresGarden: data?.scoresGarden ?? false,
+        maxCapacity: data?.maxCapacity ?? 0,
+        launchRange: data?.launchRange ?? "Close",
+        autoTipsClaimed: data?.autoTipsClaimed ?? 0,
         photoUrl: data?.photoUrl ?? "",
         notes: data?.notes ?? "",
         publicSummary: data?.publicSummary ?? "",
