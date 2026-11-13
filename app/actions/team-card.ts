@@ -1,5 +1,8 @@
 "use server";
 
+import { allowRequest } from "@/lib/request-guard";
+import { isValidSeason, isValidTeamNumber } from "@/lib/input-guards";
+import { getCurrentSeason } from "@/lib/constants";
 import { fetchTeamRankingsInSeason } from "@/lib/ftc-api";
 import type { MeasuredStats } from "@/types/team-profile";
 
@@ -19,6 +22,9 @@ export async function getMeasuredStatsAction(
     season: number,
     teamNumber: number,
 ): Promise<MeasuredStats | null> {
+    // Public action (decision #91): validate before the per-event fan-out.
+    if (!isValidSeason(season, getCurrentSeason()) || !isValidTeamNumber(teamNumber)) return null;
+    if (!(await allowRequest("light"))) return null;
     try {
         const rankings = await fetchTeamRankingsInSeason(season, teamNumber);
         if (!rankings.length) return null;

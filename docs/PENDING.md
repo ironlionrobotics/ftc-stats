@@ -3,6 +3,16 @@
 **Última actualización:** 30 jul 2026 (sesión 20 — cumplimiento FIRST, Season Analysis genérico, home "Hoy", cierre de patrones i18n; decisiones #82–#85)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
 
+## ▶️ PLAN EN CURSO: PRIDE abierta al público (aprobado 13-nov-2026)
+
+Plan completo: estructura nueva (Hoy · Eventos · Equipos · Scouting · Estrategia), rediseño, idiomas y requisitos de apertura, en 5 etapas con aprobación y deploy por etapa. Producción estable hasta MXTLQ (27-nov), salvo cierres de seguridad.
+
+**Etapa 0 (en curso, rama `etapa0/baseline-and-security`):**
+- ✅ Línea base de rendimiento móvil: `docs/perf/baseline-2026-11-13.md` (script `scripts/perf-baseline.mjs`). Punto débil: 460–680 KB de JS por ruta y TBT de 200–380 ms.
+- ✅ Cierres de seguridad: reclamo de equipo con aprobación (#90), entradas públicas validadas y límite por visitante (#91), analítica con consentimiento y sin correos como nombre (#92). **Falta el OK de deploy**, que incluye reglas de Firestore.
+- ✅ Tres direcciones visuales: `docs/design/direcciones-2026-11.html` (abrir en el navegador). **Falta: Héctor elige dirección y confirma el mapa de estructura (Aprobación A).**
+- Después del deploy: aprobar en `/admin` la solicitud del equipo 30311 (hoy no existe `orgs/30311`) y verificar en logs el formato de `X-Forwarded-For` (#91).
+
 ## ▶️ RETOMAR AQUÍ (cierre sesión 21, 13 nov · temporada BIOBUZZ)
 
 **Mergeado a `main` y DESPLEGADO el 13-nov** (merge `9fa483b`, con los parches de seguridad de oct-2026). Reglas + índices de Firestore desplegados antes del rollout. Research: `docs/research/2026-11-13-biobuzz.md`. Decisiones #86–#88. **Primer qualifier MX: MXTLQ 27-nov; MXCUQ 9-dic.**

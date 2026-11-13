@@ -1,5 +1,8 @@
 "use server";
 
+import { allowRequest } from "@/lib/request-guard";
+import { isValidSeason, normalizeEventCode, clampInt } from "@/lib/input-guards";
+import { getCurrentSeason } from "@/lib/constants";
 import { fetchMatches, fetchRankings, fetchEvents, fetchEventAwards, fetchMatchScores, getCachedData, setCachedData } from "@/lib/ftc-api";
 import { FTCMatch, TeamRanking, FTCAward, FTCEvent } from "@/types/scouting";
 import { allianceScoreComponents, allianceRpObs, inferTeamRpProbability, type RpLabeledMatch } from "@/lib/rp-inference";
@@ -79,13 +82,17 @@ async function getAvailableEvents(season: number) {
     return events.sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime());
 }
 
-export async function analyzeMultipleEvents(season: number, eventCodes: string[], maxMatchesPerTeam?: number) {
+export async function analyzeMultipleEvents(season: number, eventCodes: string[], maxMatchesPerTeamRaw?: number) {
+    // Public action (decision #91): validate before any FIRST API fan-out.
+    if (!isValidSeason(season, getCurrentSeason())) throw new Error("invalid season");
+    // 0 / undefined = no cap (the dashboard's "FINAL" slider position sends 0).
+    const maxMatchesPerTeam = maxMatchesPerTeamRaw ? clampInt(maxMatchesPerTeamRaw, 1, 50, 50) : undefined;
     // M5 hardening. `forceRefresh` was removed from the signature: it let any
     // caller bypass the cache and force the full multi-event FTC-API fan-out on
     // every request (compute/quota DoS). eventCodes is deduped and length-capped
     // so a single request can't fan out unbounded; junk codes are already inert
     // because the fan-out only iterates events that exist in `allEvents`.
-    const codes = sanitizeEventCodes(eventCodes);
+    const codes = sanitizeEventCodes(eventCodes).map(normalizeEventCode).filter((c): c is string => c !== null);
     const sortedCodes = [...codes].sort().join('_');
     // Using a hash if strings get too long? Firestore limit is 1500 bytes for ID.
     // 20 events * 10 chars = 200 chars. Totally fine.
@@ -118,6 +125,8 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
     }
 
     const cachedResult = await getCachedData<EventAnalysisResult>(cacheKey, ttl);
+    // Rate limit only real work: cache hits cost nothing (decision #91).
+    if (!cachedResult && !(await allowRequest("fanout"))) throw new Error("rate limited");
     if (cachedResult) {
         console.log(`[Analytics] Serving cached analysis for ${sortedCodes} (TTL: ${ttl}s)`);
         return cachedResult;

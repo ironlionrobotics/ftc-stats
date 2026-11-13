@@ -37,17 +37,22 @@ export default function ProScoutingDashboard({ eventCode, season }: ProScoutingD
                 const chunkSize = 5;
                 for (let i = 0; i < parts.length; i += chunkSize) {
                     const chunk = parts.slice(i, i + chunkSize);
+                    // One team failing (e.g. rate-limited) must not drop the rest.
                     await Promise.all(chunk.map(async (p) => {
-                        const stats = await fetchTeamSeasonHistory(season, p.teamNumber);
-                        statsMap[p.teamNumber] = stats;
-                        setTeamStats(prev => ({ ...prev, [p.teamNumber]: stats }));
+                        try {
+                            const stats = await fetchTeamSeasonHistory(season, p.teamNumber);
+                            statsMap[p.teamNumber] = stats;
+                            setTeamStats(prev => ({ ...prev, [p.teamNumber]: stats }));
+                        } catch (e) {
+                            console.warn(`Stats unavailable for team ${p.teamNumber}`, e);
+                        }
                     }));
                 }
-                setLoadingStats(false);
-
             } catch (error) {
                 console.error("Failed to load pro scouting data", error);
                 setLoading(false);
+            } finally {
+                setLoadingStats(false);
             }
         };
 

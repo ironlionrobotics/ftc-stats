@@ -1,5 +1,7 @@
 "use server";
 
+import { isValidSeason } from "@/lib/input-guards";
+import { getCurrentSeason } from "@/lib/constants";
 import { serverCache } from "@/lib/server-cache";
 import { fetchEvents, fetchMatches, fetchMatchScores } from "@/lib/ftc-api";
 import { trainLogistic, type LogisticModel } from "@/lib/logistic-regression";
@@ -166,5 +168,7 @@ export async function getRpModelAction(input: {
     season: number;
     target: RPTarget;
 }): Promise<LogisticModel | null> {
+    // Public action: only well-formed seasons/targets reach the cache.
+    if (!isValidSeason(input?.season, getCurrentSeason()) || typeof input?.target !== "string" || !/^[a-z0-9]{1,20}$/i.test(input.target)) return null;
     return serverCache.get<LogisticModel>(rpModelCacheKey(input.season, input.target));
 }

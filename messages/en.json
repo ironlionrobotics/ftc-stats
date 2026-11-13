@@ -14,7 +14,9 @@
       "invalidToken": "Invalid or expired token",
       "userNotFound": "User not found",
       "noOrg": "No team assigned",
-      "notAdmin": "Only admins/leads can perform this action"
+      "notAdmin": "Only admins/leads can perform this action",
+      "notSuperadmin": "You don't have superadmin permissions.",
+      "emailNotVerified": "Verify your email address before requesting a team."
     },
     "invite": {
       "tooShort": "Code is too short",
@@ -26,6 +28,13 @@
     "org": {
       "alreadyExists": "That team already has a workspace. Ask an admin or lead of the team for an invite code to join.",
       "codeGeneration": "Could not generate a unique code after several attempts"
+    },
+    "claim": {
+      "pendingOther": "Someone already requested this team and the request is under review. If you are on that team, ask them for an invite code.",
+      "alreadyOpen": "You already have a pending request for another team.",
+      "alreadyInTeam": "You already belong to a team.",
+      "notFound": "Request not found",
+      "notPending": "This request was already decided"
     },
     "admin": {
       "firestoreUnavailable": "Could not reach Firestore (is Firebase Admin configured on the server?)"
@@ -491,5 +500,37 @@
       "increment": "Increase {label}",
       "star": "{label}: {star} of {max}"
     }
+  },
+  "Onboarding": {
+    "title": "Welcome to PRIDE",
+    "intro": "Tell us which team you're on. Your scouting is credited to that team.",
+    "signOut": "Sign out",
+    "tabRegister": "Register my team",
+    "tabCode": "I have a code",
+    "teamNumber": "Team number",
+    "teamName": "Team name",
+    "teamNamePlaceholder": "Your team's name",
+    "program": "Program",
+    "registerHelp": "Is your team already on PRIDE? Ask its admin for an invite code instead. New teams are reviewed before they're activated, so nobody can take over a team that isn't theirs.",
+    "registerSubmit": "Request my team",
+    "pendingTitle": "Team {team} · {name}: request under review",
+    "pendingBody": "We'll activate your team once the request is approved, and you'll be its admin. Meanwhile you can browse everything public. If your team already uses PRIDE, join with an invite code.",
+    "pendingRefresh": "Already approved? Refresh",
+    "pendingCancel": "Cancel request",
+    "rejected": "Your request for team {team} wasn't approved. If you think it's a mistake, request it again or contact us.",
+    "inviteCode": "Invite code",
+    "inviteHelp": "Ask your team's admin to generate an invite code from their session.",
+    "inviteSubmit": "Join the team"
+  },
+  "AdminClaims": {
+    "title": "Team requests",
+    "help": "Approving creates the team's workspace and makes the requester its admin. Check that the person belongs to the team first.",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "empty": "No pending requests.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approved": "Team {team} activated",
+    "rejected": "Request for team {team} rejected"
   }
 }

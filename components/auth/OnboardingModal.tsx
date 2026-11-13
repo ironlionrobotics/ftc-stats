@@ -1,29 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
-import { createOrJoinOrgByTeamNumber } from "@/lib/orgs";
 import { redeemInviteAction } from "@/app/actions/redeem-invite";
+import { cancelMyTeamClaimAction, claimTeamAction, getMyTeamClaimAction, type MyClaim } from "@/app/actions/team-claims";
 import { toErrorCode, type ErrorCode } from "@/lib/errors";
 import type { OrgProgram } from "@/types/orgs";
-import { Users, KeyRound, Loader2, X, AlertCircle } from "lucide-react";
+import { Users, KeyRound, Loader2, X, AlertCircle, Clock } from "lucide-react";
 import clsx from "clsx";
 
 /**
  * Shown after sign-in when the user has no orgId yet. The user picks one of:
  *
- *   1. **Crear / unirme a equipo** — type a team number; if it already exists
- *      you join as a scout, otherwise the org is created and you become admin.
- *   2. **Tengo un código** — paste a 6-char invite code from an existing org.
+ *   1. **Register my team** — request to become admin of a team that has no
+ *      workspace yet. A superadmin reviews the request (decision #90); until
+ *      then the modal shows it as pending.
+ *   2. **I have a code** — paste a 6-char invite code from an existing team.
  *
  * Renders nothing when the user is unauthenticated, still loading, or already
  * onboarded. Mounted globally in app/layout.tsx.
  */
 export default function OnboardingModal() {
     const { user, userDoc, userDocLoading, orgId, reloadUserDoc, logout } = useAuth();
+    const t = useTranslations("Onboarding");
     const tErr = useTranslations("Errors");
     const [tab, setTab] = useState<"create" | "code">("create");
+    const [claim, setClaim] = useState<MyClaim | null>(null);
 
     // Form state
     const [teamNumber, setTeamNumber] = useState("");
@@ -35,8 +38,23 @@ export default function OnboardingModal() {
     // redeemInviteAction) have no locale, so translation happens at render.
     const [error, setError] = useState<ErrorCode | null>(null);
 
+    const needsOnboarding = !!user && !userDocLoading && !!userDoc && !orgId;
+
+    // Load the user's open (or last rejected) team claim, if any.
+    useEffect(() => {
+        if (!needsOnboarding || !user) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await getMyTeamClaimAction(await user.getIdToken());
+                if (!cancelled && res.ok) setClaim(res.claim);
+            } catch { /* modal still works without it */ }
+        })();
+        return () => { cancelled = true; };
+    }, [needsOnboarding, user]);
+
     // Show only when authed + user doc loaded + missing orgId.
-    if (!user || userDocLoading || !userDoc || orgId) return null;
+    if (!needsOnboarding || !user) return null;
 
     const handleCreate = async () => {
         setError(null);
@@ -51,12 +69,34 @@ export default function OnboardingModal() {
         }
         setBusy(true);
         try {
-            await createOrJoinOrgByTeamNumber(user, {
+            const result = await claimTeamAction({
+                idToken: await user.getIdToken(),
                 teamNumber: n,
                 displayName: displayName.trim(),
                 program,
             });
-            await reloadUserDoc();
+            if (!result.ok) {
+                setError(result.code);
+                return;
+            }
+            setClaim(result.claim);
+        } catch (e) {
+            setError(toErrorCode(e));
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const handleCancelClaim = async () => {
+        setError(null);
+        setBusy(true);
+        try {
+            const result = await cancelMyTeamClaimAction(await user.getIdToken());
+            if (!result.ok) {
+                setError(result.code);
+                return;
+            }
+            setClaim(null);
         } catch (e) {
             setError(toErrorCode(e));
         } finally {
@@ -94,17 +134,13 @@ export default function OnboardingModal() {
                 {/* Header */}
                 <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-xl font-black text-foreground mb-1">Bienvenido a PRIDE</h2>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                            Para empezar, dinos a qué equipo perteneces. Tu scouting se atribuye a ese
-                            equipo y puede compartirse con otros equipos en eventos en los que estén
-                            inscritos.
-                        </p>
+                        <h2 className="text-xl font-black text-foreground mb-1">{t("title")}</h2>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{t("intro")}</p>
                     </div>
                     <button
                         onClick={() => logout()}
                         className="p-1.5 text-muted-foreground hover:text-foreground"
-                        title="Cerrar sesión"
+                        title={t("signOut")}
                     >
                         <X size={18} />
                     </button>
@@ -113,35 +149,67 @@ export default function OnboardingModal() {
                 {/* Tabs */}
                 <div className="flex border-b border-border">
                     <TabButton active={tab === "create"} onClick={() => setTab("create")}>
-                        <Users size={14} /> Crear / unirme
+                        <Users size={14} /> {t("tabRegister")}
                     </TabButton>
                     <TabButton active={tab === "code"} onClick={() => setTab("code")}>
-                        <KeyRound size={14} /> Tengo un código
+                        <KeyRound size={14} /> {t("tabCode")}
                     </TabButton>
                 </div>
 
                 {/* Body */}
                 <div className="p-6 space-y-4">
-                    {tab === "create" ? (
+                    {tab === "create" && claim?.status === "pending" ? (
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-3 p-4 bg-muted border border-border rounded-lg">
+                                <Clock size={18} className="flex-shrink-0 mt-0.5 text-primary" />
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold text-foreground">
+                                        {t("pendingTitle", { team: claim.teamNumber, name: claim.displayName })}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{t("pendingBody")}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => reloadUserDoc()}
+                                    className="flex-1 py-2 text-xs font-bold text-muted-foreground hover:text-foreground"
+                                >
+                                    {t("pendingRefresh")}
+                                </button>
+                                <button
+                                    onClick={handleCancelClaim}
+                                    disabled={busy}
+                                    className="flex-1 py-2 text-xs font-bold text-muted-foreground hover:text-danger disabled:opacity-50"
+                                >
+                                    {t("pendingCancel")}
+                                </button>
+                            </div>
+                        </div>
+                    ) : tab === "create" ? (
                         <>
-                            <Field label="Número de equipo">
+                            {claim?.status === "rejected" && (
+                                <p className="text-xs text-danger leading-relaxed">
+                                    {t("rejected", { team: claim.teamNumber })}
+                                </p>
+                            )}
+                            <Field label={t("teamNumber")}>
                                 <input
                                     type="number"
                                     value={teamNumber}
                                     onChange={e => setTeamNumber(e.target.value)}
-                                    placeholder="30311"
+                                    placeholder="12345"
                                     className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground font-mono"
                                 />
                             </Field>
-                            <Field label="Nombre del equipo">
+                            <Field label={t("teamName")}>
                                 <input
                                     value={displayName}
                                     onChange={e => setDisplayName(e.target.value)}
-                                    placeholder="Iron Lions"
+                                    placeholder={t("teamNamePlaceholder")}
                                     className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground"
                                 />
                             </Field>
-                            <Field label="Programa">
+                            <Field label={t("program")}>
                                 <div className="flex gap-2">
                                     {(["FTC", "FRC"] as const).map(p => (
                                         <button
@@ -159,17 +227,14 @@ export default function OnboardingModal() {
                                     ))}
                                 </div>
                             </Field>
-                            <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                Si el equipo ya existe te unirás como <strong>scout</strong>. Si no
-                                existe lo creas y quedas como <strong>admin</strong>.
-                            </p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{t("registerHelp")}</p>
                             <ActionButton busy={busy} onClick={handleCreate}>
-                                Continuar
+                                {t("registerSubmit")}
                             </ActionButton>
                         </>
                     ) : (
                         <>
-                            <Field label="Código de invitación">
+                            <Field label={t("inviteCode")}>
                                 <input
                                     value={code}
                                     onChange={e => setCode(e.target.value.toUpperCase())}
@@ -178,11 +243,9 @@ export default function OnboardingModal() {
                                     className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground font-mono tracking-widest text-center text-lg uppercase"
                                 />
                             </Field>
-                            <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                Pídele al admin de tu equipo que genere un código de invitación desde su sesión.
-                            </p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{t("inviteHelp")}</p>
                             <ActionButton busy={busy} onClick={handleRedeem}>
-                                Unirme al equipo
+                                {t("inviteSubmit")}
                             </ActionButton>
                         </>
                     )}

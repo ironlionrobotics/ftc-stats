@@ -1,5 +1,8 @@
 "use server";
 
+import { allowRequest } from "@/lib/request-guard";
+import { isValidSeason, normalizeEventCode } from "@/lib/input-guards";
+import { getCurrentSeason } from "@/lib/constants";
 import { fetchRankings, fetchMatches } from "@/lib/ftc-api";
 import { projectFinalRankings, type LiveProjectionResult } from "@/lib/live-projection";
 
@@ -18,8 +21,10 @@ export async function fetchLiveProjectionAction(input: {
     | { ok: true; result: LiveProjectionResult }
     | { ok: false; error: string }
 > {
-    const { season, eventCode } = input;
-    if (!eventCode) return { ok: false, error: "Falta eventCode" };
+    const season = input?.season;
+    const eventCode = normalizeEventCode(input?.eventCode);
+    if (!eventCode || !isValidSeason(season, getCurrentSeason())) return { ok: false, error: "invalid input" };
+    if (!(await allowRequest("light"))) return { ok: false, error: "rate limited" };
     try {
         const [rankings, matches] = await Promise.all([
             fetchRankings(season, eventCode),

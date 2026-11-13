@@ -6,6 +6,7 @@ import { getAdminOverview, updateAppConfig, AdminOverview } from "@/app/actions/
 import { CheckCircle2, XCircle, Lock, Save, Bot, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import clsx from "clsx";
+import TeamClaimsReview from "./TeamClaimsReview";
 
 /**
  * Superadmin console body. All data + writes go through the superadmin server
@@ -81,6 +82,9 @@ export default function AdminConsole() {
 
     return (
         <div className="space-y-8">
+            {/* Team claims awaiting review (decision #90) */}
+            <TeamClaimsReview />
+
             {/* Integrations status */}
             <section>
                 <h2 className="text-lg font-bold text-foreground mb-1">Integraciones</h2>

@@ -1,5 +1,8 @@
 "use server";
 
+import { allowRequest } from "@/lib/request-guard";
+import { isValidSeason, isValidTeamNumber, normalizeEventCode } from "@/lib/input-guards";
+import { getCurrentSeason } from "@/lib/constants";
 import { fetchTeamEvents, fetchRankings, fetchMatches, fetchMatchScores, getCachedData, setCachedData, fetchTeam, FTCMatchScoreEntry } from "@/lib/ftc-api";
 import { phaseSplit } from "@/lib/score-breakdown";
 import { TeamRanking, FTCMatch } from "@/types/scouting";
@@ -27,14 +30,20 @@ export interface TeamSeasonStats {
 }
 
 export async function fetchEventParticipants(season: number, eventCode: string): Promise<TeamRanking[]> {
-    return await fetchRankings(season, eventCode);
+    const code = normalizeEventCode(eventCode);
+    if (!code || !isValidSeason(season, getCurrentSeason()) || !(await allowRequest("light"))) return [];
+    return await fetchRankings(season, code);
 }
 
 export async function fetchTeamSeasonHistory(season: number, teamNumber: number): Promise<TeamSeasonStats> {
+    // Public action (decision #91): validate before the per-event fan-out.
+    if (!isValidSeason(season, getCurrentSeason()) || !isValidTeamNumber(teamNumber)) throw new Error("invalid input");
     // v2: real /scores breakdowns (fetchMatchScores fix).
     const cacheKey = `season_stats_v2_${season}_${teamNumber}`;
     const cached = await getCachedData<TeamSeasonStats>(cacheKey, 3600); // 1 hour cache
     if (cached) return cached;
+    // Rate limit only real work: cache hits cost nothing (decision #91).
+    if (!(await allowRequest("fanout"))) throw new Error("rate limited");
 
     // 1. Fetch Basic Info
     const teamInfo = await fetchTeam(season, teamNumber);

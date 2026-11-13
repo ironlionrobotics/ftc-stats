@@ -56,56 +56,45 @@ service cloud.firestore {
         // which previously let a client self-assign any orgId/role — becoming
         // admin/lead of a rival org, or inflating their own reliability weight.
         // Updates are now constrained:
-        //   - role + orgId: EITHER both unchanged (normal profile edit / no-op),
-        //     OR become `admin` of an org you created (verified via
-        //     orgs/{orgId}.createdBy == uid). `lead` can never be self-assigned,
-        //     and a client can NEVER point its own orgId at an org it didn't
-        //     create — that blocks both privilege escalation AND self-joining a
-        //     rival org to read its strategy (M4 vector 2).
+        //   - role + orgId: always unchanged from the client. Membership is
+        //     written only by the server (Admin SDK): approving a team claim
+        //     (decision #90) or redeeming an invite. That blocks privilege
+        //     escalation AND self-joining a rival org (M4 vector 2).
         //   - reliability / matchesScouted: owned by the ground-truth server
         //     flow (Admin SDK, which bypasses rules); the client may never edit
         //     them, so a scout can't self-inflate their aggregation weight.
-        // The legit onboarding paths still pass:
-        //   - Create org → setUserOrg(admin): role scout→admin, orgId→org you
-        //     just created (orgs/{id}.createdBy == uid) ✓ (second branch)
-        //   - Redeem invite: joins an EXISTING (foreign) org, so it runs
-        //     server-side via redeemInviteAction (Admin SDK, bypasses rules) —
-        //     the client never writes this orgId itself.
-        //
-        // MUST be tested after `firebase deploy --only firestore:rules`: run both
-        // onboarding paths (create org, redeem invite) on a dev project, and
-        // confirm a direct client write of orgId→a foreign org is REJECTED.
+        // Onboarding paths (both server-side, Admin SDK bypasses rules):
+        //   - Claim a team → superadmin approves → decideTeamClaimAction
+        //     creates orgs/{N} and sets this user's orgId + role admin.
+        //   - Redeem invite → redeemInviteAction sets orgId + role scout.
         match /users/{uid} {
             allow read: if request.auth.uid == uid;
-            allow create: if request.auth.uid == uid;
+            // First sign-in seeds a bare profile. Without these checks a client
+            // could create its own doc already holding orgId/role of any team.
+            allow create: if request.auth.uid == uid
+                && request.resource.data.orgId == null
+                && request.resource.data.role == 'scout'
+                && request.resource.data.reliability == 1
+                && request.resource.data.matchesScouted == 0;
             allow update: if request.auth.uid == uid
-                && (
-                    (
-                        request.resource.data.role == resource.data.role
-                        && request.resource.data.orgId == resource.data.orgId
-                    )
-                    || (
-                        request.resource.data.role == 'admin'
-                        && request.resource.data.orgId != null
-                        && exists(/databases/$(database)/documents/orgs/$(request.resource.data.orgId))
-                        && get(/databases/$(database)/documents/orgs/$(request.resource.data.orgId)).data.createdBy == request.auth.uid
-                    )
-                )
+                && request.resource.data.role == resource.data.role
+                && request.resource.data.orgId == resource.data.orgId
+                && request.resource.data.get('openClaimTeam', null) == resource.data.get('openClaimTeam', null)
                 && request.resource.data.reliability == resource.data.reliability
                 && request.resource.data.matchesScouted == resource.data.matchesScouted;
             allow delete: if false;
         }
 
-        // Orgs: any authed user can read (to look up team names in UI). Org
-        // creation is open — the creator is recorded as createdBy. Subsequent
-        // mutations require lead/admin membership of the same org.
+        // Orgs: any authed user can read (to look up team names in UI). Orgs
+        // are created ONLY by the server when a superadmin approves a team
+        // claim (decision #90) — before, the first user to type a team number
+        // became that team's admin. Mutations require lead/admin of the org.
         //
         // IMPORTANT: do NOT put sensitive fields here — Firestore rules can't
         // field-mask reads. Webhooks, API keys, etc. belong in /org_secrets.
         match /orgs/{orgId} {
             allow read: if isAuthed();
-            allow create: if isAuthed()
-                && request.resource.data.createdBy == request.auth.uid;
+            allow create: if false;
             allow update, delete: if isAuthed()
                 && myOrgId() == orgId
                 && isOrgAdminOrLead();
@@ -132,8 +121,8 @@ service cloud.firestore {
                 && request.resource.data.orgId == myOrgId()
                 && isOrgAdminOrLead()
                 && request.resource.data.createdBy == request.auth.uid;
-            allow update: if isAuthed()
-                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses']);
+            // `uses` is incremented only by redeemInviteAction (Admin SDK).
+            allow update: if false;
             allow delete: if isAuthed()
                 && resource.data.orgId == myOrgId()
                 && isOrgAdminOrLead();
@@ -233,6 +222,12 @@ service cloud.firestore {
 
         // Legacy Web-SDK api_cache (retired May 2026, decision #20). Closed.
         match /api_cache/{key} {
+            allow read, write: if false;
+        }
+
+        // Team claims (decision #90): requests to become a team's admin,
+        // reviewed by a superadmin. Server-only — they hold requesters' emails.
+        match /team_claims/{teamNumber} {
             allow read, write: if false;
         }
 
