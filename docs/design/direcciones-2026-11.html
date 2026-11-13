@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIDE — Direcciones visuales</title>
+<style>
+/*
+ * Tres direcciones visuales para PRIDE (plan "PRIDE abierta al público", Etapa 0).
+ * Mismas dos pantallas, mismos datos reales (AUBRQ1 2026), claro y oscuro.
+ * Cero fuentes descargadas: todo usa fuentes del sistema (rendimiento > estética).
+ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #e9e9e7; color: #111; }
+
+/* ---------- Chrome of the review page (neutral, not part of any direction) ---------- */
+.review { max-width: 1680px; margin: 0 auto; padding: 24px 16px 64px; }
+.review h1 { font-size: 20px; margin: 0 0 4px; }
+.review p.lead { margin: 0 0 16px; color: #555; max-width: 900px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 20px; position: sticky; top: 0; background: #e9e9e7; padding: 10px 0; z-index: 5; }
+.controls button { font: inherit; border: 1px solid #bbb; background: #fff; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.controls button[aria-pressed="true"] { background: #111; color: #fff; border-color: #111; }
+.controls .sep { width: 1px; height: 24px; background: #bbb; margin: 0 6px; }
+.notes { background: #fff; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; max-width: 1180px; }
+.notes h2 { font-size: 15px; margin: 0 0 6px; }
+.notes ul { margin: 0; padding-left: 18px; color: #333; }
+.stage { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 1100px) { .stage { grid-template-columns: 1fr; } }
+.frame-label { font-size: 12px; color: #666; margin: 0 0 6px; }
+.phone { width: 390px; max-width: 100%; height: 844px; border-radius: 28px; overflow: hidden; border: 1px solid #bbb; }
+.desktop { border-radius: 10px; overflow: hidden; border: 1px solid #bbb; min-height: 720px; }
+
+/* ===================== Direction tokens ===================== */
+/* Every screen reads only these variables. */
+.dir { --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --font-num: var(--font); --font-head: var(--font);
+       background: var(--bg); color: var(--fg); font-family: var(--font); height: 100%; }
+
+/* A · Instrumento — neutral graphite, one cobalt accent, hairlines */
+.dir-a { --radius: 10px; --radius-sm: 6px; --head-weight: 600; --label-case: none; --label-track: 0; --num-weight: 600; }
+.dir-a.light { --bg: #f7f7f8; --surface: #ffffff; --surface-2: #f1f1f3; --fg: #16171a; --muted: #6b6e76; --line: #e3e4e8;
+               --accent: #3451d1; --accent-fg: #fff; --accent-soft: #eef1fd; --red: #c93a3a; --blue: #2f5bd3; --good: #1d7a46; --bad: #b3261e; --hl: #eef1fd; }
+.dir-a.dark  { --bg: #0f1012; --surface: #16181b; --surface-2: #1d2024; --fg: #ececee; --muted: #9a9ea8; --line: #272a30;
+               --accent: #8ea2ff; --accent-fg: #0f1012; --accent-soft: #1c2240; --red: #ef7070; --blue: #7d9bff; --good: #5bd08a; --bad: #ff8a80; --hl: #1a1f33; }
+
+/* B · Papel — light-first editorial, ink + one deep green, rules not cards */
+.dir-b { --radius: 2px; --radius-sm: 2px; --head-weight: 700; --label-case: none; --label-track: 0; --num-weight: 500;
+         --font-head: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; }
+.dir-b.light { --bg: #faf8f3; --surface: #faf8f3; --surface-2: #f1ede3; --fg: #1b1a17; --muted: #6d685d; --line: #ddd6c6;
+               --accent: #0c6b4d; --accent-fg: #fff; --accent-soft: #e3efe8; --red: #b23a2e; --blue: #2b4f9e; --good: #0c6b4d; --bad: #b23a2e; --hl: #f1ede3; }
+.dir-b.dark  { --bg: #191815; --surface: #191815; --surface-2: #23211c; --fg: #ece7dc; --muted: #a39d8f; --line: #36332b;
+               --accent: #5fc79f; --accent-fg: #102019; --accent-soft: #1d2a24; --red: #e08a7f; --blue: #8fa9e6; --good: #5fc79f; --bad: #e08a7f; --hl: #23211c; }
+
+/* C · Transmisión — broadcast scoreboard, alliance red/blue are the only colors */
+.dir-c { --radius: 4px; --radius-sm: 3px; --head-weight: 800; --label-case: uppercase; --label-track: .06em; --num-weight: 800;
+         --font-num: "DIN Alternate", Bahnschrift, "Roboto Condensed", "Arial Narrow", system-ui, sans-serif; }
+.dir-c.light { --bg: #f2f3f5; --surface: #ffffff; --surface-2: #e8eaee; --fg: #0c0e12; --muted: #5d6370; --line: #d5d9e0;
+               --accent: #0c0e12; --accent-fg: #fff; --accent-soft: #e8eaee; --red: #d6303a; --blue: #2457d6; --good: #13804a; --bad: #d6303a; --hl: #e8eaee; }
+.dir-c.dark  { --bg: #07080a; --surface: #101217; --surface-2: #181b22; --fg: #f3f4f6; --muted: #8b92a1; --line: #222731;
+               --accent: #f3f4f6; --accent-fg: #07080a; --accent-soft: #181b22; --red: #ff4d57; --blue: #4d7dff; --good: #3ccf7e; --bad: #ff4d57; --hl: #181b22; }
+
+/* ===================== Shared screen components ===================== */
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: var(--num-weight); }
+.label { font-size: 12px; color: var(--muted); text-transform: var(--label-case); letter-spacing: var(--label-track); }
+.head { font-family: var(--font-head); font-weight: var(--head-weight); }
+.muted { color: var(--muted); }
+
+/* Mobile "Hoy" */
+.m { display: flex; flex-direction: column; height: 100%; }
+.m-top { padding: 14px 16px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); }
+.brand { font-weight: 800; letter-spacing: .02em; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 13px; background: var(--surface); color: var(--fg); }
+.m-body { flex: 1; overflow: auto; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.ctx { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ctx .head { font-size: 17px; }
+.live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+.dir-b .card { border-width: 1px 0 0; border-radius: 0; padding: 14px 0 0; }
+.next-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.next-title { font-size: 22px; }
+.alli { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.side { border-radius: var(--radius-sm); padding: 8px 10px; }
+.side.red { background: color-mix(in srgb, var(--red) 12%, transparent); box-shadow: inset 3px 0 0 var(--red); }
+.side.blue { background: color-mix(in srgb, var(--blue) 12%, transparent); box-shadow: inset -3px 0 0 var(--blue); text-align: right; }
+.dir-c .side.red { background: var(--red); color: #fff; box-shadow: none; }
+.dir-c .side.blue { background: var(--blue); color: #fff; box-shadow: none; }
+.side .t { font-size: 15px; display: block; }
+.side .t.me { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
+.vs { font-size: 12px; color: var(--muted); }
+.prob { margin-top: 12px; }
+.bar { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--red) 70%, transparent); overflow: hidden; display: flex; }
+.bar > span { background: var(--blue); }
+.prob-row { display: flex; justify-content: space-between; font-size: 12px; margin-top: 6px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dir-b .stats { gap: 0 16px; }
+.stat .v { font-size: 30px; line-height: 1.1; display: block; }
+.stat .delta { font-size: 12px; }
+.up { color: var(--good); } .down { color: var(--bad); }
+.cov .track { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.cov .track > span { display: block; height: 100%; background: var(--accent); }
+.dir-c .cov .track > span { background: var(--fg); }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.res { font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px; color: #fff; }
+.res.w { background: var(--good); } .res.l { background: var(--bad); }
+.dir-c .res { border-radius: 3px; }
+.tabbar { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--surface); padding: 6px 4px 18px; }
+.tabbar a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); text-decoration: none; padding: 4px 0; }
+.tabbar a.on { color: var(--fg); font-weight: 700; }
+.tabbar svg { width: 20px; height: 20px; }
+.tabbar a.on svg { color: var(--accent); }
+.dir-c .tabbar a.on svg { color: var(--fg); }
+
+/* Desktop event ranking */
+.desk { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 720px; }
+.rail { border-right: 1px solid var(--line); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; background: var(--surface); }
+.dir-b .rail { background: var(--bg); }
+.rail .brand { padding: 0 10px 14px; }
+.rail a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-sm); color: var(--muted); text-decoration: none; font-size: 14px; }
+.rail a.on { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+.dir-c .rail a.on { background: var(--fg); color: var(--bg); }
+.rail svg { width: 18px; height: 18px; }
+.rail .foot { margin-top: auto; padding: 10px; font-size: 12px; color: var(--muted); }
+.main { padding: 22px 28px; min-width: 0; }
+.crumb { font-size: 13px; color: var(--muted); }
+.title-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin: 4px 0 14px; flex-wrap: wrap; }
+.title-row h2 { margin: 0; font-size: 26px; }
+.dir-c .title-row h2 { text-transform: uppercase; letter-spacing: .02em; }
+.ctxbar { display: flex; gap: 8px; }
+.sub { display: flex; gap: 22px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+.sub a { padding: 8px 0; color: var(--muted); text-decoration: none; font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.sub a.on { color: var(--fg); border-color: var(--accent); font-weight: 600; }
+.dir-c .sub a.on { border-color: var(--fg); }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 22px; align-items: start; }
+@media (max-width: 1250px) { .cols { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: right; font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); text-transform: var(--label-case); letter-spacing: var(--label-track); white-space: nowrap; }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th:first-child, td:first-child { text-align: right; width: 44px; }
+td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.dir-a td, .dir-a th { padding-top: 8px; padding-bottom: 8px; }
+.dir-b td { padding-top: 11px; padding-bottom: 11px; }
+tr.me td { background: var(--hl); }
+tr.me td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.dir-c tr.me td:first-child { box-shadow: inset 4px 0 0 var(--fg); }
+.tname { display: flex; gap: 10px; align-items: baseline; }
+.tname .tn { min-width: 48px; }
+.tname .nm { color: var(--muted); overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.cut td { border-bottom: 2px dashed var(--muted); }
+.side-panel { display: flex; flex-direction: column; gap: 14px; }
+.kv { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="review">
+  <h1>PRIDE — tres direcciones visuales</h1>
+  <p class="lead">Mismas dos pantallas con datos reales de <b>Brisbane South Qualifier (AUBRQ1, 2026)</b>. El estado "en vivo" es simulado: seguimos al equipo 14579 Find Theta como si fueran las 13:20 del sábado, después de su partido Q17. Las tres usan solo fuentes del sistema (cero KB de fuentes; hoy la app descarga Space Grotesk y JetBrains Mono).</p>
+
+  <div class="controls" role="toolbar" aria-label="Controles">
+    <button data-dir="a" aria-pressed="true">A · Instrumento</button>
+    <button data-dir="b" aria-pressed="false">B · Papel</button>
+    <button data-dir="c" aria-pressed="false">C · Transmisión</button>
+    <span class="sep"></span>
+    <button data-theme="light" aria-pressed="false">Claro</button>
+    <button data-theme="dark" aria-pressed="true">Oscuro</button>
+  </div>
+
+  <div class="notes" id="notes"></div>
+
+  <div class="stage">
+    <div>
+      <p class="frame-label">Hoy · celular (390 px)</p>
+      <div class="phone"><div class="dir" id="mobile"></div></div>
+    </div>
+    <div>
+      <p class="frame-label">Evento · ranking · escritorio</p>
+      <div class="desktop"><div class="dir" id="desktop"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {"rankings": [{"rank": 1, "team": 18439, "name": "RoboKings Thorium", "rs": 4.1667, "np": 69.6667, "tips": 2.1667, "auto": 14.5, "w": 6, "l": 0, "t": 0, "played": 6}, {"rank": 2, "team": 26000, "name": "Theseus", "rs": 3.0, "np": 88.3333, "tips": 3.3333, "auto": 28.3333, "w": 4, "l": 2, "t": 0, "played": 6}, {"rank": 3, "team": 19450, "name": "Splitbot", "rs": 3.0, "np": 68.5, "tips": 2.1667, "auto": 24.0, "w": 4, "l": 2, "t": 0, "played": 6}, {"rank": 4, "team": 11506, "name": "Flaming Tacos", "rs": 3.0, "np": 55.1667, "tips": 1.3333, "auto": 18.6667, "w": 4, "l": 2, "t": 0, "played": 6}, {"rank": 5, "team": 14579, "name": "Find Theta", "rs": 3.0, "np": 46.1667, "tips": 1.5, "auto": 9.3333, "w": 5, "l": 1, "t": 0, "played": 6}, {"rank": 6, "team": 14340, "name": "Darkbots", "rs": 2.8333, "np": 42.3333, "tips": 0.8333, "auto": 8.0, "w": 4, "l": 2, "t": 0, "played": 6}, {"rank": 7, "team": 23332, "name": "Manuel Labour", "rs": 2.6667, "np": 44.1667, "tips": 1.0, "auto": 17.1667, "w": 4, "l": 2, "t": 0, "played": 6}, {"rank": 8, "team": 36395, "name": "CCCSeniors", "rs": 2.3333, "np": 61.3333, "tips": 1.8333, "auto": 22.1667, "w": 3, "l": 3, "t": 0, "played": 6}, {"rank": 9, "team": 14466, "name": "Robo Rollers", "rs": 2.3333, "np": 57.1667, "tips": 1.8333, "auto": 19.8333, "w": 3, "l": 3, "t": 0, "played": 6}, {"rank": 10, "team": 17556, "name": "VegeMight", "rs": 2.0, "np": 41.3333, "tips": 1.0, "auto": 10.3333, "w": 3, "l": 3, "t": 0, "played": 6}, {"rank": 11, "team": 26716, "name": "Tech Mate", "rs": 1.8333, "np": 29.3333, "tips": 0.5, "auto": 9.6667, "w": 3, "l": 3, "t": 0, "played": 6}, {"rank": 12, "team": 25827, "name": "Flaming Marshmallows ", "rs": 1.5, "np": 31.3333, "tips": 0.5, "auto": 8.3333, "w": 2, "l": 4, "t": 0, "played": 6}, {"rank": 13, "team": 23173, "name": "Chanel Crocs", "rs": 1.3333, "np": 32.8333, "tips": 0.6667, "auto": 8.5, "w": 2, "l": 4, "t": 0, "played": 6}, {"rank": 14, "team": 32874, "name": "Chanel Coyotes", "rs": 1.1667, "np": 51.0, "tips": 1.5, "auto": 17.8333, "w": 1, "l": 5, "t": 0, "played": 6}, {"rank": 15, "team": 36984, "name": "Robosistas 1", "rs": 0.8333, "np": 36.6667, "tips": 0.8333, "auto": 8.5, "w": 1, "l": 5, "t": 0, "played": 6}, {"rank": 16, "team": 23334, "name": "Axiom", "rs": 0.8333, "np": 32.6667, "tips": 0.6667, "auto": 11.1667, "w": 1, "l": 5, "t": 0, "played": 6}, {"rank": 17, "team": 12993, "name": "RoboKings Aurum", "rs": 0.6667, "np": 26.0, "tips": 0.6667, "auto": 1.3333, "w": 1, "l": 5, "t": 0, "played": 6}], "matches": [{"n": 1, "red": [23332, 18439], "blue": [11506, 12993], "rs": 42, "bs": 39, "t": "13:51"}, {"n": 2, "red": [14340, 19450], "blue": [17556, 14466], "rs": 28, "bs": 54, "t": "13:59"}, {"n": 3, "red": [36984, 32874], "blue": [26716, 23173], "rs": 19, "bs": 25, "t": "14:06"}, {"n": 4, "red": [25827, 36395], "blue": [14579, 26000], "rs": 29, "bs": 70, "t": "14:13"}, {"n": 5, "red": [23334, 23173], "blue": [18439, 14340], "rs": 20, "bs": 60, "t": "14:23"}, {"n": 6, "red": [14466, 14579], "blue": [12993, 32874], "rs": 41, "bs": 35, "t": "14:31"}, {"n": 7, "red": [23332, 26716], "blue": [26000, 17556], "rs": 44, "bs": 12, "t": "14:46"}, {"n": 8, "red": [11506, 36395], "blue": [23334, 25827], "rs": 48, "bs": 26, "t": "14:54"}, {"n": 9, "red": [36984, 23173], "blue": [19450, 23332], "rs": 56, "bs": 68, "t": "15:00"}, {"n": 10, "red": [14340, 17556], "blue": [11506, 32874], "rs": 46, "bs": 44, "t": "15:06"}, {"n": 11, "red": [26000, 25827], "blue": [19450, 18439], "rs": 20, "bs": 123, "t": "15:19"}, {"n": 12, "red": [36395, 12993], "blue": [26716, 36984], "rs": 14, "bs": 34, "t": "15:25"}, {"n": 13, "red": [14466, 23334], "blue": [23173, 14579], "rs": 25, "bs": 105, "t": "15:32"}, {"n": 14, "red": [23332, 36984], "blue": [25827, 14340], "rs": 40, "bs": 45, "t": "15:38"}, {"n": 15, "red": [18439, 17556], "blue": [14466, 36395], "rs": 79, "bs": 42, "t": "09:27"}, {"n": 16, "red": [32874, 26000], "blue": [12993, 23334], "rs": 143, "bs": 31, "t": "09:46"}, {"n": 17, "red": [19450, 11506], "blue": [26716, 14579], "rs": 90, "bs": 10, "t": "09:57"}, {"n": 18, "red": [23173, 25827], "blue": [17556, 12993], "rs": 37, "bs": 52, "t": "10:04"}, {"n": 19, "red": [14340, 26716], "blue": [14579, 18439], "rs": 22, "bs": 58, "t": "10:14"}, {"n": 20, "red": [32874, 23332], "blue": [36395, 19450], "rs": 40, "bs": 107, "t": "10:20"}, {"n": 21, "red": [26000, 14466], "blue": [36984, 11506], "rs": 187, "bs": 65, "t": "10:30"}, {"n": 22, "red": [23334, 26716], "blue": [25827, 23332], "rs": 41, "bs": 51, "t": "10:39"}, {"n": 23, "red": [12993, 19450], "blue": [11506, 14340], "rs": 25, "bs": 53, "t": "10:51"}, {"n": 24, "red": [14579, 23334], "blue": [17556, 36984], "rs": 53, "bs": 46, "t": "10:57"}, {"n": 25, "red": [36395, 26000], "blue": [23173, 14466], "rs": 138, "bs": 54, "t": "11:06"}, {"n": 26, "red": [32874, 17556], "blue": [18439, 11506], "rs": 45, "bs": 176, "t": "11:21"}]};
+const ME = 14579;
+const NOW_AFTER = 17;          // simulated: quals played through Q17
+const NEXT = 19;               // team's next match
+const EVENT = { name: "Brisbane South Qualifier", code: "AUBRQ1", place: "Brisbane, QLD, Australia", quals: 26 };
+
+const NOTES = {
+  a: { t: "A · Instrumento", items: [
+    "Grafito neutro con un solo acento cobalto, reservado para la acción principal y para \"tu equipo\".",
+    "Líneas finas en vez de sombras; números tabulares grandes; etiquetas en minúscula, sin mayúsculas forzadas.",
+    "Referencias: Linear, Vercel. Es la más sobria y la que menos se cansa en un día de evento.",
+  ]},
+  b: { t: "B · Papel", items: [
+    "Claro primero, tono papel, tinta negra y un verde profundo. Títulos con serif del sistema.",
+    "Sin tarjetas: separa con reglas horizontales y aire. Se lee como un reporte, ideal para briefing e impresión.",
+    "Referencias: FiveThirtyEight, Stripe Docs. La más distinta a una plantilla; la menos \"app deportiva\".",
+  ]},
+  c: { t: "C · Transmisión", items: [
+    "Estética de marcador deportivo: rojo y azul de alianza son los únicos colores; todo lo demás es blanco y negro.",
+    "Números condensados y pesados, mayúsculas en etiquetas. Máximo contraste para leer de lejos en el pit.",
+    "Referencias: gráficos de TV deportiva. La más enérgica; riesgo de cansar en pantallas largas.",
+  ]},
+};
+
+const ICONS = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-6h6v6"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>',
+  team: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16 14.5a5 5 0 0 1 6 5"/></svg>',
+  scout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3M9 11h6M9 15h4"/></svg>',
+  strat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 20 4M14 4h6v6M4 4l6 6M14 14l6 6"/></svg>',
+};
+const NAV = [["home","Hoy"],["cal","Eventos"],["team","Equipos"],["scout","Scouting"],["strat","Estrategia"]];
+
+const byTeam = new Map(DATA.rankings.map(r => [r.team, r]));
+const me = byTeam.get(ME);
+const fmt1 = v => v.toFixed(1);
+const fmt2 = v => v.toFixed(2);
+
+function myMatches() {
+  return DATA.matches.filter(m => m.red.includes(ME) || m.blue.includes(ME));
+}
+
+function mobile() {
+  const next = DATA.matches.find(m => m.n === NEXT);
+  const mineRed = next.red.includes(ME);
+  const pBlue = 0.58; // simulated win probability for blue (our side)
+  const played = myMatches().filter(m => m.n <= NOW_AFTER);
+  const teamCell = (t) => `<span class="t num ${t === ME ? "me" : ""}">${t}</span>`;
+  const rows = played.map(m => {
+    const red = m.red.includes(ME);
+    const ours = red ? m.rs : m.bs, theirs = red ? m.bs : m.rs;
+    const w = ours > theirs;
+    return `<li><span class="num muted">Q${m.n}</span><span><span class="res ${w ? "w" : "l"}">${w ? "G" : "P"}</span> <span class="num">${ours}–${theirs}</span></span><span class="muted">con ${(red ? m.red : m.blue).filter(t => t !== ME)[0]}</span></li>`;
+  }).join("");
+  return `
+  <div class="m">
+    <div class="m-top">
+      <span class="brand">PRIDE</span>
+      <span class="chip"><span class="num">${ME}</span> ${me.name} ▾</span>
+    </div>
+    <div class="m-body">
+      <div class="ctx">
+        <span class="head">${EVENT.name}</span>
+        <span class="live">Q${NOW_AFTER} de ${EVENT.quals}</span>
+      </div>
+
+      <section class="card">
+        <div class="next-head">
+          <span><span class="label">Próximo partido</span><br><span class="next-title num">Q${NEXT}</span></span>
+          <span class="muted">en ~25 min · Campo 1</span>
+        </div>
+        <div class="alli">
+          <div class="side red">${next.red.map(teamCell).join("")}</div>
+          <span class="vs">vs</span>
+          <div class="side blue">${next.blue.map(teamCell).join("")}</div>
+        </div>
+        <div class="prob">
+          <div class="bar"><span style="width:${pBlue * 100}%; margin-left:auto"></span></div>
+          <div class="prob-row"><span class="muted">Rojo ${Math.round((1 - pBlue) * 100)}%</span><span><b class="num">${Math.round(pBlue * 100)}%</b> <span class="muted">de ganar (tu alianza, azul)</span></span></div>
+        </div>
+      </section>
+
+      <section class="stats">
+        <div class="card stat"><span class="label">Ranking</span><span class="v num">#${me.rank}</span><span class="delta up">▲ 2 desde Q13</span></div>
+        <div class="card stat"><span class="label">Proyección final</span><span class="v num">#4</span><span class="delta muted">rango 3–6</span></div>
+        <div class="card stat"><span class="label">Ranking score</span><span class="v num">${fmt2(me.rs)}</span><span class="delta muted">${me.w}–${me.l}–${me.t}</span></div>
+        <div class="card stat"><span class="label">Prob. de alianza</span><span class="v num">71%</span><span class="delta muted">capitán o pick</span></div>
+      </section>
+
+      <section class="card cov">
+        <div style="display:flex;justify-content:space-between"><span class="label">Scouting del evento</span><span class="num">11 / 17 equipos</span></div>
+        <div class="track"><span style="width:${11 / 17 * 100}%"></span></div>
+        <p class="muted" style="margin:8px 0 0;font-size:12px">Faltan 6: 17556, 36984, 25827, 23173, 32874, 26716</p>
+      </section>
+
+      <section class="card">
+        <span class="label">Tus partidos</span>
+        <ul class="list">${rows}</ul>
+      </section>
+    </div>
+    <nav class="tabbar">${NAV.map(([i, l], k) => `<a href="#" class="${k === 0 ? "on" : ""}">${ICONS[i]}${l}</a>`).join("")}</nav>
+  </div>`;
+}
+
+function desktop() {
+  const body = DATA.rankings.map(r => `
+    <tr class="${r.team === ME ? "me" : ""} ${r.rank === 4 ? "cut" : ""}">
+      <td class="num">${r.rank}</td>
+      <td><span class="tname"><span class="tn num">${r.team}</span><span class="nm">${r.name}</span></span></td>
+      <td class="num">${fmt2(r.rs)}</td>
+      <td class="num">${fmt1(r.np)}</td>
+      <td class="num">${fmt2(r.tips)}</td>
+      <td class="num">${fmt1(r.auto)}</td>
+      <td class="num">${r.w}–${r.l}–${r.t}</td>
+    </tr>`).join("");
+  return `
+  <div class="desk">
+    <aside class="rail">
+      <span class="brand">PRIDE</span>
+      ${NAV.map(([i, l], k) => `<a href="#" class="${k === 1 ? "on" : ""}">${ICONS[i]}${l}</a>`).join("")}
+      <span class="foot">Datos: FIRST Tech Challenge API</span>
+    </aside>
+    <main class="main">
+      <div class="crumb">Eventos / 2026 · Biobuzz</div>
+      <div class="title-row">
+        <div><h2 class="head">${EVENT.name}</h2><span class="muted">${EVENT.place} · 7–8 nov · Qualifier</span></div>
+        <div class="ctxbar"><span class="chip">Temporada 2026</span><span class="chip">Siguiendo: <b class="num">${ME}</b></span></div>
+      </div>
+      <nav class="sub"><a href="#" class="on">Ranking</a><a href="#">Partidos</a><a href="#">Equipos</a><a href="#">Resultados</a><a href="#">Estrategia →</a></nav>
+      <div class="cols">
+        <table>
+          <thead><tr><th>#</th><th>Equipo</th><th>RS</th><th>Prom. NP</th><th>TIPs</th><th>Auto</th><th>G–P–E</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+        <aside class="side-panel">
+          <section class="card">
+            <span class="label">Tu equipo</span>
+            <div class="head" style="font-size:18px;margin:4px 0 8px"><span class="num">${ME}</span> ${me.name}</div>
+            <div class="kv"><span class="muted">Ranking</span><span class="num">#${me.rank} de ${DATA.rankings.length}</span></div>
+            <div class="kv"><span class="muted">Proyección final</span><span class="num">#4 (3–6)</span></div>
+            <div class="kv"><span class="muted">Prob. de alianza</span><span class="num">71%</span></div>
+            <div class="kv"><span class="muted">Próximo</span><span class="num">Q${NEXT} · azul</span></div>
+          </section>
+          <section class="card">
+            <span class="label">Cómo leer la tabla</span>
+            <p class="muted" style="margin:6px 0 0;font-size:13px">Desempates oficiales BIOBUZZ: RS, promedio NP, promedio de TIPs, promedio de Auto. La línea punteada marca los capitanes probables.</p>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>`;
+}
+
+let dir = "a", theme = "dark";
+function render() {
+  for (const id of ["mobile", "desktop"]) {
+    const el = document.getElementById(id);
+    el.className = `dir dir-${dir} ${theme}`;
+    el.innerHTML = id === "mobile" ? mobile() : desktop();
+  }
+  const n = NOTES[dir];
+  document.getElementById("notes").innerHTML = `<h2>${n.t}</h2><ul>${n.items.map(i => `<li>${i}</li>`).join("")}</ul>`;
+  document.querySelectorAll("[data-dir]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.dir === dir)));
+  document.querySelectorAll("[data-theme]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.theme === theme)));
+}
+document.querySelectorAll("[data-dir]").forEach(b => b.addEventListener("click", () => { dir = b.dataset.dir; render(); }));
+document.querySelectorAll("[data-theme]").forEach(b => b.addEventListener("click", () => { theme = b.dataset.theme; render(); }));
+render();
+</script>
+</body>
+</html>

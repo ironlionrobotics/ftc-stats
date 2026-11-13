@@ -2,6 +2,7 @@ import { getAggregatedStats } from "@/lib/aggregation";
 import { fetchEvents } from "@/lib/ftc-api";
 import { getCurrentSeason } from "@/lib/constants";
 import { seasonGameName } from "@/lib/games/season-names";
+import { parseSeason, parseRegion, parseIsoDate, normalizeEventCode } from "@/lib/input-guards";
 import StatsTable from "@/components/StatsTable";
 import { cookies } from "next/headers";
 import type { AggregatedTeamStats, FTCEvent } from "@/types/scouting";
@@ -11,6 +12,9 @@ import EventList from "@/components/EventList";
 import { CacheWriter, OfflineFallback } from "@/components/HydrateAndCache";
 import TodayPanelLoader from "@/components/home/TodayPanelLoader";
 
+// Matches EventFilter's "Select All Visible" ceiling (MAX_VISIBLE_EVENTS).
+const MAX_URL_EVENTS = 150;
+
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
@@ -19,20 +23,26 @@ export default async function Home({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
   const cookieStore = await cookies();
 
-  const seasonParam = resolvedParams?.season ? Number(resolvedParams.season) : undefined;
-  const cookieSeason = Number(cookieStore.get("ftc_season")?.value);
-  const season = seasonParam || cookieSeason || getCurrentSeason();
+  // URL params are untrusted (decision #91): every distinct value would cost
+  // a FIRST API fan-out and a cache entry, so only well-formed values pass.
+  const current = getCurrentSeason();
+  const season = parseSeason(resolvedParams?.season, current)
+    ?? parseSeason(cookieStore.get("ftc_season")?.value, current)
+    ?? current;
 
   const eventCodes = typeof resolvedParams?.events === 'string'
-    ? resolvedParams.events.split(',')
+    ? resolvedParams.events.split(',').slice(0, MAX_URL_EVENTS).map(normalizeEventCode).filter((c): c is string => c !== null)
     : undefined;
 
+  // FIRST type names include spaces/hyphens ("Super Qualifier", "Off-season").
+  const eventType = parseRegion(resolvedParams?.eventType);
+
   const filters = {
-    region: resolvedParams?.region as string,
-    eventType: resolvedParams?.eventType as string,
-    dateStart: resolvedParams?.dateStart as string,
-    dateEnd: resolvedParams?.dateEnd as string,
-    eventCodes: eventCodes,
+    region: parseRegion(resolvedParams?.region),
+    eventType,
+    dateStart: parseIsoDate(resolvedParams?.dateStart),
+    dateEnd: parseIsoDate(resolvedParams?.dateEnd),
+    eventCodes: eventCodes?.length ? eventCodes : undefined,
   };
 
   // Defensive: if origin (Firestore, FTC API, server cache) is unreachable, fall

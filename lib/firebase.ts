@@ -1,7 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, initializeFirestore } from "firebase/firestore";
-import { getAnalytics, isSupported } from "firebase/analytics";
 
 const getFirebaseConfig = () => {
     if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
@@ -56,12 +55,18 @@ if (typeof window === "undefined") {
 // and by the Firestore-backed server cache (lib/server-cache.ts). We intentionally do NOT
 // enable Firestore IndexedDB persistence — it caches the entire api_cache collection
 // in the browser (hundreds of MB) and crashes mobile devices.
+// Analytics only with explicit consent (decision #92): most users are minors,
+// and nothing grants consent until the consent notice ships (plan Etapa 4), so
+// today this never loads. Lazy import keeps firebase/analytics out of the bundle.
+export const ANALYTICS_CONSENT_KEY = "pride-analytics-consent";
 if (typeof window !== "undefined") {
-    isSupported().then((yes) => {
-        if (yes) {
-            getAnalytics(app);
-        }
-    });
+    let consent: string | null = null;
+    try { consent = window.localStorage.getItem(ANALYTICS_CONSENT_KEY); } catch { /* storage blocked */ }
+    if (consent === "granted") {
+        import("firebase/analytics").then(({ getAnalytics, isSupported }) =>
+            isSupported().then(yes => { if (yes) getAnalytics(app); }),
+        ).catch(() => { /* analytics is optional */ });
+    }
 }
 
 export { app, auth, db };

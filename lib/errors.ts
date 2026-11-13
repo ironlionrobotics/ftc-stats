@@ -27,6 +27,13 @@ export type ErrorCode =
     | "invite.orgMissing"
     | "org.alreadyExists"
     | "org.codeGeneration"
+    // Team claims (decision #90): becoming admin of a team needs approval.
+    | "claim.pendingOther"
+    | "claim.alreadyOpen"
+    | "claim.alreadyInTeam"
+    | "claim.notFound"
+    | "claim.notPending"
+    | "auth.notSuperadmin"
     // Firebase Admin SDK unreachable/misconfigured — surfaced by every admin
     // action that looks up users/{uid} or org_secrets/{orgId} server-side.
     | "admin.firestoreUnavailable"

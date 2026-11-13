@@ -907,3 +907,33 @@ Un modelo conjunto de 8 estados por robot no mejora (0.1772): el sesgo residual 
 **Costo esperado:** dentro del plan gratis de Firestore en uso normal (50k lecturas y 20k escrituras al día), y centavos si se rebasa en días de evento.
 
 **Pérdida de datos por el borrado de Upstash:** ninguna relevante. Era caché derivada de la API de FIRST; `app_config` vive en Firestore. Los modelos logísticos de RP de DECODE solo estaban en Redis, pero se habían entrenado con etiquetas en 0 (#88) y BIOBUZZ no los usa.
+
+## #90 · Reclamo de equipo con aprobación: nadie se vuelve admin de un equipo ajeno (2026-11-13)
+
+**Hallazgo:** cualquier usuario con sesión podía crear `orgs/{número}` desde el navegador (`createOrJoinOrgByTeamNumber`) y quedaba como admin. El primero que escribiera "30311" se quedaba con el equipo 30311, su scouting y sus invitaciones. Además, la regla de creación de `users/{uid}` no validaba nada: un cliente podía crear su propio perfil ya con `orgId` y `role: admin` de cualquier equipo.
+
+**Decisión:**
+- **Reclamo como solicitud.** `claimTeamAction` crea `team_claims/{N}` en estado pendiente. Un superadmin (`SUPERADMIN_EMAILS`, con `email_verified`) aprueba o rechaza en `/admin` (`TeamClaimsReview`). La aprobación crea `orgs/{N}` y asigna al solicitante como admin en una sola transacción, vía Admin SDK.
+- **Reglas.** `orgs` con `allow create: if false`. `users/{uid}`: el cliente nunca cambia `role` ni `orgId`, y la creación exige `orgId == null`, `role == 'scout'`, `reliability == 1.0` y `matchesScouted == 0`. `team_claims` es inaccesible desde el cliente, porque guarda correos.
+- **Unirse a un equipo existente** sigue siendo con código de invitación (`redeemInviteAction`, ya en el servidor).
+- **Reglas de estado** en `lib/team-claims.ts` (puro, con tests): una solicitud abierta por usuario, garantizada dentro de la transacción con `users/{uid}.openClaimTeam` (el cliente no puede tocar ese campo); reenviar la propia es idempotente; el solicitante puede cancelarla (`cancelMyTeamClaimAction`, por ejemplo si se equivocó de número); tras un rechazo, o si un equipo aprobado se borra después, se puede volver a solicitar.
+- **Quién aprobó** queda solo en `team_claims` (server-only), no en `orgs/*`, que lee cualquier usuario con sesión. `org_invites.uses` ya no se puede actualizar desde el cliente (el canje es del servidor), y la consola de superadmin ahora también exige `email_verified`.
+
+**Por qué manual:** durante el piloto son pocas solicitudes, y el riesgo (quedarse con el scouting de un equipo rival) es alto. La verificación automática queda para cuando haya volumen; por ejemplo, un correo de contacto del equipo publicado por FIRST.
+
+## #91 · Entradas públicas validadas y límite por visitante en memoria (2026-11-13)
+
+**Hallazgo:** 7 acciones del servidor eran anónimas y aceptaban cualquier entrada. Cada valor basura (temporada 999999, código de evento arbitrario, `maxMatchesPerTeam` enorme) costaba llamadas en cascada a la API de FIRST y una entrada nueva en la caché. La portada armaba su clave de caché con `JSON.stringify` de los filtros crudos de la URL.
+
+**Decisión:**
+- **`lib/input-guards.ts`** (puro, con tests): temporada en 2019..actual+1, código de evento `^[A-Z0-9]{2,20}$`, equipo 1..99999, fechas ISO, región como texto corto y plano, enteros acotados. Se aplica en las 7 acciones y en la portada, antes de cualquier I/O.
+- **Límite por visitante** (`lib/request-guard.ts` + `lib/rate-limiter.ts`): ventana fija **en memoria por instancia**, y **solo cuenta los fallos de caché**, que son las llamadas que de verdad llegan a la API de FIRST. Así, aunque la IP se calculara mal y todos compartieran un mismo contador, el tráfico normal (que sale de caché) nunca toca el límite. "fanout" 240/min, "light" 600/min. Es generoso a propósito: un equipo entero comparte IP en el wifi del evento, y la vista de equipos de un evento hace unas 50 llamadas.
+  - **Por qué no en Firestore:** sería una transacción por llamada pública (latencia y costo), y 50 llamadas simultáneas desde una sola IP competirían por el mismo documento. Con 4 instancias como máximo, el techo efectivo es de 4×, suficiente para frenar abuso automatizado.
+  - **IP:** la entrada más a la derecha de `X-Forwarded-For`, después de quitar los saltos del balanceador de Google (35.191.0.0/16, 130.211.0.0/22). IPv6 se agrupa por /64. **Pendiente:** cada instancia registra una vez la *forma* del encabezado (`[rate-limit] x-forwarded-for shape: …`, sin IPs). Confirmarla en los logs después del deploy y, si el cliente no es el salto más a la derecha, ajustar `clientIpFromForwardedFor`.
+- **ProScouting** ya no se queda cargando para siempre si falla un equipo: cada uno se pide por separado y el indicador termina en `finally`.
+- **Clave de caché de la portada:** sale del conjunto de eventos resultante, no de los filtros crudos. Dos filtros que eligen los mismos eventos comparten entrada, y la basura en la URL ya no crea entradas nuevas.
+
+## #92 · Privacidad mínima antes de abrir: sin analítica sin consentimiento, sin correos como nombre (2026-11-13)
+
+- **Firebase Analytics** se inicializaba en cada visita sin consentimiento, y la mayoría de los usuarios son menores. Ahora solo carga si `localStorage["pride-analytics-consent"] === "granted"`; nada lo concede hasta que exista el aviso de consentimiento (plan, Etapa 4). Se importa de forma diferida, así que `firebase/analytics` sale del bundle.
+- **`scoutNameFromUser`** y la semilla del perfil caían al correo cuando faltaba el nombre, y ese valor se graba en cada entrada de scouting, visible para toda la organización. Ahora caen a "Scout".

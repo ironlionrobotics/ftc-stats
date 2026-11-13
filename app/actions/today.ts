@@ -1,5 +1,8 @@
 "use server";
 
+import { allowRequest } from "@/lib/request-guard";
+import { isValidSeason, isValidTeamNumber, normalizeEventCode } from "@/lib/input-guards";
+import { getCurrentSeason } from "@/lib/constants";
 import { fetchHybridSchedule } from "@/lib/ftc-api";
 import { pickNextMatch, type NextMatchInfo } from "@/lib/today";
 
@@ -22,11 +25,13 @@ export async function fetchNextMatchAction(input: {
     | { ok: true; nextMatch: NextMatchInfo | null }
     | { ok: false; error: string }
 > {
-    const { season, eventCode, teamNumber } = input;
-    if (!eventCode) return { ok: false, error: "Falta eventCode" };
-    if (!Number.isInteger(teamNumber) || teamNumber <= 0) {
-        return { ok: false, error: "teamNumber inválido" };
+    const season = input?.season;
+    const teamNumber = input?.teamNumber;
+    const eventCode = normalizeEventCode(input?.eventCode);
+    if (!eventCode || !isValidSeason(season, getCurrentSeason()) || !isValidTeamNumber(teamNumber)) {
+        return { ok: false, error: "invalid input" };
     }
+    if (!(await allowRequest("light"))) return { ok: false, error: "rate limited" };
     try {
         const schedule = await fetchHybridSchedule(season, eventCode);
         return { ok: true, nextMatch: pickNextMatch(schedule, teamNumber) };

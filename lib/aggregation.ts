@@ -73,8 +73,10 @@ export async function getAggregatedStats(season: number = 2024, filters?: { regi
     }
 
 
-    // Cache Logic
-    const filterKey = filters ? JSON.stringify(filters) : "default";
+    // Cache Logic. Keyed by the RESOLVED event set, not the raw filters: two
+    // filter combinations selecting the same events share one entry, and junk
+    // filter values can't mint new cache entries (decision #91).
+    const filterKey = filteredEvents.map(e => e.code).sort().join(",") || "none";
     // v3: events[].eventCode switched from abbreviation to real FIRST code.
     const cacheKey = `aggregation_v3_${season}_${filterKey}`;
 
@@ -97,7 +99,7 @@ export async function getAggregatedStats(season: number = 2024, filters?: { regi
 
     const cachedResult = await getCachedData<{ teamStats: AggregatedTeamStats[]; events: (FTCEvent & { abbr?: string })[] }>(cacheKey, ttl);
     if (cachedResult) {
-        console.log(`[Aggregation] Serving cached stats for ${filterKey} (TTL: ${ttl}s)`);
+        console.log(`[Aggregation] Serving cached stats for ${filteredEvents.length} events (TTL: ${ttl}s)`);
         return cachedResult;
     }
 

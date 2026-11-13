@@ -14,7 +14,8 @@
       "invalidToken": "Token inválido o expirado",
       "userNotFound": "Usuario no encontrado",
       "noOrg": "Sin equipo asignado",
-      "notAdmin": "Solo admins/leads pueden realizar esta acción"
+      "notAdmin": "Solo admins/leads pueden realizar esta acción",
+      "notSuperadmin": "No tienes permisos de superadmin."
     },
     "invite": {
       "tooShort": "Código demasiado corto",
@@ -26,6 +27,13 @@
     "org": {
       "alreadyExists": "Ese equipo ya tiene un espacio. Pide un código de invitación a un admin o lead del equipo para unirte.",
       "codeGeneration": "No se pudo generar código único después de varios intentos"
+    },
+    "claim": {
+      "pendingOther": "Alguien ya solicitó este equipo y la solicitud está en revisión. Si eres de ese equipo, pídele un código de invitación.",
+      "alreadyOpen": "Ya tienes una solicitud pendiente para otro equipo.",
+      "alreadyInTeam": "Ya perteneces a un equipo.",
+      "notFound": "Solicitud no encontrada",
+      "notPending": "Esta solicitud ya fue resuelta"
     },
     "admin": {
       "firestoreUnavailable": "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)"
@@ -491,5 +499,37 @@
   "Attribution": {
     "prefix": "Datos de eventos proporcionados por FIRST® —",
     "linkLabel": "firstinspires.org"
+  },
+  "Onboarding": {
+    "title": "Bienvenido a PRIDE",
+    "intro": "Dinos de qué equipo eres. Tu scouting se acredita a ese equipo.",
+    "signOut": "Cerrar sesión",
+    "tabRegister": "Registrar mi equipo",
+    "tabCode": "Tengo un código",
+    "teamNumber": "Número de equipo",
+    "teamName": "Nombre del equipo",
+    "teamNamePlaceholder": "El nombre de tu equipo",
+    "program": "Programa",
+    "registerHelp": "¿Tu equipo ya está en PRIDE? Pídele a su admin un código de invitación. Los equipos nuevos se revisan antes de activarse, para que nadie pueda quedarse con un equipo que no es suyo.",
+    "registerSubmit": "Solicitar mi equipo",
+    "pendingTitle": "Equipo {team} · {name}: solicitud en revisión",
+    "pendingBody": "Activaremos tu equipo cuando se apruebe la solicitud y quedarás como su admin. Mientras tanto puedes ver todo lo público. Si tu equipo ya usa PRIDE, únete con un código de invitación.",
+    "pendingRefresh": "¿Ya te aprobaron? Actualizar",
+    "pendingCancel": "Cancelar solicitud",
+    "rejected": "Tu solicitud para el equipo {team} no fue aprobada. Si crees que es un error, solicítalo de nuevo o contáctanos.",
+    "inviteCode": "Código de invitación",
+    "inviteHelp": "Pídele al admin de tu equipo que genere un código de invitación desde su sesión.",
+    "inviteSubmit": "Unirme al equipo"
+  },
+  "AdminClaims": {
+    "title": "Solicitudes de equipo",
+    "help": "Aprobar crea el espacio del equipo y deja a quien lo pidió como su admin. Antes, confirma que esa persona pertenece al equipo.",
+    "refresh": "Actualizar",
+    "loading": "Cargando…",
+    "empty": "No hay solicitudes pendientes.",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "approved": "Equipo {team} activado",
+    "rejected": "Solicitud del equipo {team} rechazada"
   }
 }

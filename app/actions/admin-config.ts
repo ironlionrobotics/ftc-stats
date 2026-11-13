@@ -43,7 +43,7 @@ async function requireSuperadmin(idToken: string): Promise<{ email: string } | {
     try {
         const decoded = await getAdminAuth().verifyIdToken(idToken);
         const email = decoded.email;
-        if (!isSuperadminEmail(email, process.env.SUPERADMIN_EMAILS)) {
+        if (!decoded.email_verified || !isSuperadminEmail(email, process.env.SUPERADMIN_EMAILS)) {
             return { error: "No tienes permisos de superadmin." };
         }
         return { email: email! };

@@ -3,12 +3,11 @@ import {
     doc,
     getDoc,
     setDoc,
-    updateDoc,
     Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CodedError } from "@/lib/errors";
-import type { Org, AppUser, OrgInvite, OrgProgram } from "@/types/orgs";
+import type { AppUser, OrgInvite } from "@/types/orgs";
 
 // Until the user document is loaded from Firestore we fall back to this org.
 // Production users always have a real orgId via users/{uid}.orgId; this
@@ -29,7 +28,6 @@ const EMAIL_ORG_OVERRIDES: Record<string, string> = {
 };
 
 const USERS_COLLECTION = "users";
-const ORGS_COLLECTION = "orgs";
 const INVITES_COLLECTION = "org_invites";
 
 // ---------------------------------------------------------------------------
@@ -56,8 +54,12 @@ export function scoutIdFromUser(user: User): string {
     return user.uid;
 }
 
+/**
+ * Name stamped on every scouting entry (visible to the whole org). Never the
+ * email: users are mostly minors and entries outlive the account.
+ */
 export function scoutNameFromUser(user: User): string {
-    return user.displayName || user.email || "Anonymous";
+    return user.displayName?.trim() || "Scout";
 }
 
 // ---------------------------------------------------------------------------
@@ -80,7 +82,7 @@ export async function loadOrCreateUserDoc(user: User): Promise<AppUser> {
     // First-time login — create the bare doc.
     const seed: Omit<AppUser, "id"> = {
         email: user.email ?? "",
-        displayName: user.displayName ?? user.email ?? "Anonymous",
+        displayName: user.displayName?.trim() || "Scout",
         orgId: null,
         role: "scout",
         reliability: 1.0,
@@ -101,55 +103,10 @@ export async function refreshUserDoc(uid: string): Promise<AppUser | null> {
 // ---------------------------------------------------------------------------
 // Org creation / membership
 // ---------------------------------------------------------------------------
-
-export interface CreateOrgInput {
-    teamNumber: number;
-    displayName: string;
-    program: OrgProgram;
-    region?: string;
-}
-
-/**
- * Creates a NEW org for the given team number and makes the caller its `admin`.
- * Org ids are the team number stringified, so lookups are intuitive and two
- * competing "Iron Lions" orgs can't form.
- *
- * M4: this function only CREATES. Joining an *existing* org must go through an
- * invite code (redeemInvite), never a bare team number — otherwise anyone could
- * enroll into a rival team's org and read its private strategy (picklists, pit
- * notes). The Firestore rule on users/{uid} is the real boundary (a client
- * can't self-elevate role there); this keeps the UI aligned with that model.
- */
-export async function createOrJoinOrgByTeamNumber(
-    user: User,
-    input: CreateOrgInput,
-): Promise<Org> {
-    const orgId = String(input.teamNumber);
-    const orgRef = doc(db, ORGS_COLLECTION, orgId);
-    const existing = await getDoc(orgRef);
-
-    // Prose lives in messages/{en,es}.json under Errors.org.alreadyExists —
-    // it tells the user to ask for an invite code, so it must stay translated.
-    if (existing.exists()) throw new CodedError("org.alreadyExists");
-
-    const org: Omit<Org, "id"> = {
-        teamNumber: input.teamNumber,
-        displayName: input.displayName,
-        program: input.program,
-        region: input.region,
-        createdAt: Timestamp.now(),
-        createdBy: user.uid,
-    };
-    await setDoc(orgRef, org);
-    await setUserOrg(user.uid, orgId, "admin");
-    return { id: orgId, ...org };
-}
-
-/** Assigns the user to an org with a specific role. */
-export async function setUserOrg(uid: string, orgId: string, role: AppUser["role"]): Promise<void> {
-    const userRef = doc(db, USERS_COLLECTION, uid);
-    await updateDoc(userRef, { orgId, role });
-}
+// Orgs are created only server-side when a superadmin approves a team claim
+// (app/actions/team-claims.ts, decision #90); joining an existing org goes
+// through an invite code (app/actions/redeem-invite.ts). The client never
+// writes membership.
 
 // ---------------------------------------------------------------------------
 // Invites
