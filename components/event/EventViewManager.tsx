@@ -5,14 +5,24 @@ import MatchList from "./MatchList";
 import RankingTable from "./RankingTable";
 import ParticipantList from "./ParticipantList";
 import AlliancePredictor from "../analytics/AlliancePredictor";
-import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, AdvancementPoints } from "@/types/ftc";
+import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, AdvancementPoints, FTCMatchScouting, FTCHybridScheduleMatch, FTCAllianceSelection } from "@/types/scouting";
 import { TeamEvolution } from "@/app/actions/analytics";
-import { Trophy, LayoutList, History, Sparkles, Medal, Target } from "lucide-react";
-import { listenToMatchScouting } from "@/lib/scouting-service";
+import { Trophy, LayoutList, History, Sparkles, Medal, Target, Zap as LucideZap } from "lucide-react";
+// lib/scouting-service is imported dynamically in the effect below: it reaches
+// the Firebase client SDK, and this is the public event page — the one people
+// load most on venue wifi. Statically importing it put ~397 KB of Firestore in
+// front of the first paint of a page that server-renders its rankings and
+// matches from the FTC API and only needs live scouting for two of its tabs.
 import clsx from "clsx";
 import { Users as LucideUsers } from "lucide-react";
 import AwardList from "./AwardList";
 import AdvancementList from "./AdvancementList";
+import Link from "next/link";
+// useAuth only reads context; AuthProvider is already mounted app-wide in the
+// root layout, so this adds no Firebase to the public event bundle (the SDK
+// itself stays behind the dynamic import in the effect below).
+import { useAuth } from "@/context/AuthContext";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 interface EventViewManagerProps {
     matches: FTCMatch[];
@@ -20,14 +30,19 @@ interface EventViewManagerProps {
     advancement: AdvancementResponse | null;
     awards: FTCAward[];
     advancementPoints: AdvancementPoints[];
+    schedule: FTCHybridScheduleMatch[];
+    /** Official playoff alliances once selection is published (empty before). */
+    selectedAlliances?: FTCAllianceSelection[];
     eventCode: string;
     season: number;
 }
 
-export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, eventCode, season }: EventViewManagerProps) {
+export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, schedule, selectedAlliances, eventCode, season }: EventViewManagerProps) {
     const [activeTab, setActiveTab] = useState<"matches" | "rankings" | "oracle" | "teams" | "advancement" | "awards">("teams");
     const [scoutingData, setScoutingData] = useState<MatchScouting[]>([]);
     const [filterTeam, setFilterTeam] = useState<number | null>(null);
+    const { orgId } = useAuth();
+    const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
 
     // Determine total rounds based on max plays by any team, defaults to 5 if not found
     const totalRounds = useMemo(() => {
@@ -39,13 +54,18 @@ export default function EventViewManager({ matches, rankings, advancement, award
 
     // Fetch scouting data when Oracle or Matches is active
     useEffect(() => {
-        if ((activeTab === 'oracle' || activeTab === 'matches') && eventCode) {
-            const unsubscribe = listenToMatchScouting(season, eventCode, (data) => {
+        if (!((activeTab === 'oracle' || activeTab === 'matches') && eventCode)) return;
+        let cancelled = false;
+        let unsubscribe: (() => void) | undefined;
+        (async () => {
+            const { listenToMatchScouting } = await import("@/lib/scouting-service");
+            if (cancelled) return;
+            unsubscribe = listenToMatchScouting(season, eventCode, effectiveOrgId, (data) => {
                 setScoutingData(data);
             });
-            return () => unsubscribe();
-        }
-    }, [activeTab, eventCode, season]);
+        })();
+        return () => { cancelled = true; unsubscribe?.(); };
+    }, [activeTab, eventCode, season, effectiveOrgId]);
 
     const matchesPerRound = useMemo(() => {
         if (!rankings.length) return 0;
@@ -106,8 +126,9 @@ export default function EventViewManager({ matches, rankings, advancement, award
             };
             m.teams.forEach(t => {
                 const isRed = t.station.startsWith('Red');
-                if (isRed) processTeam(t.teamNumber, 'Red', m.scoreRedFinal, m.scoreBlueFinal, m.scoreRedAuto, m.scoreRedFoul);
-                else processTeam(t.teamNumber, 'Blue', m.scoreBlueFinal, m.scoreRedFinal, m.scoreBlueAuto, m.scoreBlueFoul);
+                // np subtracts penalties RECEIVED (= the opponent's committed fouls).
+                if (isRed) processTeam(t.teamNumber, 'Red', m.scoreRedFinal, m.scoreBlueFinal, m.scoreRedAuto, m.scoreBlueFoul);
+                else processTeam(t.teamNumber, 'Blue', m.scoreBlueFinal, m.scoreRedFinal, m.scoreBlueAuto, m.scoreRedFoul);
             });
         });
 
@@ -171,7 +192,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
             });
 
             // Gauss-Seidel Solver (50 iterations for speed/responsiveness)
-            let x = new Float64Array(n).fill(0);
+            const x = new Float64Array(n).fill(0);
             for (let iter = 0; iter < 50; iter++) {
                 for (let i = 0; i < n; i++) {
                     let sum = 0;
@@ -182,10 +203,10 @@ export default function EventViewManager({ matches, rankings, advancement, award
             return new Map(teamsList.map((t, i) => [t, x[i]]));
         };
 
-        const overallOPR = calculateComponentOPR((m, alliance) => alliance === 'Red' ? (m.scoreRedFinal - m.scoreRedFoul) : (m.scoreBlueFinal - m.scoreBlueFoul));
+        const overallOPR = calculateComponentOPR((m, alliance) => alliance === 'Red' ? (m.scoreRedFinal - m.scoreBlueFoul) : (m.scoreBlueFinal - m.scoreRedFoul));
         const autoOPR = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedAuto : m.scoreBlueAuto);
-        const drawnFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedFoul : m.scoreBlueFoul);
-        const committedFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreBlueFoul : m.scoreRedFoul);
+        const drawnFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreBlueFoul : m.scoreRedFoul);
+        const committedFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedFoul : m.scoreBlueFoul);
 
         // Calculate maxes for normalization
         const maxPower = Math.max(...simulatedRankings.map(r => r.sortOrder2 + r.sortOrder4)) || 1;
@@ -200,7 +221,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
             if (lastTwo.length >= 2) {
                 const recentAvg = lastTwo.reduce((acc, m) => {
                     const isRed = m.teams.some(t => t.teamNumber === rank.teamNumber && t.station.startsWith('Red'));
-                    return acc + (isRed ? m.scoreRedFinal - m.scoreRedFoul : m.scoreBlueFinal - m.scoreBlueFoul);
+                    return acc + (isRed ? m.scoreRedFinal - m.scoreBlueFoul : m.scoreBlueFinal - m.scoreRedFoul);
                 }, 0) / 2;
 
                 const overallAvg = rank.sortOrder2;
@@ -224,7 +245,8 @@ export default function EventViewManager({ matches, rankings, advancement, award
             let rpArtifacts = 0;
             let rpPattern = 0;
 
-            if (totalMatches > 0) {
+            // BIOBUZZ (2026+): no invented point thresholds; RP stays empty here.
+            if (season < 2026 && totalMatches > 0) {
                 let autoSuccess = 0;
                 let teleSuccess = 0;
                 let patternSuccess = 0;
@@ -233,7 +255,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                     const isRed = m.teams.some(t => t.teamNumber === rank.teamNumber && t.station.startsWith('Red'));
                     const autoScore = isRed ? m.scoreRedAuto : m.scoreBlueAuto;
                     const totalScore = isRed ? m.scoreRedFinal : m.scoreBlueFinal;
-                    const teleScore = totalScore - autoScore - (isRed ? m.scoreRedFoul : m.scoreBlueFoul); // Approx teleop
+                    const teleScore = totalScore - autoScore - (isRed ? m.scoreBlueFoul : m.scoreRedFoul); // Approx teleop (minus RECEIVED penalties)
 
                     // Thresholds for "Into The Deep" (Estimated)
                     // Auto RP usually requires specific tasks (Ascent + Samples). ~40pts is a good proxy for high auto achievement.
@@ -253,11 +275,11 @@ export default function EventViewManager({ matches, rankings, advancement, award
 
             // Fallback/Augment with Scouting if available (take the higher value to be generous/accurate)
             const teamScoutingMatches = scoutingData.filter(m => m.teamNumber === rank.teamNumber);
-            if (teamScoutingMatches.length > 0) {
+            if (season < 2026 && teamScoutingMatches.length > 0) {
                 const sTotal = teamScoutingMatches.length;
-                const sMov = teamScoutingMatches.filter(m => m.movementRP).length / sTotal;
-                const sArt = teamScoutingMatches.filter(m => m.goalRP).length / sTotal;
-                const sPat = teamScoutingMatches.filter(m => m.patternRP).length / sTotal;
+                const sMov = teamScoutingMatches.filter(m => (m as FTCMatchScouting).movementRP).length / sTotal;
+                const sArt = teamScoutingMatches.filter(m => (m as FTCMatchScouting).goalRP).length / sTotal;
+                const sPat = teamScoutingMatches.filter(m => (m as FTCMatchScouting).patternRP).length / sTotal;
 
                 rpMovement = Math.max(rpMovement, sMov);
                 rpArtifacts = Math.max(rpArtifacts, sArt);
@@ -277,6 +299,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 wins: rank.wins || 0,
                 losses: rank.losses || 0,
                 ties: rank.ties || 0,
+                avgEndGame: 0,
                 awards: []
             };
 
@@ -294,83 +317,61 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 netDiscipline: netDisc,
                 rpMovement,
                 rpArtifacts,
-                rpPattern
+                rpPattern,
+                ...(season < 2026 ? { rp: { movement: rpMovement, goal: rpArtifacts, pattern: rpPattern } } : {})
             } as TeamEvolution;
         });
-    }, [simulatedRankings, matches, selectedRound, matchesPerRound, scoutingData]);
+    }, [simulatedRankings, matches, selectedRound, matchesPerRound, scoutingData, season]);
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex p-1 bg-white border border-slate-200 rounded-2xl w-full md:w-fit shadow-sm">
-                    <button
-                        onClick={() => setActiveTab("teams")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "teams" ? "bg-orange-600 text-white shadow-md shadow-orange-100" : "text-slate-500 hover:text-slate-900"
-                        )}
+                {/* Tab bar scrolls inside itself on mobile — 7 fixed-width
+                    buttons used to force the whole page to pan sideways. */}
+                <div className="flex p-1 bg-card border border-border rounded-xl w-full md:w-fit shadow-sm overflow-x-auto max-w-full">
+                    {/* One accent for active state (modern-technical: a single
+                        violet, not a rainbow per tab). */}
+                    {([
+                        { key: "teams", label: "Teams", icon: <LucideUsers size={18} /> },
+                        { key: "rankings", label: "Rankings", icon: <Trophy size={18} /> },
+                        { key: "matches", label: "Matches", icon: <LayoutList size={18} /> },
+                        { key: "oracle", label: "Oracle", icon: <Sparkles size={18} /> },
+                        { key: "advancement", label: "Advancement", icon: <Target size={18} /> },
+                        { key: "awards", label: "Awards", icon: <Medal size={18} /> },
+                    ] as const).map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={clsx(
+                                "shrink-0 flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200",
+                                activeTab === tab.key
+                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                        >
+                            {tab.icon} {tab.label}
+                        </button>
+                    ))}
+                    <Link
+                        href={`/event/${eventCode}/pro`}
+                        className="shrink-0 flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-sm font-black whitespace-nowrap transition-all duration-200 text-secondary hover:bg-secondary/10 border border-transparent hover:border-secondary/20"
                     >
-                        <LucideUsers size={18} /> Teams
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("rankings")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "rankings" ? "bg-primary text-white shadow-md" : "text-slate-500 hover:text-slate-900"
-                        )}
-                    >
-                        <Trophy size={18} /> Rankings
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("matches")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "matches" ? "bg-secondary text-white shadow-md" : "text-slate-500 hover:text-slate-900"
-                        )}
-                    >
-                        <LayoutList size={18} /> Matches
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("oracle")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "oracle" ? "bg-blue-600 text-white shadow-md" : "text-slate-500 hover:text-blue-600"
-                        )}
-                    >
-                        <Sparkles size={18} /> Oracle
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("advancement")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "advancement" ? "bg-purple-600 text-white shadow-md" : "text-slate-500 hover:text-purple-600"
-                        )}
-                    >
-                        <Target size={18} /> Advancement
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("awards")}
-                        className={clsx(
-                            "flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200",
-                            activeTab === "awards" ? "bg-yellow-500 text-white shadow-md" : "text-slate-500 hover:text-yellow-600"
-                        )}
-                    >
-                        <Medal size={18} /> Awards
-                    </button>
+                        <LucideZap size={18} /> PRO
+                    </Link>
                 </div>
 
                 {activeTab !== "matches" && (
                     <div className="flex flex-col gap-1 w-full md:w-auto min-w-[240px]">
                         <div className="flex justify-between items-center px-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                                 <History size={12} /> Historia por Ronda
                             </label>
                             <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
                                 {selectedRound === totalRounds ? "FINAL" : `Ronda ${selectedRound}`}
                             </span>
                         </div>
-                        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                            <span className="text-[10px] font-bold text-slate-400">R1</span>
+                        <div className="flex items-center gap-3 bg-card p-2 rounded-xl border border-border shadow-sm">
+                            <span className="text-[10px] font-bold text-muted-foreground">R1</span>
                             <input
                                 type="range"
                                 min="1"
@@ -378,9 +379,9 @@ export default function EventViewManager({ matches, rankings, advancement, award
                                 step="1"
                                 value={selectedRound}
                                 onChange={(e) => setSelectedRound(parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary"
+                                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                             />
-                            <span className="text-[10px] font-bold text-slate-400">Final</span>
+                            <span className="text-[10px] font-bold text-muted-foreground">Final</span>
                         </div>
                     </div>
                 )}
@@ -413,10 +414,24 @@ export default function EventViewManager({ matches, rankings, advancement, award
                         filterTeam={filterTeam}
                         setFilterTeam={setFilterTeam}
                         scoutingData={scoutingData}
+                        schedule={schedule}
+                        awards={awards}
+                        selectedAlliances={selectedAlliances}
                     />
                 )}
                 {activeTab === "oracle" && (
-                    <AlliancePredictor teams={oracleTeams} scoutingData={scoutingData} />
+                    <div className="space-y-6">
+                        {selectedAlliances && selectedAlliances.length > 0 && (
+                            <SelectedAlliancesPanel alliances={selectedAlliances} />
+                        )}
+                        <AlliancePredictor
+                            teams={oracleTeams}
+                            scoutingData={scoutingData}
+                            officialAlliances={selectedAlliances}
+                            eventCode={eventCode}
+                            playoffMatches={matches.filter(m => m.tournamentLevel !== "QUALIFICATION" && m.tournamentLevel !== "PRACTICE")}
+                        />
+                    </div>
                 )}
                 {activeTab === "advancement" && (
                     <AdvancementList advancement={advancement} points={advancementPoints} rankings={rankings} />
@@ -424,6 +439,43 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 {activeTab === "awards" && (
                     <AwardList awards={awards} rankings={rankings} />
                 )}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Official playoff alliances as published by the FIRST API. Detects the
+ * event's format from the data itself: any alliance with a round-2 pick means
+ * 3-robot alliances (Competition Manual §15.3 — any 2 of the 3 play each
+ * match). Module-level per the React Compiler static-components rule.
+ */
+function SelectedAlliancesPanel({ alliances }: { alliances: FTCAllianceSelection[] }) {
+    const isThreeRobot = alliances.some(a => a.round2 != null);
+    return (
+        <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+            <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                    <span className="w-1.5 h-6 bg-primary rounded-full" />
+                    Alianzas oficiales
+                </h3>
+                <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                    {alliances.length} alianzas · {isThreeRobot ? "3 robots (juegan 2 por match, §15.3)" : "2 robots"}
+                </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {alliances.map(a => (
+                    <div key={a.number} className="bg-muted rounded-lg px-3 py-2.5 flex items-center gap-3">
+                        <span className="w-7 h-7 shrink-0 rounded-md bg-primary/10 text-primary font-display font-bold text-sm flex items-center justify-center">
+                            {a.number}
+                        </span>
+                        <div className="font-mono text-xs text-foreground flex flex-wrap gap-x-2 gap-y-0.5">
+                            {a.captain && <span className="font-bold" title={a.captain.teamName ?? undefined}>{a.captain.teamNumber}</span>}
+                            {a.round1 && <span title={a.round1.teamName ?? undefined}>· {a.round1.teamNumber}</span>}
+                            {a.round2 && <span className="text-muted-foreground" title={a.round2.teamName ?? undefined}>· {a.round2.teamNumber}</span>}
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

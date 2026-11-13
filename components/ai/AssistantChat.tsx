@@ -2,17 +2,52 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { chatWithAssistant } from "@/app/actions/ai";
-import { Bot, Send, X, MessageSquare, ChevronDown, Sparkles, RefreshCcw } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { Bot, Send, MessageSquare, ChevronDown, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { getMatchScoutingOnce } from "@/lib/scouting-service";
+import { getCurrentSeason, DEFAULT_ORG_ID } from "@/lib/constants";
+import type { MatchScouting } from "@/types/scouting";
+
+/**
+ * Builds a compact digest of the event's free-text scouting notes — the one
+ * data type the deterministic aggregation engine can NOT merge (notes are
+ * listed with attribution by design). Synthesizing them is the LLM's actual
+ * job in PRIDE; score explanations are handled natively by the Oracle.
+ * Only match-scouting notes are included (cross-org visible). Pit notes are
+ * org-private and never leave their owner.
+ */
+function buildNotesDigest(entries: MatchScouting[]): string {
+    const byTeam = new Map<number, string[]>();
+    for (const e of entries) {
+        const note = (e.notes ?? "").trim();
+        if (!note) continue;
+        const list = byTeam.get(e.teamNumber) ?? [];
+        if (list.length >= 3) continue; // latest 3 per team (entries arrive desc)
+        const scout = e.scoutName || e.scoutId || "scout";
+        list.push(`"${note.slice(0, 180)}" (${scout})`);
+        byTeam.set(e.teamNumber, list);
+    }
+    const lines: string[] = [];
+    for (const [team, notes] of [...byTeam.entries()].sort((a, b) => a[0] - b[0])) {
+        lines.push(`T${team}: ${notes.join(" · ")}`);
+    }
+    // Server caps context at 8KB; trim client-side so the cap cuts cleanly.
+    return lines.join("\n").slice(0, 6000);
+}
 
 export default function AssistantChat() {
+    const { user, orgId } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
-        { role: 'assistant', content: "Hello! I'm your FTC Strategy Assistant. I can help you analyze matches or pick alliance partners." }
+        { role: 'assistant', content: "¡Hola! Soy el asistente de estrategia de PRIDE. Mi especialidad: sintetizar las notas de scouting del evento (\"¿qué dicen las notas del 12887?\") y responder dudas de estrategia. En páginas de evento leo las notas automáticamente." }
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    // Per-event cache of the scouting-notes digest (avoids re-reading Firestore
+    // on every message in the same event).
+    const notesCacheRef = useRef<{ eventCode: string; digest: string } | null>(null);
     const pathname = usePathname();
 
     const scrollToBottom = () => {
@@ -33,13 +68,45 @@ export default function AssistantChat() {
         setLoading(true);
 
         try {
+            // The assistant action now requires a verified Firebase ID token.
+            if (!user) {
+                setMessages(prev => [...prev, { role: 'assistant', content: "Inicia sesión para usar el asistente de estrategia." }]);
+                return;
+            }
+            const idToken = await user.getIdToken();
+
+            // On event pages, attach the event's scouting-notes digest (cached
+            // per event so repeat questions don't re-read Firestore).
+            let scoutingNotes: string | undefined;
+            const eventMatch = pathname?.match(/^\/event\/([^/]+)/);
+            if (eventMatch) {
+                const eventCode = decodeURIComponent(eventMatch[1]);
+                try {
+                    if (notesCacheRef.current?.eventCode !== eventCode) {
+                        const cookieSeason = Number(document.cookie.match(/(?:^|; )ftc_season=(\d+)/)?.[1]);
+                        const season = cookieSeason || getCurrentSeason();
+                        const entries = await getMatchScoutingOnce(season, eventCode, orgId ?? DEFAULT_ORG_ID);
+                        notesCacheRef.current = { eventCode, digest: buildNotesDigest(entries) };
+                    }
+                    scoutingNotes = notesCacheRef.current.digest || undefined;
+                } catch {
+                    // Notes are an enhancement — the chat still works without them.
+                }
+            }
+
             const contextData = {
                 page: pathname,
                 timestamp: new Date().toISOString(),
+                ...(scoutingNotes ? { scoutingNotes } : {}),
             };
 
             // Pass the existing conversation history to maintain context
-            const response = await chatWithAssistant(userMsg, contextData, currentHistory);
+            const response = await chatWithAssistant({
+                idToken,
+                message: userMsg,
+                contextData,
+                history: currentHistory,
+            });
             setMessages(prev => [...prev, { role: 'assistant', content: response.content }]);
         } catch (error) {
             console.error("Chat Error:", error);
@@ -47,21 +114,22 @@ export default function AssistantChat() {
         } finally {
             setLoading(false);
         }
-    }, [loading, pathname, messages]);
+    }, [loading, pathname, messages, user, orgId]);
 
     useEffect(() => {
-        const handleOpenChat = (e: CustomEvent<{ message?: string, context?: any }>) => {
+        const handleOpenChat = (e: Event) => {
+            const { detail } = e as CustomEvent<{ message?: string }>;
             setIsOpen(true);
-            if (e.detail.message) {
+            if (detail.message) {
                 // Trigger analysis automatically when coming from the Oracle
                 setTimeout(() => {
-                    processMessage(e.detail.message!);
+                    processMessage(detail.message!);
                 }, 300); // Slight delay for the opening animation
             }
         };
 
-        window.addEventListener('open-ai-chat' as any, handleOpenChat as any);
-        return () => window.removeEventListener('open-ai-chat' as any, handleOpenChat as any);
+        window.addEventListener('open-ai-chat', handleOpenChat);
+        return () => window.removeEventListener('open-ai-chat', handleOpenChat);
     }, [processMessage]);
 
     const handleSend = () => {
@@ -75,37 +143,37 @@ export default function AssistantChat() {
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
             {/* Chat Window Container */}
             <div className={`pointer-events-auto transition-all duration-300 ease-out transform origin-bottom-right mb-4 ${isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-90 opacity-0 translate-y-10 pointer-events-none h-0'}`}>
-                <div className="w-[350px] md:w-[380px] bg-white border border-slate-200 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[600px] ring-1 ring-slate-900/5">
+                <div className="w-[350px] md:w-[380px] bg-card border border-border rounded-3xl shadow-sm flex flex-col overflow-hidden max-h-[600px]">
                     {/* Header */}
-                    <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center sticky top-0 z-10">
+                    <div className="p-4 bg-muted border-b border-border flex justify-between items-center sticky top-0 z-10">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
-                                <Bot className="text-blue-600 w-5 h-5" />
+                            <div className="w-8 h-8 bg-secondary/10 rounded-xl flex items-center justify-center border border-secondary/30">
+                                <Bot className="text-secondary w-5 h-5" />
                             </div>
                             <div>
-                                <div className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                                    Iron Lion AI <Sparkles size={12} className="text-amber-500 fill-amber-500" />
+                                <div className="font-bold text-foreground text-sm flex items-center gap-1.5">
+                                    Iron Lion AI <Sparkles size={12} className="text-warning fill-warning" />
                                 </div>
-                                <div className="text-[10px] text-slate-500 font-medium tracking-wide">Strategic Advisor</div>
+                                <div className="text-[10px] text-muted-foreground font-medium tracking-wide">Strategic Advisor</div>
                             </div>
                         </div>
                         <button
                             onClick={() => setIsOpen(false)}
-                            className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-700 transition-all"
+                            className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full text-muted-foreground hover:text-foreground transition-all"
                         >
                             <ChevronDown size={18} />
                         </button>
                     </div>
 
                     {/* Messages Area */}
-                    <div className="h-[400px] overflow-y-auto p-4 flex flex-col gap-4 bg-slate-50/30 custom-scrollbar">
+                    <div className="h-[400px] overflow-y-auto p-4 flex flex-col gap-4 bg-muted custom-scrollbar">
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm border ${m.role === 'user'
-                                    ? 'bg-blue-600 text-white border-blue-600 rounded-br-none'
+                                    ? 'bg-secondary text-secondary-foreground border-secondary rounded-br-none'
                                     : m.content.includes("error") || m.content.includes("Sorry")
-                                        ? 'bg-red-50 text-red-700 border-red-100 rounded-bl-none whitespace-pre-wrap'
-                                        : 'bg-white text-slate-700 border-slate-200 rounded-bl-none whitespace-pre-wrap'
+                                        ? 'bg-danger/10 text-danger border-danger/20 rounded-bl-none whitespace-pre-wrap'
+                                        : 'bg-card text-foreground border-border rounded-bl-none whitespace-pre-wrap'
                                     }`}>
                                     {m.content}
                                 </div>
@@ -113,13 +181,13 @@ export default function AssistantChat() {
                         ))}
                         {loading && (
                             <div className="flex justify-start w-full animate-in fade-in zoom-in duration-300">
-                                <div className="bg-white border border-slate-200 p-3 rounded-2xl rounded-bl-none flex items-center gap-2 shadow-sm">
+                                <div className="bg-card border border-border p-3 rounded-2xl rounded-bl-none flex items-center gap-2 shadow-sm">
                                     <div className="flex space-x-1.5 h-4 items-center px-1">
-                                        <div className="w-1.5 h-1.5 bg-blue-300 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                        <div className="w-1.5 h-1.5 bg-blue-300 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                        <div className="w-1.5 h-1.5 bg-blue-300 rounded-full animate-bounce"></div>
+                                        <div className="w-1.5 h-1.5 bg-secondary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                        <div className="w-1.5 h-1.5 bg-secondary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                        <div className="w-1.5 h-1.5 bg-secondary rounded-full animate-bounce"></div>
                                     </div>
-                                    <span className="text-xs text-slate-400 font-medium">Analyzing...</span>
+                                    <span className="text-xs text-muted-foreground font-medium">Analyzing...</span>
                                 </div>
                             </div>
                         )}
@@ -127,20 +195,20 @@ export default function AssistantChat() {
                     </div>
 
                     {/* Input Area */}
-                    <div className="p-3 bg-white border-t border-slate-100 flex gap-2">
+                    <div className="p-3 bg-card border-t border-border flex gap-2">
                         <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                             placeholder="Ask about strategy..."
-                            className="flex-1 bg-slate-100/50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400"
+                            className="flex-1 bg-muted border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-secondary/10 focus:border-secondary transition-all font-medium placeholder:text-muted-foreground"
                             disabled={loading}
                         />
                         <button
                             onClick={handleSend}
                             disabled={loading || !input.trim()}
-                            className="w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:grayscale rounded-xl text-white transition-all shadow-md active:scale-95 flex items-center justify-center flex-shrink-0"
+                            className="w-10 h-10 bg-secondary hover:bg-secondary/90 disabled:opacity-50 disabled:grayscale rounded-xl text-secondary-foreground transition-all shadow-sm active:scale-95 flex items-center justify-center flex-shrink-0"
                         >
                             <Send size={18} />
                         </button>
@@ -152,7 +220,7 @@ export default function AssistantChat() {
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="pointer-events-auto w-14 h-14 bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg flex items-center justify-center text-white transition-all transform hover:scale-110 active:scale-95 border-2 border-white"
+                    className="pointer-events-auto w-14 h-14 bg-secondary hover:bg-secondary/90 rounded-full shadow-sm flex items-center justify-center text-secondary-foreground transition-all transform hover:scale-110 active:scale-95 border-2 border-background"
                 >
                     <MessageSquare size={26} fill="white" />
                 </button>

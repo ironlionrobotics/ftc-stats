@@ -1,0 +1,153 @@
+import type { GameDefinition } from "@/types/game-definition";
+
+/**
+ * FTC DECODE 2025-2026 as a declarative game definition.
+ *
+ * This IS the production FTC match-scouting form — wired in via
+ * `GameScoutingForm` since session 19 (decision #79). The retired
+ * hand-written `FTC_DecodeForm` is dead reference code (nothing imports it).
+ * Superseded for season >= 2026 by `ftc-biobuzz-2026.ts`; still served for
+ * season 2025 via `gameDefinitionFor()` (lib/games/registry.ts) so historical
+ * entries keep aggregating and scoring correctly.
+ *
+ * Field ids are preserved from the existing schema so federation, aggregation
+ * and reporting code keep working without migration.
+ *
+ * **Label convention:** every display string below (section/field labels,
+ * helpText, placeholder, enum option labels) is an i18n dot-path key
+ * relative to the `Games` catalog namespace, NOT literal prose — the
+ * renderer (`DynamicGameForm`/`GameScoutingForm`) resolves it with a
+ * `t.has()` + fallback idiom (see `lib/hooks/use-zod-message.ts`), so a
+ * definition without a catalog entry still degrades to readable text. The
+ * top-level `label: "FTC DECODE"` is the one exception — it's the game's
+ * proper name, kept as literal data.
+ */
+export const FTC_DECODE_2025: GameDefinition = {
+    id: "ftc-decode-2025-2026",
+    label: "FTC DECODE",
+    program: "FTC",
+    season: 2025,
+    // DECODE entries were persisted with gameSchemaVersion 1 (the constant was
+    // never bumped during the season). Kept as-is for provenance continuity.
+    schemaVersion: 1,
+    sections: [
+        {
+            id: "auto",
+            label: "decode.sections.auto",
+            accent: "primary",
+            fields: [
+                { id: "autoLaunchLine", kind: "boolean", label: "decode.fields.autoLaunchLine" },
+                { id: "autoMotifStarted", kind: "boolean", label: "decode.fields.autoMotifStarted" },
+                {
+                    id: "autoPurpleArtifacts",
+                    kind: "counter",
+                    label: "decode.fields.autoPurpleArtifacts",
+                    color: "purple",
+                    min: 0,
+                    max: 50,
+                },
+                {
+                    id: "autoGreenArtifacts",
+                    kind: "counter",
+                    label: "decode.fields.autoGreenArtifacts",
+                    color: "green",
+                    min: 0,
+                    max: 50,
+                },
+                { id: "movementRP", kind: "boolean", label: "decode.fields.movementRP" },
+            ],
+        },
+        {
+            id: "teleop",
+            label: "decode.sections.teleop",
+            accent: "primary",
+            fields: [
+                {
+                    id: "teleopPurpleArtifacts",
+                    kind: "counter",
+                    label: "decode.fields.teleopPurpleArtifacts",
+                    color: "purple",
+                    min: 0,
+                    max: 200,
+                },
+                {
+                    id: "teleopGreenArtifacts",
+                    kind: "counter",
+                    label: "decode.fields.teleopGreenArtifacts",
+                    color: "green",
+                    min: 0,
+                    max: 200,
+                },
+                {
+                    id: "patternsCompleted",
+                    kind: "counter",
+                    label: "decode.fields.patternsCompleted",
+                    color: "primary",
+                    min: 0,
+                    max: 20,
+                },
+                { id: "gatesUsed", kind: "boolean", label: "decode.fields.gatesUsed" },
+                {
+                    id: "driverSkill",
+                    kind: "stars",
+                    label: "decode.fields.driverSkill",
+                    helpText: "decode.fields.driverSkillHelp",
+                    max: 5,
+                },
+            ],
+        },
+        {
+            id: "endgame",
+            label: "decode.sections.endgame",
+            accent: "primary",
+            fields: [
+                {
+                    id: "endgameBaseParking",
+                    kind: "enum",
+                    label: "decode.fields.endgameBaseParking",
+                    options: [
+                        { value: "None", label: "decode.options.endgameBaseParking.None" },
+                        { value: "Partial", label: "decode.options.endgameBaseParking.Partial" },
+                        { value: "Full", label: "decode.options.endgameBaseParking.Full" },
+                    ],
+                },
+                { id: "dualParking", kind: "boolean", label: "decode.fields.dualParking" },
+                { id: "motifCompleted", kind: "boolean", label: "decode.fields.motifCompleted" },
+                { id: "goalRP", kind: "boolean", label: "decode.fields.goalRP" },
+                { id: "patternRP", kind: "boolean", label: "decode.fields.patternRP" },
+            ],
+        },
+        {
+            id: "notes",
+            label: "decode.sections.notes",
+            fields: [
+                {
+                    id: "notes",
+                    kind: "textarea",
+                    label: "decode.fields.notes",
+                    placeholder: "decode.fields.notesPlaceholder",
+                    maxLength: 2000,
+                },
+            ],
+        },
+    ],
+    // Derived entry fields the raw inputs don't carry. Mirrors exactly what the
+    // hand-written FTC_DecodeForm.onSubmit set: `autoParked` (consumed by
+    // scouting-aggregation as a categorical) and the `autoPoints` placeholder.
+    toEntry: (v) => ({
+        autoParked: v.endgameBaseParking !== "None",
+        autoPoints: 0,
+    }),
+    derivedFields: { autoParked: "categorical", autoPoints: "numeric" },
+    // Coarse per-robot reconstruction. Byte-for-byte the formula previously
+    // duplicated in lib/projections.ts and lib/ground-truth-validation.ts
+    // (parity-tested in biobuzz-definition.test.ts, "DECODE score() parity"). RP-only bonuses add no points.
+    score: (s) => {
+        const park = s.cat("endgameBaseParking");
+        return {
+            auto: s.num("autoPurpleArtifacts") * 3 + s.num("autoGreenArtifacts") * 3 + s.num("autoPoints"),
+            teleop: s.num("teleopPurpleArtifacts") * 2 + s.num("teleopGreenArtifacts") * 2 + s.num("patternsCompleted") * 10,
+            endgame: (park === "Full" ? 10 : park === "Partial" ? 5 : 0) + (s.flag("dualParking") ? 20 : 0),
+        };
+    },
+};

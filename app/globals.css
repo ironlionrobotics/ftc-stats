@@ -1,37 +1,83 @@
 @import "tailwindcss";
 
+/* ============================================================================
+ * FTC Stats — "Modern technical" design tokens (decision: Linear/Vercel/
+ * Statbotics lineage; violet primary + cyan data accent, no neon).
+ *
+ * Every component color MUST come from these semantic tokens so the light and
+ * dark themes both work. Never hardcode slate/white/black in components.
+ * ==========================================================================*/
+
+/* ----------------------------------------------------------------------------
+ * Direction C · "Nightshift" (decision 2026-07-28, Héctor). Dark-first
+ * instrumentation palette: chartreuse signal + cobalt data accent on near-black.
+ * `.dark` is the primary experience; `:root` (light) is the secondary "at-the-
+ * desk" mode where chartreuse is deepened to #5E8A00 so it still passes contrast
+ * on a light ground (raw #C4F135 fails WCAG on white). Token NAMES are unchanged
+ * from the previous violet/cyan system, so no component needed rewriting.
+ * ------------------------------------------------------------------------- */
 :root {
-  --color-background: #ffffff;
-  --color-foreground: #030712;
-  --color-card: #f9fafb;
-  --color-card-foreground: #030712;
-  --color-muted: #f3f4f6;
-  --color-muted-foreground: #6b7280;
-  --color-border: #e5e7eb;
+  /* Light — secondary mode. */
+  --color-background: #f5f6f2;
+  --color-foreground: #0e1116;
+  --color-card: #ffffff;
+  --color-card-foreground: #0e1116;
+  --color-muted: #eceee9;
+  --color-muted-foreground: #616772;
+  --color-border: #dce0e6;
+
+  --color-primary: #5e8a00;          /* deepened chartreuse — legible on white */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #3049d6;        /* cobalt — data highlights */
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #3049d6;
+  --color-accent-foreground: #ffffff;
+
+  --color-success: #1f8a4c;
+  --color-warning: #a5680a;
+  --color-danger: #d6203f;
 }
 
 .dark {
-  --color-background: #030712;
-  --color-foreground: #f9fafb;
-  --color-card: #111827;
-  --color-card-foreground: #f9fafb;
-  --color-muted: #1f2937;
-  --color-muted-foreground: #9ca3af;
-  --color-border: #374151;
+  /* Dark — primary "Nightshift" mode. Near-black with cool cast; surfaces step
+     up in three levels (background → card → muted) with hairline borders. */
+  --color-background: #08090c;
+  --color-foreground: #e7eaf0;
+  --color-card: #101319;
+  --color-card-foreground: #e7eaf0;
+  --color-muted: #171b22;
+  --color-muted-foreground: #7d8494;
+  --color-border: #1e2430;
+
+  --color-primary: #c4f135;          /* chartreuse — signature signal */
+  --color-primary-foreground: #08090c;
+  --color-secondary: #5a76ff;        /* cobalt */
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #5a76ff;
+  --color-accent-foreground: #ffffff;
+
+  --color-success: #3fde7b;
+  --color-warning: #f0b429;
+  --color-danger: #ff3b5c;
 }
 
 @theme {
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-outfit);
+  /* Direction C typography: Space Grotesk (display + body, "instrument panel"
+     voice) + JetBrains Mono for tabular data. */
+  --font-sans: var(--font-space), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
-  --color-primary: #f97316;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #3b82f6;
-  --color-secondary-foreground: #ffffff;
-  --color-accent: #f59e0b;
-  --color-accent-foreground: #ffffff;
+  --color-primary: var(--color-primary);
+  --color-primary-foreground: var(--color-primary-foreground);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-foreground: var(--color-secondary-foreground);
+  --color-accent: var(--color-accent);
+  --color-accent-foreground: var(--color-accent-foreground);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
 
-  /* Reference the variables defined above */
   --color-background: var(--color-background);
   --color-foreground: var(--color-foreground);
   --color-card: var(--color-card);
@@ -39,6 +85,8 @@
   --color-muted: var(--color-muted);
   --color-muted-foreground: var(--color-muted-foreground);
   --color-border: var(--color-border);
+  /* Form control borders alias the hairline border token. */
+  --color-input: var(--color-border);
 }
 
 @layer base {
@@ -57,63 +105,199 @@
   h6 {
     font-family: var(--font-display);
     color: var(--color-foreground);
+    letter-spacing: -0.01em;
+  }
+
+  /* Stat digits align in columns everywhere (tables, stat tiles). */
+  table,
+  .font-display,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Fase 0 · reserved focus-glow. Keyboard focus gets a high-contrast accent
+     ring — small, saturated, on an opaque surface, so it stays legible in
+     daylight. Components with their own focus-visible ring layer on top. */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
 @layer utilities {
+  /* Legacy utility kept for compatibility — now a flat elevated surface
+     instead of translucent glass (blur panels read as noise in daylight
+     venue conditions and cost GPU on low-end tablets). */
   .glass {
-    @apply backdrop-blur-lg border transition-colors duration-300;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .dark .glass {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.05);
-  }
-
-  .glass-card {
-    @apply backdrop-blur-xl border shadow-xl transition-all duration-300;
-    background-color: rgba(255, 255, 255, 0.6);
+    @apply border transition-colors duration-300;
+    background-color: var(--color-card);
     border-color: var(--color-border);
   }
 
-  .dark .glass-card {
-    background-color: rgba(17, 24, 39, 0.6);
-    border-color: rgba(255, 255, 255, 0.1);
+  .glass-card {
+    @apply border shadow-sm transition-all duration-300;
+    background-color: var(--color-card);
+    border-color: var(--color-border);
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-linear-to-r from-primary to-accent;
+    @apply bg-clip-text text-transparent bg-linear-to-r from-primary to-secondary;
+  }
+
+  /* Faint blueprint grid for hero/empty areas — the one piece of texture the
+     design allows itself. Color derives from the border token. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, var(--color-border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 75%);
+  }
+
+  /* Direction C signature — a broadcast-style scanline for the on-deck / live
+     match surface: a 1px accent gradient sweeping across the bottom edge. Pure
+     CSS, no JS; collapses to a static faint bar under reduced-motion. */
+  .live-scanline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .live-scanline::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 45%;
+    background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+    animation: live-scan 2.4s linear infinite;
+  }
+  @keyframes live-scan {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(320%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live-scanline::before {
+      animation: none;
+      width: 100%;
+      opacity: 0.4;
+    }
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 8px;
   }
 }
 
-/* Force overrides for hardcoded classes in existing components */
+/* ============================================================================
+ * Compatibility overrides — components not yet migrated to semantic tokens
+ * hardcode dark-glass (text-white, bg-white/5) or light (bg-white, slate-*)
+ * palettes. These force both onto the token system so every page respects the
+ * theme toggle. Remove each rule as the sweep retires the hardcoded classes.
+ * ==========================================================================*/
 .text-white {
   color: var(--color-foreground) !important;
+}
+
+/* Buttons/badges with a solid colored bg keep white text readable. */
+.bg-primary.text-white,
+.bg-secondary.text-white,
+[class*="bg-orange-6"].text-white,
+[class*="bg-blue-6"].text-white,
+[class*="bg-purple-6"].text-white,
+[class*="bg-green-6"].text-white,
+[class*="bg-yellow-5"].text-white,
+[class*="bg-red-6"].text-white {
+  color: var(--color-primary-foreground) !important;
 }
 
 .bg-background {
   background-color: var(--color-background) !important;
 }
 
+.text-gray-200,
+.text-gray-300 {
+  color: var(--color-foreground) !important;
+}
+
 .text-gray-400,
-.text-gray-500 {
+.text-gray-500,
+.text-slate-400,
+.text-slate-500 {
   color: var(--color-muted-foreground) !important;
 }
 
+.text-slate-900,
+.text-slate-800 {
+  color: var(--color-foreground) !important;
+}
+
 .border-white\/10,
-.border-white\/5 {
+.border-white\/5,
+.border-slate-200,
+.border-slate-100 {
   border-color: var(--color-border) !important;
 }
 
 .bg-white\/5,
-.bg-white\/10 {
+.bg-white\/10,
+.bg-black\/20,
+.bg-slate-50,
+.bg-slate-100 {
   background-color: var(--color-muted) !important;
+}
+
+/* Opaque white cards from the light-only components → themed card surface. */
+.bg-white {
+  background-color: var(--color-card) !important;
 }
 
 .md\:bg-white\/5 {
   @media (min-width: 768px) {
     background-color: var(--color-muted) !important;
   }
+}
+
+/* ============================================================================
+ * Print styles — used by MatchBriefingCard for the drive coach handout.
+ *
+ * Strategy: hide the entire app chrome (sidebar, online indicator, chat, etc.)
+ * and let the printable <article> take the page. The component uses
+ * `print:*` tailwind utilities for its own layout overrides.
+ * ============================================================================ */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    /* Hide app chrome */
+    aside, nav, header[role="banner"] {
+        display: none !important;
+    }
+    /* Anything explicitly marked with print:hidden stays gone */
+    /* (tailwind covers this; this comment is documentation) */
+
+    /* The main content area's left margin is reserved for the sidebar; reclaim it */
+    body > div, body main, body > div > div {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Page sizing */
+    @page {
+        size: letter;
+        margin: 0.5in;
+    }
 }

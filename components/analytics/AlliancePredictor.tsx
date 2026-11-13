@@ -1,55 +1,111 @@
-import { useState, useMemo } from "react";
-import { Search, Info, X, Zap, Trophy, TrendingUp, TrendingDown, Minus, Bot, User, Check, AlertTriangle, Sparkles } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Search, Info, X, Trophy, User, Sparkles, Network, Radio, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import clsx from "clsx";
 import { TeamEvolution } from "@/app/actions/analytics";
-import { MatchScouting } from "@/types/ftc";
+import { MatchScouting, FTCMatchScouting, FTCAllianceSelection, FTCMatch } from "@/types/scouting";
+import TournamentSimulator from "./TournamentSimulator";
+import LiveDraftBoard from "./LiveDraftBoard";
+import { useTranslations } from "next-intl";
+import { useProgram } from "@/lib/stores/program-store";
+import { seasonRulesFor, rpThresholdsFor } from "@/lib/games/season-rules";
+import { biobuzzAllianceRp } from "@/lib/rp-counts";
+import { classifyBiobuzzArchetype } from "@/lib/games/biobuzz-archetype";
 
 interface AlliancePredictorProps {
     teams: TeamEvolution[];
     scoutingData?: MatchScouting[];
     initialTeam?: TeamEvolution | null;
     onTeamSelect?: (team: TeamEvolution | null) => void;
+    /** Official selection (for one-click import in the live draft board). */
+    officialAlliances?: FTCAllianceSelection[];
+    /** Scopes the live-draft localStorage state per event. */
+    eventCode?: string;
+    /** Real playoff matches (API) for the tournament reality import. */
+    playoffMatches?: FTCMatch[];
 }
 
 interface ScoutedMetrics {
     driverSkill: number;
     reliability: number; // 0-1 based on observation count vs max
-    archetype: 'Miner' | 'Architect' | 'Balanced' | 'Unknown';
+    archetype: 'Miner' | 'Architect' | 'Tipper' | 'Gardener' | 'Florist' | 'Balanced' | 'Unknown';
     endgameSuccess: number; // 0-1
     notes: string[];
 }
 
-export default function AlliancePredictor({ teams, scoutingData = [], initialTeam, onTeamSelect }: AlliancePredictorProps) {
+const RP_COLORS = ["text-success", "text-primary", "text-secondary"];
+const RP_BADGES = ["text-success bg-success/10", "text-primary bg-primary/10", "text-secondary bg-secondary/10"];
+
+export default function AlliancePredictor({ teams, scoutingData = [], initialTeam, onTeamSelect, officialAlliances, eventCode, playoffMatches }: AlliancePredictorProps) {
+    const { season } = useProgram();
+    const tGames = useTranslations("Games");
+    const rules = seasonRulesFor(season);
+    const isBiobuzz = season >= 2026;
+    const LEGACY_RP_SHORT: Record<string, string> = { movement: "MOV", goal: "ART", pattern: "PAT" };
+    const rpShort = (id: string) => LEGACY_RP_SHORT[id] ?? tGames(`rp.${id}`);
     const [unavailableTeams, setUnavailableTeams] = useState<number[]>([]);
     const [unavailableInput, setUnavailableInput] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedTeam, setSelectedTeam] = useState<TeamEvolution | null>(null);
+    const [mode, setMode] = useState<"analysis" | "simulator" | "draft">("analysis");
+    // Partner-finder data scope. API stats (OPR/rankings) are ALWAYS
+    // qualification-only; this toggle additionally excludes human scouting
+    // entries so recommendations can be reproduced from pure API data
+    // (scouting keeps growing during/after playoffs and shifts rankings).
+    const [useScouting, setUseScouting] = useState(true);
 
-    // Sync with external selection (e.g. from the table)
-    useMemo(() => {
-        if (initialTeam) {
-            setSelectedTeam(initialTeam);
-            setSearchTerm(initialTeam.teamNumber.toString());
+    // Sync with external selection (e.g. from the table). This is the React
+    // "adjusting state when a prop changes" pattern: compare the prop against
+    // its previous value during render and push it into local state only on a
+    // change. `selectedTeam` stays locally mutable (search / clear) between
+    // changes of `initialTeam`. Replaces a setState-inside-useMemo, which the
+    // React Compiler flags as a set-state-in-render hazard.
+    // Normalize the optional prop (undefined) to null so the change-comparison
+    // below can't oscillate undefined↔null and loop.
+    const normalizedInitial = initialTeam ?? null;
+    const [prevInitialTeam, setPrevInitialTeam] = useState<TeamEvolution | null>(null);
+    if (normalizedInitial !== prevInitialTeam) {
+        setPrevInitialTeam(normalizedInitial);
+        if (normalizedInitial) {
+            setSelectedTeam(normalizedInitial);
+            setSearchTerm(normalizedInitial.teamNumber.toString());
         }
-    }, [initialTeam]);
+    }
 
-    // Helper to calculate scouting metrics
-    const calculateScoutingMetrics = (teamNumber: number): ScoutedMetrics => {
-        const teamMatches = scoutingData.filter(m => m.teamNumber === teamNumber);
+    // Helper to calculate scouting metrics. useCallback so its identity is
+    // stable across renders where scoutingData is unchanged — the two useMemos
+    // below depend on it, so an unstable identity would defeat their memoization.
+    const calculateScoutingMetrics = useCallback((teamNumber: number): ScoutedMetrics => {
+        const teamMatches = useScouting ? scoutingData.filter(m => m.teamNumber === teamNumber) : [];
         if (!teamMatches.length) return { driverSkill: 0, reliability: 0, archetype: 'Unknown', endgameSuccess: 0, notes: [] };
 
-        const avgSkill = teamMatches.reduce((acc, m) => acc + m.driverSkill, 0) / teamMatches.length;
+        // Simple predictive calculation
+        const avgSkill = teamMatches.reduce((acc, m) => acc + (m.driverSkill ?? 3), 0) / teamMatches.length;
 
-        // Archetype logic: Miner (Heavy Artifacts) vs Architect (Heavy Patterns)
-        const avgArtifacts = teamMatches.reduce((acc, m) => acc + m.teleopPurpleArtifacts + m.teleopGreenArtifacts, 0) / teamMatches.length;
-        const avgPatterns = teamMatches.reduce((acc, m) => acc + m.patternsCompleted, 0) / teamMatches.length;
+        if (isBiobuzz) {
+            return {
+                driverSkill: avgSkill,
+                reliability: Math.min(teamMatches.length / 3, 1),
+                archetype: classifyBiobuzzArchetype(teamMatches),
+                endgameSuccess: teamMatches.filter(m => {
+                    const e = m as unknown as Record<string, unknown>;
+                    return e.teleopPark === true || e.autoPark === true;
+                }).length / teamMatches.length,
+                notes: teamMatches.filter(m => m.notes).map(m => m.notes).slice(0, 3)
+            };
+        }
+
+        const avgArtifacts = teamMatches.reduce((acc, match) => {
+            const m = match as FTCMatchScouting;
+            return acc + (m.teleopPurpleArtifacts || 0) + (m.teleopGreenArtifacts || 0);
+        }, 0) / teamMatches.length;
+        const avgPatterns = teamMatches.reduce((acc, match) => acc + ((match as FTCMatchScouting).patternsCompleted || 0), 0) / teamMatches.length;
 
         let archetype: ScoutedMetrics['archetype'] = 'Balanced';
         if (avgArtifacts > avgPatterns * 2) archetype = 'Miner';
         else if (avgPatterns > avgArtifacts * 0.5 && avgPatterns > 0) archetype = 'Architect';
 
-        const endgameSuccess = teamMatches.filter(m => m.endgameBaseParking !== 'None').length / teamMatches.length;
+        const endgameSuccess = teamMatches.filter(match => (match as FTCMatchScouting).endgameBaseParking !== 'None').length / teamMatches.length;
 
         return {
             driverSkill: avgSkill,
@@ -58,12 +114,12 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
             endgameSuccess,
             notes: teamMatches.filter(m => m.notes).map(m => m.notes).slice(0, 3)
         };
-    };
+    }, [scoutingData, useScouting, isBiobuzz]);
 
     const targetStats = useMemo(() => {
         if (!selectedTeam) return null;
         return calculateScoutingMetrics(selectedTeam.teamNumber);
-    }, [selectedTeam, scoutingData]);
+    }, [selectedTeam, calculateScoutingMetrics]);
 
     const handleUnavailableAdd = () => {
         const teamNum = parseInt(unavailableInput);
@@ -98,14 +154,16 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
         return teams
             .filter(t => t.teamNumber !== selectedTeam.teamNumber && !unavailableTeams.includes(t.teamNumber))
             .map(partner => {
-                const scouted = [calculateScoutingMetrics(partner.teamNumber)]; // Use array for extensibility or if we want multiple sources
-                // But wait, calculateScoutingMetrics returns a single object.
                 const scoutedMetrics = calculateScoutingMetrics(partner.teamNumber);
 
                 let synergyScore = 0;
                 let synergyLabel = "Balanced";
+                // Human-readable justification, emitted by the SAME factors that
+                // build the score (deterministic — no LLM, works offline in venue).
+                const reasons: string[] = [];
                 const isRisky = (selectedTeam.netDiscipline || 0) + (partner.netDiscipline || 0) < -5;
                 const projectedScore = (selectedTeam.opr || 0) + (partner.opr || 0);
+                reasons.push(`Potencia: ${(selectedTeam.opr || 0).toFixed(0)} + ${(partner.opr || 0).toFixed(0)} = ${projectedScore.toFixed(0)} pts proyectados — el factor de mayor peso (70%).`);
 
                 // --- Improved Synergy Logic ---
 
@@ -124,6 +182,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 if (autoSynergy > 30) {
                     synergyScore += 10;
                     synergyLabel = "Auto Dominance";
+                    reasons.push(`Auto dominante: ${autoSynergy.toFixed(0)} pts combinados de autónomo (+10) — ventaja temprana en cada match.`);
                 }
 
                 // 3. Discipline Factor (The Risk) - UPDATED: Dynamic Penalty
@@ -136,25 +195,62 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
 
                     synergyScore -= dynamicPenalty;
                     synergyLabel = "High Foul Risk";
+                    reasons.push(`⚠ Riesgo de fouls: disciplina neta combinada ${((selectedTeam.netDiscipline || 0) + (partner.netDiscipline || 0)).toFixed(0)} (−${dynamicPenalty.toFixed(0)}) — juntos tienden a regalar penalizaciones.`);
                 } else if ((partner.netDiscipline || 0) > 5) {
                     synergyScore += 10;
                     synergyLabel = "Disciplined";
+                    reasons.push(`Disciplinado: disciplina neta +${(partner.netDiscipline || 0).toFixed(0)} (+10) — provoca más fouls de los que comete.`);
                 }
 
                 // 4. Archetype Complement (Still Valid)
-                if (targetStats?.archetype === 'Miner' && scoutedMetrics.archetype === 'Architect') {
+                if (isBiobuzz) {
+                    const mine = targetStats?.archetype;
+                    const theirs = scoutedMetrics.archetype;
+                    const neutral = (a?: string) => !a || a === 'Balanced' || a === 'Unknown';
+                    if (mine && !neutral(mine) && !neutral(theirs) && mine !== theirs) {
+                        synergyScore += 15;
+                        synergyLabel = "Perfect Match";
+                        reasons.push(`Arquetipos complementarios (scouting): tú ${mine} + su ${theirs} (+15) — no compiten por los mismos recursos de cancha.`);
+                    }
+                } else if (targetStats?.archetype === 'Miner' && scoutedMetrics.archetype === 'Architect') {
                     synergyScore += 15;
                     synergyLabel = "Perfect Match";
+                    reasons.push("Arquetipos complementarios (scouting): tú Miner + su Architect (+15) — no compiten por los mismos recursos de cancha.");
                 } else if (targetStats?.archetype === 'Architect' && scoutedMetrics.archetype === 'Miner') {
                     synergyScore += 15;
                     synergyLabel = "Perfect Match";
+                    reasons.push("Arquetipos complementarios (scouting): tú Architect + su Miner (+15) — no compiten por los mismos recursos de cancha.");
                 }
 
                 // 5. RP Complementarity (The Money)
+                const targetIds = rules.rpTargets.map(t => t.id);
+                const eff: Record<string, number> = {};
+                if (isBiobuzz) {
+                    for (const id of targetIds) eff[id] = partner.rp?.[id] ?? 0;
+                    if (selectedTeam.rpInputs && partner.rpInputs) {
+                        const pair = biobuzzAllianceRp(selectedTeam.rpInputs, partner.rpInputs, rpThresholdsFor(season));
+                        for (const id of targetIds) eff[id] = pair[id] ?? eff[id];
+                        const solo = selectedTeam.rp?.pollinator1 ?? 0;
+                        if ((pair.pollinator1 ?? 0) > 0.5) {
+                            synergyScore += 25;
+                            synergyLabel = "Pollinator Duo";
+                            reasons.push(`POLLINATOR alcanzable juntos: ${Math.round(pair.pollinator1 * 100)}% (+25).`);
+                            if (solo < 0.3) {
+                                synergyScore += 20;
+                                reasons.push(`Te trae el POLLINATOR que no ganas solo: tú ${Math.round(solo * 100)}% vs pareja ${Math.round(pair.pollinator1 * 100)}% (+20).`);
+                            }
+                        }
+                        if ((pair.swarm ?? 0) > 0.85) {
+                            synergyScore += 10;
+                            reasons.push(`SWARM casi asegurado: ${Math.round(pair.swarm * 100)}% (+10).`);
+                        }
+                    }
+                }
+                if (!isBiobuzz) {
                 // --- FIX: Inject estimated RPs if 0 but OPR is high ---
-                let effMov = partner.rpMovement || 0;
-                let effArt = partner.rpArtifacts || 0;
-                let effPat = partner.rpPattern || 0;
+                let effMov = partner.rp?.movement ?? partner.rpMovement ?? 0;
+                let effArt = partner.rp?.goal ?? partner.rpArtifacts ?? 0;
+                let effPat = partner.rp?.pattern ?? partner.rpPattern ?? 0;
 
                 // If no data (0) but high OPR, give benefit of doubt (0.7)
                 if (effMov === 0 && (partner.autoOPR || 0) > 25) effMov = 0.7;
@@ -162,30 +258,38 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 if (effPat === 0 && projectedScore > 120) effPat = 0.6; // High score usually means some pattern success
 
                 // If I am bad at Patterns (< 0.4) and partner is GOD at Patterns (> 0.8), huge boost
-                if ((selectedTeam.rpPattern || 0) < 0.4 && effPat > 0.8) {
+                if ((selectedTeam.rp?.pattern ?? selectedTeam.rpPattern ?? 0) < 0.4 && effPat > 0.8) {
                     synergyScore += 25;
                     synergyLabel = "Pattern Specialist";
+                    reasons.push(`Cubre tu debilidad en Pattern RP: tú ${Math.round((selectedTeam.rp?.pattern ?? selectedTeam.rpPattern ?? 0) * 100)}% vs su ${Math.round(effPat * 100)}% (+25) — el RP que no ganas solo, lo trae él.`);
                 }
                 // If I am bad at Artifacts (< 0.4) and partner is GOD at volume (> 0.8)
-                if ((selectedTeam.rpArtifacts || 0) < 0.4 && effArt > 0.8) {
+                if ((selectedTeam.rp?.goal ?? selectedTeam.rpArtifacts ?? 0) < 0.4 && effArt > 0.8) {
                     synergyScore += 20;
                     synergyLabel = "Volume Loader";
+                    reasons.push(`Cubre tu debilidad en Artifact RP: tú ${Math.round((selectedTeam.rp?.goal ?? selectedTeam.rpArtifacts ?? 0) * 100)}% vs su ${Math.round(effArt * 100)}% (+20) — volumen de ciclos que te falta.`);
                 }
                 // If both are decent at Movement/Auto (> 0.6), we lock that RP down
-                if ((selectedTeam.rpMovement || 0) > 0.6 && effMov > 0.6) {
+                if ((selectedTeam.rp?.movement ?? selectedTeam.rpMovement ?? 0) > 0.6 && effMov > 0.6) {
                     synergyScore += 10;
                     // Dont override "Perfect Match" unless it was default
                     if (synergyLabel === "Balanced") synergyLabel = "Auto RP Lock";
+                    reasons.push(`Movement RP casi asegurado: ambos >60% (tú ${Math.round((selectedTeam.rp?.movement ?? selectedTeam.rpMovement ?? 0) * 100)}%, él ${Math.round(effMov * 100)}%) (+10).`);
+                }
+                    eff.movement = effMov; eff.goal = effArt; eff.pattern = effPat;
+                }
+                if (scoutedMetrics.driverSkill >= 4) {
+                    reasons.push(`Scouting: driver ${scoutedMetrics.driverSkill.toFixed(1)}/5 — pilotaje de élite confirmado en cancha.`);
                 }
 
                 // Weighted Final Score
                 // OPR (Performance) 70% (increased from 50%), Scouting/RP 20%, Synergy 10%
                 // Raw power matters more in high scoring games.
                 const oprFactor = (projectedScore / 100) * 100 * 0.7;
-                const rpFactor = (effPat + effArt + effMov) * 33 * 0.15; // Mean RP prob using EFFECTIVE values
+                const rpFactor = targetIds.reduce((acc, id) => acc + (eff[id] || 0), 0) * 33 * 0.15; // Mean RP prob using EFFECTIVE values
                 const scoutingFactor = (scoutedMetrics.driverSkill * 20 * 0.15) + rpFactor;
 
-                let finalScore = oprFactor + scoutingFactor + synergyScore;
+                const finalScore = oprFactor + scoutingFactor + synergyScore;
 
                 return {
                     partner,
@@ -195,34 +299,20 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                     projectedScore,
                     isRisky,
                     autoSynergy,
-                    effectiveRP: {
-                        movement: effMov,
-                        artifacts: effArt,
-                        pattern: effPat
-                    }
+                    reasons,
+                    effectiveRP: eff
                 };
             })
             .sort((a, b) => b.combinedScore - a.combinedScore);
-    }, [teams, selectedTeam, unavailableTeams, targetStats, scoutingData]);
+    }, [teams, selectedTeam, unavailableTeams, targetStats, calculateScoutingMetrics, isBiobuzz, rules, season]);
 
     const topRecommendations = (allScoredTeams || []).slice(0, 6);
     const otherTeams = (allScoredTeams || []).slice(6);
 
-    const triggerAI = (partner: TeamEvolution) => {
-        if (!selectedTeam) return;
-        const partnerStats = calculateScoutingMetrics(partner.teamNumber);
-
-        // ... existing AI prompt code ...
-        const prompt = `Analyze alliance: Team ${selectedTeam.teamNumber} & Team ${partner.teamNumber}.
-        TARGET: OPR ${(selectedTeam.opr || 0).toFixed(1)}, Auto ${(selectedTeam.autoOPR || 0).toFixed(1)}, Disc ${(selectedTeam.netDiscipline || 0).toFixed(1)}.
-        RP PROBS: Mov ${(selectedTeam.rpMovement || 0).toFixed(2)}, Art ${(selectedTeam.rpArtifacts || 0).toFixed(2)}, Pat ${(selectedTeam.rpPattern || 0).toFixed(2)}.
-        PARTNER: OPR ${(partner.opr || 0).toFixed(1)}, Auto ${(partner.autoOPR || 0).toFixed(1)}, Disc ${(partner.netDiscipline || 0).toFixed(1)}.
-        RP PROBS: Mov ${(partner.rpMovement || 0).toFixed(2)}, Art ${(partner.rpArtifacts || 0).toFixed(2)}, Pat ${(partner.rpPattern || 0).toFixed(2)}.
-        Context: Combined OPR ${(selectedTeam.opr || 0) + (partner.opr || 0)}. Match compatibility?`;
-
-        const event = new CustomEvent('open-ai-chat', { detail: { message: prompt } });
-        window.dispatchEvent(event);
-    };
+    // NOTE: the old "AI Analysis" button (LLM narrating the pair's numbers) was
+    // removed — the deterministic "¿Por qué este partner?" explanation replaced
+    // it. The LLM's job is now synthesizing unstructured scouting notes (see
+    // AssistantChat), not re-telling scores.
 
     const clearSelection = () => {
         setSelectedTeam(null);
@@ -232,288 +322,383 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
     };
 
     return (
-        <Card className="p-8 bg-white border border-slate-200 shadow-sm relative overflow-visible rounded-3xl">
+        <Card className="p-8 bg-card border border-border shadow-sm relative overflow-visible rounded-3xl">
             <div className="relative z-10">
-                <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4 border-b border-slate-100 pb-8">
+                <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4 border-b border-border pb-8">
                     <div>
-                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                            <Sparkles className="text-blue-600 w-6 h-6" />
+                        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                            <Sparkles className="text-secondary w-6 h-6" />
                             Alliance Oracle
                         </h2>
-                        <p className="text-slate-500 mt-2 text-sm max-w-xl leading-relaxed">
+                        <p className="text-muted-foreground mt-2 text-sm max-w-xl leading-relaxed">
                             Select a target team to identify statistically optimal partners.
-                            Now integrated with <span className="text-purple-600 font-bold">OPR Analytics</span> for precise scoring predictions.
+                            Now integrated with <span className="text-primary font-bold">OPR Analytics</span> for precise scoring predictions.
                         </p>
+                        <div className="flex items-center gap-3 mt-3 flex-wrap">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-md bg-secondary/10 text-secondary border border-secondary/20">
+                                API: solo Qualification
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setUseScouting(v => !v)}
+                                className={clsx(
+                                    "font-mono text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-md border transition-colors",
+                                    useScouting
+                                        ? "bg-primary/10 text-primary border-primary/20"
+                                        : "bg-muted text-muted-foreground border-border line-through"
+                                )}
+                                title="El scouting humano puede incluir observaciones hechas durante playoffs; apágalo para recomendaciones 100% reproducibles desde datos API de quals."
+                            >
+                                Scouting: {useScouting ? "ON" : "OFF"} ({scoutingData.length})
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex bg-muted p-1 rounded-xl">
+                        <button
+                            onClick={() => setMode("analysis")}
+                            className={clsx(
+                                "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
+                                mode === "analysis" ? "bg-card text-secondary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <User size={16} /> Partner Finder
+                        </button>
+                        <button
+                            onClick={() => setMode("simulator")}
+                            className={clsx(
+                                "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
+                                mode === "simulator" ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <Network size={16} /> Tournament
+                        </button>
+                        <button
+                            onClick={() => setMode("draft")}
+                            className={clsx(
+                                "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
+                                mode === "draft" ? "bg-card text-warning shadow-sm" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <Radio size={16} /> Draft en vivo
+                        </button>
                     </div>
                 </div>
 
-                {/* Selection Area (Same as before) */}
-                <div className="mb-8 p-6 bg-slate-50/50 border border-slate-100 rounded-2xl">
-                    <div className="flex flex-col lg:flex-row items-center gap-6">
-                        {/* Team Selector / Search */}
-                        <div className="w-full lg:w-1/3">
-                            {!selectedTeam ? (
-                                <div className="relative group w-full">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-blue-600 transition-colors" />
-                                    <input
-                                        type="text"
-                                        placeholder="Select Target Team..."
-                                        className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900 placeholder:text-slate-400 font-bold transition-all shadow-sm"
-                                        value={searchTerm}
-                                        onChange={(e) => handleSearch(e.target.value)}
-                                    />
-                                    {searchTerm && filteredTeams.length > 0 && (
-                                        <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-[250px] overflow-y-auto">
-                                            {filteredTeams.map(t => (
-                                                <button key={t.teamNumber} onClick={() => handleSelectTeam(t)} className="w-full p-3 text-left hover:bg-slate-50 flex justify-between items-center border-b border-slate-100 last:border-0 transition-all">
-                                                    <span className="font-bold text-slate-900">{t.teamNumber} <span className="text-slate-400 font-normal ml-2">{t.teamName}</span></span>
-                                                    <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded">SELECT</span>
-                                                </button>
-                                            ))}
+                {mode === "draft" ? (
+                    <LiveDraftBoard
+                        teams={teams}
+                        official={officialAlliances}
+                        storageKey={`live-draft:${eventCode ?? "default"}`}
+                    />
+                ) : mode === "simulator" ? (
+                    <TournamentSimulator teams={teams} official={officialAlliances} playoffMatches={playoffMatches} />
+                ) : (
+                    <>
+                        {/* Selection Area (Same as before) */}
+                        <div className="mb-8 p-6 bg-muted/50 border border-border rounded-2xl">
+
+                            <div className="flex flex-col lg:flex-row items-center gap-6">
+                                {/* Team Selector / Search */}
+                                <div className="w-full lg:w-1/3">
+                                    {!selectedTeam ? (
+                                        <div className="relative group w-full">
+                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5 group-focus-within:text-secondary transition-colors" />
+                                            <input
+                                                type="text"
+                                                placeholder="Select Target Team..."
+                                                className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary text-foreground placeholder:text-muted-foreground font-bold transition-all shadow-sm"
+                                                value={searchTerm}
+                                                onChange={(e) => handleSearch(e.target.value)}
+                                            />
+                                            {searchTerm && filteredTeams.length > 0 && (
+                                                <div className="absolute top-full left-0 w-full mt-2 bg-card border border-border rounded-xl shadow-sm z-50 max-h-[250px] overflow-y-auto">
+                                                    {filteredTeams.map(t => (
+                                                        <button key={t.teamNumber} onClick={() => handleSelectTeam(t)} className="w-full p-3 text-left hover:bg-muted flex justify-between items-center border-b border-border last:border-0 transition-all">
+                                                            <span className="font-bold text-foreground">{t.teamNumber} <span className="text-muted-foreground font-normal ml-2">{t.teamName}</span></span>
+                                                            <span className="text-[10px] font-black text-secondary bg-secondary/10 px-2 py-1 rounded">SELECT</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-4 bg-card p-3 rounded-xl border border-primary/20 shadow-sm w-full">
+                                            <div className="bg-primary text-primary-foreground w-12 h-12 rounded-lg flex flex-col items-center justify-center shadow-sm">
+                                                <span className="text-[7px] font-black uppercase tracking-tighter text-primary-foreground/90">Rank</span>
+                                                <span className="text-xl font-black leading-none text-primary-foreground">{selectedTeam.events[0]?.rank || "-"}</span>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-xl font-black text-foreground">{selectedTeam.teamNumber}</div>
+                                                <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">{selectedTeam.teamName}</div>
+                                            </div>
+                                            <button onClick={clearSelection} className="p-2 text-muted-foreground hover:text-danger transition-colors"><X size={18} /></button>
                                         </div>
                                     )}
                                 </div>
-                            ) : (
-                                <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-orange-100 shadow-sm w-full">
-                                    <div className="bg-orange-600 text-white w-12 h-12 rounded-lg flex flex-col items-center justify-center shadow-lg shadow-orange-200">
-                                        <span className="text-[7px] font-black uppercase tracking-tighter text-white/90">Rank</span>
-                                        <span className="text-xl font-black leading-none text-white">{selectedTeam.events[0]?.rank || "-"}</span>
+
+                                {/* Quick Metrics Bar (Updated) */}
+                                {selectedTeam && (
+                                    <div className="flex-1 flex flex-wrap items-center gap-4 w-full">
+                                        <div className="flex-1 min-w-[100px] bg-card p-3 rounded-xl border border-border relative group/tooltip">
+                                            <div className="text-[8px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
+                                                OPR (Est) <Info size={10} className="text-muted-foreground" />
+                                            </div>
+                                            <div className="text-lg font-black text-secondary">{(selectedTeam.opr || 0).toFixed(1)}</div>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-sm">
+                                                Estimación de contribución total de puntos por match (Auto + Tele + Endgame).
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 min-w-[100px] bg-card p-3 rounded-xl border border-border">
+                                            <div className="text-[8px] font-bold text-muted-foreground uppercase mb-1">Auto OPR</div>
+                                            <div className="text-lg font-black text-foreground">{(selectedTeam.autoOPR || 0).toFixed(1)}</div>
+                                        </div>
+                                        <div className="flex-1 min-w-[100px] bg-card p-3 rounded-xl border border-border">
+                                            <div className="text-[8px] font-bold text-muted-foreground uppercase mb-1">Tele OPR</div>
+                                            <div className="text-lg font-black text-foreground">{(selectedTeam.teleOPR || 0).toFixed(1)}</div>
+                                        </div>
+                                        <div className="flex-1 min-w-[100px] bg-card p-3 rounded-xl border border-border relative group/tooltip">
+                                            <div className="text-[8px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
+                                                End OPR <Info size={10} className="text-muted-foreground" />
+                                            </div>
+                                            <div className="text-lg font-black text-foreground">{(selectedTeam.endgameOPR || 0).toFixed(1)}</div>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-sm">
+                                                Puntos promedio generados SOLO en Endgame (Ascenso + Parking). Diferente a &quot;Disciplne&quot;.
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 min-w-[100px] bg-card p-3 rounded-xl border border-border relative group/tooltip">
+                                            <div className="text-[8px] font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1">
+                                                Discipline <Info size={10} className="text-muted-foreground" />
+                                            </div>
+                                            <div className={clsx("text-lg font-black", (selectedTeam.netDiscipline || 0) >= 0 ? "text-success" : "text-danger")}>
+                                                {(selectedTeam.netDiscipline || 0) > 0 ? "+" : ""}{(selectedTeam.netDiscipline || 0).toFixed(1)}
+                                            </div>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-sm">
+                                                Impacto neto de penalizaciones (Fouls cometidos vs provocados).
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2 bg-card p-2 rounded-xl border border-border flex-1 md:flex-none min-w-[140px]">
+                                            <input
+                                                type="number"
+                                                placeholder="Exclude #"
+                                                className="w-full md:w-20 px-2 py-1 text-xs font-bold bg-muted rounded focus:outline-none"
+                                                value={unavailableInput}
+                                                onChange={(e) => setUnavailableInput(e.target.value)}
+                                                onKeyDown={(e) => e.key === 'Enter' && handleUnavailableAdd()}
+                                            />
+                                            <button onClick={handleUnavailableAdd} className="px-2 py-1 bg-muted hover:bg-danger/10 hover:text-danger rounded text-[8px] font-black uppercase transition-all">Block</button>
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="text-xl font-black text-slate-900">{selectedTeam.teamNumber}</div>
-                                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{selectedTeam.teamName}</div>
-                                    </div>
-                                    <button onClick={clearSelection} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><X size={18} /></button>
+                                )}
+                            </div>
+                            {/* Excluded Pills */}
+                            {unavailableTeams.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border/50">
+                                    {unavailableTeams.map(t => (
+                                        <button key={t} onClick={() => setUnavailableTeams(unavailableTeams.filter(u => u !== t))} className="group flex items-center gap-1.5 px-2 py-1 bg-danger/10 hover:bg-danger/20 border border-danger/20 rounded-lg text-[10px] font-bold text-danger transition-all">
+                                            <X size={10} className="group-hover:scale-110" /> {t}
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
 
-                        {/* Quick Metrics Bar (Updated) */}
-                        {selectedTeam && (
-                            <div className="flex-1 flex flex-wrap items-center gap-4 w-full">
-                                <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100">
-                                    <div className="text-[8px] font-bold text-slate-400 uppercase mb-1">OPR (Est)</div>
-                                    <div className="text-lg font-black text-blue-600">{(selectedTeam.opr || 0).toFixed(1)}</div>
-                                </div>
-                                <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100">
-                                    <div className="text-[8px] font-bold text-slate-400 uppercase mb-1">Auto OPR</div>
-                                    <div className="text-lg font-black text-slate-900">{(selectedTeam.autoOPR || 0).toFixed(1)}</div>
-                                </div>
-                                <div className="flex-1 min-w-[100px] bg-white p-3 rounded-xl border border-slate-100">
-                                    <div className="text-[8px] font-bold text-slate-400 uppercase mb-1">Discipline</div>
-                                    <div className={clsx("text-lg font-black", (selectedTeam.netDiscipline || 0) >= 0 ? "text-green-500" : "text-red-500")}>
-                                        {(selectedTeam.netDiscipline || 0) > 0 ? "+" : ""}{(selectedTeam.netDiscipline || 0).toFixed(1)}
-                                    </div>
-                                </div>
+                        {/* Recommendations Grid */}
+                        <div className="space-y-6">
+                            {selectedTeam && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                        {topRecommendations.map((rec, idx) => {
+                                            const lastEvent = rec.partner.events[rec.partner.events.length - 1];
+                                            return (
+                                                <div
+                                                    key={rec.partner.teamNumber}
+                                                    className="bg-card border border-border hover:border-secondary hover:shadow-md rounded-2xl p-4 transition-all group relative flex flex-col justify-between min-h-[260px]"
+                                                >
+                                                    <div className="absolute top-4 right-4 text-5xl font-black text-muted pointer-events-none transition-colors">
+                                                        #{idx + 1}
+                                                    </div>
 
-                                <div className="flex gap-2 bg-white p-2 rounded-xl border border-slate-100">
-                                    <input
-                                        type="number"
-                                        placeholder="Exclude #"
-                                        className="w-20 px-2 py-1 text-xs font-bold bg-slate-50 rounded focus:outline-none"
-                                        value={unavailableInput}
-                                        onChange={(e) => setUnavailableInput(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleUnavailableAdd()}
-                                    />
-                                    <button onClick={handleUnavailableAdd} className="px-2 py-1 bg-slate-100 hover:bg-red-50 hover:text-red-600 rounded text-[8px] font-black uppercase transition-all">Block</button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    {/* Excluded Pills */}
-                    {unavailableTeams.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100/50">
-                            {unavailableTeams.map(t => (
-                                <button key={t} onClick={() => setUnavailableTeams(unavailableTeams.filter(u => u !== t))} className="group flex items-center gap-1.5 px-2 py-1 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-[10px] font-bold text-red-500 transition-all">
-                                    <X size={10} className="group-hover:scale-110" /> {t}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Recommendations Grid */}
-                <div className="space-y-6">
-                    {selectedTeam && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                {topRecommendations.map((rec, idx) => {
-                                    const lastEvent = rec.partner.events[rec.partner.events.length - 1];
-                                    return (
-                                        <div
-                                            key={rec.partner.teamNumber}
-                                            className="bg-white border border-slate-200 hover:border-blue-400 hover:shadow-md rounded-2xl p-4 transition-all group relative flex flex-col justify-between min-h-[260px]"
-                                        >
-                                            <div className="absolute top-4 right-4 text-5xl font-black text-slate-100 pointer-events-none transition-colors">
-                                                #{idx + 1}
-                                            </div>
-
-                                            {/* Explicit Rank Badge (Top Left Corner Option) */}
-                                            {/* <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-sm shadow-lg shadow-blue-200 z-20">
+                                                    {/* Explicit Rank Badge (Top Left Corner Option) */}
+                                                    {/* <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center font-black text-sm shadow-sm z-20">
                                                 {idx + 1}
                                             </div> */}
 
-                                            <div>
-                                                <div className="flex justify-between items-start mb-2 relative z-10">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="bg-secondary text-white w-10 h-10 rounded-lg flex flex-col items-center justify-center shadow-md shadow-orange-100 group-hover:bg-orange-500 transition-colors">
-                                                            <span className="text-[6px] font-black uppercase tracking-tighter text-white/90">Rank</span>
-                                                            <span className="text-sm font-black leading-none text-white">{lastEvent?.rank || "-"}</span>
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors leading-none mb-1">
-                                                                {rec.partner.teamNumber}
-                                                            </div>
-                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-tight">
-                                                                {rec.partner.teamName}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Stats Badges */}
-                                                <div className="flex flex-wrap gap-1.5 mt-2 relative z-10">
-                                                    <span className={clsx(
-                                                        "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wide border",
-                                                        rec.isRisky ? "bg-red-50 text-red-600 border-red-100" :
-                                                            rec.synergy === "Auto Dominance" ? "bg-purple-50 text-purple-600 border-purple-100" :
-                                                                "bg-blue-50 text-blue-600 border-blue-100"
-                                                    )}>
-                                                        {rec.synergy}
-                                                    </span>
-                                                    {rec.scouted.driverSkill >= 4 && (
-                                                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wide bg-amber-50 text-amber-600 border border-amber-100 flex items-center gap-1">
-                                                            <Trophy size={10} /> Top Driver
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* NEW: OPR Breakdown */}
-                                                <div className="grid grid-cols-4 gap-1 mt-5 p-2 bg-slate-50/50 rounded-xl border border-slate-100 relative z-10 overflow-hidden">
-                                                    <div className="col-span-4 text-center pb-2 border-b border-slate-200 mb-2">
-                                                        <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Projected Alliance Score</div>
-                                                        <div className="text-2xl font-black text-blue-600 font-mono">{rec.projectedScore.toFixed(0)}</div>
-                                                    </div>
-
-                                                    <div className="text-center px-1">
-                                                        <div className="text-[7px] font-bold text-slate-400 uppercase leading-tight">OPR</div>
-                                                        <div className="text-xs font-black text-slate-900">{(rec.partner.opr || 0).toFixed(0)}</div>
-                                                    </div>
-                                                    <div className="text-center px-1 border-l border-slate-200">
-                                                        <div className="text-[7px] font-bold text-slate-400 uppercase leading-tight">Auto</div>
-                                                        <div className="text-xs font-black text-slate-900">{(rec.partner.autoOPR || 0).toFixed(0)}</div>
-                                                    </div>
-                                                    <div className="text-center px-1 border-l border-slate-200">
-                                                        <div className="text-[7px] font-bold text-slate-400 uppercase leading-tight">Tele</div>
-                                                        <div className="text-xs font-black text-slate-900">{(rec.partner.teleOPR || 0).toFixed(0)}</div>
-                                                    </div>
-                                                    <div className="text-center px-1 border-l border-slate-200">
-                                                        <div className="text-[7px] font-bold text-slate-400 uppercase leading-tight">Disc</div>
-                                                        <div className={clsx("text-xs font-black", (rec.partner.netDiscipline || 0) < 0 ? "text-red-500" : "text-green-500")}>{(rec.partner.netDiscipline || 0).toFixed(0)}</div>
-                                                    </div>
-                                                </div>
-
-                                                {/* RP Probability Breakdown (FIXED: Use effective RPs) */}
-                                                <div className="mt-3 flex gap-2">
-                                                    <div className="flex-1 bg-slate-50 border border-slate-100 rounded-lg p-2 text-center">
-                                                        <div className="text-[6px] font-bold text-slate-400 uppercase tracking-wider mb-1">MOV RP</div>
-                                                        <div className={clsx("text-xs font-black", (rec.effectiveRP.movement || 0) > 0.7 ? "text-green-600" : "text-slate-700")}>
-                                                            {Math.round((rec.effectiveRP.movement || 0) * 100)}%
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex-1 bg-slate-50 border border-slate-100 rounded-lg p-2 text-center">
-                                                        <div className="text-[6px] font-bold text-slate-400 uppercase tracking-wider mb-1">ART RP</div>
-                                                        <div className={clsx("text-xs font-black", (rec.effectiveRP.artifacts || 0) > 0.7 ? "text-purple-600" : "text-slate-700")}>
-                                                            {Math.round((rec.effectiveRP.artifacts || 0) * 100)}%
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex-1 bg-slate-50 border border-slate-100 rounded-lg p-2 text-center">
-                                                        <div className="text-[6px] font-bold text-slate-400 uppercase tracking-wider mb-1">PAT RP</div>
-                                                        <div className={clsx("text-xs font-black", (rec.effectiveRP.pattern || 0) > 0.7 ? "text-blue-600" : "text-slate-700")}>
-                                                            {Math.round((rec.effectiveRP.pattern || 0) * 100)}%
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-slate-50 relative z-10">
-                                                <button
-                                                    onClick={() => setUnavailableTeams([...unavailableTeams, rec.partner.teamNumber])}
-                                                    className="py-2.5 bg-slate-50 border border-slate-100 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl text-xs font-bold uppercase transition-all"
-                                                >
-                                                    Exclude
-                                                </button>
-                                                <button
-                                                    onClick={() => triggerAI(rec.partner)}
-                                                    className="py-2.5 bg-blue-600 hover:bg-blue-700 text-white border border-transparent rounded-xl text-xs font-bold uppercase transition-all shadow-md shadow-blue-200 flex items-center justify-center gap-2 active:scale-95"
-                                                >
-                                                    <Bot size={16} /> AI Analysis
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Remaining Teams List (Simplified) */}
-                            {otherTeams.length > 0 && (
-                                <div className="mt-12 bg-slate-50/50 rounded-3xl border border-slate-100 p-8">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                            <Search size={20} className="text-slate-400" />
-                                            Remaining Pool
-                                        </h3>
-                                        <span className="text-xs font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
-                                            {otherTeams.length} Teams Available
-                                        </span>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {otherTeams.map(rec => {
-                                            const lastEvent = rec.partner.events[rec.partner.events.length - 1]; // Get rank for list items
-                                            return (
-                                                <button
-                                                    key={rec.partner.teamNumber}
-                                                    onClick={() => triggerAI(rec.partner)} // Or open detail
-                                                    className="w-full bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between hover:border-blue-200 hover:shadow-sm transition-all group text-left"
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-16 flex items-center gap-2">
-                                                            {/* Rank Badge in List */}
-                                                            <div className="bg-slate-100 text-slate-600 w-6 h-6 rounded flex items-center justify-center text-[10px] font-black group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                                                                {lastEvent?.rank || "-"}
-                                                            </div>
-                                                            <div className="font-black text-slate-900 text-lg group-hover:text-blue-600 transition-colors">
-                                                                {rec.partner.teamNumber}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <div className="text-xs font-bold text-slate-700 uppercase mb-0.5">{rec.partner.teamName}</div>
-                                                            <div className="flex gap-4 text-[10px] font-mono text-slate-400">
-                                                                <span>OPR: <b className="text-slate-600">{(rec.partner.opr || 0).toFixed(0)}</b></span>
-                                                                <span className={(rec.partner.netDiscipline || 0) < 0 ? "text-red-500 font-bold" : "text-green-500 font-bold"}>
-                                                                    {(rec.partner.netDiscipline || 0) > 0 ? "+" : ""}{(rec.partner.netDiscipline || 0).toFixed(0)} Disc
-                                                                </span>
-                                                                {/* Mini RP Indicators for List */}
-                                                                <div className="flex gap-1 ml-2">
-                                                                    {(rec.effectiveRP.movement || 0) > 0.6 && <span className="text-[9px] font-black text-green-600 bg-green-50 px-1 rounded">MOV</span>}
-                                                                    {(rec.effectiveRP.artifacts || 0) > 0.6 && <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-1 rounded">ART</span>}
-                                                                    {(rec.effectiveRP.pattern || 0) > 0.6 && <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-1 rounded">PAT</span>}
+                                                    <div>
+                                                        <div className="flex justify-between items-start mb-2 relative z-10">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="bg-secondary text-secondary-foreground w-10 h-10 rounded-lg flex flex-col items-center justify-center shadow-sm group-hover:bg-primary transition-colors">
+                                                                    <span className="text-[6px] font-black uppercase tracking-tighter text-secondary-foreground/90">Rank</span>
+                                                                    <span className="text-sm font-black leading-none text-secondary-foreground">{lastEvent?.rank || "-"}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-xl font-black text-foreground group-hover:text-secondary transition-colors leading-none mb-1">
+                                                                        {rec.partner.teamNumber}
+                                                                    </div>
+                                                                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight leading-tight">
+                                                                        {rec.partner.teamName}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
+
+                                                        {/* Stats Badges */}
+                                                        <div className="flex flex-wrap gap-1.5 mt-2 relative z-10">
+                                                            <span className={clsx(
+                                                                "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wide border",
+                                                                rec.isRisky ? "bg-danger/10 text-danger border-danger/20" :
+                                                                    rec.synergy === "Auto Dominance" ? "bg-primary/10 text-primary border-primary/20" :
+                                                                        "bg-secondary/10 text-secondary border-secondary/20"
+                                                            )}>
+                                                                {rec.synergy}
+                                                            </span>
+                                                            {rec.scouted.driverSkill >= 4 && (
+                                                                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wide bg-warning/10 text-warning border border-warning/20 flex items-center gap-1">
+                                                                    <Trophy size={10} /> Top Driver
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* NEW: OPR Breakdown */}
+                                                        <div className="grid grid-cols-5 gap-1 mt-5 p-2 bg-muted/50 rounded-xl border border-border relative z-10 overflow-hidden">
+                                                            <div className="col-span-5 text-center pb-2 border-b border-border mb-2">
+                                                                <div className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Projected Alliance Score</div>
+                                                                <div className="text-2xl font-black text-secondary font-mono">{rec.projectedScore.toFixed(0)}</div>
+                                                            </div>
+
+                                                            <div className="text-center px-1">
+                                                                <div className="text-[7px] font-bold text-muted-foreground uppercase leading-tight">OPR</div>
+                                                                <div className="text-xs font-black text-foreground">{(rec.partner.opr || 0).toFixed(0)}</div>
+                                                            </div>
+                                                            <div className="text-center px-1 border-l border-border">
+                                                                <div className="text-[7px] font-bold text-muted-foreground uppercase leading-tight">Auto</div>
+                                                                <div className="text-xs font-black text-foreground">{(rec.partner.autoOPR || 0).toFixed(0)}</div>
+                                                            </div>
+                                                            <div className="text-center px-1 border-l border-border">
+                                                                <div className="text-[7px] font-bold text-muted-foreground uppercase leading-tight">Tele</div>
+                                                                <div className="text-xs font-black text-foreground">{(rec.partner.teleOPR || 0).toFixed(0)}</div>
+                                                            </div>
+                                                            <div className="text-center px-1 border-l border-border relative group/tooltip">
+                                                                <div className="text-[7px] font-bold text-muted-foreground uppercase leading-tight flex justify-center items-center gap-0.5 whitespace-nowrap">
+                                                                    End <Info size={6} className="text-muted-foreground" />
+                                                                </div>
+                                                                <div className="text-xs font-black text-foreground">{(rec.partner.endgameOPR || 0).toFixed(0)}</div>
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-32 bg-slate-800 text-white text-[8px] p-1.5 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-sm font-normal leading-tight">
+                                                                    Endgame Only (Ascenso/Park)
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-center px-1 border-l border-border relative group/tooltip">
+                                                                <div className="text-[7px] font-bold text-muted-foreground uppercase leading-tight flex justify-center items-center gap-0.5 whitespace-nowrap">
+                                                                    Disc <Info size={6} className="text-muted-foreground" />
+                                                                </div>
+                                                                <div className={clsx("text-xs font-black", (rec.partner.netDiscipline || 0) < 0 ? "text-danger" : "text-success")}>{(rec.partner.netDiscipline || 0).toFixed(0)}</div>
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-32 bg-slate-800 text-white text-[8px] p-1.5 rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50 shadow-sm font-normal leading-tight">
+                                                                    Promedio de Foul Pts (+/-)
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* RP Probability Breakdown (FIXED: Use effective RPs) */}
+                                                        <div className="mt-3 flex gap-2">
+                                                            {rules.rpTargets.map((t, ti) => (
+                                                                <div key={t.id} className="flex-1 bg-muted border border-border rounded-lg p-2 text-center">
+                                                                    <div className="text-[6px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{rpShort(t.id)}</div>
+                                                                    <div className={clsx("text-xs font-black", (rec.effectiveRP[t.id] || 0) > 0.7 ? RP_COLORS[ti % RP_COLORS.length] : "text-foreground")}>
+                                                                        {Math.round((rec.effectiveRP[t.id] || 0) * 100)}%
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Why this suggestion — reasons emitted by the scoring factors
+                                                            themselves (deterministic, offline-safe; no LLM). Native
+                                                            <details> avoids per-card state. */}
+                                                        <details className="mt-3 relative z-10 group/why">
+                                                            <summary className="cursor-pointer list-none flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors select-none">
+                                                                ¿Por qué este partner?
+                                                                <ChevronDown size={13} className="transition-transform group-open/why:rotate-180" />
+                                                            </summary>
+                                                            <ul className="mt-2 space-y-1.5 text-[11px] text-muted-foreground leading-relaxed border-t border-border pt-2">
+                                                                {rec.reasons.map((r, i) => (
+                                                                    <li key={i} className="flex gap-1.5">
+                                                                        <span className="text-secondary shrink-0 mt-0.5">▸</span>
+                                                                        <span>{r}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </details>
                                                     </div>
-                                                    <div className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        Analyze
+
+                                                    <div className="mt-5 pt-4 border-t border-border relative z-10">
+                                                        <button
+                                                            onClick={() => setUnavailableTeams([...unavailableTeams, rec.partner.teamNumber])}
+                                                            className="w-full py-2.5 bg-muted border border-border text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-xl text-xs font-bold uppercase transition-all"
+                                                        >
+                                                            Exclude
+                                                        </button>
                                                     </div>
-                                                </button>
-                                            )
+                                                </div>
+                                            );
                                         })}
                                     </div>
+
+                                    {/* Remaining Teams List (Simplified) */}
+                                    {otherTeams.length > 0 && (
+                                        <div className="mt-12 bg-muted/50 rounded-3xl border border-border p-8">
+                                            <div className="flex items-center justify-between mb-6">
+                                                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                                    <Search size={20} className="text-muted-foreground" />
+                                                    Remaining Pool
+                                                </h3>
+                                                <span className="text-xs font-bold text-muted-foreground bg-card px-3 py-1 rounded-full border border-border shadow-sm">
+                                                    {otherTeams.length} Teams Available
+                                                </span>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {otherTeams.map(rec => {
+                                                    const lastEvent = rec.partner.events[rec.partner.events.length - 1]; // Get rank for list items
+                                                    return (
+                                                        <div
+                                                            key={rec.partner.teamNumber}
+                                                            className="w-full bg-card border border-border rounded-xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 hover:border-secondary/30 hover:shadow-sm transition-all group text-left"
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-16 flex items-center gap-2">
+                                                                    {/* Rank Badge in List */}
+                                                                    <div className="bg-muted text-muted-foreground w-6 h-6 rounded flex items-center justify-center text-[10px] font-black group-hover:bg-secondary/10 group-hover:text-secondary transition-colors">
+                                                                        {lastEvent?.rank || "-"}
+                                                                    </div>
+                                                                    <div className="font-black text-foreground text-lg group-hover:text-secondary transition-colors">
+                                                                        {rec.partner.teamNumber}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <div className="text-xs font-bold text-foreground uppercase mb-0.5">{rec.partner.teamName}</div>
+                                                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-mono text-muted-foreground">
+                                                                        <span>OPR: <b className="text-foreground">{(rec.partner.opr || 0).toFixed(0)}</b></span>
+                                                                        <span className={(rec.partner.netDiscipline || 0) < 0 ? "text-danger font-bold" : "text-success font-bold"}>
+                                                                            {(rec.partner.netDiscipline || 0) > 0 ? "+" : ""}{(rec.partner.netDiscipline || 0).toFixed(0)} Disc
+                                                                        </span>
+                                                                        {/* Mini RP Indicators for List */}
+                                                                        <div className="flex gap-1 ml-2">
+                                                                            {rules.rpTargets.map((t, ti) => (rec.effectiveRP[t.id] || 0) > 0.6 && (
+                                                                                <span key={t.id} className={clsx("text-[9px] font-black px-1 rounded", RP_BADGES[ti % RP_BADGES.length])}>{rpShort(t.id)}</span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
-                    )}
-                </div>
+                    </>
+                )}
             </div>
         </Card>
     );

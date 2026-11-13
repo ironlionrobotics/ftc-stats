@@ -1,0 +1,495 @@
+{
+  "Common": {
+    "loading": "Loading…"
+  },
+  "LocaleSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "es": "Español"
+  },
+  "Errors": {
+    "generic": "Something went wrong. Try again.",
+    "auth": {
+      "missingToken": "Missing authentication token",
+      "invalidToken": "Invalid or expired token",
+      "userNotFound": "User not found",
+      "noOrg": "No team assigned",
+      "notAdmin": "Only admins/leads can perform this action"
+    },
+    "invite": {
+      "tooShort": "Code is too short",
+      "notFound": "Invite code not found",
+      "expired": "This invite code has already expired",
+      "maxUses": "This invite code reached its usage limit",
+      "orgMissing": "The team this invite points to no longer exists"
+    },
+    "org": {
+      "alreadyExists": "That team already has a workspace. Ask an admin or lead of the team for an invite code to join.",
+      "codeGeneration": "Could not generate a unique code after several attempts"
+    },
+    "admin": {
+      "firestoreUnavailable": "Could not reach Firestore (is Firebase Admin configured on the server?)"
+    },
+    "groundTruth": {
+      "missingEventCode": "Missing eventCode"
+    },
+    "rpModel": {
+      "notConfigured": "Redis is not configured — models can't be cached"
+    },
+    "discord": {
+      "notConfigured": "This team doesn't have a Discord webhook configured",
+      "rateLimited": "Wait a few seconds before sending another message",
+      "sendFailed": "Could not send the message to Discord",
+      "invalidWebhookUrl": "Invalid URL — must be a Discord webhook",
+      "malformedWebhookUrl": "Malformed URL"
+    },
+    "validation": {
+      "teamNumber": "Enter a valid team number",
+      "teamName": "Enter the team name",
+      "wouldPick": "Say whether you would recommend picking this team",
+      "eventCode": "Enter an event code (e.g. MXTOL)",
+      "matchNumberPositive": "Match # must be positive",
+      "likertRange": "1-5",
+      "notesMax2000": "Max 2000 characters",
+      "notesMax5000": "Max 5000 characters",
+      "publicSummaryMax1000": "Max 1000 characters"
+    }
+  },
+  "DraftOdds": {
+    "captain": "Seed {seed} is high enough to captain one of the {alliances} alliances.",
+    "seedRate": "Historical selection rate at seed {seed}.",
+    "oprUp": "Seed {seed} gives {basePct}%, but sitting in the event's {oprPct}th OPR percentile raises it: captains look at capability, not just the standings.",
+    "oprDown": "Seed {seed} gives {basePct}%, but an OPR in the {oprPct}th percentile lowers it — at equal seed, captains prefer the higher scorer."
+  },
+  "Consistency": {
+    "note": {
+      "insufficient": "Not enough events yet to separate growth from volatility. With 3+ events this reading becomes reliable.",
+      "stable": "Even performance event to event: what you show is what you are. To move up a tier you have to shift the average, not the variance.",
+      "growthLag": "Your spread is growth, not inconsistency: the trend explains {r2Pct}% of it. The real problem is that your season OPR runs {scoutingGap} points behind your current form — and captains scout you on that lagging number.",
+      "growthClear": "Clear growth trend (+{slope} OPR per event). The lever is holding the slope, not reducing variance.",
+      "decline": "The trend is heading down ({slope} OPR per event). Before optimizing anything, find what degraded: mechanical wear, late design changes, or progressively stronger fields.",
+      "volatility": "Your spread is noise, not trend: the line only explains {r2Pct}% of it, so every event is a coin flip between {min} and {max} OPR. The lever is raising the floor (failures, reliability), not the ceiling.",
+      "mixed": "A mix of growth and noise: the trend explains {r2Pct}% of your spread and the rest is real volatility (±{residualSigma} OPR). Worth attacking both fronts."
+    },
+    "diagnosisLabel": {
+      "crecimiento": "Growth",
+      "declive": "Decline",
+      "volatilidad": "Volatility",
+      "mixto": "Mixed",
+      "estable": "Stable",
+      "insuficiente": "Not enough data"
+    },
+    "phase": {
+      "auto": "Autonomous",
+      "dc": "Teleop"
+    },
+    "band": {
+      "piso": {
+        "label": "Floor",
+        "hint": "Your worst event of the season"
+      },
+      "publico": {
+        "label": "Public number",
+        "hint": "The season OPR captains see when scouting you"
+      },
+      "actual": {
+        "label": "Current form",
+        "hint": "Your trend evaluated at your most recent event"
+      },
+      "pico": {
+        "label": "Peak",
+        "hint": "Your best event of the season"
+      }
+    },
+    "ui": {
+      "eventsAnalyzed": "{n} events analyzed",
+      "metric": {
+        "trendShare": {
+          "label": "Of the spread is trend",
+          "sub": "r² of the linear fit · {slope} OPR per event"
+        },
+        "volatility": {
+          "label": "Real volatility",
+          "sub": "What the trend does NOT explain (raw: ±{rawSigma})"
+        },
+        "scoutingGap": {
+          "label": "Scouting gap",
+          "sub": "How far your public OPR runs behind your current form"
+        },
+        "realization": {
+          "label": "Realization rate",
+          "sub": "Your public number ({publicNumber}) over your peak ({peak})"
+        }
+      },
+      "phases": {
+        "title": "Which phase is the unstable one?",
+        "desc": "The same decomposition, per game phase. A phase can vary a lot because it is <em>growing</em> (a good sign) or because it is <em>unpredictable</em> (a bad one). Only the variance the trend fails to explain is real instability.",
+        "driver": "This is the phase contributing the most instability — the lever for raising the floor."
+      },
+      "stat": {
+        "trend": "Trend",
+        "explained": "Explained",
+        "noise": "Noise"
+      },
+      "bands": {
+        "title": "What closing the gap buys you",
+        "desc": "The same season, projected onto a real event field. This is where consistency stops being a statistic and becomes <b>making playoffs or not</b>.",
+        "fieldLabel": "Reference field"
+      },
+      "table": {
+        "form": "Form",
+        "opr": "OPR",
+        "seed": "Est. seed",
+        "allianceProb": "Alliance odds",
+        "outcome": "Likely outcome"
+      },
+      "nextTier": {
+        "gap": "From your public number, going from <b>{from}</b> to <b>{to}</b> at this field takes <m>{opr} OPR</m> — you are <hi>{delta} points</hi> short.",
+        "reached": "From your public number, going from <b>{from}</b> to <b>{to}</b> at this field takes <m>{opr} OPR</m> — you already reach it."
+      },
+      "footnote": {
+        "directional": "Directional estimates over historical fields, not guarantees.",
+        "ftcScout": "FTCScout's OPR and the one computed internally use different methodologies (at FPEMX: 59.96 vs 80.8), so the comparison indicates magnitude, not an exact position."
+      },
+      "chart": {
+        "aria": "OPR per event with its fitted trend. The trend moves {slope} points per event and explains {r2Pct}% of the spread. The public season OPR is {publicNumber}, below the current form of {currentForm}.",
+        "publicNumberTag": "Public OPR {value}",
+        "legend": {
+          "observed": "Observed OPR",
+          "trend": "Trend {slope}/event",
+          "band": "Volatility band ±{sigma}",
+          "publicNumber": "Public season number"
+        }
+      },
+      "oprAdjustment": "{delta} from OPR"
+    }
+  },
+  "SeasonAnalysis": {
+    "title": "Season Analysis",
+    "season": "{season} season",
+    "desc": "The season read live from official results: how the team's output moved event to event, how much of that movement is a trend rather than noise, and what it means for alliance selection.",
+    "methodology": "Per-event values are the team's average net points (score minus fouls) in qualification matches — the app's stand-in for OPR. It credits the whole alliance's output to the team, so it runs high compared with a least-squares OPR: read it as a within-team trend across this season, not as a figure comparable between teams."
+  },
+  "EventSelector": {
+    "strategy": {
+      "topOrdered": "Ordered field and you're up top: results tend to respect OPR. Ideal.",
+      "topChaotic": "You're up top but the field is volatile: favorite with upset risk — lock in your seed during quals.",
+      "topTypical": "Competitive position in a typical field: your quals seed decides your luck.",
+      "bubbleChaotic": "Bubble zone in a chaotic field: upsets are common — a good day gets you into playoffs.",
+      "bubbleTypical": "Bubble zone: you need an above-average event to make playoffs.",
+      "outChaoticUpside": "Strong but volatile field: tough, though the chaos gives more openings than an ordered field.",
+      "outAboveLevel": "Field above your current level: valuable as experience, unlikely for playoffs."
+    },
+    "verdict": {
+      "capitan": "Captain",
+      "pick": "Pick",
+      "burbuja": "Bubble",
+      "fuera": "Out"
+    },
+    "verdictChip": {
+      "capitan": "Likely captain",
+      "pick": "Likely pick",
+      "burbuja": "Bubble",
+      "fuera": "Out of playoffs"
+    },
+    "volatility": {
+      "ordenado": "Ordered",
+      "medio": "Medium",
+      "caotico": "Chaotic"
+    }
+  },
+  "GrowthCurves": {
+    "caveat": "Window {windowStart}-{windowEnd}: programs founded before {windowStart} only appear from their later seasons on."
+  },
+  "TeamReport": {
+    "skill": {
+      "tot": "Total OPR",
+      "dc": "Teleop",
+      "eg": "Endgame",
+      "auto": "Autonomous"
+    },
+    "eventType": {
+      "Qualifier": "Qualifier",
+      "Championship": "Championship",
+      "Premier": "Premier"
+    },
+    "rookies": {
+      "nationalHeadline": "Only Mexican rookie to win the Inspire Award"
+    },
+    "eventAward": {
+      "award": "{name} Award — {place, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} place",
+      "winningAlliancePick": "Winning alliance ({pick, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} pick)",
+      "playoffsPick": "Playoffs · alliance {allianceNum} pick (captain #{captain})"
+    },
+    "rookieAward": {
+      "award": "{name} {place, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+      "bare": "{name}",
+      "multiplier": "{name} ×{count}",
+      "winningAlliance": "Winning alliance"
+    },
+    "source": {
+      "teamProfile": "FTCScout — team profile {teamNumber}",
+      "graphqlApi": "FTCScout GraphQL API (quantitative data, queried live)",
+      "events": "FTCScout — events {codes} (season {season})"
+    },
+    "takeaway": {
+      "rookieVeteranTier": "Rookie season, veteran-tier performance: in its first year of competition, its season OPR ({seasonOpr}) already outperforms every rookie in its cohort but one, and is closing in on Mexico's multi-year programs.",
+      "worldStanding": "Top ~{totTopPct}% of the {activeTeams} active teams worldwide by total OPR (rank {worldRank}), and top {teleopEndgameTopPct}% globally in teleop and endgame.",
+      "inspireDebut": "Won the Inspire Award — an FTC event's top honor — at their debut tournament (Guadalajara, Dec 2025), plus the winning alliance that same weekend.",
+      "champRecord": "{record} in Mexico Championship qualifiers (Feb 2026, {fieldSize} teams), rank {rank}.",
+      "premierPick": "Selected to playoffs at the México Premier Event ({fieldSize} teams, the country's continental qualifying event) as captain {captain}'s pick, plus a Reach Award, {reachPlace, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} place, for community engagement.",
+      "growthArc": "Clear improvement arc in total OPR: {oprArc} across its four events, peaking at its most important event.",
+      "soleNationalInspire": "The only Mexican rookie to win the Inspire Award this season: of {nationalTotal} rookie programs nationwide, none of the other {otherCount} captured FTC's top honor.",
+      "soleWorldInspire": "Top ~{worldPct}% of the world's rookies by award: one of only {inspireCohort} rookie teams (out of {inspireTotal}) to win an Inspire Award — and the only one from Mexico."
+    },
+    "learning": {
+      "autoTeleopLevers": {
+        "title": "Auto raises the ceiling; teleop raises the floor",
+        "body": "They're two different levers, not one. Auto is the weakest point by level (top {autoTopPct}% worldwide vs. top {teleopEndgameTopPct}% in teleop/endgame) and it's already growing steadily (+{autoSlope} OPR per event): that's where the most world rank is gained. Teleop is the opposite case — strong level but the season's most unstable phase (±{teleopNoise} OPR of noise the trend doesn't explain). There, the win isn't ceiling — it's consistency."
+      },
+      "publicNumberLag": {
+        "title": "The public season number lags real form",
+        "body": "The season OPR ({seasonOpr}) averages the early events and sits {gap} points below current form ({currentForm}). Since captains scout on that number, the gap costs draft position: the lever isn't reducing variance — it's making recent form visible."
+      },
+      "nextTier": {
+        "title": "The next step is the veteran tier ({veteranFloor}+ OPR)",
+        "body": "Established Mexican programs run {veteranFloor}-{veteranCeiling} OPR. The elite benchmark is Devolt Phobos ({eliteTeamNumber}), world rank {eliteWorldRank} — a map of how far the program can grow."
+      },
+      "rpAndSeed": {
+        "title": "RP bonuses and seed are worth gold",
+        "body": "In double elimination, a top-4 seed is worth disproportionately more because of the byes. Being 'pickable' to top captains (consistent, visible auto) outweighed two ranking spots at FPEMX — the PRIDE model called {correct} of {total} playoffs correctly."
+      }
+    },
+    "country": {
+      "US": "United States",
+      "KZ": "Kazakhstan",
+      "GB": "United Kingdom",
+      "MX": "Mexico",
+      "TW": "Taiwan",
+      "NL": "Netherlands",
+      "CZ": "Czechia",
+      "FR": "France",
+      "AU": "Australia",
+      "KG": "Kyrgyzstan",
+      "DE": "Germany",
+      "LY": "Libya",
+      "CN": "China",
+      "UZ": "Uzbekistan",
+      "RO": "Romania"
+    },
+    "inspireCountriesGlue": "and 1 each from"
+  },
+  "Projections": {
+    "mechanicalRisk": "Mechanical Risk Detected",
+    "noAggregatedData": "Team with no aggregated data",
+    "noData": "No data",
+    "redAutoAdvantage": "Critical advantage: Red Alliance dominates the Autonomous period.",
+    "blueAutoAdvantage": "Critical advantage: Blue Alliance has a stronger autonomous start.",
+    "highConfidence": "High-precision prediction: based on abundant scouting data.",
+    "technicalTie": "Technical tie: the match will be decided by penalties or endgame."
+  },
+  "AllianceUtils": {
+    "combinedPower": "Combined power: {opr1} + {opr2} = {combinedOPR} projected pts (the base of the score).",
+    "dominantAuto": "Dominant autonomous: {autoSynergy} combined auto pts (+10) — starting ahead pressures the opponent for the whole match.",
+    "foulRisk": "Foul risk: combined net discipline {risk} (−{penalty}) — together they tend to give away penalty points.",
+    "disciplinedDuo": "Disciplined duo: combined net discipline +{risk} — they draw more fouls than they commit."
+  },
+  "Briefing": {
+    "autoAdvantageRed": "AUTO: red advantage. Protect the partner's scoring positions during auto.",
+    "autoAdvantageBlue": "AUTO: at a disadvantage in auto. Consider disrupting the blue alliance's path from the start of teleop.",
+    "endgameContention": "ENDGAME: both alliances have similar climb capability. Decide the climb order 30s before the end to secure the 20-pt dual-parking bonus.",
+    "clearFavorite": "Clear favorites. Priority: lock in RPs rather than maximum score.",
+    "underdog": "Underdog. Look for high-risk/high-reward plays. Play aggressive defense on the opponent's top scorer.",
+    "opponentWeaknesses": "Exploit the opponent's weaknesses: {flags}.",
+    "balancedMatch": "Balanced match. Run the standard plan; adjust after the first minute."
+  },
+  "TradingCard": {
+    "title": "Trading Card",
+    "subtitle": "Your team's public robot profile — self-reported, checked against official results.",
+    "editorTitle": "Your card",
+    "capabilities": "Capabilities",
+    "canClimb": "Can climb",
+    "climbLevel": "Climb level",
+    "climbLevelPlaceholder": "e.g. Low, High, Deep",
+    "scoresNear": "Scores near",
+    "scoresFar": "Scores far",
+    "groundIntake": "Ground intake",
+    "sourceIntake": "Source intake",
+    "drivetrain": "Drivetrain",
+    "drivetrainPlaceholder": "e.g. Mecanum, Tank, Swerve",
+    "points": "Self-reported points",
+    "pointsHint": "Your typical scoring range per phase.",
+    "auto": "Autonomous",
+    "teleop": "Teleop",
+    "endgame": "Endgame",
+    "low": "Low",
+    "high": "High",
+    "descriptions": "Descriptions",
+    "robot": "Robot",
+    "robotPlaceholder": "Design, mechanisms, key features…",
+    "autonomous": "Autonomous",
+    "autonomousPlaceholder": "Routines, starting positions, scoring patterns…",
+    "strategy": "Strategy",
+    "strategyPlaceholder": "Preferred strategies, alliance coordination…",
+    "photo": "Robot photo URL",
+    "photoPlaceholder": "https://…",
+    "publish": "Publish card",
+    "publishing": "Publishing…",
+    "saved": "Card published",
+    "saveError": "Could not publish the card",
+    "signInToEdit": "Sign in to edit your team's card.",
+    "onboardToEdit": "Join or create your team to edit its card.",
+    "previewTitle": "Live preview",
+    "claimed": "Self-reported",
+    "measured": "Measured · official",
+    "rank": "Rank",
+    "record": "Record",
+    "avgScore": "Avg score",
+    "atEvent": "at {event}",
+    "noMeasured": "No official results yet",
+    "notPublished": "Not published yet",
+    "none": "—"
+  },
+  "Today": {
+    "kicker": "Happening now",
+    "live": "Live",
+    "refresh": "Refresh",
+    "updated": "Updated {time}",
+    "strategyLink": "View strategy",
+    "loadError": "Live data is unavailable right now.",
+    "alliance": {
+      "Red": "Red alliance",
+      "Blue": "Blue alliance"
+    },
+    "nextMatch": {
+      "title": "Next match",
+      "none": "No matches pending",
+      "noneHint": "Your schedule at this event is complete.",
+      "timeTbd": "Time TBD",
+      "partners": "With",
+      "opponents": "Against"
+    },
+    "ranking": {
+      "title": "Ranking",
+      "now": "Now",
+      "projected": "Projected",
+      "qualsLeft": "{n, plural, =0 {No quals left} one {# qual left} other {# quals left}}",
+      "insufficient": "No matches played yet",
+      "unranked": "Not ranked yet"
+    },
+    "odds": {
+      "title": "Alliance odds",
+      "field": "Seed #{seed} · {fieldSize} teams · {alliances} alliances",
+      "unavailable": "Available once quals begin"
+    },
+    "coverage": {
+      "title": "Scouting coverage",
+      "matches": "{scouted} of {played} matches",
+      "unavailable": "No scouting data",
+      "unavailableHint": "Nothing recorded for this event yet."
+    }
+  },
+  "Attribution": {
+    "prefix": "Event data provided by FIRST® —",
+    "linkLabel": "firstinspires.org"
+  },
+  "Games": {
+    "decode": {
+      "sections": {
+        "auto": "Autonomous Period",
+        "teleop": "Driver Controlled (TeleOp)",
+        "endgame": "Endgame & Rankings",
+        "notes": "Notes"
+      },
+      "fields": {
+        "autoLaunchLine": "Left Launch Line",
+        "autoMotifStarted": "Detected Motif Pattern",
+        "autoPurpleArtifacts": "Purple Art. (Auto)",
+        "autoGreenArtifacts": "Green Art. (Auto)",
+        "movementRP": "Movement RP Achieved",
+        "teleopPurpleArtifacts": "Purple Artifacts",
+        "teleopGreenArtifacts": "Green Artifacts",
+        "patternsCompleted": "Patterns/Motifs",
+        "gatesUsed": "Used Gates (Ramp Clearing)",
+        "driverSkill": "Driver Skill",
+        "driverSkillHelp": "How well did they drive the robot?",
+        "endgameBaseParking": "Base Parking",
+        "dualParking": "Dual Parking (Partner)",
+        "motifCompleted": "Final Motif Completed",
+        "goalRP": "Possible Goal RP",
+        "patternRP": "Possible Pattern RP",
+        "notes": "Critical Match Notes",
+        "notesPlaceholder": "E.g.: Connection issues at minute 1:20, very aggressive defense..."
+      },
+      "options": {
+        "endgameBaseParking": {
+          "None": "N/A",
+          "Partial": "Partial",
+          "Full": "Full"
+        }
+      }
+    },
+    "biobuzz": {
+      "sections": {
+        "auto": "Autonomous (30 s)",
+        "teleop": "Driver Controlled (TeleOp)",
+        "endgame": "Last Minute (FLOWER & Park)",
+        "notes": "Notes"
+      },
+      "fields": {
+        "autoLeave": "Leave",
+        "autoCellLaunches": "Launches into CELL (Auto)",
+        "autoCellMisses": "Missed launches (Auto)",
+        "cellLaunchesHelp": "Count elements this robot launched that stayed in its alliance's HIVE CELL.",
+        "autoHiveTips": "HIVE TIPs (Auto)",
+        "hiveTipsHelp": "Count a TIP only if THIS robot's launch flipped the CELL — the partner's scout counts theirs.",
+        "autoPark": "Parked in LOADING ZONE (end of Auto)",
+        "teleopCellLaunches": "Launches into CELL",
+        "teleopCellMisses": "Missed launches",
+        "teleopHiveTips": "HIVE TIPs",
+        "teleopGardenElements": "Elements into own GARDEN",
+        "driverSkill": "Driver Skill",
+        "driverSkillHelp": "How well did they drive the robot?",
+        "flowerElementsPlaced": "Elements placed in FLOWERS",
+        "flowerElementsPlacedHelp": "POLLEN/NECTAR this robot placed in any FLOWER during the last 60 s.",
+        "flowersClaimed": "FLOWERS claimed",
+        "flowersClaimedHelp": "FLOWERS where this robot placed the top-most alliance NECTAR (alliance owns the FLOWER).",
+        "bottomNectarBonuses": "Bottom NECTAR bonuses",
+        "bottomNectarBonusesHelp": "FLOWERS where this robot placed the alliance's lowest NECTAR (5 pts each).",
+        "teleopPark": "Parked in LOADING ZONE (end of match)",
+        "defense": "Defense played",
+        "robotIssue": "Robot issue",
+        "minorFouls": "Minor fouls",
+        "majorFouls": "Major fouls",
+        "notes": "Critical Match Notes",
+        "notesPlaceholder": "E.g.: tipped the HIVE twice, lost connection at 1:20, heavy defense on FLOWERS..."
+      },
+      "options": {
+        "defense": {
+          "None": "None",
+          "Some": "Some",
+          "Heavy": "Heavy"
+        },
+        "robotIssue": {
+          "None": "None",
+          "NoShow": "No show",
+          "Died": "Died / disabled",
+          "TippedOver": "Tipped over"
+        }
+      }
+    },
+    "rp": {
+      "movement": "Movement RP",
+      "goal": "Goal RP",
+      "pattern": "Pattern RP",
+      "swarm": "SWARM RP",
+      "pollinator1": "POLLINATOR 1 RP",
+      "pollinator2": "POLLINATOR 2 RP"
+    },
+    "aria": {
+      "decrement": "Decrease {label}",
+      "increment": "Increase {label}",
+      "star": "{label}: {star} of {max}"
+    }
+  }
+}
