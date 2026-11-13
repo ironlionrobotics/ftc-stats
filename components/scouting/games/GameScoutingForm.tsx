@@ -1,5 +1,7 @@
 "use client";
 
+import ContextPicker, { ContextBadge } from "@/components/scouting/ContextPicker";
+import { DEFAULT_SCOUTING_CONTEXT, contextHasMatchNumber, type ScoutingContext } from "@/lib/scouting-context";
 import { useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useForm, Controller, type Resolver, type Control } from "react-hook-form";
@@ -60,6 +62,9 @@ export default function GameScoutingForm({ definition, team, eventCode, entries 
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const [isAdding, setIsAdding] = useState(false);
+    // Kept across saves: a scout records a run of matches in the same context.
+    const [context, setContext] = useState<ScoutingContext>(DEFAULT_SCOUTING_CONTEXT);
+    const tCtx = useTranslations("ScoutingContext");
     const saveMutation = useSaveMatchScouting();
     const zodMsg = useZodMessage();
 
@@ -92,7 +97,8 @@ export default function GameScoutingForm({ definition, team, eventCode, entries 
         const scoutId = scoutIdFromUser(user);
         const scoutName = scoutNameFromUser(user);
         const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
-        const matchNumber = values.matchNumber as number;
+        // The practice field has no match numbers; 0 marks "no match" (#101).
+        const matchNumber = contextHasMatchNumber(context) ? (values.matchNumber as number) : 0;
 
         const entry = {
             teamNumber: team.teamNumber,
@@ -107,6 +113,7 @@ export default function GameScoutingForm({ definition, team, eventCode, entries 
             confidence: "high",
             gameSchemaVersion: definition.schemaVersion,
             matchNumber,
+            tournamentLevel: context,
             ...buildEntryGameFields(definition, values),
             timestamp: null,
         } as MatchScouting;
@@ -116,17 +123,19 @@ export default function GameScoutingForm({ definition, team, eventCode, entries 
             result = await saveMutation.mutateAsync(entry);
         } catch (e) {
             console.error("[scouting] save failed completely:", e);
-            toast.error(t("saveFailed", { match: matchNumber }));
+            toast.error(matchNumber ? t("saveFailed", { match: matchNumber }) : tCtx("saveFailedNoMatch"));
             return;
         }
 
-        if (result.savedTo === "local") {
+        if (!matchNumber) {
+            toast.success(result.savedTo === "local" ? tCtx("savedNoMatchOffline") : tCtx("savedNoMatch"));
+        } else if (result.savedTo === "local") {
             toast.success(t("savedOffline", { match: matchNumber }));
         } else {
             toast.success(t("saved", { match: matchNumber }));
         }
         setIsAdding(false);
-        reset({ ...defaults, matchNumber: matchNumber + 1 });
+        reset({ ...defaults, matchNumber: matchNumber ? matchNumber + 1 : (values.matchNumber as number) });
     };
 
     return (
@@ -153,7 +162,8 @@ export default function GameScoutingForm({ definition, team, eventCode, entries 
             {isAdding && (
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <Card className="p-6 bg-muted border-primary/20 animate-in slide-in-from-top duration-300 shadow-sm space-y-4">
-                        <div>
+                        <ContextPicker value={context} onChange={setContext} />
+                        <div hidden={!contextHasMatchNumber(context)}>
                             <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">{t("matchNumber")}</label>
                             <Controller
                                 name="matchNumber"
@@ -262,8 +272,9 @@ function EntriesList({
                         <div className="absolute top-0 left-0 w-1 h-full bg-primary/30 group-hover:bg-primary transition-colors" />
                         <div className="flex items-center gap-3 mb-4 flex-wrap">
                             <div className="px-3 py-1 bg-primary/20 text-primary rounded-md text-xs font-black tracking-tighter">
-                                {t("matchHeading", { number: entry.matchNumber })}
+                                {entry.matchNumber ? t("matchHeading", { number: entry.matchNumber }) : "—"}
                             </div>
+                            <ContextBadge entry={entry} />
                             {entry.orgId && (
                                 <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-[10px] font-black tracking-wider uppercase">
                                     #{entry.orgId}

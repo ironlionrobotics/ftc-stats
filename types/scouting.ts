@@ -1,3 +1,4 @@
+import type { ScoutingContext } from "@/lib/scouting-context";
 export interface FTCEvent {
     code: string;
     name: string;
@@ -222,7 +223,9 @@ export interface BaseMatchScouting {
     matchNumber: number;
     season: number;
     program: 'FTC' | 'FRC';
-    tournamentLevel?: "QUALIFICATION" | "PLAYOFF";  // optional until backfilled
+    // Where it was observed (#101): PRACTICE_FIELD | PRACTICE | QUALIFICATION |
+    // PLAYOFF. Missing on legacy entries = QUALIFICATION (see contextOf).
+    tournamentLevel?: ScoutingContext;
     alliance?: "Red" | "Blue";   // optional until backfilled
 
     // ---- Attribution (federated model) ----

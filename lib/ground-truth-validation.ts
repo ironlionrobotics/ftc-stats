@@ -1,4 +1,5 @@
 import "server-only";
+import { entryObservedMatch } from "@/lib/scouting-context";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { fetchMatches, fetchMatchScores } from "@/lib/ftc-api";
 import { scoutableAllianceScore } from "@/lib/score-breakdown";
@@ -358,8 +359,10 @@ export async function runGroundTruthValidation(
 
         for (const [allianceTeams, officialScore] of alliances) {
             // Collect all entries for this match × any team in this alliance.
+            // Same number AND same level in an official context (#101): a
+            // practice or playoff entry #3 is not qualification #3.
             const allianceEntries = entries.filter(e =>
-                e.matchNumber === match.matchNumber &&
+                entryObservedMatch(e, match) &&
                 allianceTeams.includes(e.teamNumber),
             );
             if (allianceEntries.length === 0 || officialScore <= 0) continue;

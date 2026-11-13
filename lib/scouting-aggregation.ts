@@ -17,6 +17,7 @@
  * via the existing listener).
  */
 
+import { contextOf, contextWeight } from "@/lib/scouting-context";
 import type { BaseMatchScouting, ScoutConfidence } from "@/types/scouting";
 import { scoutIdOf, scoutNameOf } from "@/types/scouting";
 import type { GameDefinition } from "@/types/game-definition";
@@ -198,9 +199,11 @@ function entryWeight(
     const cw = CONFIDENCE_WEIGHTS[confidence];
     const scoutId = scoutIdOf(entry);
     const reliability = scoutReliabilities[scoutId] ?? DEFAULT_SCOUT_RELIABILITY;
+    // Practice observations count half (#101): no official score backs them.
+    const ctxWeight = contextWeight(contextOf(entry));
     // Multiply factors; clamp to non-negative so a buggy reliability of -1
     // doesn't flip the consensus sign.
-    return Math.max(0, cw * reliability);
+    return Math.max(0, cw * reliability * ctxWeight);
 }
 
 function timestampSeconds(entry: BaseMatchScouting): number {

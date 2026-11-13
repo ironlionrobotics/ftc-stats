@@ -1456,5 +1456,18 @@
     "addTeam": "Scoutear al equipo {n}",
     "emptyTypeNumber": "Escribe un número de equipo para agregarlo.",
     "needEvent": "Elige un evento para registrar scouting de partidos."
+  },
+  "ScoutingContext": {
+    "label": "Dónde",
+    "option": {
+      "PRACTICE_FIELD": "Cancha de práctica",
+      "PRACTICE": "Partido de práctica",
+      "QUALIFICATION": "Qualy",
+      "PLAYOFF": "Playoff"
+    },
+    "practiceNote": "Los datos de práctica van aparte: no cambian la confiabilidad del scout y cuentan la mitad en el pool compartido.",
+    "savedNoMatch": "Observación de cancha de práctica guardada",
+    "savedNoMatchOffline": "Observación de cancha de práctica guardada offline: se sincronizará al volver la conexión",
+    "saveFailedNoMatch": "No se pudo guardar la observación; revisa e intenta de nuevo"
   }
 }

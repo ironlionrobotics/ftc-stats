@@ -158,7 +158,11 @@ service cloud.firestore {
             );
             allow create: if isAuthed()
                 && request.resource.data.scoutId == request.auth.uid
-                && request.resource.data.orgId == myOrgId();
+                && request.resource.data.orgId == myOrgId()
+                // Observation context (#101). Optional so entries queued
+                // offline by an older client still sync.
+                && (!('tournamentLevel' in request.resource.data)
+                    || request.resource.data.tournamentLevel in ['PRACTICE_FIELD', 'PRACTICE', 'QUALIFICATION', 'PLAYOFF']);
             allow update, delete: if false;
         }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import ContextPicker, { ContextBadge } from "@/components/scouting/ContextPicker";
+import { DEFAULT_SCOUTING_CONTEXT, contextHasMatchNumber, type ScoutingContext } from "@/lib/scouting-context";
 import { useState } from "react";
 import { useForm, Controller, Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,6 +43,8 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
     const { season } = useProgram();
     const scoutReliabilities = useScoutReliabilities();
     const [isAdding, setIsAdding] = useState(false);
+    const [context, setContext] = useState<ScoutingContext>(DEFAULT_SCOUTING_CONTEXT);
+    const tCtx = useTranslations("ScoutingContext");
     const saveMutation = useSaveMatchScouting();
     const zodMsg = useZodMessage();
     const t = useTranslations("ScoutingSuper");
@@ -89,7 +93,9 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
         } = {
             teamNumber: team.teamNumber,
             eventCode,
-            matchNumber: values.matchNumber,
+            // Practice field: no match number (#101).
+            matchNumber: contextHasMatchNumber(context) ? values.matchNumber : 0,
+            tournamentLevel: context,
             program: "FTC",
             season,
             orgId: effectiveOrgId,
@@ -114,17 +120,19 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
             result = await saveMutation.mutateAsync(payload as MatchScouting);
         } catch (e) {
             console.error("[super-scouting] save failed completely:", e);
-            toast.error(t("saveFailed", { match: values.matchNumber }));
+            toast.error(contextHasMatchNumber(context) ? t("saveFailed", { match: values.matchNumber }) : tCtx("saveFailedNoMatch"));
             return;
         }
-        if (result.savedTo === "local") {
+        if (!contextHasMatchNumber(context)) {
+            toast.success(result.savedTo === "local" ? tCtx("savedNoMatchOffline") : tCtx("savedNoMatch"));
+        } else if (result.savedTo === "local") {
             toast.success(t("savedOffline", { match: values.matchNumber }));
         } else {
             toast.success(t("saved", { match: values.matchNumber }));
         }
 
         // Reset for next observation, auto-increment match number
-        const nextMatch = values.matchNumber + 1;
+        const nextMatch = contextHasMatchNumber(context) ? values.matchNumber + 1 : values.matchNumber;
         reset({
             matchNumber: nextMatch,
             driverSkill: 3,
@@ -170,7 +178,8 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
             {isAdding && (
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <Card className="p-6 bg-muted border-border space-y-6">
-                        <div className="flex items-center gap-4">
+                        <ContextPicker value={context} onChange={setContext} />
+                        <div className="flex items-center gap-4" hidden={!contextHasMatchNumber(context)}>
                             <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                                 {t("matchNumber")}
                             </label>
@@ -356,8 +365,9 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
                                     <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                         <div className="flex items-center gap-3">
                                             <div className="px-2 py-1 bg-primary/20 text-primary rounded text-[10px] font-black tracking-tighter">
-                                                M#{e.matchNumber}
+                                                {e.matchNumber ? `M#${e.matchNumber}` : "—"}
                                             </div>
+                                            <ContextBadge entry={e} />
                                             {e.orgId && (
                                                 <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-[10px] font-black tracking-wider uppercase">
                                                     #{e.orgId}

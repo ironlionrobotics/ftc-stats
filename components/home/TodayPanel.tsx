@@ -1,5 +1,6 @@
 "use client";
 
+import { contextOf } from "@/lib/scouting-context";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -126,10 +127,10 @@ export default function TodayPanel({ season, teams, eventCode, teamNumber, orgId
                 const { getMatchScoutingOnce } = await import("@/lib/scouting-service");
                 const entries = await getMatchScoutingOnce(season, eventCode, orgId);
                 if (cancelled) return;
-                // Playoff entries would inflate the ratio against a qual-only
-                // denominator. Legacy docs with no level are treated as quals.
+                // Coverage is against the qualification schedule: playoff and
+                // practice entries would inflate it (#101). Legacy docs = quals.
                 setScoutedMatches(
-                    entries.filter(e => e.tournamentLevel !== "PLAYOFF").map(e => e.matchNumber),
+                    entries.filter(e => contextOf(e) === "QUALIFICATION").map(e => e.matchNumber),
                 );
             } catch {
                 if (!cancelled) setScoutedMatches(null);

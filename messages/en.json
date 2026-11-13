@@ -1456,5 +1456,18 @@
     "addTeam": "Scout team {n}",
     "emptyTypeNumber": "Type a team number to add it.",
     "needEvent": "Pick an event to record match scouting."
+  },
+  "ScoutingContext": {
+    "label": "Where",
+    "option": {
+      "PRACTICE_FIELD": "Practice field",
+      "PRACTICE": "Practice match",
+      "QUALIFICATION": "Qualification",
+      "PLAYOFF": "Playoff"
+    },
+    "practiceNote": "Practice data is kept apart: it doesn't affect scout reliability and counts half in the shared pool.",
+    "savedNoMatch": "Practice-field observation saved",
+    "savedNoMatchOffline": "Practice-field observation saved offline — it will sync when the connection returns",
+    "saveFailedNoMatch": "Could not save the observation — check and try again"
   }
 }
