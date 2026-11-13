@@ -5,7 +5,7 @@ import { FTCMatch, TeamRanking, FTCAward, FTCEvent } from "@/types/scouting";
 import { allianceScoreComponents, allianceRpObs, inferTeamRpProbability, type RpLabeledMatch } from "@/lib/rp-inference";
 import { seasonRulesFor, rpThresholdsFor } from "@/lib/games/season-rules";
 import { componentOpr } from "@/lib/component-opr";
-import { biobuzzAllianceRp, shrunkRate, type BiobuzzRpInputs } from "@/lib/rp-counts";
+import { biobuzzAllianceRp, decayedUpdate, shrunkRate, type BiobuzzRpInputs } from "@/lib/rp-counts";
 import type { LogisticModel } from "@/lib/logistic-regression";
 import { phaseSplit } from "@/lib/score-breakdown";
 import { getRpModelAction } from "./train-rp-models";
@@ -139,7 +139,9 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
         await Promise.all(logisticTargets.map(async t => [t, await getRpModelAction({ season, target: t })] as const)),
     );
     // BIOBUZZ per-team accumulators across events (count models).
-    const bbAcc = new Map<number, { tipsWeighted: number; tipsMatches: number; leave: number; autoPark: number; teleopPark: number; robotMatches: number }>();
+    // leave/autoPark/teleopPark/robotMatches are recency-DECAYED counts (rp-counts
+    // SWARM_RECENCY_DECAY); rawRobotMatches is the plain observation count.
+    const bbAcc = new Map<number, { tipsWeighted: number; tipsMatches: number; leave: number; autoPark: number; teleopPark: number; robotMatches: number; rawRobotMatches: number }>();
 
     // No need to fetch allEvents again, already fetched above
 
@@ -344,11 +346,15 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                         }
                         const robot = obs.robots?.find(r => r.teamNumber === rank.teamNumber);
                         if (robot) {
-                            const acc = bbAcc.get(rank.teamNumber) ?? { tipsWeighted: 0, tipsMatches: 0, leave: 0, autoPark: 0, teleopPark: 0, robotMatches: 0 };
-                            acc.robotMatches++;
-                            if (robot.leave) acc.leave++;
-                            if (robot.autoPark) acc.autoPark++;
-                            if (robot.teleopPark) acc.teleopPark++;
+                            // Matches arrive in order (events by date, quals by
+                            // number), so recency decay is applied in sequence.
+                            const acc = bbAcc.get(rank.teamNumber) ?? { tipsWeighted: 0, tipsMatches: 0, leave: 0, autoPark: 0, teleopPark: 0, robotMatches: 0, rawRobotMatches: 0 };
+                            const d = decayedUpdate(
+                                { leave: acc.leave, autoPark: acc.autoPark, teleopPark: acc.teleopPark, n: acc.robotMatches },
+                                robot,
+                            );
+                            acc.leave = d.leave; acc.autoPark = d.autoPark; acc.teleopPark = d.teleopPark; acc.robotMatches = d.n;
+                            acc.rawRobotMatches++;
                             bbAcc.set(rank.teamNumber, acc);
                         }
                     }
@@ -383,7 +389,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                 // Weight this event's tips OPR by the team's matches in it.
                 const opr = tipsOpr.get(rank.teamNumber);
                 if (opr != null && teamQualMatches > 0) {
-                    const acc = bbAcc.get(rank.teamNumber) ?? { tipsWeighted: 0, tipsMatches: 0, leave: 0, autoPark: 0, teleopPark: 0, robotMatches: 0 };
+                    const acc = bbAcc.get(rank.teamNumber) ?? { tipsWeighted: 0, tipsMatches: 0, leave: 0, autoPark: 0, teleopPark: 0, robotMatches: 0, rawRobotMatches: 0 };
                     acc.tipsWeighted += opr * teamQualMatches;
                     acc.tipsMatches += teamQualMatches;
                     bbAcc.set(rank.teamNumber, acc);
@@ -438,7 +444,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                     autoPark: shrunkRate(a.autoPark, a.robotMatches, prior.autoPark),
                     teleopPark: shrunkRate(a.teleopPark, a.robotMatches, prior.teleopPark),
                 },
-                matches: a.robotMatches,
+                matches: a.rawRobotMatches,
             };
             team.rpInputs = inputs;
             team.rp = biobuzzAllianceRp(inputs, avgPartner, thresholds);

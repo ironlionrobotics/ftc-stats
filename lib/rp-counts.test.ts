@@ -4,6 +4,7 @@ import {
     nbDispersion,
     pSwarm,
     shrunkRate,
+    decayedUpdate,
     biobuzzAllianceRp,
     BIOBUZZ_TIPS_DISPERSION,
 } from "./rp-counts";
@@ -93,5 +94,22 @@ describe("biobuzzAllianceRp", () => {
         expect(ss.swarm).toBeCloseTo(1, 12);
         expect(ss.pollinator1).toBeGreaterThan(sw.pollinator1);
         expect(ss.pollinator2).toBeLessThan(ss.pollinator1);
+    });
+});
+
+describe("decayedUpdate (SWARM recency)", () => {
+    it("weights recent matches more: late success beats early success", () => {
+        const zero = { leave: 0, autoPark: 0, teleopPark: 0, n: 0 };
+        const yes = { leave: true, autoPark: true, teleopPark: true };
+        const no = { leave: false, autoPark: false, teleopPark: false };
+        const lateGood = [no, no, yes, yes].reduce((c, o) => decayedUpdate(c, o), zero);
+        const earlyGood = [yes, yes, no, no].reduce((c, o) => decayedUpdate(c, o), zero);
+        expect(lateGood.leave / lateGood.n).toBeGreaterThan(0.5);
+        expect(earlyGood.leave / earlyGood.n).toBeLessThan(0.5);
+        expect(lateGood.n).toBeCloseTo(earlyGood.n, 12);
+    });
+    it("decay 1 reduces to plain counts", () => {
+        const c = decayedUpdate(decayedUpdate({ leave: 0, autoPark: 0, teleopPark: 0, n: 0 }, { leave: true, autoPark: false, teleopPark: true }, 1), { leave: false, autoPark: false, teleopPark: true }, 1);
+        expect(c).toEqual({ leave: 1, autoPark: 0, teleopPark: 2, n: 2 });
     });
 });

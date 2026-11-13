@@ -88,6 +88,39 @@ export function pSwarm(
     return clamp01(total);
 }
 
+/**
+ * Recency decay for per-robot LEAVE/PARK rates: each new observation
+ * multiplies the running counts by this factor first (half-life ≈ 2 matches).
+ * Why: SWARM rates climb within an event (48% → 78% from the first to the
+ * last fifth of quals across 15 events, 2026-11-13) as teams tune auto and
+ * park. Backtest (train first 60% of quals, predict the rest, 348
+ * alliances): Brier 0.1769 → 0.1688 (skill vs base rate 0.12 → 0.16).
+ * A residual under-prediction (~0.12) remains — recalibrate with more data.
+ */
+export const SWARM_RECENCY_DECAY = 0.7;
+
+/** Running counts with recency decay; feed observations in match order. */
+export interface DecayedCounts {
+    leave: number;
+    autoPark: number;
+    teleopPark: number;
+    /** Decayed number of observations (effective sample size). */
+    n: number;
+}
+
+export function decayedUpdate(
+    c: DecayedCounts,
+    obs: { leave: boolean; autoPark: boolean; teleopPark: boolean },
+    decay: number = SWARM_RECENCY_DECAY,
+): DecayedCounts {
+    return {
+        leave: c.leave * decay + (obs.leave ? 1 : 0),
+        autoPark: c.autoPark * decay + (obs.autoPark ? 1 : 0),
+        teleopPark: c.teleopPark * decay + (obs.teleopPark ? 1 : 0),
+        n: c.n * decay + 1,
+    };
+}
+
 /** Beta-shrunk rate: (successes + strength·prior) / (trials + strength). */
 export function shrunkRate(successes: number, trials: number, prior: number, strength = 4): number {
     return (successes + strength * prior) / (trials + strength);
