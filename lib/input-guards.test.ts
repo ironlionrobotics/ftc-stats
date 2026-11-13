@@ -64,6 +64,10 @@ describe("clientIpFromForwardedFor", () => {
     it("takes the client hop appended by Google's proxy, ignoring spoofed prefixes", () => {
         expect(clientIpFromForwardedFor("203.0.113.9, 35.191.10.4")).toBe("203.0.113.9");
         expect(clientIpFromForwardedFor("6.6.6.6, 203.0.113.9, 35.191.10.4")).toBe("203.0.113.9");
+        // Production layout seen 2026-11-13: client + two Google hops.
+        expect(clientIpFromForwardedFor("189.203.1.2, 34.117.5.6, 35.203.7.8")).toBe("189.203.1.2");
+        expect(clientIpFromForwardedFor("6.6.6.6, 189.203.1.2, 34.117.5.6, 169.254.1.1")).toBe("189.203.1.2");
+        expect(clientIpFromForwardedFor("2806:2f0::1, 34.117.5.6, 10.0.0.2")).toBe("2806:2f0::1");
         expect(clientIpFromForwardedFor("203.0.113.9")).toBe("203.0.113.9");
         expect(clientIpFromForwardedFor(null)).toBeNull();
         expect(clientIpFromForwardedFor("")).toBeNull();
@@ -78,7 +82,8 @@ describe("limiter keys and diagnostics", () => {
     });
     it("describes the header shape without leaking addresses", () => {
         const shape = forwardedForShape("203.0.113.9, 35.191.10.4");
-        expect(shape).toBe("2 hops [v4, gproxy]");
+        expect(shape).toBe("2 hops [v4, google]");
+        expect(forwardedForShape("189.203.1.2, 34.117.5.6, 10.0.0.2")).toBe("3 hops [v4, google, private]");
         expect(shape).not.toContain("203");
         expect(forwardedForShape(null)).toBe("absent");
     });

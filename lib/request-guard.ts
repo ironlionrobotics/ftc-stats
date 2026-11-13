@@ -28,16 +28,18 @@ const limiters = {
 
 export type GuardBucket = keyof typeof limiters;
 
-// Logged once per instance so the X-Forwarded-For layout behind App Hosting
-// can be confirmed in production logs (decision #91) — shape only, no IPs.
-let shapeLogged = false;
+// Each distinct X-Forwarded-For layout is logged once per instance (capped)
+// so it can be confirmed in production logs (decision #91) — hop kinds only,
+// never the IPs.
+const shapesLogged = new Set<string>();
 
 async function visitorKey(): Promise<string> {
     try {
         const xff = (await headers()).get("x-forwarded-for");
-        if (!shapeLogged) {
-            shapeLogged = true;
-            console.info(`[rate-limit] x-forwarded-for shape: ${forwardedForShape(xff)}`);
+        const shape = forwardedForShape(xff);
+        if (!shapesLogged.has(shape) && shapesLogged.size < 20) {
+            shapesLogged.add(shape);
+            console.info(`[rate-limit] x-forwarded-for shape: ${shape}`);
         }
         const ip = clientIpFromForwardedFor(xff);
         return ip ? limiterKeyForIp(ip) : "unknown";

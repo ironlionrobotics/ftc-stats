@@ -66,13 +66,24 @@ export function parseRegion(raw: unknown): string | undefined {
 // ---------------------------------------------------------------------------
 
 /**
- * Google Front End / Cloud Load Balancing proxy ranges. App Hosting (Cloud
- * Run behind Google's load balancer) appends `<client-ip>, <proxy-ip>` to
- * X-Forwarded-For; anything to the left of the client IP was supplied by the
- * caller and is untrusted. We strip trailing proxy hops and take the
- * rightmost remaining entry.
+ * Infrastructure hops appended to X-Forwarded-For between the visitor and the
+ * app. Production (App Hosting = Cloud CDN + external Application LB + Cloud
+ * Run) was observed on 2026-11-13 to send 3 hops for a client that sent none,
+ * none of them in the LB health-check ranges — i.e. `<client>, <google>,
+ * <google>`. We strip trailing Google-owned and private hops and take the
+ * rightmost remaining one; anything further left was supplied by the caller.
  */
-const TRUSTED_PROXY_PREFIXES = ["35.191.", "130.211.0.", "130.211.1.", "130.211.2.", "130.211.3."];
+const GOOGLE_PREFIXES = [
+    "35.191.", "130.211.", "34.", "35.", "107.178.", "108.177.", "142.250.", "172.217.",
+    "172.253.", "173.194.", "209.85.", "216.239.", "66.102.", "66.249.", "74.125.",
+];
+const PRIVATE = /^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|fc|fd|fe80:|::1$)/i;
+
+function hopKind(h: string): "google" | "private" | "v6" | "v4" {
+    if (PRIVATE.test(h)) return "private";
+    if (GOOGLE_PREFIXES.some(p => h.startsWith(p))) return "google";
+    return h.includes(":") ? "v6" : "v4";
+}
 
 /**
  * Rate-limit key for an IP: IPv6 grouped by /64 (one subscriber's prefix, so
@@ -88,14 +99,14 @@ export function limiterKeyForIp(ip: string): string {
 export function forwardedForShape(xff: string | null | undefined): string {
     if (!xff) return "absent";
     const hops = xff.split(",").map(s => s.trim()).filter(Boolean);
-    const tags = hops.map(h => (TRUSTED_PROXY_PREFIXES.some(p => h.startsWith(p)) ? "gproxy" : h.includes(":") ? "v6" : "v4"));
+    const tags = hops.map(hopKind);
     return `${hops.length} hops [${tags.join(", ")}]`;
 }
 
 export function clientIpFromForwardedFor(xff: string | null | undefined): string | null {
     if (!xff) return null;
     const hops = xff.split(",").map(s => s.trim()).filter(Boolean);
-    while (hops.length > 1 && TRUSTED_PROXY_PREFIXES.some(p => hops[hops.length - 1].startsWith(p))) hops.pop();
+    while (hops.length > 1 && hopKind(hops[hops.length - 1]) !== "v4" && hopKind(hops[hops.length - 1]) !== "v6") hops.pop();
     const ip = hops[hops.length - 1];
     return ip && ip.length <= 64 ? ip : null;
 }
