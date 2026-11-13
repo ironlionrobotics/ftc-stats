@@ -1000,3 +1000,13 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 - **Posición proyectada:** es la posición 1…N en el orden por rango medio simulado; antes era la mediana, que repetía posiciones.
 - **"Top 4" pasa a ser P(capitán)** con 4, 6 u 8 lugares según el tamaño del evento (`estimateAlliances`).
 - **Versiones:** caché del análisis `analytics_v4_` (SWARM cambió de significado) y registro de calibración `modelVersion "v4-k3.5"`, para no mezclar regímenes en la pestaña Calibración.
+
+## #99 · La configuración de Firebase nunca llegó al navegador en producción (2026-11-13)
+
+**Hallazgo** (al intentar el primer login en producción): el popup de Google abría `missing-auth-domain/__/auth/handler?apiKey=missing-api-key`. `lib/firebase.ts` toma la configuración de `NEXT_PUBLIC_FIREBASE_*` y, si no hay, de `FIREBASE_WEBAPP_CONFIG`. Next.js solo incorpora al código del navegador las variables `NEXT_PUBLIC_*` presentes al construir. App Hosting no las tenía, y `FIREBASE_WEBAPP_CONFIG` no existe en el navegador, así que caía a valores de relleno (verificado en el fragmento servido `8229-…js`).
+
+**Consecuencia:** desde el deploy a App Hosting (julio), en producción **nada de Firebase en el navegador funcionaba**: login, escrituras de scouting, picklists e invitaciones. Explica los 0 documentos de scouting en Firestore y que los únicos logins registrados (feb y may) fueran de desarrollo local. Además faltaba el dominio de App Hosting en los dominios autorizados de Auth (Héctor lo agregó el mismo día).
+
+**Decisión:** declarar las siete `NEXT_PUBLIC_FIREBASE_*` en `apphosting.yaml` con `availability: [BUILD, RUNTIME]`. Son valores públicos por diseño, de la app web "Iron Lion Scouting". Si la configuración vuelve a faltar, `lib/firebase.ts` lo reporta con `console.error` en lugar de seguir en silencio.
+
+**Lección:** la verificación posterior a un deploy debe incluir un login real, o al menos revisar que el fragmento de `lib/firebase.ts` traiga el `authDomain` real. Un 200 en las rutas no prueba que el cliente de Firebase funcione.
