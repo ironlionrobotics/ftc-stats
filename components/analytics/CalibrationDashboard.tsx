@@ -106,7 +106,8 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
     };
 
     useEffect(() => {
-        if (canView) refresh();
+        // Deferred one microtask: refresh() sets state synchronously.
+        if (canView) void Promise.resolve().then(refresh);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canView, season, eventCode]);
 

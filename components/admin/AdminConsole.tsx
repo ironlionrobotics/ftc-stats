@@ -45,7 +45,9 @@ export default function AdminConsole() {
         }
     }, [user]);
 
-    useEffect(() => { load(); }, [load]);
+    // Deferred one microtask so load()'s setLoading(true) never runs
+    // synchronously in the effect body.
+    useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
     const save = async () => {
         if (!user) return;

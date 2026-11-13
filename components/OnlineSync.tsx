@@ -111,17 +111,15 @@ export default function OnlineSync() {
                 ...stuckPits.map((row): StuckRow => ({ kind: "pit", row })),
             ];
             setStuckCount(combinedStuck.length);
+            // The inspector panel only makes sense while there's something
+            // stuck to show — auto-close it once the last entry has been
+            // retried/exported.
+            if (combinedStuck.length === 0) setShowStuckPanel(false);
             setStuckRows(combinedStuck);
         } catch {
             // Dexie not ready yet; ignore.
         }
     }, []);
-
-    // The inspector panel only makes sense while there's something stuck to
-    // show — auto-close it once the last entry has been retried/exported.
-    useEffect(() => {
-        if (stuckCount === 0) setShowStuckPanel(false);
-    }, [stuckCount]);
 
     const drain = useCallback(async () => {
         if (!user || drainingRef.current) return;
@@ -285,7 +283,9 @@ export default function OnlineSync() {
 
     // Initial count + connectivity listeners.
     useEffect(() => {
-        refreshPendingCount();
+        // Deferred one microtask so the state updates inside the refresh
+        // never run synchronously in the effect body.
+        void Promise.resolve().then(refreshPendingCount);
         // Housekeeping: drop SWR cache entries older than the default max age.
         // OnlineSync mounts once per session (root layout), so this is the one
         // place that keeps FTCStatsClientCache from growing without bound.

@@ -85,7 +85,8 @@ export default function LiveRankingProjection({ teams }: LiveRankingProjectionPr
 
     // Auto-load on first mount once we have an eventCode.
     useEffect(() => {
-        if (eventCode) refresh();
+        // Deferred one microtask: refresh() sets state synchronously.
+        if (eventCode) void Promise.resolve().then(refresh);
         // We intentionally don't include `refresh` in deps — it would loop.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [eventCode, season]);

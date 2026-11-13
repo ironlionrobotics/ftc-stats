@@ -90,9 +90,11 @@ export default function TodayPanel({ season, teams, eventCode, teamNumber, orgId
     // Live event data: ranking projection + next match, in parallel.
     useEffect(() => {
         let cancelled = false;
-        setLoading(true);
-        setFailed(false);
         (async () => {
+            await Promise.resolve();
+            if (cancelled) return;
+            setLoading(true);
+            setFailed(false);
             try {
                 const [proj, next] = await Promise.all([
                     fetchLiveProjectionAction({ season, eventCode }),

@@ -17,6 +17,62 @@ interface EventStatsProps {
     rankings: TeamRanking[];
 }
 
+const StatCard = ({ title, value, subValue, icon: Icon, colorClass }: {
+    title: string;
+    value: string | number;
+    subValue?: string;
+    icon: ElementType;
+    colorClass: string;
+}) => (
+    <div className="relative overflow-hidden p-6 rounded-3xl border border-border bg-card transition-all duration-300 hover:bg-muted/50 group shadow-sm">
+        <div className={`absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 blur-3xl opacity-10 dark:opacity-20 bg-gradient-to-br ${colorClass} group-hover:opacity-40 transition-opacity`} />
+        <div className="relative flex flex-col gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br ${colorClass} shadow-sm`}>
+                <Icon className="text-white" size={24} />
+            </div>
+            <div>
+                <p className="text-muted-foreground text-xs font-bold mb-1 uppercase tracking-widest">{title}</p>
+                <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-black text-foreground tabular-nums">{value}</span>
+                    {subValue && <span className="text-muted-foreground text-xs font-bold">{subValue}</span>}
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+const MatchHighlight = ({ data, label, icon: Icon }: { data: HighlightData, label: string, icon: ElementType }) => (
+    <div className="p-6 rounded-3xl border border-border bg-card space-y-4 hover:border-primary/30 transition-all duration-300 shadow-sm hover:shadow-md">
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                    <Icon size={14} />
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">{label}</span>
+            </div>
+            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${data.alliance === 'Red' ? 'bg-danger/10 text-danger border border-danger/10' : 'bg-secondary/10 text-secondary border border-secondary/10'
+                }`}>
+                {data.alliance} Alliance
+            </span>
+        </div>
+        <div className="flex items-end justify-between gap-4">
+            <div>
+                <h3 className="text-4xl font-black text-foreground mb-0.5 tracking-tight">{data.score}</h3>
+                <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+                    {data.match?.description.replace('Qualification', 'Quals')}
+                </p>
+            </div>
+            <div className="flex -space-x-3">
+                {data.teams.map((t: number) => (
+                    <div key={t} className="w-10 h-10 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-black text-foreground shadow-sm transition-transform hover:-translate-y-1 hover:z-10 cursor-pointer">
+                        {t}
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
 export default function EventStats({ matches, rankings }: EventStatsProps) {
     const stats = useMemo(() => {
         if (!matches || matches.length === 0) return null;
@@ -132,62 +188,6 @@ export default function EventStats({ matches, rankings }: EventStatsProps) {
     }, [matches, rankings]);
 
     if (!stats) return null;
-
-    const StatCard = ({ title, value, subValue, icon: Icon, colorClass }: {
-        title: string;
-        value: string | number;
-        subValue?: string;
-        icon: ElementType;
-        colorClass: string;
-    }) => (
-        <div className="relative overflow-hidden p-6 rounded-3xl border border-border bg-card transition-all duration-300 hover:bg-muted/50 group shadow-sm">
-            <div className={`absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 blur-3xl opacity-10 dark:opacity-20 bg-gradient-to-br ${colorClass} group-hover:opacity-40 transition-opacity`} />
-            <div className="relative flex flex-col gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br ${colorClass} shadow-sm`}>
-                    <Icon className="text-white" size={24} />
-                </div>
-                <div>
-                    <p className="text-muted-foreground text-xs font-bold mb-1 uppercase tracking-widest">{title}</p>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-black text-foreground tabular-nums">{value}</span>
-                        {subValue && <span className="text-muted-foreground text-xs font-bold">{subValue}</span>}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-
-    const MatchHighlight = ({ data, label, icon: Icon }: { data: HighlightData, label: string, icon: ElementType }) => (
-        <div className="p-6 rounded-3xl border border-border bg-card space-y-4 hover:border-primary/30 transition-all duration-300 shadow-sm hover:shadow-md">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                        <Icon size={14} />
-                    </div>
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">{label}</span>
-                </div>
-                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${data.alliance === 'Red' ? 'bg-danger/10 text-danger border border-danger/10' : 'bg-secondary/10 text-secondary border border-secondary/10'
-                    }`}>
-                    {data.alliance} Alliance
-                </span>
-            </div>
-            <div className="flex items-end justify-between gap-4">
-                <div>
-                    <h3 className="text-4xl font-black text-foreground mb-0.5 tracking-tight">{data.score}</h3>
-                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
-                        {data.match?.description.replace('Qualification', 'Quals')}
-                    </p>
-                </div>
-                <div className="flex -space-x-3">
-                    {data.teams.map((t: number) => (
-                        <div key={t} className="w-10 h-10 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-black text-foreground shadow-sm transition-transform hover:-translate-y-1 hover:z-10 cursor-pointer">
-                            {t}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
 
     return (
         <div className="space-y-6 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">

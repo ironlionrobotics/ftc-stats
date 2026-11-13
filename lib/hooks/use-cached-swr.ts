@@ -35,13 +35,14 @@ export function useCachedSWR<T>(
     const [nonce, setNonce] = useState(0); // bumped by refresh()
 
     useEffect(() => {
-        if (!enabled) {
-            setIsLoading(false);
-            return;
-        }
         let cancelled = false;
 
         (async () => {
+            if (!enabled) {
+                await Promise.resolve();
+                if (!cancelled) setIsLoading(false);
+                return;
+            }
             // 1. Hydrate from cache (instant if anything's there).
             const cached = await cacheGet<T>(key);
             if (cancelled) return;

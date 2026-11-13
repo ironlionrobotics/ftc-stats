@@ -34,11 +34,13 @@ export default function DiscordSettings() {
     const canEdit = userDoc?.role === "admin" || userDoc?.role === "lead";
 
     useEffect(() => {
-        if (!user || !orgId) {
-            setConfigured(null);
-            return;
-        }
+        let cancelled = false;
         (async () => {
+            if (!user || !orgId) {
+                await Promise.resolve();
+                if (!cancelled) setConfigured(null);
+                return;
+            }
             try {
                 const idToken = await user.getIdToken();
                 const res = await hasDiscordWebhookAction({ idToken });
@@ -47,6 +49,7 @@ export default function DiscordSettings() {
                 // ignore
             }
         })();
+        return () => { cancelled = true; };
     }, [user, orgId]);
 
     if (!user || !orgId || !canEdit) return null;

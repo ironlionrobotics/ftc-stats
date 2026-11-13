@@ -95,12 +95,19 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
     // Hydrate weights from localStorage once we know the event.
     useEffect(() => {
         if (typeof window === "undefined") return;
-        try {
-            const stored = localStorage.getItem(weightsKey);
-            if (stored) setWeights({ ...DEFAULT_WEIGHTS, ...JSON.parse(stored) });
-        } catch {
-            // ignore malformed JSON
-        }
+        let cancelled = false;
+        // Deferred one microtask so setWeights never runs synchronously in
+        // the effect body.
+        void Promise.resolve().then(() => {
+            if (cancelled) return;
+            try {
+                const stored = localStorage.getItem(weightsKey);
+                if (stored) setWeights({ ...DEFAULT_WEIGHTS, ...JSON.parse(stored) });
+            } catch {
+                // ignore malformed JSON
+            }
+        });
+        return () => { cancelled = true; };
     }, [weightsKey]);
 
     const updateWeight = (key: keyof PicklistWeights, value: number) => {
