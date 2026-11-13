@@ -362,3 +362,16 @@ Los tres patrones i18n del repo quedan así: análisis = clave+params (#80); err
 **Cierre (mismo día):** Héctor autorizó merge + deploy. Merge a `main` (`9fa483b`) reaplicando los parches de seguridad de oct-2026 (next 16.4.6, react 19.2.9, sharp 0.35.5); gate tsc 0, 420 tests, build OK; lint con 16 hallazgos previos aflorados por react-hooks 7.1.1 (PENDING P2). Secuencia: `firestore:rules,indexes` → `apphosting` (rollout completo, todas las rutas 200, `/event/AUBRQ1?season=2026` sirve SWARM/POLLINATOR). Hallazgo post-deploy: el host de Upstash no resuelve → app sin caché y lenta (PENDING #1).
 
 **Caché (mismo día, decisión #89):** Upstash borró la base gratis por 14 días de inactividad y no era restaurable. Se reemplazó por una caché de dos niveles (memoria por instancia + Firestore `server_cache`, gzip, IDs sha256, timeouts, circuit breaker solo para fallas de infraestructura, contadores con fallback local). Una revisión independiente encontró 8 hallazgos (el principal: un parámetro de URL podía apagar la caché compartida); todos corregidos antes del merge. Desplegado (`5fe3742`): producción pasó de 48–65 s a 0.2–0.7 s por página.
+
+### Sesión 21, continuación (13 nov 2026): seguridad de apertura, plan público, calibración y "Hoy"
+
+Después del cierre de caché, Héctor pidió abrir PRIDE a todo público (multilenguaje, mejor diseño, estructura nueva). Se aprobó el plan "PRIDE abierta al público" y el orden: lógica primero, estética al final.
+
+- **Etapa 0 (desplegada):** línea base de rendimiento móvil (`docs/perf/`), reclamo de equipo con aprobación de superadmin (#90; además se cerró que un cliente podía crear su perfil ya como admin de cualquier equipo), validación y límite por visitante en acciones públicas (#91; la IP se verificó en producción: 3 saltos, se confía en los 2 de infraestructura), analítica con consentimiento y sin correos como nombre (#92). Las revisiones independientes encontraron regresiones (slider de Analytics, tipos de evento con espacio) que se corrigieron antes del deploy.
+- **Dirección visual:** de tres prototipos con datos reales, Héctor eligió "Transmisión" como base, a afinar después (#93).
+- **Etapa 1 (rama, sin deploy):** tokens Transmisión con fuentes del sistema (JS −11% a −23%, KB −27% a −38% por ruta), armazón de 5 destinos, seguir un equipo sin cuenta, lint en 0 (agente), ~690 claves de traducción (agente).
+- **Punto 1, calibración (rama p1, revisada, espera OK):** el modelo normal de victoria está calibrado en 2026 (75.6%); la fórmula sin varianza pasó a k=3.5 (#94). Live Ranking tenía un error de fondo (RS es promedio, no total); se rehízo como Monte Carlo y reproduce exacto el ranking oficial de AUBRQ1 (#95). La vista de evento ya muestra RP de 2026. SWARM calibrado con 201 eventos (#96).
+- **Punto 3 (rama p3):** cabeceras de seguridad, páginas de error, robots/sitemap, borrado de cuenta, pruebas de reglas sin ejecutar por falta de Java 21 (#97).
+- **Punto 2 (en curso):** "Hoy" como portada del equipo seguido, sin cuenta (#98); la vista de temporada pasó a `/events`.
+
+**Errores propios que quedaron como lección (memoria `feedback_git_y_procesos_locales`):** `git add -A` coló el `AGENTS.md` que genera `next dev` y un worktree de agente; `pkill` por patrón cerró un `next-server` ajeno no identificado.

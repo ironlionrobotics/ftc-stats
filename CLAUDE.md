@@ -9,7 +9,9 @@ npm run dev              # Next.js dev server (Turbopack)
 npm run build            # production build — must use --webpack (Serwist requires it)
 npm run start            # serve the production build
 npm run lint             # ESLint
-npm test                 # Vitest unit tests (125+ tests, must all pass before commit)
+npm test                 # Vitest unit tests (480+ tests, must all pass before commit)
+npm run test:rules       # Firestore security-rules tests on the emulator (needs Java 21)
+node scripts/perf-baseline.mjs [url]  # mobile perf (JS KB, TBT, LCP) vs docs/perf/ baselines
 npm run test:watch       # Vitest in watch mode
 npm run test:e2e         # Playwright smoke tests (requires `npm run test:e2e:install` once)
 npm run analyze          # Production build with bundle treemap (ANALYZE=true)
@@ -71,7 +73,10 @@ Ground-truth validation (`lib/ground-truth-validation.ts`) uses **leave-one-out 
 - `lib/aggregation.ts` — raw stats from API
 - `lib/projections.ts` — hybrid projection with **Bayesian inverse-variance blend** between API base and live scouting (replaced fixed 60/40 heuristic). Win probability uses real logistic, not piecewise linear
 - `lib/alliance-utils.ts` — greedy captain selection + Monte Carlo with **per-team σ derived from event-history variance** (replaced σ=30 global)
-- `lib/rp-inference.ts` + `lib/logistic-regression.ts` — per-RP logistic regression (movement / artifact / pattern) trained from season match outcomes. **Falls back transparently to empirical heuristic when no model is cached** in the server cache
+- `lib/win-probability.ts` — single win-probability model: normal model Φ(Δμ/σ) when a variance model exists (backtested 75.6% on 2026 playoffs), logistic on Δ/avg with **k = 3.5** otherwise (fitted 2024–2026, decision #94)
+- `lib/live-projection.ts` — final-ranking projection: Monte Carlo of the remaining quals on event OPR (`eventStrengthModel`, non-penalty = final − fouls RECEIVED, #48), sampled bonus RP and strength uncertainty, official tiebreakers in API order. **Ranking Score is an AVERAGE** (decision #95)
+- `lib/rp-inference.ts` + `lib/logistic-regression.ts` — DECODE per-RP logistic models; `lib/rp-counts.ts` — BIOBUZZ count models (POLLINATOR = Negative Binomial on tips OPR; SWARM = exact enumeration + Platt calibration, #88/#96). Labels come from the official `/scores` breakdowns (`lib/score-breakdown.ts`)
+- `lib/today-summary.ts` — "Hoy" assembly for a followed team (next match odds, projected rank, alliance odds), decision #98
 
 ### Scouting subsystem
 
@@ -80,7 +85,7 @@ Three tabs in `/scouting`:
 - **Match** (`MatchScoutingForm.tsx` → game-specific forms in `components/scouting/games/`) — counters per match, RHF + Zod
 - **Super** (`SuperScoutingForm.tsx`) — subjective ratings (driver, defense, reliability, would-pick), `scoutingMode: "super"` so it doesn't pollute objective consensus
 
-Game schemas can also be defined declaratively (`lib/games/ftc-decode-2025.ts` + `types/game-definition.ts` + `lib/games/zod-from-definition.ts` + `components/scouting/games/DynamicGameForm.tsx`). **Infrastructure ready, NOT wired in production** — see `docs/architecture/game-schema-migration.md`. When the 2026-2027 game launches, define a new file in `lib/games/` and swap one import.
+Game schemas are declarative and **routed by season** (`lib/games/registry.ts` → `ftc-biobuzz-2026.ts` / `ftc-decode-2025.ts`; each definition owns its fields AND its `score()`), with season rules (fouls, RP targets, tiebreakers) in `lib/games/season-rules.ts`. New season: follow the runbook in `docs/architecture/game-schema-migration.md` (decisions #86–#88).
 
 ### Strategy page (5 tabs)
 
@@ -88,16 +93,24 @@ Game schemas can also be defined declaratively (`lib/games/ftc-decode-2025.ts` +
 - **Alliance Oracle** — greedy auto-pick
 - **Simulator** — Monte Carlo match prediction with per-team σ
 - **Briefing** — printable 1-page handout for drive coach (CSS @print, NOT @react-pdf/renderer)
-- **Live Ranking** — extrapolación lineal de RP/match al fin de qualifying
+- **Live Ranking** — Monte Carlo projection of the final ranking (likely range, P(captain)); see `lib/live-projection.ts`
 
 ### Analytics page (2 tabs)
 
 - **Data Lab** — multi-event comparison (Recharts, lazy-loaded)
 - **Calibración** — Brier score, log loss, accuracy, reliability diagram (admin/lead only)
 
+### Navigation (branch `etapa1/foundations`, not yet in production)
+
+App shell `components/shell/` with 5 destinations — **Hoy** (`/`, the followed team's day), **Eventos** (`/events`, season view), **Equipos** (`/teams`), **Scouting**, **Estrategia** — bottom tab bar on mobile, rail on desktop; "Más" holds Data Lab, model accuracy and Trading Card; account panel holds followed team, theme, language, session, team-admin panels and account deletion. Following a team needs no account (`pride_team` cookie). Production (`main`) still has the old `components/Sidebar.tsx` until Etapa 1 deploys. Plan and status: `docs/PENDING.md` § RETOMAR AQUÍ.
+
 ### Auth + Orgs
 
-Firebase Auth for identity. `users/{uid}.orgId` for team membership. `orgs/{orgId}` for team metadata. `org_invites/{code}` for 6-char join codes. `<OnboardingModal>` in root layout forces new users through "create or join org" before they can write scouting.
+Firebase Auth for identity. `users/{uid}.orgId` for team membership — **written only by the server**: a new team is a request (`team_claims/{n}`) that a superadmin approves in `/admin` (decision #90); joining an existing team uses a 6-char invite (`redeemInviteAction`). `orgs/{orgId}` for team metadata (no client creates). `<OnboardingModal>` in root layout walks new users through "register my team / I have a code".
+
+### Public surface hardening
+
+Anonymous server actions validate inputs (`lib/input-guards.ts`) and rate-limit per visitor in memory on cache misses (`lib/request-guard.ts`; client IP = hop left of App Hosting's 2 infrastructure hops in X-Forwarded-For), decision #91. Security headers and report-only CSP in `next.config.ts` (#97). Firestore rules regression tests: `npm run test:rules` (emulator, needs Java 21).
 
 ### Offline-first contract
 

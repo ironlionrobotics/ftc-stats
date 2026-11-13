@@ -1,35 +1,34 @@
 # Pendientes — PRIDE
 
-**Última actualización:** 30 jul 2026 (sesión 20 — cumplimiento FIRST, Season Analysis genérico, home "Hoy", cierre de patrones i18n; decisiones #82–#85)
+**Última actualización:** 13 nov 2026 (sesión 21 — temporada BIOBUZZ, caché Firestore, plan de apertura pública; decisiones #86–#98)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
 
-## ▶️ PLAN EN CURSO: PRIDE abierta al público (aprobado 13-nov-2026)
+## ▶️ RETOMAR AQUÍ — PLAN "PRIDE abierta al público" (estado al cierre de la sesión 21, 13-nov-2026)
 
-Plan completo: estructura nueva (Hoy · Eventos · Equipos · Scouting · Estrategia), rediseño, idiomas y requisitos de apertura, en 5 etapas con aprobación y deploy por etapa. Producción estable hasta MXTLQ (27-nov), salvo cierres de seguridad.
+Plan aprobado: `~/.claude/plans/replicated-cooking-elephant.md`. Orden acordado con Héctor: **1) calibración BIOBUZZ → 2) lógica de la estructura → 3) apertura no visual → 4) traducción → 5) estética al final.** Producción estable hasta MXTLQ (27-nov) salvo correcciones de bajo riesgo con OK.
 
-**Etapa 0 (en curso, rama `etapa0/baseline-and-security`):**
-- ✅ Línea base de rendimiento móvil: `docs/perf/baseline-2026-11-13.md` (script `scripts/perf-baseline.mjs`). Punto débil: 460–680 KB de JS por ruta y TBT de 200–380 ms.
-- ✅ Cierres de seguridad: reclamo de equipo con aprobación (#90), entradas públicas validadas y límite por visitante (#91), analítica con consentimiento y sin correos como nombre (#92). **Falta el OK de deploy**, que incluye reglas de Firestore.
-- ✅ Tres direcciones visuales: `docs/design/direcciones-2026-11.html` (abrir en el navegador). **Falta: Héctor elige dirección y confirma el mapa de estructura (Aprobación A).**
-- ✅ Etapa 0 desplegada (13-nov). Pendiente de Héctor: aprobar en `/admin` la solicitud del equipo 30311 (hoy no existe `orgs/30311`) y verificar en logs el formato de `X-Forwarded-For` (#91).
+**Qué hay en producción (`main` 282b2e6):** BIOBUZZ (#86–#88), caché Firestore (#89), Etapa 0 de seguridad (#90 reclamo de equipo con aprobación, #91 entradas públicas + límite por visitante, #92 privacidad), IP del visitante con 2 saltos de confianza.
 
-**Puntos del plan acordado el 13-nov ("lógica primero, estética al final"):**
-1. ✅ Calibración BIOBUZZ (rama `p1/biobuzz-calibration`, #94–#96): k = 3.5, proyección de ranking v2 (Monte Carlo, RS como promedio), RP reales en la vista de evento, SWARM calibrado con 201 eventos. **Falta el OK de deploy antes de MXTLQ.**
-2. Estructura de la Etapa 2, parte lógica: en curso sobre `etapa1/foundations`.
-3. Apertura, parte no visual (rama `p3/opening-basics`, #97): ✅ cabeceras, páginas de error, robots y borrado de cuenta (el botón está en el panel de cuenta de la Etapa 1). ✅ Pruebas de reglas escritas (`npm run test:rules`), **sin ejecutar: el emulador necesita Java 21 y la máquina tiene 17**. Falta: respaldos de Firestore y alertas de caídas y presupuesto (cambios de infraestructura: requieren OK).
-4. ✅ Traducción del resto de la interfaz (~690 claves; quedan el reporte editorial de 30311 y algunos textos de `lib/`).
-5. Estética: al final.
+**Ramas (ninguna desplegada):**
+| Rama | Contenido | Siguiente paso |
+|---|---|---|
+| `p1/biobuzz-calibration` (cc7b7e8) | k=3.5 (#94); proyección de ranking v2 Monte Carlo con faltas recibidas, incertidumbre, P(capitán) (#95); RP reales en vista de evento; SWARM calibrado con 201 eventos (#96). Revisión independiente hecha y atendida. | **OK de Héctor para desplegar antes de MXTLQ** |
+| `p3/opening-basics` (1960ae2) | Cabeceras (CSP en modo reporte), 404/error/global-error, robots, borrado de cuenta (servidor), pruebas de reglas (#97) | Propuesto desplegar cabeceras + páginas de error junto con p1 |
+| `etapa1/foundations` | Integra p1 + p3 + tokens Transmisión + armazón de 5 destinos + i18n (~690 claves) + "Hoy" (#93, #98) + botón de borrar cuenta + sitemap | Después de MXTLQ, con Aprobación B (revisión en navegador + medición de rendimiento contra `docs/perf/`) |
 
-`etapa1/foundations` ya integra los puntos 1, 3 y 4. No hacer `git add -A`: `next dev` regenera un `AGENTS.md` que no se commitea.
+**OK pendientes de Héctor:** (1) deploy de p1 (+ parte de p3); (2) respaldos diarios de Firestore y alertas de caída/presupuesto en Google Cloud; (3) instalar Java 21 para correr `npm run test:rules` (escritas, nunca ejecutadas); (4) aprobar en `/admin` su propia solicitud del equipo 30311 (`orgs/30311` no existe); (5) borrar secretos `UPSTASH_*`; (6) decidir si `AGENTS.md` (lo regenera `next dev`) va a `.gitignore`.
 
-**Etapa 1 (rama `etapa1/foundations`, sin deploy hasta después de MXTLQ):**
-- ✅ Dirección **Transmisión** elegida como base (#93), tokens aplicados y fuentes del sistema.
-- ✅ Armazón nuevo (5 destinos, barra inferior en celular y riel en escritorio, panel de cuenta), seguir un equipo sin cuenta, `/events` y `/teams`.
-- ✅ Lint en 0 (16 hallazgos de react-hooks 7.1.1 resueltos sin cambio de comportamiento).
-- ✅ Medición local: JS −11% a −23%, KB −27% a −38% por ruta.
-- Pendiente: Aprobación B (revisión en navegador + OK de deploy). Las redirecciones de URLs viejas llegan con la Etapa 2, cuando las rutas se muevan de verdad.
+**Siguiente trabajo lógico (punto 2, sobre `etapa1/foundations`):**
+- Quitar ~25 supuestos de un solo equipo: región MX por defecto (`lib/aggregation.ts`, `EventFilter`), `HERO_TEAM`/`REPORT_TEAMS` 30311, "Iron Lion Intelligence" en `/event/*/pro`, prompt del asistente, "FTC Stats México" en briefing y Discord.
+- Dividir `/event/[code]` en rutas (`/rankings`, `/matches`, `/teams`, `/results`) con redirecciones de las URLs viejas.
+- Un solo Oracle (`/strategy/draft`) y un solo simulador (`/strategy/simulate`, partido o torneo); el evento solo enlaza.
+- Cobertura de scouting en "Hoy" para miembros (isla de cliente; datos privados de la organización).
+- `apiPriorCV` se recalibra cuando haya scouting real de 2026.
+- Reporte de `oracle-backtest report` con NaN en 2024/2025 (formato de registros).
 
-## ▶️ RETOMAR AQUÍ (cierre sesión 21, 13 nov · temporada BIOBUZZ)
+**Reglas de trabajo:** nada de `git add -A` (rutas explícitas); servidores locales se detienen por PID; cada cambio de UI se mide con `scripts/perf-baseline.mjs`.
+
+## Historial: arranque de temporada BIOBUZZ (sesión 21, 13 nov)
 
 **Mergeado a `main` y DESPLEGADO el 13-nov** (merge `9fa483b`, con los parches de seguridad de oct-2026). Reglas + índices de Firestore desplegados antes del rollout. Research: `docs/research/2026-11-13-biobuzz.md`. Decisiones #86–#88. **Primer qualifier MX: MXTLQ 27-nov; MXCUQ 9-dic.**
 
@@ -37,10 +36,10 @@ Plan completo: estructura nueva (Hoy · Eventos · Equipos · Scouting · Estrat
 2. **Verificación visual en dev (no hecha):** formulario BIOBUZZ en `/scouting` con temporada 2026 (guarda `season: 2026`, `gameSchemaVersion: 3`); `/event/AUBRQ1?season=2026` con breakdown real; AlliancePredictor 2026 (razones POLLINATOR/SWARM); pit con sección BIOBUZZ; temporada 2025 intacta.
 3. **Pendientes de sesión 20:** reglas + índices ya desplegados (13-nov, 12 índices READY); falta test cross-org (org A no lee scouting de org B) y verificación visual del panel "Hoy".
 4. **P1 BIOBUZZ, antes del 2.º evento:**
-   - Live Ranking / briefing con desempates oficiales (TB2 promedio np, **TB3 promedio de TIPS**, TB4 auto). Ya están en `seasonRulesFor(2026).tiebreakers`.
-   - Recalibrar `WIN_PROB_LOGISTIC_K` y `apiPriorCV` con datos 2026 (np medio ≈ 47, otra escala).
-   - SWARM subpredice ~0.12 por deriva intra-evento → recalibrar con más eventos (#88).
-   - EventViewManager 2026: hoy deja RP vacío. Pasarle `TeamEvolution.rp` del servidor.
+   - ✅ Live Ranking con desempates oficiales (proyección v2, #95, rama p1). Falta el briefing.
+   - ✅ `WIN_PROB_LOGISTIC_K` = 3.5 (#94). `apiPriorCV` espera scouting real de 2026.
+   - ✅ SWARM calibrado con 201 eventos (#96).
+   - ✅ EventViewManager 2026 recibe las probabilidades de RP del servidor (#95).
    - Ground truth por robot con `autoRobot{1,2}Leave/Park` y `teleopRobot{1,2}Park`.
    - Atribuir TIPs por proporción de lanzamientos contra los TIPs oficiales de la alianza.
    - Calibrar FLOWER (hoy es cota superior, ×2 sin verificar dueño) con los arreglos `*Flower`.
