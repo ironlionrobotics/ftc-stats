@@ -3,6 +3,7 @@
 import { fetchMatches, fetchRankings, fetchEvents, fetchEventAwards, fetchMatchScores, getCachedData, setCachedData } from "@/lib/ftc-api";
 import { FTCMatch, TeamRanking, FTCAward, FTCEvent } from "@/types/scouting";
 import { allianceScoreComponents, inferTeamRpProbability } from "@/lib/rp-inference";
+import { phaseSplit } from "@/lib/score-breakdown";
 import { getRpModelAction } from "./train-rp-models";
 import { sanitizeEventCodes } from "@/lib/analytics-guards";
 
@@ -77,7 +78,8 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
     const sortedCodes = [...codes].sort().join('_');
     // Using a hash if strings get too long? Firestore limit is 1500 bytes for ID.
     // 20 events * 10 chars = 200 chars. Totally fine.
-    const cacheKey = `analytics_v2_${season}_${sortedCodes}_${maxMatchesPerTeam || 'all'}`;
+    // v3: real /scores breakdowns (fetchMatchScores fix) change tele/end splits.
+    const cacheKey = `analytics_v3_${season}_${sortedCodes}_${maxMatchesPerTeam || 'all'}`;
 
     const allEvents = await getAvailableEvents(season);
 
@@ -168,49 +170,21 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                     (s.matchLevel.toUpperCase().startsWith(m.tournamentLevel.substring(0, 4).toUpperCase()))
                 );
 
-                // Case-insensitive lookup for alliance
-                const redScoreData = matchScores.find(s => s.alliance.toLowerCase() === "red")?.scoreBreakdown || {};
-                const blueScoreData = matchScores.find(s => s.alliance.toLowerCase() === "blue")?.scoreBreakdown || {};
-
-                // Intelligent field extraction for different seasons. The raw
-                // scoreBreakdown shape varies by season (CenterStage/IntoTheDeep/etc),
-                // so every field is optional here.
-                interface SeasonScoreBreakdown {
-                    endgamePoints?: number;
-                    endGamePoints?: number;
-                    parkingPoints?: number;
-                    dronePoints?: number;
-                    stagePoints?: number;
-                    ascentPoints?: number;
-                    hangPoints?: number;
-                    teleopPoints?: number;
-                    teleOpPoints?: number;
-                    dcPoints?: number;
-                }
-
-                const getEndgame = (data: SeasonScoreBreakdown) => {
-                    // Try direct fields first
-                    if (data.endgamePoints !== undefined) return data.endgamePoints;
-                    if (data.endGamePoints !== undefined) return data.endGamePoints;
-
-                    // Fallback: Sum up components if main field is missing (CenterStage/IntoTheDeep variants)
-                    return (data.parkingPoints || 0) +
-                        (data.dronePoints || 0) +
-                        (data.stagePoints || 0) +
-                        (data.ascentPoints || 0) +
-                        (data.hangPoints || 0);
-                };
-
-                const getTeleop = (data: SeasonScoreBreakdown) => {
-                    return data.teleopPoints ?? data.teleOpPoints ?? data.dcPoints ?? 0;
-                };
+                // Case-insensitive lookup for alliance. phaseSplit returns null
+                // without a breakdown, leaving scoreXTeleOp/Endgame undefined so
+                // allianceScoreComponents uses its final − auto − foul fallback
+                // (a literal 0 here used to zero every team's teleop average).
+                const redScoreData = matchScores.find(s => s.alliance.toLowerCase() === "red")?.scoreBreakdown;
+                const blueScoreData = matchScores.find(s => s.alliance.toLowerCase() === "blue")?.scoreBreakdown;
+                const redSplit = phaseSplit(season, redScoreData);
+                const blueSplit = phaseSplit(season, blueScoreData);
 
                 return {
                     ...m,
-                    scoreRedEndgame: getEndgame(redScoreData),
-                    scoreBlueEndgame: getEndgame(blueScoreData),
-                    scoreRedTeleOp: getTeleop(redScoreData),
-                    scoreBlueTeleOp: getTeleop(blueScoreData),
+                    scoreRedEndgame: redSplit?.end,
+                    scoreBlueEndgame: blueSplit?.end,
+                    scoreRedTeleOp: redSplit?.tele,
+                    scoreBlueTeleOp: blueSplit?.tele,
                 };
             });
 

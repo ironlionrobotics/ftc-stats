@@ -1,6 +1,7 @@
 "use server";
 
-import { fetchTeamEvents, fetchRankings, fetchMatches, fetchMatchScores, getCachedData, setCachedData, fetchTeam, FTCMatchScoreEntry, FTCAllianceScoreBreakdown } from "@/lib/ftc-api";
+import { fetchTeamEvents, fetchRankings, fetchMatches, fetchMatchScores, getCachedData, setCachedData, fetchTeam, FTCMatchScoreEntry } from "@/lib/ftc-api";
+import { phaseSplit } from "@/lib/score-breakdown";
 import { TeamRanking, FTCMatch } from "@/types/scouting";
 // Kept in lib/ because a "use server" module may only export async functions.
 import { levelsMatch, computeStdDev } from "@/lib/scoring-utils";
@@ -30,7 +31,8 @@ export async function fetchEventParticipants(season: number, eventCode: string):
 }
 
 export async function fetchTeamSeasonHistory(season: number, teamNumber: number): Promise<TeamSeasonStats> {
-    const cacheKey = `season_stats_v1_${season}_${teamNumber}`;
+    // v2: real /scores breakdowns (fetchMatchScores fix).
+    const cacheKey = `season_stats_v2_${season}_${teamNumber}`;
     const cached = await getCachedData<TeamSeasonStats>(cacheKey, 3600); // 1 hour cache
     if (cached) return cached;
 
@@ -96,14 +98,10 @@ export async function fetchTeamSeasonHistory(season: number, teamNumber: number)
         if (matchScore) {
             const allianceData = matchScore.scoreBreakdown;
 
-            if (allianceData) {
-                // Robust extraction logic similar to analytics.ts
-                const getEndgame = (data: FTCAllianceScoreBreakdown) => data.endgamePoints ?? data.endGamePoints ??
-                    ((data.parkingPoints || 0) + (data.ascentPoints || 0));
-                const getTeleop = (data: FTCAllianceScoreBreakdown) => data.teleopPoints ?? data.teleOpPoints ?? data.dcPoints ?? 0;
-
-                tele = getTeleop(allianceData);
-                end = getEndgame(allianceData);
+            const split = phaseSplit(season, allianceData);
+            if (split) {
+                tele = split.tele;
+                end = split.end;
             } else {
                 // Fallback estimate
                 tele = Math.max(0, score - auto - (isRed ? m.scoreBlueFoul : m.scoreRedFoul));

@@ -1,4 +1,5 @@
 import "server-only";
+import { flattenMatchScores, type AllianceScoreBreakdown, type MatchScoreEntry } from "@/lib/score-breakdown";
 import { cache } from "react";
 import { TeamRanking, AdvancementResponse, AdvancementPoints, FTCMatch, FTCAward, FTCEvent } from "@/types/scouting";
 import { getRedis } from "@/lib/redis";
@@ -6,29 +7,11 @@ import { singleFlight } from "@/lib/single-flight";
 
 const BASE_URL = "https://ftc-api.firstinspires.org/v2.0";
 
-// Per-alliance point breakdown nested inside a match score entry. Fields vary
-// by season/game (e.g. "endgamePoints" vs "endGamePoints" naming changed
-// between seasons), so every field is optional and callers pick what applies.
-export interface FTCAllianceScoreBreakdown {
-    endgamePoints?: number;
-    endGamePoints?: number;
-    parkingPoints?: number;
-    dronePoints?: number;
-    stagePoints?: number;
-    ascentPoints?: number;
-    hangPoints?: number;
-    teleopPoints?: number;
-    teleOpPoints?: number;
-    dcPoints?: number;
-}
-
-// Match score entry from the FIRST API `/scores` endpoint.
-export interface FTCMatchScoreEntry {
-    matchNumber: number;
-    matchLevel: string;
-    alliance: string;
-    scoreBreakdown: Record<string, FTCAllianceScoreBreakdown>;
-}
+// Per-alliance breakdown + flattened score entry. Types and parsing live in
+// lib/score-breakdown.ts (pure, unit-tested); re-exported under the names
+// existing callers already import.
+export type FTCAllianceScoreBreakdown = AllianceScoreBreakdown;
+export type FTCMatchScoreEntry = MatchScoreEntry;
 
 // Team metadata from the FIRST API `/teams` endpoint.
 export interface FTCTeamInfo {
@@ -447,7 +430,9 @@ export async function fetchAlliances(
 }
 
 export async function fetchMatchScores(season: number, eventCode: string): Promise<FTCMatchScoreEntry[]> {
-    const cacheKey = `scores_v4_${season}_${eventCode}`;
+    // v5: v4 cached the empty result of parsing the wrong shape (`.scores`)
+    // for up to 30 days on completed events — bumping invalidates it.
+    const cacheKey = `scores_v5_${season}_${eventCode}`;
     const ttl = await getSmartTTL(season, eventCode);
 
     return readThrough(cacheKey, ttl, async () => {
@@ -459,26 +444,29 @@ export async function fetchMatchScores(season: number, eventCode: string): Promi
             // Same contract as fetchMatches: 404 = "not published yet"
             // (cacheable); any other failure must not be memoised.
             let fetchFailed = false;
-            const handleLevel = (label: string) => async (r: Response) => {
+            const handleLevel = (label: string) => async (r: Response): Promise<FTCMatchScoreEntry[]> => {
                 if (!r.ok) {
                     if (r.status !== 404) {
                         console.warn(`[fetchMatchScores] ${label} fetch failed: ${r.status} ${r.statusText}`);
                         fetchFailed = true;
                     }
-                    return { scores: [] };
+                    return [];
                 }
-                return r.json().catch((e: unknown) => {
+                try {
+                    // Real shape: { matchScores: [{ ..., alliances: [...] }] }
+                    return flattenMatchScores(await r.json());
+                } catch (e: unknown) {
                     console.error(`[fetchMatchScores] Error parsing ${label} JSON:`, e);
                     fetchFailed = true;
-                    return { scores: [] };
-                });
+                    return [];
+                }
             };
-            const [qualResult, playoffResult] = await Promise.all([
+            const [qualScores, playoffScores] = await Promise.all([
                 fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Qual")),
                 fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Playoff"))
             ]);
 
-            const allScores = [...(qualResult.scores || []), ...(playoffResult.scores || [])];
+            const allScores = [...qualScores, ...playoffScores];
 
             // Log to console for debugging on server-side
             if (allScores.length > 0) {
