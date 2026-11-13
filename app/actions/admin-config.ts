@@ -17,7 +17,7 @@ import {
  * deliberately separate from the org-level admin/lead roles, and deliberately
  * env-rooted: the bootstrap credential must not be editable from the app.
  *
- * SECRETS POLICY: integration secrets (FTC API, Redis, Gemini, service
+ * SECRETS POLICY: integration secrets (FTC API, Gemini, service
  * account) are surfaced as PRESENT/MISSING booleans only — never values, and
  * never editable here. They live in Secret Manager / env by design.
  */
@@ -56,7 +56,7 @@ function integrationStatuses(): IntegrationStatus[] {
     const has = (v: string | undefined) => typeof v === "string" && v.length > 0;
     return [
         { key: "ftc", label: "FIRST FTC API", configured: has(process.env.FTC_API_USERNAME) && has(process.env.FTC_API_KEY), managedIn: "Secret Manager (FTC_API_USERNAME / FTC_API_KEY)" },
-        { key: "redis", label: "Upstash Redis (caché)", configured: has(process.env.UPSTASH_REDIS_REST_URL) && has(process.env.UPSTASH_REDIS_REST_TOKEN), managedIn: "Secret Manager (UPSTASH_REDIS_REST_*)" },
+        { key: "cache", label: "Caché del servidor (Firestore)", configured: process.env.SERVER_CACHE !== "off" && (has(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) || has(process.env.GOOGLE_APPLICATION_CREDENTIALS) || has(process.env.FIREBASE_WEBAPP_CONFIG)), managedIn: "Firestore server_cache (SERVER_CACHE=off la apaga)" },
         { key: "firebase-admin", label: "Firebase Admin (server)", configured: has(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) || has(process.env.GOOGLE_APPLICATION_CREDENTIALS) || has(process.env.FIREBASE_WEBAPP_CONFIG), managedIn: "Secret Manager / ADC" },
         { key: "gemini", label: "Google Gemini (IA)", configured: has(process.env.GOOGLE_GENERATIVE_AI_API_KEY), managedIn: "Secret Manager (GOOGLE_GENERATIVE_AI_API_KEY)" },
         { key: "tba", label: "The Blue Alliance (FRC)", configured: has(process.env.TBA_API_KEY), managedIn: "env (TBA_API_KEY)" },

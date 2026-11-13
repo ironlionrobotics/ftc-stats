@@ -1,6 +1,6 @@
 "use server";
 
-import { getRedis } from "@/lib/redis";
+import { serverCache } from "@/lib/server-cache";
 import { fetchEvents, fetchMatches, fetchMatchScores } from "@/lib/ftc-api";
 import { trainLogistic, type LogisticModel } from "@/lib/logistic-regression";
 import {
@@ -16,7 +16,7 @@ import type { ErrorCode } from "@/lib/errors";
 
 /**
  * Trains per-RP logistic-regression models from a full season of FTC API
- * match data. Admin/lead-only. Models persist in Redis under
+ * match data. Admin/lead-only. Models persist in the server cache under
  * `rp-model:{season}:{target}:vN` (see rpModelCacheKey for version history)
  * so inference (during predictions, briefings, etc.) reads them with one
  * round-trip.
@@ -66,8 +66,7 @@ export async function trainRpModelsAction(input: {
         return { ok: false, code: "auth.notAdmin" };
     }
 
-    const redis = getRedis();
-    if (!redis) {
+    if (!serverCache.remoteEnabled) {
         return { ok: false, code: "rpModel.notConfigured" };
     }
 
@@ -133,9 +132,13 @@ export async function trainRpModelsAction(input: {
 
         const cached: LogisticModel = model;
         // 30-day TTL so stale models don't haunt the next season.
-        await redis.set(rpModelCacheKey(input.season, target), cached, {
-            ex: 30 * 24 * 60 * 60,
-        });
+        const modelKey = rpModelCacheKey(input.season, target);
+        const saved = await serverCache.set(modelKey, cached, 30 * 24 * 60 * 60);
+        if (!saved) {
+            // Don't let this instance serve a model nobody else can see.
+            serverCache.forgetLocal(modelKey);
+            return { ok: false, code: "rpModel.notConfigured" };
+        }
 
         reports.push({
             target,
@@ -156,19 +159,12 @@ export async function trainRpModelsAction(input: {
 }
 
 /**
- * Fetches a cached RP model from Redis. Returns null when the model isn't
+ * Fetches a cached RP model from the server cache. Returns null when the model isn't
  * trained yet — callers fall back to the heuristic via inferTeamRpProbability.
  */
 export async function getRpModelAction(input: {
     season: number;
     target: RPTarget;
 }): Promise<LogisticModel | null> {
-    const redis = getRedis();
-    if (!redis) return null;
-    try {
-        const cached = await redis.get<LogisticModel>(rpModelCacheKey(input.season, input.target));
-        return cached ?? null;
-    } catch {
-        return null;
-    }
+    return serverCache.get<LogisticModel>(rpModelCacheKey(input.season, input.target));
 }

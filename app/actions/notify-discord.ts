@@ -1,14 +1,14 @@
 "use server";
 
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
-import { getRedis } from "@/lib/redis";
+import { serverCache } from "@/lib/server-cache";
 import type { ErrorCode } from "@/lib/errors";
 
 /**
  * Discord webhook proxy. The webhook URL lives in `org_secrets/{orgId}.discordWebhookUrl`
  * (separate collection from `orgs/` so Firestore rules can lock it down —
  * the public `orgs/` doc is readable by any authed user). Fetched server-side
- * via admin SDK; clients never see the URL. Posts are rate-limited via Redis
+ * via admin SDK; clients never see the URL. Posts are rate-limited via the server cache
  * (1 message per org per 60s by default) so a stuck retry loop doesn't spam
  * the channel.
  */
@@ -17,6 +17,8 @@ type Severity = "info" | "warning" | "error";
 
 const RATE_LIMIT_KEY_PREFIX = "discord:lastsent:";
 const DEFAULT_RATE_LIMIT_SECONDS = 60;
+/** Floor for client overrides (the settings "test" button asks for 0 → 5 s between tests). */
+const MIN_RATE_LIMIT_SECONDS = 5;
 
 const COLOR_BY_SEVERITY: Record<Severity, number> = {
     info: 0x3b82f6,    // blue
@@ -43,7 +45,13 @@ export async function notifyDiscordAction(input: {
     /** Override rate limit window (seconds). Defaults to 60. */
     rateLimitSeconds?: number;
 }): Promise<{ ok: true } | { ok: false; code: ErrorCode }> {
-    const { idToken, title, description, severity = "info", rateLimitSeconds = DEFAULT_RATE_LIMIT_SECONDS } = input;
+    const { idToken, title, description, severity = "info" } = input;
+    // Client-controlled: clamp so a tiny/huge/NaN window can't bypass the
+    // limit or feed invalid timestamps to the lock.
+    const requested = Number(input.rateLimitSeconds ?? DEFAULT_RATE_LIMIT_SECONDS);
+    const rateLimitSeconds = Number.isFinite(requested)
+        ? Math.min(3600, Math.max(MIN_RATE_LIMIT_SECONDS, Math.round(requested)))
+        : DEFAULT_RATE_LIMIT_SECONDS;
 
     if (!idToken) return { ok: false, code: "auth.missingToken" };
     let uid: string;
@@ -70,15 +78,10 @@ export async function notifyDiscordAction(input: {
     if (!webhookUrl) return { ok: false, code: "discord.notConfigured" };
 
     // Rate limit: skip if we already pinged this org recently.
-    const redis = getRedis();
-    if (redis) {
-        const key = RATE_LIMIT_KEY_PREFIX + orgId;
-        // SET NX EX = only set if not exists, with expiry. Returns null if
-        // the key already existed (i.e., we sent something inside the window).
-        const acquired = await redis.set(key, Date.now(), { nx: true, ex: rateLimitSeconds });
-        if (!acquired) {
-            return { ok: false, code: "discord.rateLimited" };
-        }
+    // Expiring lock: false if we already sent something inside the window.
+    // When the shared cache is unavailable it degrades to a per-instance lock.
+    if (!(await serverCache.acquire(RATE_LIMIT_KEY_PREFIX + orgId, rateLimitSeconds))) {
+        return { ok: false, code: "discord.rateLimited" };
     }
 
     const emoji = EMOJI_BY_SEVERITY[severity];

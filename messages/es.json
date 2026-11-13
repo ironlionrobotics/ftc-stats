@@ -34,7 +34,7 @@
       "missingEventCode": "Falta eventCode"
     },
     "rpModel": {
-      "notConfigured": "Redis no configurado — los modelos no se pueden cachear"
+      "notConfigured": "Caché del servidor no disponible — los modelos no se pueden guardar"
     },
     "discord": {
       "notConfigured": "El equipo no tiene un webhook de Discord configurado",

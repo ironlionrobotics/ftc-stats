@@ -53,7 +53,7 @@ if (typeof window === "undefined") {
 }
 
 // Offline persistence handled by Dexie (lib/localDatabase.ts) for scouting data,
-// and by Upstash Redis (server-side) for analytical cache. We intentionally do NOT
+// and by the Firestore-backed server cache (lib/server-cache.ts). We intentionally do NOT
 // enable Firestore IndexedDB persistence — it caches the entire api_cache collection
 // in the browser (hundreds of MB) and crashes mobile devices.
 if (typeof window !== "undefined") {

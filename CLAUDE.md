@@ -24,7 +24,7 @@ npm run generate:pwa-assets   # Regenerate /public/icons/* from public/icon.png
 |---|---|---|
 | `FTC_API_USERNAME` / `FTC_API_KEY` | FIRST API access (server-only) | App fetches return empty arrays; offline cache fallback kicks in |
 | `NEXT_PUBLIC_FIREBASE_*` (or `FIREBASE_WEBAPP_CONFIG`) | Firebase Web SDK init | Client crashes on auth/Firestore use |
-| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Analytical cache (events, aggregations) | Cache no-ops, every read hits FTC API (degraded perf) |
+| `SERVER_CACHE` (optional) | `off` = kill switch for the Firestore-backed server cache | Default on; the cache also self-disables for 30 s after any failure |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | firebase-admin SDK (server actions) | Calibration log, ground-truth validation, RP model training all silently fail |
 | `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_ORG` + `SENTRY_PROJECT` + `SENTRY_AUTH_TOKEN` | Production error tracking | Sentry no-ops in dev anyway (gated on `NODE_ENV === "production"`) |
 
@@ -38,7 +38,7 @@ Next.js 16 App Router + React 19 + React Compiler (`reactCompiler: true`). Tailw
 
 **Three storage tiers, each with a specific purpose:**
 
-1. **Upstash Redis** (`lib/redis.ts`, `lib/ftc-api.ts`) — analytical cache for FTC API responses + computed aggregations. TTL-based via `SET ... EX`. When Redis isn't configured, cache no-ops and every read hits the API directly.
+1. **Server cache** (`lib/server-cache.ts` → `lib/tiered-cache.ts`, used by `lib/ftc-api.ts`) — analytical cache for FTC API responses + computed aggregations: per-instance memory (L1) in front of Firestore `server_cache` (L2, gzipped JSON, Admin SDK only, TTL policy on `expiresAt`). Every remote op has a timeout and a circuit breaker, so a broken cache costs one timeout per 30 s, never seconds per call. Also hosts rate-limit counters (`server_counters`). Replaced Upstash Redis in Nov 2026 (decision #89) after the free DB was deleted for inactivity.
 2. **Firestore** (`lib/firebase.ts` for Web SDK on client, `lib/firebase-admin.ts` for Admin SDK on server) — real-time collaborative data: scouting entries (`match_scouting`, `pit_scouting`), users, orgs, invitations, picklists, calibration logs. **Sensitive per-org secrets (Discord webhooks) live in `org_secrets/{orgId}`** to avoid leaking via the public-readable `orgs/` collection.
 3. **Dexie (IndexedDB)** — two distinct DBs:
    - `FTCStatsLocal` (`lib/localDatabase.ts`) — pending scouting entries captured offline, drained to Firestore by `OnlineSync` when connectivity returns
@@ -49,7 +49,7 @@ Next.js 16 App Router + React 19 + React Compiler (`reactCompiler: true`). Tailw
 The FTC public API blocks browser CORS, so all FIRST API access is server-only (`lib/ftc-api.ts` starts with `import "server-only"`). Flow:
 
 1. Server Components call `lib/aggregation.ts` or `lib/ftc-api.ts`.
-2. Each fetcher reads Upstash via `getCachedData()`. TTL via `getSmartTTL()`: completed events 30 days, future events 1–24 h, active events 60 s. `getSmartTTL` and `fetchEvents` are wrapped in `React.cache()` to dedupe within a single request.
+2. Each fetcher reads the server cache via `getCachedData()`. TTL via `getSmartTTL()`: completed events 30 days, future events 1–24 h, active events 60 s. `getSmartTTL` and `fetchEvents` are wrapped in `React.cache()` to dedupe within a single request.
 3. On miss, `fetchWithRetry` (exponential backoff, retries 5xx/429 only).
 4. Data passes as props to Client Components.
 
@@ -71,7 +71,7 @@ Ground-truth validation (`lib/ground-truth-validation.ts`) uses **leave-one-out 
 - `lib/aggregation.ts` — raw stats from API
 - `lib/projections.ts` — hybrid projection with **Bayesian inverse-variance blend** between API base and live scouting (replaced fixed 60/40 heuristic). Win probability uses real logistic, not piecewise linear
 - `lib/alliance-utils.ts` — greedy captain selection + Monte Carlo with **per-team σ derived from event-history variance** (replaced σ=30 global)
-- `lib/rp-inference.ts` + `lib/logistic-regression.ts` — per-RP logistic regression (movement / artifact / pattern) trained from season match outcomes. **Falls back transparently to empirical heuristic when no model is cached** in Redis
+- `lib/rp-inference.ts` + `lib/logistic-regression.ts` — per-RP logistic regression (movement / artifact / pattern) trained from season match outcomes. **Falls back transparently to empirical heuristic when no model is cached** in the server cache
 
 ### Scouting subsystem
 
@@ -117,7 +117,7 @@ Firebase Auth for identity. `users/{uid}.orgId` for team membership. `orgs/{orgI
 | Concern | Files |
 |---|---|
 | Algorithms | `lib/projections.ts`, `lib/alliance-utils.ts`, `lib/scouting-aggregation.ts`, `lib/ground-truth-validation.ts`, `lib/logistic-regression.ts`, `lib/rp-inference.ts` |
-| Data layer | `lib/ftc-api.ts`, `lib/redis.ts`, `lib/firebase.ts`, `lib/firebase-admin.ts`, `lib/scouting-service.ts`, `lib/localDatabase.ts`, `lib/client-cache.ts` |
+| Data layer | `lib/ftc-api.ts`, `lib/server-cache.ts`, `lib/tiered-cache.ts`, `lib/firebase.ts`, `lib/firebase-admin.ts`, `lib/scouting-service.ts`, `lib/localDatabase.ts`, `lib/client-cache.ts` |
 | Form schemas | `lib/schemas/scouting.ts`, `lib/games/ftc-decode-2025.ts`, `types/game-definition.ts` |
 | UI primitives | `components/ui/` (Card, Tabs, Skeleton, Tip, ConfirmDialog, Tooltip) |
 | Offline machinery | `components/OnlineSync.tsx`, `components/HydrateAndCache.tsx`, `app/sw.ts` |

@@ -1,7 +1,7 @@
 "use server";
 
 import { getAdminAuth } from "@/lib/firebase-admin";
-import { getRedis } from "@/lib/redis";
+import { serverCache } from "@/lib/server-cache";
 import { getAppConfig } from "@/lib/app-config";
 import {
     AI_LIMITS,
@@ -25,8 +25,8 @@ import {
  *      map. It is NEVER taken from client input, so a caller can't inject an
  *      arbitrary path into the `…/models/{model}:generateContent` URL and
  *      turn the app into a general-purpose LLM proxy tied to our key.
- *   3. Per-user rate limit (Redis fixed window): caps requests/user/minute so
- *      an authenticated user can't loop the endpoint. No-ops if Redis is
+ *   3. Per-user rate limit (server-cache fixed window): caps requests/user/minute so
+ *      an authenticated user can't loop the endpoint. No-ops if the cache is
  *      unconfigured (consistent with the rest of the app; auth still holds).
  *   4. Input caps: message length, history turns + total size, and serialized
  *      context size are all bounded before anything reaches Gemini.
@@ -70,7 +70,7 @@ export async function chatWithAssistant(input: {
     }
 
     // Runtime config (superadmin console): master switch + tunables. Read is
-    // Redis-cached (60s) so this adds no meaningful latency per request.
+    // Server-cached (60s) so this adds no meaningful latency per request.
     const appConfig = await getAppConfig();
     if (!appConfig.features.aiAssistant) {
         return reply("El asistente de IA está desactivado por el administrador.");
@@ -87,22 +87,12 @@ export async function chatWithAssistant(input: {
     }
     const trimmed = validated.value;
 
-    // 3. Per-user rate limit. No-op when Redis isn't configured.
-    const redis = getRedis();
-    if (redis) {
-        try {
-            const key = RL_PREFIX + uid;
-            const count = await redis.incr(key);
-            if (count === 1) await redis.expire(key, AI_LIMITS.rateWindowSeconds);
-            // Ceiling comes from runtime config (superadmin-tunable), not the
-            // compile-time constant — AI_LIMITS keeps the default.
-            if (count > appConfig.ai.rateMaxPerWindow) {
-                return reply("Vas muy rápido — espera un momento antes de la siguiente consulta.");
-            }
-        } catch (e) {
-            // Rate-limit backend hiccup shouldn't hard-fail the feature; log and continue.
-            console.warn("[ai] rate-limit check failed, allowing request:", e);
-        }
+    // 3. Per-user rate limit. If the shared cache is unavailable the counter
+    // degrades to per-instance (never unlimited). Ceiling comes from runtime
+    // config (superadmin-tunable); AI_LIMITS keeps the default.
+    const count = await serverCache.incrWindow(RL_PREFIX + uid, AI_LIMITS.rateWindowSeconds);
+    if (count > appConfig.ai.rateMaxPerWindow) {
+        return reply("Vas muy rápido — espera un momento antes de la siguiente consulta.");
     }
 
     // 4b. Bound the remaining inputs.

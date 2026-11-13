@@ -5,12 +5,12 @@
  * flight, they all await the SAME underlying promise instead of each starting
  * their own work. This collapses a cache stampede (thundering herd): at an
  * event, dozens of scouts on the venue Wi-Fi load the same event page within
- * the same second when the Redis entry is cold or has just expired — without
+ * the same second when the cache entry is cold or has just expired — without
  * this guard that is N identical calls to the rate-limited FIRST API, exactly
  * when the network is worst.
  *
  * Scope is the current server process (a module-level Map). It does NOT
- * coordinate across multiple server instances; that would require a Redis
+ * coordinate across multiple server instances; that would require a distributed
  * lock, whose added latency and failure modes (lock expiry, deadlock) aren't
  * warranted here — in-process de-dup already collapses the dominant burst (one
  * instance serving a flood of concurrent requests).

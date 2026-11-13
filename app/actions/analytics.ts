@@ -129,7 +129,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
     const teamMap = new Map<number, TeamEvolution>();
 
     // Load trained per-RP logistic models once per analysis. When the cache
-    // is cold or Redis is unconfigured, both come back as null and the team
+    // is cold or the server cache is unavailable, both come back as null and the team
     // loop transparently falls back to the empirical heuristic (preserving
     // pre-C.3 behavior). See lib/rp-inference.ts.
     const seasonRules = seasonRulesFor(season);
@@ -383,7 +383,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
             // Update running season averages/probs.
             // C.3: if a trained logistic model is available, prefer its prediction
             // over the empirical rate. When the model is null (cold cache,
-            // pre-training, Redis offline), inferTeamRpProbability falls back
+            // pre-training, cache unavailable), inferTeamRpProbability falls back
             // to the heuristic — same behavior as before.
             if (isCountSeason) {
                 // Weight this event's tips OPR by the team's matches in it.
