@@ -1002,3 +1002,11 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 **Decisión:** decaimiento 0.7 sin cambio, más `SWARM_CALIBRATION = { a: 0.65, b: 1.05 }` en `biobuzzAllianceRp` (`lib/rp-counts.ts`, `calibrateSwarm`). Los extremos se respetan: p = 1 sigue en 1 y p = 0 sigue en 0. POLLINATOR no se toca: skill 0.27 / 0.21; queda una subestimación en el tramo alto, pero con n pequeño (74 y 4 alianzas).
 
 **Umbrales de RP de Regional, Campeonato y Premier:** siguen sin publicarse (TBA en el manual). El mecanismo de override por evento ya existe (`RP_THRESHOLD_OVERRIDES`, #87); se llena cuando se publiquen.
+## #97 · Requisitos de apertura, primera parte: cabeceras, páginas de error y borrado de cuenta (2026-11-13)
+
+- **Cabeceras de seguridad** (`next.config.ts`): HSTS (2 años), `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, y `Permissions-Policy` con la cámara permitida solo al propio sitio (lector QR) y lo demás desactivado.
+- **CSP en modo reporte:** se registra en la consola del navegador sin bloquear. Lista Firebase Auth (popup), Firestore, Sentry y el service worker. Se pasa a modo obligatorio cuando unos días de tráfico real no muestren violaciones.
+- **Páginas de error:** `app/not-found.tsx` (404 traducido), `app/error.tsx` (error de una ruta, con reintento y reporte a Sentry) y `app/global-error.tsx` (falla el layout raíz: marcado mínimo bilingüe sin providers).
+- **`robots.ts`:** indexa lo público y excluye `/admin`, `/scouting` y `/card`. El `sitemap` llega con las rutas nuevas de la Etapa 2.
+- **Borrado de cuenta** (`deleteMyAccountAction`, hay que escribir "DELETE"): el scouting se queda con el equipo, pero queda des-identificado ("Deleted scout"; se conserva el uid, que ya no apunta a nadie, porque la fiabilidad y la deduplicación dependen de él). Se borran las solicitudes pendientes de equipo, el perfil `users/{uid}` y la cuenta de Firebase Auth, en ese orden, para poder reintentar si falla Firestore. **Hueco conocido:** si era el único admin de su equipo, el equipo queda sin admin; lo reasigna un superadmin.
+- **Otra fuga de correo cerrada:** el pit scouting guardaba `displayName || email` como "última actualización por". Ahora usa `scoutNameFromUser` (#92).

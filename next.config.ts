@@ -4,9 +4,42 @@ import withSerwistInit from "@serwist/next";
 import withBundleAnalyzerInit from "@next/bundle-analyzer";
 import createNextIntlPlugin from "next-intl/plugin";
 
+// Security headers (plan "PRIDE abierta al público" §4.4, decision #97).
+// Enforced: transport, sniffing, framing, referrer and device permissions.
+// CSP ships REPORT-ONLY first: violations surface in the browser console
+// without breaking Firebase Auth popups, Sentry or the service worker; it is
+// switched to enforcing once a few days of real traffic show no violations.
+const cspReportOnly = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://lh3.googleusercontent.com",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+  "frame-src https://*.firebaseapp.com https://accounts.google.com",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
+const securityHeaders = [
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // Camera stays available to this origin for the QR scanner (components/scouting/QRScanner.tsx).
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=()" },
+  { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
+];
+
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
   images: {
     remotePatterns: [
       {

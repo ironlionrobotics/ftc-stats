@@ -62,6 +62,9 @@
       "notesMax2000": "Max 2000 characters",
       "notesMax5000": "Max 5000 characters",
       "publicSummaryMax1000": "Max 1000 characters"
+    },
+    "account": {
+      "confirmRequired": "Type DELETE to confirm."
     }
   },
   "DraftOdds": {
@@ -1378,5 +1381,14 @@
       "rsFinal": "Final RS",
       "top4": "Top 4"
     }
+  },
+  "ErrorPages": {
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "That page doesn't exist. Check the team number or event code in the address, or start from Today.",
+    "home": "Go to Today",
+    "errorTitle": "Something went wrong",
+    "errorBody": "This page couldn't load. The data source may be slow or down — try again in a moment.",
+    "errorRef": "Reference: {ref}",
+    "retry": "Try again"
   }
 }
