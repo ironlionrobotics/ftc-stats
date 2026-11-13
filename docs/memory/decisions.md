@@ -937,3 +937,38 @@ Un modelo conjunto de 8 estados por robot no mejora (0.1772): el sesgo residual 
 
 - **Firebase Analytics** se inicializaba en cada visita sin consentimiento, y la mayoría de los usuarios son menores. Ahora solo carga si `localStorage["pride-analytics-consent"] === "granted"`; nada lo concede hasta que exista el aviso de consentimiento (plan, Etapa 4). Se importa de forma diferida, así que `firebase/analytics` sale del bundle.
 - **`scoutNameFromUser`** y la semilla del perfil caían al correo cuando faltaba el nombre, y ese valor se graba en cada entrada de scouting, visible para toda la organización. Ahora caen a "Scout".
+
+## #94 · Probabilidad de victoria: modelo normal confirmado en BIOBUZZ y k = 3.5 para la fórmula sin varianza (2026-11-13)
+
+**Backtest 2026** (`scripts/oracle-backtest.mjs run 2026`, 201 eventos, 22 con playoffs y 160 partidos): el modelo normal Φ(Δμ/σ), que usan el Oracle, el simulador y MatchList, acierta **75.6%**, con confianza media de 74.1% y Brier de 0.175. Está calibrado para BIOBUZZ; no se cambia.
+
+**Fórmula sin varianza** (`winProbabilityFromProjections`, usada por `predictMatch` en `lib/projections.ts`): logística sobre Δ/promedio. Ajustada por log-loss en partidos de playoff (`x = z/level` de `matches-<año>.jsonl`):
+
+| Temporada | n | Brier con k=1.5 | Mejor k | Brier con mejor k |
+|---|---|---|---|---|
+| 2024 | 5,028 | 0.179 | 3.35 | 0.163 |
+| 2025 | 5,772 | 0.183 | 3.50 | 0.165 |
+| 2026 | 160 | 0.175 | 3.80 (IC 90% 3.0–5.0) | 0.156 |
+
+**Decisión:** `WIN_PROB_LOGISTIC_K = 3.5`. Reemplaza el 1.5 de la decisión #23, que se había tomado de modelos de la comunidad y resultó poco confiado en las tres temporadas: subestimaba la ventaja del favorito.
+
+**`apiPriorCV` (0.20) no se recalibra:** necesita scouting real de 2026 y hoy hay 0 entradas. Revisar después de MXTLQ.
+
+**Pendiente lateral:** el `report` del backtest muestra NaN en 2024 y 2025 (formato de registro distinto en esos archivos); no afecta a 2026.
+
+## #95 · Proyección de ranking v2 y RP reales en la vista de evento (2026-11-13)
+
+**Bug de fondo:** el Ranking Score de FTC (`sortOrder1`) ya es el **promedio** de RP por partido, pero la proyección de Live Ranking lo trataba como total y lo extrapolaba (RS + RS/jugados × restantes). Eso inflaba a los equipos con menos partidos jugados. Además solo usaba un desempate, y lo dejaba fijo.
+
+**Proyección v2** (`lib/live-projection.ts`): 1,000 simulaciones Monte Carlo, con semilla fija, de los partidos de calificación que faltan:
+- **Fuerza de cada equipo:** OPR del evento sobre puntos sin penalizaciones (ridge).
+- **P(ganar):** Φ(Δμ/σ), con σ = √2·RMS de los residuos y un piso de 20% del puntaje medio cuando hay pocos datos.
+- **RP de bonificación:** la tasa observada de cada equipo, es decir su RS menos el RP por victorias y empates.
+- **RS final:** RP total entre los partidos que cuentan; las apariciones como *surrogate* no cuentan.
+- **Orden:** por RS y luego los desempates oficiales en el orden que da la API (`sortOrder2…5`), con sorteo al final.
+- **Salida:** rango mediano, rango p10–p90 y P(top 4).
+- **Validado contra datos reales:** con todos los partidos de AUBRQ1 jugados, reproduce exactamente el ranking oficial (test con fixture real). Fue así como se encontró el caso de los *surrogate*.
+
+**Vista de evento:**
+- La página del servidor trae `/scores` y pasa los RP de bonificación oficiales de cada alianza. El deslizador "Historia por ronda" reconstruye rondas pasadas con 3 RP por victoria (antes usaba 2, la regla de antes de DECODE) más esos RP de bonificación.
+- Para 2026 pasa también las probabilidades de RP de los modelos de conteo (#88), el mismo análisis que usa Data Lab, ya en caché. Antes esa vista dejaba los RP de 2026 vacíos.

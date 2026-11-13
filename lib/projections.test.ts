@@ -312,10 +312,10 @@ describe("predictMatch", () => {
     });
 
     it("matches the calibrated logistic value", () => {
-        // diff 100, avg 100 → normalized 1 → 1/(1+e^{-1.5}) ≈ 0.8176.
+        // diff 100, avg 100 → normalized 1 → 1/(1+e^{-3.5}) ≈ 0.9707.
         const red = [projection({ projectedPoints: 150 })];
         const blue = [projection({ projectedPoints: 50 })];
-        expect(predictMatch(red, blue).winProbability).toBeCloseTo(0.8176, 3);
+        expect(predictMatch(red, blue).winProbability).toBeCloseTo(0.9707, 3);
     });
 
     it("is symmetric: P(red) + P(swapped) = 1", () => {
