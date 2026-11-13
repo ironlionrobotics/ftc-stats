@@ -10,7 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:rules": "bash scripts/with-java21.sh firebase emulators:exec --only firestore --project demo-pride \"vitest run --config vitest.rules.config.ts\"",
+    "test:rules": "bash scripts/with-java21.sh firebase emulators:exec --only firestore,storage --project demo-pride \"vitest run --config vitest.rules.config.ts\"",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium"
   },

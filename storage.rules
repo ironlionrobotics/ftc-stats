@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// Cloud Storage rules (decision #106). Only robot media of the Trading Card
+// lives here: team_media/{season}/{team}/{mediaId}/{original|thumb}.
+//   - Readable only by members of an approved team (never public; the app
+//     reads with the SDK under these rules, not with public download URLs).
+//   - Written/deleted only by an admin or lead of that team.
+//   - Images ≤ 5 MB (already recompressed in the browser, EXIF stripped);
+//     clips ≤ 50 MB, mp4/webm/mov, original variant only.
+// Team membership is read from Firestore users/{uid} (written only by the
+// server), via cross-service rules.
+service firebase.storage {
+    match /b/{bucket}/o {
+        function me() {
+            return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+        }
+
+        function hasTeam() {
+            return request.auth != null && me().get('orgId', null) is string;
+        }
+
+        function managesTeam(team) {
+            return hasTeam() && me().orgId == team && me().role in ['admin', 'lead'];
+        }
+
+        function okImage() {
+            return request.resource.contentType.matches('image/(jpeg|webp|png)')
+                && request.resource.size <= 5 * 1024 * 1024;
+        }
+
+        function okClip(variant) {
+            return variant == 'original'
+                && request.resource.contentType.matches('video/(mp4|webm|quicktime)')
+                && request.resource.size <= 50 * 1024 * 1024;
+        }
+
+        match /team_media/{season}/{team}/{mediaId}/{variant} {
+            allow read: if hasTeam();
+            allow create: if managesTeam(team)
+                && variant in ['original', 'thumb']
+                && (okImage() || okClip(variant));
+            allow update: if false;
+            allow delete: if managesTeam(team);
+        }
+
+        // Everything else in the bucket is closed.
+        match /{allPaths=**} {
+            allow read, write: if false;
+        }
+    }
+}

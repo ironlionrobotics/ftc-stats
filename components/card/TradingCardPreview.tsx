@@ -20,6 +20,7 @@ export default function TradingCardPreview({
     measured,
     selfReport,
     general,
+    profilePhotoUrl,
 }: {
     profile: TeamProfile;
     teamName?: string;
@@ -28,6 +29,8 @@ export default function TradingCardPreview({
     selfReport?: GameDefinition | null;
     /** Questions common to every season (#107). */
     general?: GameDefinition | null;
+    /** Blob URL of the uploaded profile photo (#106); wins over the legacy photoUrl. */
+    profilePhotoUrl?: string | null;
 }) {
     const t = useTranslations("TradingCard");
     const tGames = useTranslations("Games");
@@ -50,7 +53,8 @@ export default function TradingCardPreview({
             : [];
     const generalChips = chipsFor(general, profile.general);
     const answerChips = [...generalChips, ...chipsFor(selfReport, answers)];
-    const { capabilities: cap, points, descriptions, photoUrl } = profile;
+    const { capabilities: cap, points, descriptions } = profile;
+    const photoUrl = profilePhotoUrl || profile.photoUrl;
 
     const capChips: { on: boolean; label: string; icon: React.ElementType }[] = [
         { on: cap.canClimb, label: t("canClimb"), icon: ArrowUp },

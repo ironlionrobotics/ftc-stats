@@ -374,7 +374,10 @@
     "selfReportTitle": "Tu robot esta temporada",
     "selfReportHint": "Responde por tu partido TÍPICO. Los equipos que te scouteen verán tus respuestas junto a lo que observan y a los resultados oficiales.",
     "generalTitle": "Tu robot y equipo (todas las temporadas)",
-    "generalHint": "Lo que otros equipos preguntan cada año. Los datos del equipo como año rookie y ciudad vienen de FIRST: no hace falta escribirlos."
+    "generalHint": "Lo que otros equipos preguntan cada año. Los datos del equipo como año rookie y ciudad vienen de FIRST: no hace falta escribirlos.",
+    "mediaTitle": "Fotos y videos",
+    "mediaHint": "Elige la foto de perfil del robot con la estrella. Clips: hasta 60 s.",
+    "mediaHintViewer": "Solo el admin o lead de tu equipo puede agregar o borrar medios."
   },
   "Today": {
     "kicker": "Ahora mismo",
@@ -1792,5 +1795,43 @@
     "best": "mejor {best}",
     "progressLegend": "Promedio ± dispersión (consistencia) por fase. El total cuenta solo partidos completos.",
     "chartNeedsTwo": "Registra al menos dos partidos completos para ver la tendencia."
+  },
+  "CardMedia": {
+    "consent": "Confirmo que no se identifica el rostro de ningún integrante, o que tenemos su permiso. Lo mejor: solo el robot, con su número visible.",
+    "tip": "Hasta {photos} fotos y {clips} clips de {seconds} s. Las fotos se reducen y se les quita la ubicación antes de subirlas. Solo las ven equipos aprobados.",
+    "captionPh": "Pie de foto (opcional)",
+    "addPhoto": "Agregar foto",
+    "addClip": "Agregar clip",
+    "youtubePh": "Enlace de YouTube (ej. reveal del robot)",
+    "addYoutube": "Agregar",
+    "cancel": "Cancelar",
+    "uploaded": "Subido",
+    "emptyOwn": "Todavía no hay fotos. Agrega una y elígela como foto de perfil del robot.",
+    "empty": "Este equipo todavía no agrega fotos.",
+    "kind": {
+      "photo": "Foto",
+      "clip": "Clip",
+      "youtube": "Video de YouTube"
+    },
+    "close": "Cerrar",
+    "useAsProfile": "Usar como foto de perfil",
+    "profileSet": "Foto de perfil actualizada",
+    "delete": "Borrar",
+    "deleteTitle": "¿Borrar este elemento?",
+    "deleteBody": "Se borra para todos los equipos. No se puede deshacer.",
+    "report": "Reportar",
+    "reportTitle": "¿Reportar este elemento?",
+    "reportBody": "Úsalo si muestra personas identificables sin permiso o no es apropiado. Lo revisan los administradores de PRIDE.",
+    "reported": "Gracias: se revisará",
+    "errors": {
+      "tooMany": "Llegaste al límite de este tipo de elemento.",
+      "tooBig": "Archivo demasiado grande.",
+      "tooLong": "El clip dura más de 60 segundos.",
+      "badType": "Tipo de archivo no soportado.",
+      "badYoutube": "Eso no parece un enlace de video de YouTube.",
+      "consentRequired": "Marca primero la confirmación.",
+      "decode": "No se pudo leer el archivo (fotos HEIC: expórtalas como JPEG).",
+      "upload": "Falló la subida: revisa tu conexión e intenta de nuevo."
+    }
   }
 }

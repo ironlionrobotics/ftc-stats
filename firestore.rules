@@ -217,7 +217,47 @@ service cloud.firestore {
             // another team's id must not pass on a matching body alone).
             allow write: if hasTeam()
                 && isMyOrg(string(request.resource.data.teamNumber))
-                && profileId == string(request.resource.data.season) + '_' + myOrgId();
+                && profileId == string(request.resource.data.season) + '_' + myOrgId()
+                // The robot's profile photo is chosen by an admin/lead only (#106).
+                && (request.resource.data.get('profileMediaId', null)
+                        == (resource == null ? null : resource.data.get('profileMediaId', null))
+                    || isOrgAdminOrLead());
+        }
+
+        // Trading Card media metadata (#106): files live in Storage
+        // (storage.rules). Visible to approved teams; only an admin/lead of the
+        // team adds or removes, with the no-faces-or-permission consent.
+        match /team_media/{mediaId} {
+            allow read: if hasTeam();
+            allow create: if isMyOrg(string(request.resource.data.teamNumber))
+                && isOrgAdminOrLead()
+                && request.resource.data.consent == true
+                && request.resource.data.uploadedBy == request.auth.uid
+                && request.resource.data.kind in ['photo', 'clip', 'youtube']
+                && request.resource.data.caption is string
+                && request.resource.data.caption.size() <= 80
+                && (request.resource.data.kind != 'youtube'
+                    || request.resource.data.youtubeId.matches('^[A-Za-z0-9_-]{11}$'))
+                && (request.resource.data.kind == 'youtube'
+                    || request.resource.data.path == 'team_media/' + string(request.resource.data.season) + '/' + string(request.resource.data.teamNumber) + '/' + mediaId + '/original');
+            allow update: if isMyOrg(string(resource.data.teamNumber))
+                && isOrgAdminOrLead()
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caption'])
+                && request.resource.data.caption is string
+                && request.resource.data.caption.size() <= 80;
+            allow delete: if isMyOrg(string(resource.data.teamNumber)) && isOrgAdminOrLead();
+        }
+
+        // "Report this media": any approved team files a report; only the
+        // server (superadmin console) reads them.
+        match /media_reports/{reportId} {
+            allow read: if false;
+            allow create: if hasTeam()
+                && request.resource.data.reportedBy == request.auth.uid
+                && request.resource.data.mediaId is string
+                && request.resource.data.reason is string
+                && request.resource.data.reason.size() <= 200;
+            allow update, delete: if false;
         }
 
         // Picklists: one document per (org, event), real-time-synced for

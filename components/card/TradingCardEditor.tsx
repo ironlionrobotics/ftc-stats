@@ -20,6 +20,8 @@ import {
 import { getMeasuredStatsAction } from "@/app/actions/team-card";
 import type { MeasuredStats } from "@/types/team-profile";
 import TradingCardPreview from "./TradingCardPreview";
+import MediaGallery, { useProfilePhotoUrl } from "./MediaGallery";
+import type { TeamMedia } from "@/lib/team-media";
 import DynamicGameForm from "@/components/scouting/games/DynamicGameForm";
 import { gameDefinitionFor } from "@/lib/games/registry";
 import { zodSchemaFromDefinition } from "@/lib/games/zod-from-definition";
@@ -28,7 +30,11 @@ import { generalQuestions, GENERAL_QUESTIONS_VERSION } from "@/lib/team-profile/
 
 export default function TradingCardEditor() {
     const t = useTranslations("TradingCard");
-    const { user, orgId } = useAuth();
+    const { user, orgId, userDoc } = useAuth();
+    const canManageMedia = userDoc?.role === "admin" || userDoc?.role === "lead";
+    const [media, setMedia] = useState<TeamMedia[]>([]);
+    const [profileMediaId, setProfileMediaId] = useState<string | null>(null);
+    const profilePhotoUrl = useProfilePhotoUrl(media, profileMediaId);
     const season = getCurrentSeason();
     const teamNumber = orgId ? Number(orgId) : null;
 
@@ -63,6 +69,7 @@ export default function TradingCardEditor() {
             ]);
             if (cancelled) return;
             if (profile) reset(profileToForm(profile));
+            setProfileMediaId(profile?.profileMediaId ?? null);
             if (profile?.general) {
                 generalForm.reset({ ...defaultsForDefinition(general), ...profile.general });
             }
@@ -124,6 +131,19 @@ export default function TradingCardEditor() {
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start">
             <div className="space-y-6 min-w-0">
+                {/* Robot photos, clips and YouTube links (#106) */}
+                <Section title={t("mediaTitle")} hint={canManageMedia ? t("mediaHint") : t("mediaHintViewer")}>
+                    <MediaGallery
+                        season={season}
+                        teamNumber={teamNumber}
+                        uid={user.uid}
+                        canManage={canManageMedia}
+                        profileMediaId={profileMediaId}
+                        onMedia={setMedia}
+                        onProfileChange={setProfileMediaId}
+                    />
+                </Section>
+
                 {/* Questions common to every season (#107) */}
                 <Section title={t("generalTitle")} hint={t("generalHint")}>
                     <DynamicGameForm
@@ -176,7 +196,7 @@ export default function TradingCardEditor() {
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                     <IdCard size={14} /> {t("previewTitle")}
                 </div>
-                <TradingCardPreview profile={livePreview} measured={loaded ? measured : null} selfReport={selfReport} general={general} />
+                <TradingCardPreview profile={livePreview} measured={loaded ? measured : null} selfReport={selfReport} general={general} profilePhotoUrl={profilePhotoUrl} />
             </div>
         </form>
     );

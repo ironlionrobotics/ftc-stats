@@ -374,7 +374,10 @@
     "selfReportTitle": "Your robot this season",
     "selfReportHint": "Answer for your TYPICAL match. Teams that scout you will see your answers next to what they observe and to official results.",
     "generalTitle": "Your robot and team (every season)",
-    "generalHint": "Facts other teams ask about every year. Team data like rookie year and city comes from FIRST — no need to type it."
+    "generalHint": "Facts other teams ask about every year. Team data like rookie year and city comes from FIRST — no need to type it.",
+    "mediaTitle": "Photos and videos",
+    "mediaHint": "Pick the robot's profile photo with the star. Clips: up to 60 s.",
+    "mediaHintViewer": "Only your team's admin or lead can add or remove media."
   },
   "Today": {
     "kicker": "Happening now",
@@ -1792,5 +1795,43 @@
     "best": "best {best}",
     "progressLegend": "Average ± spread (consistency) per phase. Totals count full matches only.",
     "chartNeedsTwo": "Log at least two full matches to see the trend."
+  },
+  "CardMedia": {
+    "consent": "I confirm no team member's face is identifiable, or we have their permission. Best: just the robot, with its number visible.",
+    "tip": "Up to {photos} photos and {clips} clips of {seconds} s. Photos are resized and their location data removed before uploading. Only approved teams can see them.",
+    "captionPh": "Caption (optional)",
+    "addPhoto": "Add photo",
+    "addClip": "Add clip",
+    "youtubePh": "YouTube link (e.g. robot reveal)",
+    "addYoutube": "Add",
+    "cancel": "Cancel",
+    "uploaded": "Uploaded",
+    "emptyOwn": "No photos yet. Add one and pick it as the robot's profile photo.",
+    "empty": "This team hasn't added photos yet.",
+    "kind": {
+      "photo": "Photo",
+      "clip": "Clip",
+      "youtube": "YouTube video"
+    },
+    "close": "Close",
+    "useAsProfile": "Use as profile photo",
+    "profileSet": "Profile photo updated",
+    "delete": "Delete",
+    "deleteTitle": "Delete this item?",
+    "deleteBody": "It is removed for every team. This can't be undone.",
+    "report": "Report",
+    "reportTitle": "Report this item?",
+    "reportBody": "Use it if it shows identifiable people without permission or isn't appropriate. PRIDE's admins review it.",
+    "reported": "Thanks — it will be reviewed",
+    "errors": {
+      "tooMany": "You reached the limit for this kind of item.",
+      "tooBig": "File too large.",
+      "tooLong": "Clip longer than 60 seconds.",
+      "badType": "Unsupported file type.",
+      "badYoutube": "That doesn't look like a YouTube video link.",
+      "consentRequired": "Check the confirmation first.",
+      "decode": "Couldn't read the file (HEIC photos: export as JPEG).",
+      "upload": "Upload failed — check your connection and try again."
+    }
   }
 }
