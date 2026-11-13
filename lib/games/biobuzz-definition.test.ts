@@ -10,6 +10,7 @@ import { zodSchemaFromDefinition } from "./zod-from-definition";
 import { buildEntryGameFields } from "./build-entry";
 import { inputsFromEntry, inputsFromConsensus } from "./score-inputs";
 import { totalOf, selfReportDefinition, type GameDefinition } from "@/types/game-definition";
+import { generalQuestions } from "@/lib/team-profile/general-questions";
 import { fieldMapFromDefinition, fieldsFor, type FieldConsensus } from "@/lib/scouting-aggregation";
 
 const scoreOf = (def: GameDefinition, entry: Record<string, unknown>) =>
@@ -217,11 +218,37 @@ describe("BIOBUZZ self-report (#101)", () => {
     it("prices a typical-match claim with the same score() as scouting", () => {
         const sr = selfReportDefinition(FTC_BIOBUZZ_2026)!;
         const ids = sr.sections.flatMap(s => s.fields.map(f => f.id));
-        expect(ids).toEqual(expect.arrayContaining(["autoHiveTips", "teleopGardenElements", "teleopPark", "drivetrain"]));
+        expect(ids).toEqual(expect.arrayContaining(["autoHiveTips", "teleopGardenElements", "teleopPark", "seasonRole", "parkReliability"]));
+        expect(ids).not.toContain("drivetrain"); // general now (#107)
         const claim = { autoLeave: true, autoHiveTips: 1, teleopHiveTips: 2, teleopGardenElements: 6, flowerElementsPlaced: 3, teleopPark: true };
         expect(FTC_BIOBUZZ_2026.score!(inputsFromEntry(claim))).toEqual({ auto: 23, teleop: 46, endgame: 11 });
     });
     it("seasons without questions return null", () => {
         expect(selfReportDefinition({ ...FTC_BIOBUZZ_2026, selfReport: undefined })).toBeNull();
+    });
+});
+
+describe("general Trading Card questions (#107)", () => {
+    it("every label exists in en and es, and no season-specific field leaks in", () => {
+        const has = (catalog: Record<string, unknown>, path: string) =>
+            path.split(".").reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], catalog) !== undefined;
+        const def = generalQuestions(null);
+        const keys = def.sections.flatMap(s => [s.label, ...s.fields.flatMap(f => [f.label, ...(f.helpText ? [f.helpText] : []),
+            ...((f.kind === "text" || f.kind === "textarea") && f.placeholder ? [f.placeholder] : []),
+            ...(f.kind === "enum" ? f.options.map(o => o.label) : [])])]);
+        for (const catalog of [en.Games, es.Games]) expect(keys.filter(k => !has(catalog as Record<string, unknown>, k))).toEqual([]);
+        const ids = def.sections.flatMap(s => s.fields.map(f => f.id));
+        expect(ids).not.toContain("canClimb");
+        expect(ids).toContain("preferredRole");
+    });
+    it("drops the generic role when the season defines its own", () => {
+        const ids = generalQuestions(FTC_BIOBUZZ_2026).sections.flatMap(s => s.fields.map(f => f.id));
+        expect(ids).not.toContain("preferredRole");
+        expect(ids).toContain("drivetrain");
+    });
+    it("general and season ids never collide", () => {
+        const general = new Set(generalQuestions(FTC_BIOBUZZ_2026).sections.flatMap(s => s.fields.map(f => f.id)));
+        const season = selfReportDefinition(FTC_BIOBUZZ_2026)!.sections.flatMap(s => s.fields.map(f => f.id));
+        expect(season.filter(id => general.has(id))).toEqual([]);
     });
 });

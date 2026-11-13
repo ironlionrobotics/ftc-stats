@@ -125,6 +125,12 @@ interface BaseField {
     id: string;
     label: string;
     helpText?: string;
+    /**
+     * Self-report only: the official per-robot result this claim can be
+     * checked against (e.g. "teleopRobotPark"), so the card can show
+     * "says X · measured Y" (#107).
+     */
+    verifyWith?: string;
 }
 
 export interface CounterField extends BaseField {

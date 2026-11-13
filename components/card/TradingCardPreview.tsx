@@ -19,28 +19,37 @@ export default function TradingCardPreview({
     teamName,
     measured,
     selfReport,
+    general,
 }: {
     profile: TeamProfile;
     teamName?: string;
     measured: MeasuredStats | null;
     /** The season's self-report definition; with answers, the card shows the claimed typical match. */
     selfReport?: GameDefinition | null;
+    /** Questions common to every season (#107). */
+    general?: GameDefinition | null;
 }) {
     const t = useTranslations("TradingCard");
     const tGames = useTranslations("Games");
     const answers = selfReport && profile.answersDefinitionId === selfReport.id ? profile.answers : undefined;
     const typical = answers && selfReport?.score ? selfReport.score(inputsFromEntry(answers)) : null;
-    const answerChips = answers && selfReport
-        ? selfReport.sections.flatMap(s => s.fields).flatMap(f => {
-            const v = answers[f.id];
-            if (f.kind === "enum" && typeof v === "string") {
-                const opt = f.options.find(o => o.value === v);
-                return opt ? [`${tGames(f.label)}: ${tGames(opt.label)}`] : [];
-            }
-            if (f.kind === "boolean" && v === true) return [tGames(f.label)];
-            return [];
-        })
-        : [];
+    const chipsFor = (def: GameDefinition | null | undefined, values: Record<string, unknown> | undefined) =>
+        def && values
+            ? def.sections.flatMap(s => s.fields).flatMap(f => {
+                const v = values[f.id];
+                if (f.kind === "enum" && typeof v === "string") {
+                    const opt = f.options.find(o => o.value === v);
+                    return opt ? [`${tGames(f.label)}: ${tGames(opt.label)}`] : [];
+                }
+                if (f.kind === "boolean" && v === true && f.id !== "bigChanges") return [tGames(f.label)];
+                if (f.kind === "counter" && typeof v === "number" && v > 0 && (f.id === "weightLb" || f.id === "cycleTimeS" || f.id === "autoRoutines")) {
+                    return [`${tGames(f.label)}: ${v}`];
+                }
+                return [];
+            })
+            : [];
+    const generalChips = chipsFor(general, profile.general);
+    const answerChips = [...generalChips, ...chipsFor(selfReport, answers)];
     const { capabilities: cap, points, descriptions, photoUrl } = profile;
 
     const capChips: { on: boolean; label: string; icon: React.ElementType }[] = [
@@ -137,7 +146,7 @@ export default function TradingCardPreview({
             </div>
 
             {/* Capability chips */}
-            {!answers && (capChips.length > 0 || cap.drivetrain) && (
+            {!answers && !profile.general && (capChips.length > 0 || cap.drivetrain) && (
                 <div className="mx-5 mb-4 flex flex-wrap gap-1.5">
                     {cap.drivetrain && (
                         <span className="rounded-full bg-muted border border-border px-2.5 py-1 text-[10px] font-bold text-foreground">

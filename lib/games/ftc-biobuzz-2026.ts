@@ -208,60 +208,57 @@ function field(id: string): GameField {
  * the same ids as scouting, so score() prices the claim and the shared pool
  * can be compared field by field.
  */
+const opts = (group: string, values: string[]) =>
+    values.map(v => ({ value: v, label: `biobuzz.selfReport.options.${group}.${v}` }));
+
 const BIOBUZZ_SELF_REPORT: GameSection[] = [
     {
+        // Auto movement + the season's "smart" auto task (HIVE TIPs).
         id: "selfAuto",
         label: "biobuzz.selfReport.sections.auto",
         accent: "primary",
-        fields: [field("autoLeave"), field("autoCellLaunches"), field("autoHiveTips"), field("autoPark")],
+        fields: [field("autoLeave"), field("autoPark"), field("autoCellLaunches"), field("autoHiveTips")],
     },
     {
-        id: "selfTeleop",
+        // Where it scores and with what, in a typical match.
+        id: "selfScoring",
         label: "biobuzz.selfReport.sections.teleop",
         accent: "primary",
-        fields: [field("teleopCellLaunches"), field("teleopHiveTips"), field("teleopGardenElements")],
+        fields: [
+            field("teleopCellLaunches"),
+            field("teleopHiveTips"),
+            field("teleopGardenElements"),
+            { id: "hiveElements", kind: "enum", label: "biobuzz.selfReport.fields.hiveElements", options: opts("elements", ["Pollen", "Nectar", "Both", "None"]) },
+            { id: "pickup", kind: "enum", label: "biobuzz.selfReport.fields.intake", options: opts("intake", ["Ground", "HumanPlayer", "Both"]) },
+            { id: "colorSort", kind: "boolean", label: "biobuzz.selfReport.fields.colorSort" },
+        ],
     },
     {
+        // The season's end-of-match achievement: FLOWERS, NECTAR and park.
         id: "selfEndgame",
         label: "biobuzz.selfReport.sections.endgame",
         accent: "green",
-        fields: [field("flowerElementsPlaced"), field("bottomNectarBonuses"), field("teleopPark")],
+        fields: [
+            field("flowerElementsPlaced"),
+            { id: "flowerElements", kind: "enum", label: "biobuzz.selfReport.fields.flowerElements", options: opts("elements", ["Pollen", "Nectar", "Both", "None"]) },
+            field("bottomNectarBonuses"),
+            field("teleopPark"),
+            {
+                id: "parkReliability",
+                kind: "enum",
+                label: "biobuzz.selfReport.fields.parkReliability",
+                // Checkable later against the official per-robot park flag.
+                verifyWith: "teleopRobotPark",
+                options: opts("reliability", ["Always", "Mostly", "Sometimes", "Never"]),
+            },
+        ],
     },
     {
-        id: "selfRobot",
-        label: "biobuzz.selfReport.sections.robot",
+        id: "selfRole",
+        label: "biobuzz.selfReport.sections.role",
         accent: "cyan",
         fields: [
-            {
-                id: "drivetrain",
-                kind: "enum",
-                label: "biobuzz.selfReport.fields.drivetrain",
-                options: [
-                    { value: "Mecanum", label: "biobuzz.selfReport.options.drivetrain.Mecanum" },
-                    { value: "Tank", label: "biobuzz.selfReport.options.drivetrain.Tank" },
-                    { value: "Swerve", label: "biobuzz.selfReport.options.drivetrain.Swerve" },
-                    { value: "Other", label: "biobuzz.selfReport.options.drivetrain.Other" },
-                ],
-            },
-            {
-                id: "intake",
-                kind: "enum",
-                label: "biobuzz.selfReport.fields.intake",
-                options: [
-                    { value: "Ground", label: "biobuzz.selfReport.options.intake.Ground" },
-                    { value: "HumanPlayer", label: "biobuzz.selfReport.options.intake.HumanPlayer" },
-                    { value: "Both", label: "biobuzz.selfReport.options.intake.Both" },
-                ],
-            },
-            { id: "autoRoutines", kind: "counter", label: "biobuzz.selfReport.fields.autoRoutines", min: 0, max: 10, color: "primary" },
-            { id: "canPlayDefense", kind: "boolean", label: "biobuzz.selfReport.fields.canPlayDefense" },
-            {
-                id: "knownLimits",
-                kind: "textarea",
-                label: "biobuzz.selfReport.fields.knownLimits",
-                placeholder: "biobuzz.selfReport.fields.knownLimitsPlaceholder",
-                maxLength: 500,
-            },
+            { id: "seasonRole", kind: "enum", label: "biobuzz.selfReport.fields.seasonRole", options: opts("seasonRole", ["Hive", "Flowers", "Defense", "Flexible"]) },
         ],
     },
 ];

@@ -372,7 +372,9 @@
     "none": "—",
     "typicalMatch": "Partido típico · autorreporte",
     "selfReportTitle": "Tu robot esta temporada",
-    "selfReportHint": "Responde por tu partido TÍPICO. Los equipos que te scouteen verán tus respuestas junto a lo que observan y a los resultados oficiales."
+    "selfReportHint": "Responde por tu partido TÍPICO. Los equipos que te scouteen verán tus respuestas junto a lo que observan y a los resultados oficiales.",
+    "generalTitle": "Tu robot y equipo (todas las temporadas)",
+    "generalHint": "Lo que otros equipos preguntan cada año. Los datos del equipo como año rookie y ciudad vienen de FIRST: no hace falta escribirlos."
   },
   "Today": {
     "kicker": "Ahora mismo",
@@ -500,29 +502,41 @@
       "selfReport": {
         "sections": {
           "auto": "Autónomo: tu partido típico",
-          "teleop": "TeleOp: tu partido típico",
+          "teleop": "Anotación: tu partido típico",
           "endgame": "Últimos 60 s: tu partido típico",
-          "robot": "Robot"
+          "role": "Tu rol esta temporada"
         },
         "fields": {
-          "drivetrain": "Tracción",
-          "intake": "Recolección",
-          "autoRoutines": "Rutinas de autónomo disponibles",
-          "canPlayDefense": "Puede jugar defensa",
-          "knownLimits": "Límites conocidos (opcional)",
-          "knownLimitsPlaceholder": "Ej.: no alcanza la FLOWER superior, lento del lado lejano"
+          "intake": "Toma piezas de",
+          "hiveElements": "Lanza a la HIVE",
+          "flowerElements": "Coloca en FLOWERS",
+          "colorSort": "Clasifica color (rechaza el NECTAR rival)",
+          "parkReliability": "Qué tan seguido se estaciona al final",
+          "seasonRole": "Rol principal"
         },
         "options": {
-          "drivetrain": {
-            "Mecanum": "Mecanum",
-            "Tank": "Tanque",
-            "Swerve": "Swerve",
-            "Other": "Otra"
-          },
           "intake": {
             "Ground": "Del piso",
             "HumanPlayer": "Jugador humano",
             "Both": "Ambas"
+          },
+          "elements": {
+            "Pollen": "POLLEN",
+            "Nectar": "NECTAR",
+            "Both": "Ambos",
+            "None": "Ninguno"
+          },
+          "reliability": {
+            "Always": "Siempre",
+            "Mostly": "Casi siempre",
+            "Sometimes": "A veces",
+            "Never": "Nunca"
+          },
+          "seasonRole": {
+            "Hive": "HIVE (tips)",
+            "Flowers": "FLOWERS",
+            "Defense": "Defensa",
+            "Flexible": "Flexible"
           }
         }
       }
@@ -539,6 +553,88 @@
       "decrement": "Decrementar {label}",
       "increment": "Incrementar {label}",
       "star": "{label} {star} de {max}"
+    },
+    "general": {
+      "sections": {
+        "robot": "Robot",
+        "software": "Software",
+        "play": "Cómo juegan",
+        "notes": "Notas"
+      },
+      "fields": {
+        "drivetrain": "Tracción",
+        "weightLb": "Peso (lb)",
+        "expandsBeyond18": "Se expande más de 18 in",
+        "buildSystem": "Sistema de construcción",
+        "language": "Programación",
+        "localization": "Localización principal",
+        "pathFramework": "Framework de trayectorias",
+        "camera": "Cámara / visión",
+        "autoRoutines": "Rutinas de autónomo",
+        "preferredRole": "Rol preferido",
+        "cycleTimeS": "Tiempo de ciclo típico (s)",
+        "cycleTimeHelp": "Segundos desde tomar la pieza hasta anotar, en un buen ciclo.",
+        "canPlayDefense": "Puede jugar defensa",
+        "driveExperience": "Experiencia del drive team",
+        "strengthsLimits": "Fortalezas y límites conocidos",
+        "strengthsLimitsPlaceholder": "Ej.: autónomo muy consistente; lento del lado lejano",
+        "bigChanges": "Cambios grandes desde el último evento",
+        "bigChangesNote": "Qué cambió"
+      },
+      "options": {
+        "drivetrain": {
+          "Mecanum": "Mecanum",
+          "Tank": "Tanque",
+          "Swerve": "Swerve",
+          "OmniX": "Omni / X-drive",
+          "Other": "Otra"
+        },
+        "buildSystem": {
+          "goBILDA": "goBILDA",
+          "REV": "REV",
+          "AndyMark": "AndyMark",
+          "Mixed": "Mixto",
+          "Custom": "Propio"
+        },
+        "language": {
+          "AndroidStudioJava": "Java (Android Studio)",
+          "OnBotJava": "OnBot Java",
+          "Blocks": "Blocks",
+          "Kotlin": "Kotlin"
+        },
+        "localization": {
+          "None": "Ninguna",
+          "DriveEncoders": "Encoders de las ruedas",
+          "OdometryPods": "Odometry pods",
+          "Pinpoint": "goBILDA Pinpoint",
+          "AprilTags": "Visión con AprilTags"
+        },
+        "pathFramework": {
+          "None": "Ninguno",
+          "RoadRunner": "Road Runner",
+          "PedroPathing": "Pedro Pathing",
+          "FTCLib": "FTCLib",
+          "Custom": "Propio"
+        },
+        "camera": {
+          "None": "Ninguna",
+          "Webcam": "Webcam",
+          "Limelight3A": "Limelight 3A",
+          "HuskyLens": "HuskyLens",
+          "Other": "Otra"
+        },
+        "preferredRole": {
+          "Scorer": "Anotador",
+          "Defender": "Defensor",
+          "Support": "Soporte",
+          "Flexible": "Flexible"
+        },
+        "driveExperience": {
+          "Rookie": "Novatos",
+          "TwoToFour": "2–4 años",
+          "FivePlus": "5+ años"
+        }
+      }
     }
   },
   "Attribution": {

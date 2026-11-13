@@ -24,6 +24,7 @@ import DynamicGameForm from "@/components/scouting/games/DynamicGameForm";
 import { gameDefinitionFor } from "@/lib/games/registry";
 import { zodSchemaFromDefinition } from "@/lib/games/zod-from-definition";
 import { selfReportDefinition, defaultsForDefinition } from "@/types/game-definition";
+import { generalQuestions, GENERAL_QUESTIONS_VERSION } from "@/lib/team-profile/general-questions";
 
 export default function TradingCardEditor() {
     const t = useTranslations("TradingCard");
@@ -41,7 +42,11 @@ export default function TradingCardEditor() {
 
     // The season's self-report questions (#101), rendered by the same engine as
     // scouting. A second form because DynamicGameForm binds field ids at the root.
-    const selfReport = useMemo(() => selfReportDefinition(gameDefinitionFor("FTC", season)), [season]);
+    const seasonDef = useMemo(() => gameDefinitionFor("FTC", season), [season]);
+    const selfReport = useMemo(() => selfReportDefinition(seasonDef), [seasonDef]);
+    const general = useMemo(() => generalQuestions(seasonDef), [seasonDef]);
+    const generalSchema = useMemo(() => zodSchemaFromDefinition(general), [general]);
+    const generalForm = useForm<Record<string, unknown>>({ defaultValues: defaultsForDefinition(general) });
     const selfReportSchema = useMemo(() => (selfReport ? zodSchemaFromDefinition(selfReport) : null), [selfReport]);
     const answersForm = useForm<Record<string, unknown>>({
         defaultValues: selfReport ? defaultsForDefinition(selfReport) : {},
@@ -58,6 +63,9 @@ export default function TradingCardEditor() {
             ]);
             if (cancelled) return;
             if (profile) reset(profileToForm(profile));
+            if (profile?.general) {
+                generalForm.reset({ ...defaultsForDefinition(general), ...profile.general });
+            }
             if (profile?.answers && selfReport && profile.answersDefinitionId === selfReport.id) {
                 answersForm.reset({ ...defaultsForDefinition(selfReport), ...profile.answers });
             }
@@ -65,14 +73,17 @@ export default function TradingCardEditor() {
             setLoaded(true);
         })();
         return () => { cancelled = true; };
-    }, [teamNumber, season, reset, selfReport, answersForm]);
+    }, [teamNumber, season, reset, selfReport, answersForm, general, generalForm]);
 
     // Live preview reflects unsaved edits.
     const values = useWatch({ control }) as TeamProfileFormValues;
+    const liveGeneral = useWatch({ control: generalForm.control });
+    const parsedGeneral = generalSchema.safeParse(liveGeneral);
     const liveAnswers = useWatch({ control: answersForm.control });
     const parsedAnswers = selfReportSchema?.safeParse(liveAnswers);
     const livePreview = {
         ...formToProfile(values, teamNumber ?? 0, season),
+        ...(parsedGeneral.success ? { general: parsedGeneral.data as Record<string, number | boolean | string>, generalVersion: GENERAL_QUESTIONS_VERSION } : {}),
         ...(selfReport && parsedAnswers?.success
             ? { answers: parsedAnswers.data as Record<string, number | boolean | string>, answersDefinitionId: selfReport.id }
             : {}),
@@ -80,6 +91,11 @@ export default function TradingCardEditor() {
 
     const onSubmit = async (v: TeamProfileFormValues) => {
         if (!teamNumber) return;
+        const generalParsed = generalSchema.safeParse(generalForm.getValues());
+        if (!generalParsed.success) {
+            toast.error(t("saveError"));
+            return;
+        }
         let answers: Record<string, number | boolean | string> | undefined;
         if (selfReport && selfReportSchema) {
             const parsed = selfReportSchema.safeParse(answersForm.getValues());
@@ -92,6 +108,8 @@ export default function TradingCardEditor() {
         try {
             await saveTeamProfile({
                 ...formToProfile(v, teamNumber, season),
+                general: generalParsed.data as Record<string, number | boolean | string>,
+                generalVersion: GENERAL_QUESTIONS_VERSION,
                 ...(answers && selfReport ? { answers, answersDefinitionId: selfReport.id } : {}),
             });
             toast.success(t("saved"));
@@ -106,26 +124,22 @@ export default function TradingCardEditor() {
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start">
             <div className="space-y-6 min-w-0">
-                {/* Season self-report (#101); legacy generic capabilities otherwise */}
-                {selfReport ? (
+                {/* Questions common to every season (#107) */}
+                <Section title={t("generalTitle")} hint={t("generalHint")}>
+                    <DynamicGameForm
+                        definition={general}
+                        control={generalForm.control as unknown as Control<Record<string, unknown>>}
+                    />
+                </Section>
+
+                {/* This season's game (#101/#107) */}
+                {selfReport && (
                     <Section title={t("selfReportTitle")} hint={t("selfReportHint")}>
                         <DynamicGameForm
                             definition={selfReport}
                             control={answersForm.control as unknown as Control<Record<string, unknown>>}
                         />
                     </Section>
-                ) : (
-                <Section title={t("capabilities")}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <Toggle control={control} name="canClimb" label={t("canClimb")} />
-                        <TextField control={control} name="climbLevel" label={t("climbLevel")} placeholder={t("climbLevelPlaceholder")} />
-                        <Toggle control={control} name="scoresNear" label={t("scoresNear")} />
-                        <Toggle control={control} name="scoresFar" label={t("scoresFar")} />
-                        <Toggle control={control} name="groundIntake" label={t("groundIntake")} />
-                        <Toggle control={control} name="sourceIntake" label={t("sourceIntake")} />
-                        <TextField control={control} name="drivetrain" label={t("drivetrain")} placeholder={t("drivetrainPlaceholder")} />
-                    </div>
-                </Section>
                 )}
 
                 {/* Self-reported points */}
@@ -162,7 +176,7 @@ export default function TradingCardEditor() {
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                     <IdCard size={14} /> {t("previewTitle")}
                 </div>
-                <TradingCardPreview profile={livePreview} measured={loaded ? measured : null} selfReport={selfReport} />
+                <TradingCardPreview profile={livePreview} measured={loaded ? measured : null} selfReport={selfReport} general={general} />
             </div>
         </form>
     );
@@ -191,21 +205,6 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
 }
 
 type Ctl = Control<TeamProfileFormValues>;
-
-function Toggle({ control, name, label }: { control: Ctl; name: "canClimb" | "scoresNear" | "scoresFar" | "groundIntake" | "sourceIntake"; label: string }) {
-    return (
-        <Controller
-            control={control}
-            name={name}
-            render={({ field }) => (
-                <label className={`min-h-[44px] flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${field.value ? "bg-primary/15 border-primary/40" : "bg-muted border-border hover:border-foreground/20"}`}>
-                    <input type="checkbox" checked={!!field.value} onChange={e => field.onChange(e.target.checked)} className="w-4 h-4 accent-primary" />
-                    <span className={`text-sm font-medium ${field.value ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
-                </label>
-            )}
-        />
-    );
-}
 
 function TextField({ control, name, label, placeholder }: { control: Ctl; name: "climbLevel" | "drivetrain" | "photoUrl"; label: string; placeholder?: string }) {
     return (

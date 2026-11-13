@@ -67,6 +67,11 @@ export interface TeamProfile {
     answers?: Record<string, number | boolean | string>;
     /** Definition the answers belong to: a new season ignores last season's. */
     answersDefinitionId?: string;
+    /** Answers to the questions common to every season (#107), keyed by field id. */
+    general?: Record<string, number | boolean | string>;
+    generalVersion?: number;
+    /** team_media id of the robot's profile photo (#106). */
+    profileMediaId?: string;
     /** Server timestamp of the last publish. */
     updatedAt?: { seconds: number; nanoseconds: number } | null;
 }
