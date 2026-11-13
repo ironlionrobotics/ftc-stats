@@ -1619,5 +1619,75 @@
     },
     "confirmReturned": "Ya regresó",
     "markReturned": "Ya lo devolví"
+  },
+  "Workshop": {
+    "title": "Taller",
+    "subtitle": "Practica como si fuera partido: reloj oficial, la puntuación de esta temporada y el avance de tu equipo. Privado: nunca se comparte con otros equipos.",
+    "signIn": "Inicia sesión con tu equipo para registrar prácticas.",
+    "needTeam": "Registra tu equipo (o únete con un código) para usar el Taller.",
+    "noGame": "Todavía no hay definición del juego para esta temporada.",
+    "tabMatch": "Partido de práctica",
+    "tabHistory": "Historial ({n})",
+    "tabProgress": "Avance",
+    "mode": "Modo",
+    "modes": {
+      "full": "Partido completo",
+      "auto": "Solo autónomo",
+      "teleop": "Solo TeleOp"
+    },
+    "phases": {
+      "auto": "Autónomo",
+      "transition": "Tomen los controles",
+      "teleop": "TeleOp",
+      "done": "Fin del partido"
+    },
+    "cues": {
+      "autoEnd": "Fin del autónomo: manos fuera",
+      "teleopStart": "TeleOp: ¡vamos!",
+      "flowerUnlocked": "1:00: se abren las FLOWERS y entra todo el NECTAR",
+      "final20": "Últimos 20 segundos",
+      "end": "Fin del partido: captura el puntaje abajo"
+    },
+    "start": "Iniciar",
+    "resume": "Continuar",
+    "pause": "Pausa",
+    "reset": "Reiniciar",
+    "mute": "Silenciar",
+    "unmute": "Activar sonido",
+    "fullscreen": "Pantalla completa",
+    "robotVersion": "Versión del robot",
+    "robotVersionPh": "ej. v2 intake nuevo",
+    "drivers": "Drivers",
+    "driversPh": "ej. Ana+Leo",
+    "location": "Dónde",
+    "locations": {
+      "workshop": "Taller",
+      "event": "Cancha de práctica del evento"
+    },
+    "phaseShort": {
+      "auto": "Auto",
+      "teleop": "TeleOp",
+      "endgame": "Últimos 60 s"
+    },
+    "total": "Total",
+    "saveRun": "Guardar práctica",
+    "saved": "Práctica guardada · {total} pts",
+    "savedOffline": "Guardada en este dispositivo · {total} pts: se sincroniza al volver la conexión",
+    "saveError": "No se pudo guardar: intenta de nuevo.",
+    "invalid": "Revisa los valores marcados.",
+    "privacy": "Los datos de práctica se quedan en tu equipo: no entran al pool compartido ni cambian la confiabilidad de los scouts.",
+    "noRuns": "Todavía no hay prácticas registradas.",
+    "pending": "En este dispositivo",
+    "delete": "Borrar",
+    "groupBy": "Agrupar por",
+    "groupBys": {
+      "all": "Todo",
+      "drivers": "Drivers",
+      "robotVersion": "Versión del robot"
+    },
+    "allRuns": "Todas las prácticas",
+    "best": "mejor {best}",
+    "progressLegend": "Promedio ± dispersión (consistencia) por fase. El total cuenta solo partidos completos.",
+    "chartNeedsTwo": "Registra al menos dos partidos completos para ver la tendencia."
   }
 }

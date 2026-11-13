@@ -1619,5 +1619,75 @@
     },
     "confirmReturned": "It came back",
     "markReturned": "I returned it"
+  },
+  "Workshop": {
+    "title": "Workshop",
+    "subtitle": "Practice like it's a match: official clock, this season's scoring, and your team's progress. Private — never shared with other teams.",
+    "signIn": "Sign in with your team to log practice.",
+    "needTeam": "Register your team (or join it with a code) to use the workshop.",
+    "noGame": "No game definition for this season yet.",
+    "tabMatch": "Practice match",
+    "tabHistory": "History ({n})",
+    "tabProgress": "Progress",
+    "mode": "Mode",
+    "modes": {
+      "full": "Full match",
+      "auto": "Auto only",
+      "teleop": "TeleOp only"
+    },
+    "phases": {
+      "auto": "Autonomous",
+      "transition": "Pick up controllers",
+      "teleop": "TeleOp",
+      "done": "Match over"
+    },
+    "cues": {
+      "autoEnd": "Autonomous over — hands off",
+      "teleopStart": "TeleOp — go!",
+      "flowerUnlocked": "1:00 — FLOWERS open, all NECTAR in play",
+      "final20": "Final 20 seconds",
+      "end": "Match over — score it below"
+    },
+    "start": "Start",
+    "resume": "Resume",
+    "pause": "Pause",
+    "reset": "Reset",
+    "mute": "Mute",
+    "unmute": "Sound on",
+    "fullscreen": "Full screen",
+    "robotVersion": "Robot version",
+    "robotVersionPh": "e.g. v2 new intake",
+    "drivers": "Drivers",
+    "driversPh": "e.g. Ana+Leo",
+    "location": "Where",
+    "locations": {
+      "workshop": "Workshop",
+      "event": "Event practice field"
+    },
+    "phaseShort": {
+      "auto": "Auto",
+      "teleop": "TeleOp",
+      "endgame": "Last 60 s"
+    },
+    "total": "Total",
+    "saveRun": "Save practice",
+    "saved": "Practice saved · {total} pts",
+    "savedOffline": "Saved on this device · {total} pts — it syncs when you're back online",
+    "saveError": "Could not save — try again.",
+    "invalid": "Check the highlighted values.",
+    "privacy": "Practice data stays with your team: it isn't part of the shared pool and doesn't change scout reliability.",
+    "noRuns": "No practice logged yet.",
+    "pending": "On this device",
+    "delete": "Delete",
+    "groupBy": "Group by",
+    "groupBys": {
+      "all": "All",
+      "drivers": "Drivers",
+      "robotVersion": "Robot version"
+    },
+    "allRuns": "All practice",
+    "best": "best {best}",
+    "progressLegend": "Average ± spread (consistency) per phase. Totals count full matches only.",
+    "chartNeedsTwo": "Log at least two full matches to see the trend."
   }
 }

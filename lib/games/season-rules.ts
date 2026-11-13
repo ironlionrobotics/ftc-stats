@@ -49,6 +49,20 @@ export interface SeasonRules {
     tieRp: number;
     /** Ranking sort order after RS, most significant first (P1 consumer). */
     tiebreakers: Tiebreaker[];
+    /** Match periods and audio cues, for the workshop match clock (#105). */
+    matchTiming: MatchTiming;
+}
+
+/**
+ * Official match periods. `cues` are moments of TELEOP, by seconds LEFT in
+ * the match, when the field plays a sound (names only — PRIDE generates its
+ * own tones, it never copies FIRST's audio).
+ */
+export interface MatchTiming {
+    autoS: number;
+    transitionS: number;
+    teleopS: number;
+    cues: Array<{ id: string; secondsLeft: number }>;
 }
 
 const DECODE_2025: SeasonRules = {
@@ -63,6 +77,8 @@ const DECODE_2025: SeasonRules = {
     winRp: 3,
     tieRp: 1,
     tiebreakers: ["rs", "npAvg", "autoAvg", "random"],
+    // Standard FTC periods; DECODE-specific cues were never verified here.
+    matchTiming: { autoS: 30, transitionS: 8, teleopS: 120, cues: [] },
 };
 
 const BIOBUZZ_2026: SeasonRules = {
@@ -77,6 +93,17 @@ const BIOBUZZ_2026: SeasonRules = {
     winRp: 3,
     tieRp: 1,
     tiebreakers: ["rs", "npAvg", "tipsAvg", "autoAvg", "random"],
+    // Competition Manual TU09 §10.4 (AUTO 0:30, 8 s transition, TELEOP 2:00)
+    // and §9.11 Table 9-1 cues: FLOWER Ownership Unlocked at 1:00, final 20 s.
+    matchTiming: {
+        autoS: 30,
+        transitionS: 8,
+        teleopS: 120,
+        cues: [
+            { id: "flowerUnlocked", secondsLeft: 60 },
+            { id: "final20", secondsLeft: 20 },
+        ],
+    },
 };
 
 const RULES_BY_SEASON: SeasonRules[] = [BIOBUZZ_2026, DECODE_2025];

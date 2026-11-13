@@ -1,4 +1,5 @@
 import Dexie, { type Table } from "dexie";
+import type { PracticeRun } from "@/types/practice";
 import { get as idbGet, del as idbDel, keys as idbKeys } from "idb-keyval";
 import type { MatchScouting, PitScouting } from "@/types/scouting";
 import { DEFAULT_ORG_ID, pitRecordId } from "@/lib/constants";
@@ -57,9 +58,21 @@ export interface PendingPitRow {
     lastError?: string;
 }
 
+/** Workshop practice run waiting to reach Firestore (#105). id = Firestore doc id. */
+export interface PendingPracticeRow {
+    id: string;
+    orgId: string;
+    data: PracticeRun;
+    createdAt: number;
+    syncedAt: number;       // 0 = pending, ms epoch = synced
+    syncAttempts: number;
+    lastError?: string;
+}
+
 class LocalDatabase extends Dexie {
     pendingMatches!: Table<PendingMatchRow, string>;
     pendingPits!: Table<PendingPitRow, string>;
+    pendingPractice!: Table<PendingPracticeRow, string>;
 
     constructor() {
         super("FTCStatsLocal");
@@ -83,6 +96,10 @@ class LocalDatabase extends Dexie {
         // dedicated test in localDatabase.test.ts.
         this.version(2).stores({
             pendingPits: "id, season, teamNumber, orgId, syncedAt, createdAt, [orgId+syncedAt]",
+        });
+        // v3: workshop practice runs (#105). Same carry-forward rule as v2.
+        this.version(3).stores({
+            pendingPractice: "id, orgId, syncedAt, createdAt",
         });
     }
 }
@@ -452,4 +469,26 @@ export async function __resetLocalDbForTests(): Promise<void> {
         _db = null;
     }
     migrationStarted = false;
+}
+
+// ---------------------------------------------------------------------------
+// Workshop practice runs (#105)
+// ---------------------------------------------------------------------------
+
+/** Queues a practice run locally FIRST; the id is its future Firestore doc id. */
+export async function savePracticeToLocal(run: PracticeRun): Promise<void> {
+    await db().pendingPractice.put({ id: run.id, orgId: run.orgId, data: run, createdAt: Date.now(), syncedAt: 0, syncAttempts: 0 });
+}
+
+export async function getPendingPracticeRows(orgId: string): Promise<PendingPracticeRow[]> {
+    return (await db().pendingPractice.where("syncedAt").equals(0).toArray()).filter(r => r.orgId === orgId);
+}
+
+export async function markPracticeSynced(id: string): Promise<void> {
+    await db().pendingPractice.update(id, { syncedAt: Date.now() });
+}
+
+export async function recordPracticeSyncFailure(id: string, error: string): Promise<void> {
+    const row = await db().pendingPractice.get(id);
+    if (row) await db().pendingPractice.update(id, { syncAttempts: row.syncAttempts + 1, lastError: error.slice(0, 500) });
 }

@@ -263,6 +263,17 @@ service cloud.firestore {
             allow read, write: if false;
         }
 
+        // Workshop practice runs (#105): private to the team, never shared.
+        match /practice_runs/{runId} {
+            allow read: if isAuthed() && resource.data.orgId == myOrgId();
+            allow create, update: if isAuthed()
+                && request.resource.data.orgId == myOrgId()
+                && request.resource.data.createdBy == request.auth.uid
+                && (resource == null || resource.data.orgId == myOrgId());
+            allow delete: if isAuthed() && resource.data.orgId == myOrgId()
+                && (resource.data.createdBy == request.auth.uid || isOrgAdminOrLead());
+        }
+
         // ---- Pit lending (#104) ------------------------------------------
         // Inventory: a team sees its whole inventory; other approved teams see
         // only lendable items (queries must filter lendable == true). Writes
