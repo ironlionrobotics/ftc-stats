@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 /**
  * Detects the `beforeinstallprompt` event (Chrome/Edge/Android) and shows a
@@ -23,6 +24,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function PWAInstallPrompt() {
+    const t = useTranslations("PwaInstall");
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [visible, setVisible] = useState(false);
 
@@ -69,15 +71,15 @@ export default function PWAInstallPrompt() {
         <div
             className="fixed bottom-[calc(var(--tabbar-h)+1rem)] left-4 md:bottom-6 md:left-[calc(14rem+1.5rem)] z-40 max-w-sm bg-card border border-primary/30 rounded-xl shadow-sm p-3 flex items-start gap-3 animate-in slide-in-from-bottom-2 fade-in-0"
             role="region"
-            aria-label="Instalar la app"
+            aria-label={t("regionLabel")}
         >
             <div className="p-2 bg-primary/15 text-primary rounded-lg flex-shrink-0">
                 <Download size={18} />
             </div>
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Instala PRIDE</p>
+                <p className="text-sm font-bold text-foreground">{t("title")}</p>
                 <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                    Acceso rápido + funciona offline en venue.
+                    {t("body")}
                 </p>
                 <div className="mt-2 flex gap-2">
                     <button
@@ -85,21 +87,21 @@ export default function PWAInstallPrompt() {
                         onClick={handleInstall}
                         className="px-3 py-1.5 bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground text-xs font-bold rounded-md transition-all"
                     >
-                        Instalar
+                        {t("install")}
                     </button>
                     <button
                         type="button"
                         onClick={handleDismiss}
                         className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-xs font-bold rounded-md transition-all"
                     >
-                        Después
+                        {t("later")}
                     </button>
                 </div>
             </div>
             <button
                 type="button"
                 onClick={handleDismiss}
-                aria-label="Cerrar"
+                aria-label={t("close")}
                 className="text-muted-foreground hover:text-foreground p-1 -mr-1 -mt-1"
             >
                 <X size={14} />

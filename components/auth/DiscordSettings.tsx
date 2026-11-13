@@ -23,6 +23,7 @@ import { toast } from "sonner";
 export default function DiscordSettings() {
     const { user, userDoc, orgId } = useAuth();
     const tErr = useTranslations("Errors");
+    const t = useTranslations("DiscordSettings");
     const [configured, setConfigured] = useState<boolean | null>(null);
     const [showInput, setShowInput] = useState(false);
     const [url, setUrl] = useState("");
@@ -68,7 +69,7 @@ export default function DiscordSettings() {
             setConfigured(true);
             setShowInput(false);
             setUrl("");
-            toast.success("Webhook de Discord guardado");
+            toast.success(t("saved"));
         } finally {
             setBusy(false);
         }
@@ -86,7 +87,7 @@ export default function DiscordSettings() {
                 return;
             }
             setConfigured(false);
-            toast.success("Webhook eliminado");
+            toast.success(t("removed"));
         } finally {
             setBusy(false);
         }
@@ -99,17 +100,17 @@ export default function DiscordSettings() {
             const idToken = await user.getIdToken();
             const res = await notifyDiscordAction({
                 idToken,
-                title: "Prueba de webhook",
-                description: "Si ves este mensaje, el bot de PRIDE está configurado correctamente.",
+                title: t("testTitle"),
+                description: t("testBody"),
                 severity: "info",
                 rateLimitSeconds: 0,
             });
             if (res.ok) {
-                toast.success("Mensaje de prueba enviado");
+                toast.success(t("testSent"));
             } else if (res.code === "discord.rateLimited") {
-                toast.warning("Espera unos segundos entre pruebas");
+                toast.warning(t("rateLimited"));
             } else {
-                toast.error("No se pudo enviar el mensaje", {
+                toast.error(t("testFailed"), {
                     description: tErr(res.code),
                 });
             }
@@ -127,12 +128,12 @@ export default function DiscordSettings() {
 
             {configured === null ? (
                 <div className="text-[10px] text-muted-foreground flex items-center gap-1.5">
-                    <Loader2 size={10} className="animate-spin" /> Cargando...
+                    <Loader2 size={10} className="animate-spin" /> {t("loading")}
                 </div>
             ) : configured ? (
                 <>
                     <div className="text-[10px] text-success flex items-center gap-1.5">
-                        <Check size={11} /> Webhook configurado
+                        <Check size={11} /> {t("configured")}
                     </div>
                     <div className="flex gap-1">
                         <button
@@ -141,14 +142,14 @@ export default function DiscordSettings() {
                             disabled={busy}
                             className="flex-1 px-2 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[10px] font-bold rounded disabled:opacity-50"
                         >
-                            Probar
+                            {t("test")}
                         </button>
                         <button
                             type="button"
                             onClick={handleClear}
                             disabled={busy}
                             className="px-2 py-1.5 bg-muted hover:bg-danger/20 text-muted-foreground hover:text-danger text-[10px] font-bold rounded disabled:opacity-50"
-                            title="Eliminar webhook"
+                            title={t("removeWebhook")}
                         >
                             <XIcon size={10} />
                         </button>
@@ -170,14 +171,14 @@ export default function DiscordSettings() {
                             disabled={busy || !url.trim()}
                             className="flex-1 px-2 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold rounded disabled:opacity-50 flex items-center justify-center gap-1"
                         >
-                            {busy && <Loader2 size={10} className="animate-spin" />} Guardar
+                            {busy && <Loader2 size={10} className="animate-spin" />} {t("save")}
                         </button>
                         <button
                             type="button"
                             onClick={() => { setShowInput(false); setUrl(""); setError(null); }}
                             className="px-2 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-[10px] font-bold rounded"
                         >
-                            Cancelar
+                            {t("cancel")}
                         </button>
                     </div>
                 </div>
@@ -187,7 +188,7 @@ export default function DiscordSettings() {
                     onClick={() => setShowInput(true)}
                     className="w-full px-2 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[10px] font-bold rounded"
                 >
-                    Configurar webhook
+                    {t("configure")}
                 </button>
             )}
 

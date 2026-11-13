@@ -27,6 +27,7 @@ export default function RpModelTrainer() {
     const { user, userDoc } = useAuth();
     const { season } = useProgram();
     const tErr = useTranslations("Errors");
+    const t = useTranslations("RpModelTrainer");
     const [busy, setBusy] = useState(false);
     const [report, setReport] = useState<null | {
         models: Array<{
@@ -48,19 +49,19 @@ export default function RpModelTrainer() {
             const idToken = await user.getIdToken();
             const res = await trainRpModelsAction({ idToken, season });
             if (!res.ok) {
-                toast.error("No se pudo entrenar", { description: tErr(res.code) });
+                toast.error(t("trainFailed"), { description: tErr(res.code) });
                 return;
             }
             setReport(res.report);
             if (res.report.models.length === 0) {
-                toast.warning("Datos insuficientes para entrenar", {
-                    description: "Necesitas más matches con outcomes RP en la temporada.",
+                toast.warning(t("insufficient"), {
+                    description: t("insufficientHint"),
                 });
             } else {
-                toast.success(`Entrenados ${res.report.models.length} modelos`);
+                toast.success(t("trained", { count: res.report.models.length }));
             }
         } catch (e) {
-            toast.error("Error de red durante entrenamiento", {
+            toast.error(t("networkError"), {
                 description: tErr(toErrorCode(e)),
             });
         } finally {
@@ -72,11 +73,10 @@ export default function RpModelTrainer() {
         <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
                 <Brain size={11} />
-                Modelos RP
+                {t("title")}
             </div>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Entrena predicción logística para Movement / Artifact / Pattern
-                RP usando datos de la temporada {season}.
+                {t("description", { season })}
             </p>
             <button
                 type="button"
@@ -85,7 +85,7 @@ export default function RpModelTrainer() {
                 className="w-full min-h-[36px] px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
             >
                 {busy ? <Loader2 size={12} className="animate-spin" /> : <Brain size={12} />}
-                {busy ? "Entrenando..." : "Entrenar modelos"}
+                {busy ? t("training") : t("train")}
             </button>
 
             {report && (
@@ -94,14 +94,14 @@ export default function RpModelTrainer() {
                         <CheckCircle2 size={11} />
                         <span>
                             {report.countModel
-                                ? "Esta temporada usa modelos de conteo (SWARM/POLLINATOR): no requiere entrenamiento."
-                                : `${report.eventsProcessed} eventos procesados`}
+                                ? t("countModel")
+                                : t("eventsProcessed", { count: report.eventsProcessed })}
                         </span>
                     </div>
                     {report.countModel ? null : report.models.length === 0 ? (
                         <div className="flex items-start gap-1.5 text-[10px] text-warning">
                             <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />
-                            <span>Sin datos suficientes (necesita 10+ pos y 10+ neg per RP).</span>
+                            <span>{t("notEnough")}</span>
                         </div>
                     ) : (
                         <ul className="space-y-0.5">
@@ -112,7 +112,7 @@ export default function RpModelTrainer() {
                                 >
                                     <span className="text-muted-foreground capitalize">{m.target}</span>
                                     <span className="font-mono text-muted-foreground">
-                                        n={m.sampleSize} · loss {m.finalLoss.toFixed(3)}
+                                        {t("modelStats", { n: m.sampleSize, loss: m.finalLoss.toFixed(3) })}
                                     </span>
                                 </li>
                             ))}

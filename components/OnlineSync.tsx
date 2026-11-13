@@ -26,6 +26,7 @@ import { cachePruneOlderThan } from "@/lib/client-cache";
 import { notifyDiscordAction } from "@/app/actions/notify-discord";
 import { Cloud, CloudOff, Loader2, AlertTriangle } from "lucide-react";
 import clsx from "clsx";
+import { useFormatter, useTranslations } from "next-intl";
 
 // Notify Discord after 3 consecutive drain failures. Below this threshold
 // the OnlineSync UI pill alone is sufficient — we don't want to spam the
@@ -67,6 +68,8 @@ type StuckRow =
  * Tap-to-retry is built in (forces an immediate drain).
  */
 export default function OnlineSync() {
+    const t = useTranslations("OnlineSync");
+    const format = useFormatter();
     const { user } = useAuth();
     const [online, setOnline] = useState(
         typeof navigator !== "undefined" ? navigator.onLine : true,
@@ -191,10 +194,11 @@ export default function OnlineSync() {
                     const idToken = await user.getIdToken();
                     await notifyDiscordAction({
                         idToken,
-                        title: "Sync de scouting bloqueado",
-                        description:
-                            `Hay ${pendingCountRef.current} entradas pendientes que llevan ${consecutiveFailuresRef.current} intentos fallidos. ` +
-                            "Revisa la conexión del scout o el estado de Firestore.",
+                        title: t("discordTitle"),
+                        description: t("discordBody", {
+                            pending: pendingCountRef.current,
+                            failures: consecutiveFailuresRef.current,
+                        }),
                         severity: "error",
                     });
                 } catch {
@@ -205,7 +209,7 @@ export default function OnlineSync() {
             consecutiveFailuresRef.current = 0;
             notifiedForCurrentStreakRef.current = false;
         }
-    }, [user, refreshPendingCount]);
+    }, [user, refreshPendingCount, t]);
 
     const handleRetryOne = async (item: StuckRow) => {
         // Resetting only clears the dead-letter flag; the actual re-send
@@ -332,18 +336,17 @@ export default function OnlineSync() {
                     )}
                 >
                     <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-sm font-black text-foreground">Entradas atascadas</h3>
+                        <h3 className="text-sm font-black text-foreground">{t("stuckTitle")}</h3>
                         <button
                             type="button"
                             onClick={() => setShowStuckPanel(false)}
                             className="text-muted-foreground hover:text-foreground text-xs font-bold"
                         >
-                            Cerrar
+                            {t("close")}
                         </button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Fallaron {MAX_SYNC_ATTEMPTS}+ veces y ya no se reintentan solas. Reintenta si
-                        el problema era temporal, o exporta el JSON para no perder la captura.
+                        {t("stuckHint", { attempts: MAX_SYNC_ATTEMPTS })}
                     </p>
                     <div className="space-y-2">
                         {stuckRows.map(item => {
@@ -355,20 +358,20 @@ export default function OnlineSync() {
                                 >
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="font-bold text-foreground">
-                                            Equipo {row.teamNumber} ·{" "}
-                                            {item.kind === "match" ? `Match ${item.row.matchNumber}` : "Pit"}
+                                            {t("teamLabel", { team: row.teamNumber })} ·{" "}
+                                            {item.kind === "match" ? t("matchLabel", { number: item.row.matchNumber }) : t("pit")}
                                         </span>
                                         <button
                                             type="button"
                                             onClick={() => handleRetryOne(item)}
                                             className="px-2 py-1 rounded-md bg-secondary/20 text-secondary font-bold hover:bg-secondary/30 shrink-0"
                                         >
-                                            Reintentar
+                                            {t("retry")}
                                         </button>
                                     </div>
                                     <div className="text-muted-foreground">
-                                        {item.kind === "match" ? item.row.eventCode : `Org ${row.orgId}`} ·{" "}
-                                        {new Date(row.createdAt).toLocaleString()}
+                                        {item.kind === "match" ? item.row.eventCode : t("orgLabel", { org: row.orgId })} ·{" "}
+                                        {format.dateTime(new Date(row.createdAt), { dateStyle: "medium", timeStyle: "short" })}
                                     </div>
                                     {row.lastError && (
                                         <div className="text-danger break-words">{row.lastError}</div>
@@ -383,14 +386,14 @@ export default function OnlineSync() {
                             onClick={handleRetryAll}
                             className="flex-1 px-3 py-2 rounded-lg bg-secondary/20 text-secondary font-bold text-xs hover:bg-secondary/30"
                         >
-                            Reintentar todas
+                            {t("retryAll")}
                         </button>
                         <button
                             type="button"
                             onClick={handleExportStuck}
                             className="flex-1 px-3 py-2 rounded-lg bg-muted border border-border text-foreground font-bold text-xs hover:bg-muted/70"
                         >
-                            Exportar JSON
+                            {t("exportJson")}
                         </button>
                     </div>
                 </div>
@@ -405,10 +408,10 @@ export default function OnlineSync() {
                         "flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold shadow-sm border transition-all",
                         "bg-danger/15 border-danger/40 text-danger hover:bg-danger/25",
                     )}
-                    title={`${stuckCount} entrada${stuckCount === 1 ? "" : "s"} atascada${stuckCount === 1 ? "" : "s"} — click para revisar`}
+                    title={t("stuckPillTitle", { count: stuckCount })}
                 >
                     <AlertTriangle size={13} />
-                    <span>{stuckCount} atascada{stuckCount === 1 ? "" : "s"}</span>
+                    <span>{t("stuckPill", { count: stuckCount })}</span>
                 </button>
             )}
 
@@ -430,9 +433,9 @@ export default function OnlineSync() {
                 title={
                     online
                         ? pendingCount > 0
-                            ? `Sincronizando ${pendingCount} pendientes — click para forzar`
-                            : "Online · todo sincronizado"
-                        : "Offline — los datos se guardan localmente y se enviarán al recuperar conexión"
+                            ? t("titleSyncing", { count: pendingCount })
+                            : t("titleSynced")
+                        : t("titleOffline")
                 }
             >
                 {syncing ? (
@@ -446,12 +449,12 @@ export default function OnlineSync() {
                 )}
                 <span>
                     {!online
-                        ? "Offline"
+                        ? t("pillOffline")
                         : syncing
-                            ? `Sync ${pendingCount}`
+                            ? t("pillSync", { count: pendingCount })
                             : pendingCount > 0
-                                ? `${pendingCount} pend.`
-                                : "Online"}
+                                ? t("pillPending", { count: pendingCount })
+                                : t("pillOnline")}
                 </span>
             </button>
         </>

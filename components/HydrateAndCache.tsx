@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { CloudOff } from "lucide-react";
 
 // lib/client-cache pulls Dexie (~170 KB). Both components below only touch it
@@ -70,6 +71,7 @@ interface OfflineFallbackProps {
  * so the user knows what they're looking at isn't live.
  */
 export function OfflineFallback({ cacheKey, render, rendererMeta }: OfflineFallbackProps) {
+    const t = useTranslations("OfflineFallback");
     const [state, setState] = useState<
         | { kind: "loading" }
         | { kind: "found"; payload: unknown; savedAt: number }
@@ -94,7 +96,7 @@ export function OfflineFallback({ cacheKey, render, rendererMeta }: OfflineFallb
     if (state.kind === "loading") {
         return (
             <div className="p-12 text-center text-muted-foreground text-sm">
-                Buscando datos cacheados...
+                {t("searching")}
             </div>
         );
     }
@@ -102,7 +104,7 @@ export function OfflineFallback({ cacheKey, render, rendererMeta }: OfflineFallb
     if (state.kind === "missing") {
         return (
             <div className="p-8 bg-danger/10 border border-danger/30 rounded-xl text-danger text-sm">
-                Sin conexión al servidor y sin datos cacheados localmente. Conéctate al menos una vez para que la app guarde los datos para uso offline.
+                {t("noData")}
             </div>
         );
     }
@@ -116,11 +118,13 @@ export function OfflineFallback({ cacheKey, render, rendererMeta }: OfflineFallb
 }
 
 function OfflineBanner({ cachedAt }: { cachedAt: number }) {
-    const when = new Date(cachedAt).toLocaleString();
+    const t = useTranslations("OfflineFallback");
+    const format = useFormatter();
+    const when = format.dateTime(new Date(cachedAt), { dateStyle: "medium", timeStyle: "short" });
     return (
         <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-warning/10 border border-warning/30 rounded-lg text-warning text-xs">
             <CloudOff size={14} className="flex-shrink-0" />
-            <span>Mostrando datos cacheados ({when}) — sin conexión al servidor.</span>
+            <span>{t("banner", { when })}</span>
         </div>
     );
 }

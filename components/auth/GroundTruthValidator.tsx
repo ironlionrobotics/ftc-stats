@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import {
@@ -28,6 +28,8 @@ export default function GroundTruthValidator() {
     const { user, userDoc, orgId } = useAuth();
     const { season } = useProgram();
     const tErr = useTranslations("Errors");
+    const t = useTranslations("GroundTruthValidator");
+    const format = useFormatter();
 
     const [eventCode, setEventCode] = useState("");
     const [busy, setBusy] = useState(false);
@@ -94,12 +96,11 @@ export default function GroundTruthValidator() {
         <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
                 <ShieldCheck size={11} />
-                Validación ground-truth
+                {t("title")}
             </div>
 
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Compara scouting capturado vs scores oficiales y actualiza la
-                confiabilidad de cada scout.
+                {t("description")}
             </p>
 
             <div className="flex gap-1">
@@ -114,7 +115,7 @@ export default function GroundTruthValidator() {
                     disabled={busy}
                     className="px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground text-xs font-bold rounded flex items-center gap-1"
                 >
-                    {busy ? <Loader2 size={11} className="animate-spin" /> : "Validar"}
+                    {busy ? <Loader2 size={11} className="animate-spin" /> : t("validate")}
                 </button>
             </div>
 
@@ -130,12 +131,11 @@ export default function GroundTruthValidator() {
                     <div className="flex items-center gap-1.5 text-[10px] text-success">
                         <CheckCircle2 size={11} />
                         <span>
-                            {report.coveredMatches}/{report.eligibleMatches} matches con cobertura
-                            · {report.scoutsUpdated} scouts actualizados
+                            {t("coverage", { covered: report.coveredMatches, eligible: report.eligibleMatches, scouts: report.scoutsUpdated })}
                         </span>
                     </div>
                     <div className="text-[9px] text-muted-foreground">
-                        {new Date(report.ranAt).toLocaleString()}
+                        {format.dateTime(new Date(report.ranAt), { dateStyle: "medium", timeStyle: "short" })}
                     </div>
                 </div>
             )}
@@ -143,7 +143,7 @@ export default function GroundTruthValidator() {
             {scouts.length > 0 && (
                 <div className="space-y-1 pt-1 border-t border-border">
                     <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
-                        Confiabilidad scouts
+                        {t("reliability")}
                     </div>
                     <ul className="space-y-0.5">
                         {scouts.map(s => (

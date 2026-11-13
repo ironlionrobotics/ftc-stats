@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { getMatchScoutingOnce } from "@/lib/scouting-service";
 import { getCurrentSeason, DEFAULT_ORG_ID } from "@/lib/constants";
 import type { MatchScouting } from "@/types/scouting";
+import { useTranslations } from "next-intl";
 
 /**
  * Builds a compact digest of the event's free-text scouting notes — the one
@@ -37,10 +38,11 @@ function buildNotesDigest(entries: MatchScouting[]): string {
 }
 
 export default function AssistantChat() {
+    const t = useTranslations("AssistantChat");
     const { user, orgId } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
-        { role: 'assistant', content: "¡Hola! Soy el asistente de estrategia de PRIDE. Mi especialidad: sintetizar las notas de scouting del evento (\"¿qué dicen las notas del 12887?\") y responder dudas de estrategia. En páginas de evento leo las notas automáticamente." }
+    const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string, isError?: boolean }[]>([
+        { role: 'assistant', content: t("greeting") }
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -70,7 +72,7 @@ export default function AssistantChat() {
         try {
             // The assistant action now requires a verified Firebase ID token.
             if (!user) {
-                setMessages(prev => [...prev, { role: 'assistant', content: "Inicia sesión para usar el asistente de estrategia." }]);
+                setMessages(prev => [...prev, { role: 'assistant', content: t("signIn") }]);
                 return;
             }
             const idToken = await user.getIdToken();
@@ -110,11 +112,11 @@ export default function AssistantChat() {
             setMessages(prev => [...prev, { role: 'assistant', content: response.content }]);
         } catch (error) {
             console.error("Chat Error:", error);
-            setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting to the AI core. Please check your connection or API key." }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: t("connectionError"), isError: true }]);
         } finally {
             setLoading(false);
         }
-    }, [loading, pathname, messages, user, orgId]);
+    }, [loading, pathname, messages, user, orgId, t]);
 
     useEffect(() => {
         const handleOpenChat = (e: Event) => {
@@ -152,9 +154,9 @@ export default function AssistantChat() {
                             </div>
                             <div>
                                 <div className="font-bold text-foreground text-sm flex items-center gap-1.5">
-                                    Iron Lion AI <Sparkles size={12} className="text-warning fill-warning" />
+                                    {t("brand")} <Sparkles size={12} className="text-warning fill-warning" />
                                 </div>
-                                <div className="text-[10px] text-muted-foreground font-medium tracking-wide">Strategic Advisor</div>
+                                <div className="text-[10px] text-muted-foreground font-medium tracking-wide">{t("subtitle")}</div>
                             </div>
                         </div>
                         <button
@@ -171,7 +173,7 @@ export default function AssistantChat() {
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm border ${m.role === 'user'
                                     ? 'bg-secondary text-secondary-foreground border-secondary rounded-br-none'
-                                    : m.content.includes("error") || m.content.includes("Sorry")
+                                    : m.isError || m.content.includes("error")
                                         ? 'bg-danger/10 text-danger border-danger/20 rounded-bl-none whitespace-pre-wrap'
                                         : 'bg-card text-foreground border-border rounded-bl-none whitespace-pre-wrap'
                                     }`}>
@@ -187,7 +189,7 @@ export default function AssistantChat() {
                                         <div className="w-1.5 h-1.5 bg-secondary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                                         <div className="w-1.5 h-1.5 bg-secondary rounded-full animate-bounce"></div>
                                     </div>
-                                    <span className="text-xs text-muted-foreground font-medium">Analyzing...</span>
+                                    <span className="text-xs text-muted-foreground font-medium">{t("analyzing")}</span>
                                 </div>
                             </div>
                         )}
@@ -201,7 +203,7 @@ export default function AssistantChat() {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                            placeholder="Ask about strategy..."
+                            placeholder={t("placeholder")}
                             className="flex-1 bg-muted border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-secondary/10 focus:border-secondary transition-all font-medium placeholder:text-muted-foreground"
                             disabled={loading}
                         />

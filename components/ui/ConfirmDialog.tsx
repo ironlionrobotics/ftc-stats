@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 /**
  * Promise-based confirm() replacement.
@@ -36,6 +37,7 @@ interface ConfirmContextValue {
 const ConfirmContext = createContext<ConfirmContextValue | null>(null);
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
+    const t = useTranslations("ConfirmDialog");
     const [open, setOpen] = useState(false);
     const [opts, setOpts] = useState<ConfirmOptions>({ title: "" });
     const resolverRef = useRef<Resolver | null>(null);
@@ -90,7 +92,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                                     onClick={() => handleResult(false)}
                                     className="px-4 py-2.5 bg-muted hover:bg-border text-foreground text-sm font-bold rounded-lg min-h-[44px]"
                                 >
-                                    {opts.cancelText ?? "Cancelar"}
+                                    {opts.cancelText ?? t("cancel")}
                                 </button>
                             </AlertDialog.Cancel>
                             <AlertDialog.Action asChild>
@@ -104,7 +106,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                                             : "bg-primary hover:bg-primary/90",
                                     )}
                                 >
-                                    {opts.confirmText ?? "Confirmar"}
+                                    {opts.confirmText ?? t("confirm")}
                                 </button>
                             </AlertDialog.Action>
                         </div>

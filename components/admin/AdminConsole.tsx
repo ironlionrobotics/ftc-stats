@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getAdminOverview, updateAppConfig, AdminOverview } from "@/app/actions/admin-config";
 import { CheckCircle2, XCircle, Lock, Save, Bot, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import TeamClaimsReview from "./TeamClaimsReview";
 
@@ -14,6 +15,7 @@ import TeamClaimsReview from "./TeamClaimsReview";
  * the access-denied state and nothing else.
  */
 export default function AdminConsole() {
+    const t = useTranslations("AdminConsole");
     const { user } = useAuth();
     const [overview, setOverview] = useState<AdminOverview | null>(null);
     const [denied, setDenied] = useState<string | null>(null);
@@ -39,11 +41,11 @@ export default function AdminConsole() {
                 setDenied(res.error);
             }
         } catch {
-            setDenied("No se pudo cargar la consola.");
+            setDenied(t("loadFailed"));
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [user, t]);
 
     // Deferred one microtask so load()'s setLoading(true) never runs
     // synchronously in the effect body.
@@ -60,25 +62,25 @@ export default function AdminConsole() {
             });
             if (res.ok) {
                 setOverview(res);
-                toast.success("Configuración guardada (efectiva en ≤60s por caché).");
+                toast.success(t("saved"));
             } else {
                 toast.error(res.error);
             }
         } catch {
-            toast.error("Error al guardar.");
+            toast.error(t("saveFailed"));
         } finally {
             setSaving(false);
         }
     };
 
     if (!user) {
-        return <Denied msg="Inicia sesión para acceder a la consola." />;
+        return <Denied msg={t("signIn")} hint={t("accessHint")} />;
     }
     if (loading) {
-        return <p className="text-muted-foreground text-sm animate-pulse">Verificando permisos…</p>;
+        return <p className="text-muted-foreground text-sm animate-pulse">{t("verifying")}</p>;
     }
     if (denied) {
-        return <Denied msg={denied} />;
+        return <Denied msg={denied} hint={t("accessHint")} />;
     }
     if (!overview) return null;
 
@@ -89,10 +91,9 @@ export default function AdminConsole() {
 
             {/* Integrations status */}
             <section>
-                <h2 className="text-lg font-bold text-foreground mb-1">Integraciones</h2>
+                <h2 className="text-lg font-bold text-foreground mb-1">{t("integrations")}</h2>
                 <p className="text-xs text-muted-foreground mb-4">
-                    Estado de credenciales del servidor. Se gestionan en Secret Manager / variables de
-                    entorno — nunca desde esta UI.
+                    {t("integrationsHint")}
                 </p>
                 <div className="grid sm:grid-cols-2 gap-2.5">
                     {overview.integrations.map((i) => (
@@ -108,7 +109,7 @@ export default function AdminConsole() {
                                 "ml-auto text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0",
                                 i.configured ? "bg-success/10 text-success" : "bg-danger/10 text-danger",
                             )}>
-                                {i.configured ? "OK" : "Falta"}
+                                {i.configured ? t("ok") : t("missing")}
                             </span>
                         </div>
                     ))}
@@ -118,18 +119,17 @@ export default function AdminConsole() {
             {/* Runtime config */}
             <section className="bg-card border border-border rounded-2xl p-5 md:p-6">
                 <h2 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
-                    <Bot size={18} className="text-primary" /> Asistente de IA
+                    <Bot size={18} className="text-primary" /> {t("aiAssistant")}
                 </h2>
                 <p className="text-xs text-muted-foreground mb-5">
-                    Configuración runtime (Firestore <code className="font-mono">app_config/global</code>).
-                    Cambios efectivos en ≤60s sin redeploy.
+                    {t.rich("aiConfigHint", { code: (chunks) => <code className="font-mono">{chunks}</code> })}
                 </p>
 
                 <div className="space-y-5 max-w-md">
                     <label className="flex items-center justify-between gap-4 cursor-pointer">
                         <div>
-                            <div className="text-sm font-bold text-foreground">Asistente activado</div>
-                            <div className="text-[11px] text-muted-foreground">Apaga el chat y la acción del servidor (corta el gasto de Gemini).</div>
+                            <div className="text-sm font-bold text-foreground">{t("assistantEnabled")}</div>
+                            <div className="text-[11px] text-muted-foreground">{t("assistantEnabledHint")}</div>
                         </div>
                         <button
                             type="button"
@@ -149,8 +149,8 @@ export default function AdminConsole() {
                     </label>
 
                     <label className="block">
-                        <div className="text-sm font-bold text-foreground">Límite de consultas por usuario</div>
-                        <div className="text-[11px] text-muted-foreground mb-1.5">Por ventana de 60s (1–120). Protege el presupuesto de Gemini.</div>
+                        <div className="text-sm font-bold text-foreground">{t("rateLimit")}</div>
+                        <div className="text-[11px] text-muted-foreground mb-1.5">{t("rateLimitHint")}</div>
                         <input
                             type="number"
                             min={1}
@@ -167,26 +167,26 @@ export default function AdminConsole() {
                         className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
                     >
                         {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                        Guardar cambios
+                        {t("saveChanges")}
                     </button>
                 </div>
             </section>
 
             {/* Superadmins (read-only) */}
             <section className="text-xs text-muted-foreground">
-                <span className="font-bold uppercase tracking-wider">Superadmins (env, solo lectura):</span>{" "}
+                <span className="font-bold uppercase tracking-wider">{t("superadmins")}</span>{" "}
                 <span className="font-mono">{overview.superadmins.join(", ") || "—"}</span>
             </section>
         </div>
     );
 }
 
-function Denied({ msg }: { msg: string }) {
+function Denied({ msg, hint }: { msg: string; hint: string }) {
     return (
         <div className="flex flex-col items-center justify-center py-16 text-center bg-muted/30 border border-dashed border-border rounded-2xl">
             <Lock size={36} className="text-muted-foreground mb-3 opacity-40" />
             <p className="text-foreground font-bold">{msg}</p>
-            <p className="text-xs text-muted-foreground mt-1">El acceso se define en la variable de entorno SUPERADMIN_EMAILS.</p>
+            <p className="text-xs text-muted-foreground mt-1">{hint}</p>
         </div>
     );
 }

@@ -17,6 +17,7 @@ import { Copy, Plus, Loader2, KeyRound, Check } from "lucide-react";
 export default function InviteGenerator() {
     const { user, userDoc, orgId } = useAuth();
     const tErr = useTranslations("Errors");
+    const t = useTranslations("InviteGenerator");
     const [busy, setBusy] = useState(false);
     const [invite, setInvite] = useState<OrgInvite | null>(null);
     const [copied, setCopied] = useState(false);
@@ -54,12 +55,12 @@ export default function InviteGenerator() {
         <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
                 <KeyRound size={11} />
-                Invitar a otro equipo
+                {t("title")}
             </div>
 
             {!canGenerate && (
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    Solo admins/leads pueden generar códigos.
+                    {t("onlyAdmins")}
                 </p>
             )}
 
@@ -70,7 +71,7 @@ export default function InviteGenerator() {
                     className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-muted hover:bg-muted/80 disabled:opacity-50 rounded-lg text-xs font-bold text-foreground transition-colors"
                 >
                     {busy ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-                    Generar código
+                    {t("generate")}
                 </button>
             )}
 
@@ -83,20 +84,20 @@ export default function InviteGenerator() {
                         <button
                             onClick={handleCopy}
                             className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
-                            title="Copiar"
+                            title={t("copy")}
                         >
                             {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
                         </button>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                        Expira en 7 días. Compártelo con el scout o lead del otro equipo.
+                        {t("expires")}
                     </p>
                     <button
                         onClick={handleGenerate}
                         disabled={busy}
                         className="text-[10px] text-muted-foreground hover:text-foreground underline"
                     >
-                        Generar otro código
+                        {t("generateAnother")}
                     </button>
                 </div>
             )}

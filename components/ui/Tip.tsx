@@ -4,6 +4,7 @@ import { type ReactNode, type ComponentType } from "react";
 import { useTipDismissed } from "@/lib/hooks/use-tip-dismissed";
 import { Lightbulb, X } from "lucide-react";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 interface TipProps {
     /**
@@ -30,6 +31,7 @@ interface TipProps {
  * dedicated docs page from inside the tip.
  */
 export default function Tip({ id, title, children, icon: Icon = Lightbulb, variant = "info", className }: TipProps) {
+    const t = useTranslations("Tip");
     const { dismissed, dismiss, ready } = useTipDismissed(id);
     if (!ready || dismissed) return null;
 
@@ -61,7 +63,7 @@ export default function Tip({ id, title, children, icon: Icon = Lightbulb, varia
             <button
                 type="button"
                 onClick={dismiss}
-                aria-label="No mostrar de nuevo"
+                aria-label={t("dismiss")}
                 className="absolute top-2 right-2 min-w-[28px] min-h-[28px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
             >
                 <X size={12} />
