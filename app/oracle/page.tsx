@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
+import { getTranslations, getFormatter } from "next-intl/server";
 import { ORACLE_CALIBRATION as C } from "@/lib/reports/oracle-calibration";
 import { Target, Activity, Layers, AlertTriangle, Repeat, ExternalLink } from "lucide-react";
 import clsx from "clsx";
 
-export const metadata: Metadata = {
-    title: "Calibración del Oracle — PRIDE",
-    description:
-        `El modelo de predicción de PRIDE, validado contra ${C.totals.matches.toLocaleString("es-MX")} partidos de playoffs reales ` +
-        `de ${C.totals.seasons} temporadas. Precisión, error y calibración publicados en abierto.`,
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const t = await getTranslations("OraclePage");
+    const format = await getFormatter();
+    return {
+        title: t("metaTitle"),
+        description: t("metaDescription", { matches: format.number(C.totals.matches), seasons: C.totals.seasons }),
+    };
+}
 
 /**
  * Public transparency page for the Oracle's accuracy.
@@ -21,65 +24,61 @@ export const metadata: Metadata = {
  * Server Component over curated static data (lib/reports/oracle-calibration.ts),
  * so it costs no client JS beyond the layout.
  */
-export default function OracleCalibrationPage() {
+export default async function OracleCalibrationPage() {
+    const t = await getTranslations("OraclePage");
+    const format = await getFormatter();
+    const rich = { b: (chunks: React.ReactNode) => <strong className="text-foreground">{chunks}</strong> };
     // Looked up rather than indexed: the seasons array grows every year, and a
     // positional index would silently point at the wrong game.
     const powerPlay = C.seasons.find(s => s.season === 2022);
+    const tr = (n: number) => format.number(n);
 
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 md:py-14 max-w-5xl">
             {/* ── Hero ──────────────────────────────────────────────────── */}
             <header className="mb-12 md:mb-16">
                 <div className="flex flex-wrap items-center gap-2 mb-5">
-                    <Badge tone="primary">Transparencia</Badge>
-                    <Badge tone="muted">{C.totals.seasons} temporadas · 2019-2025</Badge>
+                    <Badge tone="primary">{t("badgeTransparency")}</Badge>
+                    <Badge tone="muted">{t("badgeSeasons", { seasons: C.totals.seasons })}</Badge>
                 </div>
                 <h1 className="font-display text-4xl md:text-6xl font-black tracking-tight text-foreground text-balance">
-                    Qué tan bien predice el Oracle
+                    {t("heroTitle")}
                 </h1>
                 <p className="mt-5 text-muted-foreground max-w-2xl leading-relaxed md:text-lg">
-                    PRIDE predice ganadores de playoffs. Esta página publica qué tan seguido acierta —
-                    y, más importante, si sus probabilidades <strong className="text-foreground">significan lo que dicen</strong>.
-                    Todo se recalculó desde partidos reales; nada está redondeado a favor.
+                    {t.rich("heroBody", rich)}
                 </p>
 
                 <div className="mt-9 grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <Stat value={`${C.totals.accuracy}%`} label="Precisión global" sub="Ganador de playoff acertado" accent />
-                    <Stat value={C.totals.matches.toLocaleString("es-MX")} label="Partidos evaluados" sub="Playoffs reales, no simulados" />
-                    <Stat value={C.totals.events.toLocaleString("es-MX")} label="Eventos" sub="Todas las regiones disponibles" />
-                    <Stat value={`${C.totals.seasons}`} label="Temporadas" sub="7 juegos distintos" />
+                    <Stat value={`${C.totals.accuracy}%`} label={t("statAccuracy")} sub={t("statAccuracySub")} accent />
+                    <Stat value={tr(C.totals.matches)} label={t("statMatches")} sub={t("statMatchesSub")} />
+                    <Stat value={tr(C.totals.events)} label={t("statEvents")} sub={t("statEventsSub")} />
+                    <Stat value={`${C.totals.seasons}`} label={t("statSeasons")} sub={t("statSeasonsSub")} />
                 </div>
             </header>
 
             {/* ── Reliability ───────────────────────────────────────────── */}
             <Section
                 icon={<Activity size={19} />}
-                title="¿Un 80% significa 80%?"
-                lead={`Precisión sola no basta. Si el modelo dice "80% de probabilidad", esos partidos deberían ganarse 8 de cada 10 veces — ni más, ni menos. Esto es lo que pasó en los ${C.reliability.matches.toLocaleString("es-MX")} partidos de playoffs de 2024 y 2025.`}
+                title={t("relTitle")}
+                lead={t("relLead", { matches: tr(C.reliability.matches) })}
             >
                 <ReliabilityChart />
 
                 <div className="mt-6 grid md:grid-cols-2 gap-4">
                     <div className="rounded-2xl border border-danger/30 bg-danger/5 p-5">
                         <h3 className="font-bold text-danger mb-2 flex items-center gap-2">
-                            <AlertTriangle size={15} /> La primera versión estaba mal
+                            <AlertTriangle size={15} /> {t("badFirstTitle")}
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            El modelo original estimaba su incertidumbre a partir de los partidos de clasificación.
-                            En playoffs eso resultó <strong className="text-foreground">muy optimista</strong>: cuando decía
-                            98% ganaba el {C.reliability.raw[4].realized}% de las veces, y cuando decía 85% ganaba
-                            el {C.reliability.raw[3].realized}%. Se veía seguro de cosas que no lo eran.
+                            {t.rich("badFirstBody", { ...rich, p98: C.reliability.raw[4].realized, p85: C.reliability.raw[3].realized })}
                         </p>
                     </div>
                     <div className="rounded-2xl border border-success/30 bg-success/5 p-5">
                         <h3 className="font-bold text-success mb-2 flex items-center gap-2">
-                            <Target size={15} /> La corrección se aprendió de los datos
+                            <Target size={15} /> {t("fixTitle")}
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            En eliminación la incertidumbre real es <strong className="text-foreground">2.4× mayor</strong> que
-                            en clasificación — un número ajustado sobre estos mismos partidos, no elegido a mano. Con esa
-                            corrección cada tramo cae dentro de <strong className="text-foreground">3 puntos</strong> de
-                            lo realizado.
+                            {t.rich("fixBody", rich)}
                         </p>
                     </div>
                 </div>
@@ -88,9 +87,9 @@ export default function OracleCalibrationPage() {
                     <table className="w-full min-w-[620px] text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-widest">
-                                <Th className="text-left">Cuando el modelo dice…</Th>
-                                <Th>Modelo original</Th>
-                                <Th>Modelo corregido</Th>
+                                <Th className="text-left">{t("colWhenModelSays")}</Th>
+                                <Th>{t("colOriginal")}</Th>
+                                <Th>{t("colCorrected")}</Th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -105,11 +104,11 @@ export default function OracleCalibrationPage() {
                                         <GapCell
                                             realized={C.reliability.raw[i].realized}
                                             gap={C.reliability.raw[i].gap}
-                                            matches={C.reliability.raw[i].matches}
+                                            matchesText={t("matchesCount", { count: tr(C.reliability.raw[i].matches) })}
                                         />
                                     </td>
                                     <td className="px-4 py-3 text-center font-mono tabular-nums">
-                                        <GapCell realized={bin.realized} gap={bin.gap} matches={bin.matches} />
+                                        <GapCell realized={bin.realized} gap={bin.gap} matchesText={t("matchesCount", { count: tr(bin.matches) })} />
                                     </td>
                                 </tr>
                             ))}
@@ -117,30 +116,26 @@ export default function OracleCalibrationPage() {
                     </table>
                 </div>
                 <p className="mt-3 text-[11px] text-muted-foreground max-w-3xl leading-snug">
-                    Cada columna trae su propio conteo de partidos porque los tramos no contienen lo mismo en ambos
-                    modelos: corregir la incertidumbre mueve predicciones de los tramos altos hacia el centro — el
-                    tramo 90-100% pasa de {C.reliability.raw[4].matches.toLocaleString("es-MX")} a{" "}
-                    {C.reliability.corrected[4].matches.toLocaleString("es-MX")} partidos. Eso es justamente lo que
-                    significa dejar de exagerar la certeza.
+                    {t("relNote", { from: tr(C.reliability.raw[4].matches), to: tr(C.reliability.corrected[4].matches) })}
                 </p>
             </Section>
 
             {/* ── Per season ────────────────────────────────────────────── */}
             <Section
                 icon={<Repeat size={19} />}
-                title="Siete temporadas, siete juegos distintos"
-                lead="Cada temporada de FTC es un juego nuevo, con reglas y forma de anotar propias. El mismo modelo, sin reajustar por temporada, se mantiene en la misma banda — señal de que generaliza por diseño y no por casualidad."
+                title={t("seasonsTitle")}
+                lead={t("seasonsLead")}
             >
                 <div className="overflow-x-auto rounded-2xl border border-border">
                     <table className="w-full min-w-[660px] text-sm">
                         <thead>
                             <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-widest">
-                                <Th className="text-left">Temporada</Th>
-                                <Th>Eventos</Th>
-                                <Th>Partidos</Th>
-                                <Th>Precisión</Th>
-                                <Th>Brier</Th>
-                                <Th>Calibración</Th>
+                                <Th className="text-left">{t("colSeason")}</Th>
+                                <Th>{t("colEvents")}</Th>
+                                <Th>{t("colMatches")}</Th>
+                                <Th>{t("colAccuracy")}</Th>
+                                <Th>{t("colBrier")}</Th>
+                                <Th>{t("colCalibration")}</Th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -151,7 +146,7 @@ export default function OracleCalibrationPage() {
                                         <span className="text-muted-foreground text-xs ml-2 font-mono">{s.season}-{String(s.season + 1).slice(2)}</span>
                                     </td>
                                     <td className="px-4 py-3 text-center font-mono text-muted-foreground tabular-nums">{s.events}</td>
-                                    <td className="px-4 py-3 text-center font-mono text-muted-foreground tabular-nums">{s.matches.toLocaleString("es-MX")}</td>
+                                    <td className="px-4 py-3 text-center font-mono text-muted-foreground tabular-nums">{tr(s.matches)}</td>
                                     <td className="px-4 py-3 text-center font-mono font-bold text-primary tabular-nums">{s.accuracy}%</td>
                                     <td className="px-4 py-3 text-center font-mono text-secondary tabular-nums">{s.brier}</td>
                                     <td className="px-4 py-3 text-center font-mono tabular-nums text-muted-foreground">
@@ -163,32 +158,23 @@ export default function OracleCalibrationPage() {
                     </table>
                 </div>
                 <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
-                    <strong className="text-foreground">Cómo leerla.</strong> <em>Brier</em> mide el error de la probabilidad
-                    (0 es perfecto; 0.25 equivale a decir siempre 50/50). <em>Calibración</em> es la confianza declarada menos
-                    la precisión lograda: negativo significa que el modelo fue algo más pesimista de lo necesario.
-                    {" "}<strong className="text-foreground">Power Play (2022)</strong> es el punto bajo en precisión, y es
-                    explicable: fue una temporada de meta defensivo, y la defensa no aparece en una métrica ofensiva.
-                    Es justo el hueco que el scouting humano llena.{powerPlay && <>
-                        {" "}Vale la pena notar que <strong className="text-foreground">esa misma temporada tuvo la
-                        calibración más ajustada de las siete</strong> ({powerPlay.gap} pp): el modelo acertó menos,
-                        pero no se sobrevendió. Perdió precisión, no honestidad.
-                    </>}
+                    {t.rich("howToRead", { ...rich, em: (chunks) => <em>{chunks}</em> })}{powerPlay && t.rich("powerPlayNote", { ...rich, gap: powerPlay.gap })}
                 </p>
             </Section>
 
             {/* ── By level ──────────────────────────────────────────────── */}
             <Section
                 icon={<Layers size={19} />}
-                title="Entre más parejo el field, más difícil"
-                lead="El mismo modelo pierde precisión conforme sube el nivel del evento. No es un defecto: en el Mundial todos los equipos son fuertes, así que la diferencia entre alianzas es menor y el resultado depende más de lo que ningún modelo ve."
+                title={t("levelTitle")}
+                lead={t("levelLead")}
             >
                 <div className="space-y-3">
                     {C.levels.map(l => (
                         <div key={l.key} className="rounded-2xl border border-border bg-card p-4 md:p-5">
                             <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
-                                <span className="font-bold text-foreground">{l.label}</span>
+                                <span className="font-bold text-foreground">{t.has(`level_${l.key}`) ? t(`level_${l.key}`) : l.label}</span>
                                 <span className="text-xs text-muted-foreground font-mono">
-                                    {l.matches.toLocaleString("es-MX")} partidos
+                                    {t("matchesCount", { count: tr(l.matches) })}
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">
@@ -205,35 +191,30 @@ export default function OracleCalibrationPage() {
             {/* ── Limits ────────────────────────────────────────────────── */}
             <Section
                 icon={<AlertTriangle size={19} />}
-                title="Lo que esto no dice"
-                lead="Los límites importan tanto como los aciertos."
+                title={t("limitsTitle")}
+                lead={t("limitsLead")}
             >
                 <ul className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-                    <Limit title="No predice partidos individuales de clasificación">
-                        Todo lo de esta página es sobre <strong className="text-foreground">playoffs</strong>, donde las
-                        alianzas ya están formadas. Las clasificatorias tienen otra dinámica y no se evaluaron aquí.
+                    <Limit title={t("limit1Title")}>
+                        {t.rich("limit1Body", rich)}
                     </Limit>
-                    <Limit title="Mide potencia ofensiva, no estrategia">
-                        El modelo parte de cuánto anota cada equipo. Una alianza que gana por defensa, por un autónomo
-                        que rompe empates o por coordinación humana se ve peor de lo que es. Power Play lo demuestra.
+                    <Limit title={t("limit2Title")}>
+                        {t("limit2Body")}
                     </Limit>
-                    <Limit title="Un 76% deja 1 de cada 4 partidos del otro lado">
-                        Es una herramienta para decidir mejor, no un oráculo. Cualquier equipo que la use para dejar de
-                        scoutear está usándola al revés.
+                    <Limit title={t("limit3Title")}>
+                        {t("limit3Body")}
                     </Limit>
-                    <Limit title="Datos públicos, con sus huecos">
-                        Se usó la API pública de FTCScout. Eventos sin resultados publicados quedaron fuera del cálculo,
-                        y no se incluyeron temporadas anteriores a 2019 porque no existen ahí.
+                    <Limit title={t("limit4Title")}>
+                        {t("limit4Body")}
                     </Limit>
                 </ul>
             </Section>
 
             {/* ── Reproduce ─────────────────────────────────────────────── */}
             <section className="rounded-3xl border border-border bg-card p-6 md:p-8">
-                <h2 className="font-display text-2xl font-black text-foreground mb-2">Compruébalo tú</h2>
+                <h2 className="font-display text-2xl font-black text-foreground mb-2">{t("verifyTitle")}</h2>
                 <p className="text-sm text-muted-foreground mb-5 max-w-2xl leading-relaxed">
-                    Ninguna cifra de esta página se escribió a mano: todas salen de correr el backtest contra la API
-                    pública y recalcular. Cualquiera puede repetirlo.
+                    {t("verifyBody")}
                 </p>
                 <div className="rounded-xl bg-muted border border-border p-4 overflow-x-auto">
                     <pre className="text-xs font-mono text-foreground leading-relaxed whitespace-pre">
@@ -246,12 +227,12 @@ export default function OracleCalibrationPage() {
                     rel="noopener noreferrer"
                     className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-secondary hover:underline"
                 >
-                    Fuente de datos: FTCScout <ExternalLink size={13} />
+                    {t("dataSource")} <ExternalLink size={13} />
                 </a>
             </section>
 
             <p className="mt-10 text-xs text-muted-foreground text-center">
-                PRIDE · Iron Lion Robotics (FTC #30311) · Monterrey, México
+                {t("footer")}
             </p>
         </div>
     );
@@ -263,7 +244,8 @@ export default function OracleCalibrationPage() {
  * overconfidence. The raw model bows well under the line — that IS the
  * finding, so it stays on the chart rather than being quietly dropped.
  */
-function ReliabilityChart() {
+async function ReliabilityChart() {
+    const t = await getTranslations("OraclePage");
     const W = 720, H = 420, pad = 56;
     const x = (p: number) => pad + ((p - 50) / 50) * (W - pad * 2);
     const y = (p: number) => H - pad - ((p - 50) / 50) * (H - pad * 2);
@@ -275,7 +257,7 @@ function ReliabilityChart() {
     return (
         <div className="rounded-2xl border border-border bg-card p-4 md:p-6">
             <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img"
-                aria-label={`Diagrama de fiabilidad. El modelo original queda por debajo de la diagonal (sobreconfianza): cuando predice 98% gana ${C.reliability.raw[4].realized}%. El modelo corregido sigue la diagonal dentro de 3 puntos en todos los tramos.`}>
+                aria-label={t("chartAria", { p98: C.reliability.raw[4].realized })}>
                 {ticks.map(t => (
                     <g key={t}>
                         <line x1={x(t)} x2={x(t)} y1={pad} y2={H - pad} stroke="var(--color-border)" strokeWidth="1" />
@@ -294,7 +276,7 @@ function ReliabilityChart() {
                     neither curve passes — above it would collide with the
                     corrected series, which tracks the diagonal closely. */}
                 <text x={x(84)} y={y(62)} fontSize="11" fontWeight="700" fontFamily="var(--font-mono)"
-                    className="fill-[var(--color-muted-foreground)]">calibración perfecta</text>
+                    className="fill-[var(--color-muted-foreground)]">{t("perfectCalibration")}</text>
 
                 <path d={path(C.reliability.raw)} fill="none" stroke="var(--color-danger)" strokeWidth="3"
                     strokeLinecap="round" strokeLinejoin="round" />
@@ -311,15 +293,15 @@ function ReliabilityChart() {
                 ))}
 
                 <text x={W / 2} y={H - 8} textAnchor="middle" fontSize="12" fontWeight="700"
-                    className="fill-[var(--color-muted-foreground)]">Probabilidad que dijo el modelo</text>
+                    className="fill-[var(--color-muted-foreground)]">{t("axisSaid")}</text>
                 <text x={16} y={H / 2} textAnchor="middle" fontSize="12" fontWeight="700"
                     transform={`rotate(-90 16 ${H / 2})`}
-                    className="fill-[var(--color-muted-foreground)]">Veces que ocurrió</text>
+                    className="fill-[var(--color-muted-foreground)]">{t("axisHappened")}</text>
             </svg>
 
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-                <Key color="var(--color-danger)" label="Modelo original — sobreconfiado" />
-                <Key color="var(--color-success)" label="Modelo corregido — en uso hoy" />
+                <Key color="var(--color-danger)" label={t("keyOriginal")} />
+                <Key color="var(--color-success)" label={t("keyCorrected")} />
             </div>
         </div>
     );
@@ -334,7 +316,7 @@ function Key({ color, label }: { color: string; label: string }) {
     );
 }
 
-function GapCell({ realized, gap, matches }: { realized: number; gap: number; matches: number }) {
+function GapCell({ realized, gap, matchesText }: { realized: number; gap: number; matchesText: string }) {
     const bad = Math.abs(gap) >= 5;
     return (
         <span className="inline-flex flex-col items-center leading-tight">
@@ -345,7 +327,7 @@ function GapCell({ realized, gap, matches }: { realized: number; gap: number; ma
                 </span>
             </span>
             <span className="text-[10px] font-normal text-muted-foreground mt-0.5">
-                {matches.toLocaleString("es-MX")} partidos
+                {matchesText}
             </span>
         </span>
     );

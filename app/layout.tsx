@@ -14,13 +14,15 @@ import { Toaster } from "sonner";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 // Typography: system font stacks only (decision #93) — see app/globals.css.
 
-export const metadata: Metadata = {
-  title: "PRIDE — FTC Analytics por Iron Lion Robotics",
-  description: "Estadísticas, scouting colaborativo y proyecciones para FIRST Tech Challenge México. Una app de Iron Lion Robotics (FTC #30311).",
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("AppMeta");
+  return {
+  title: t("title"),
+  description: t("description"),
   manifest: "/manifest.webmanifest",
   applicationName: "PRIDE",
   appleWebApp: {
@@ -51,7 +53,8 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-};
+  };
+}
 
 import type { Viewport } from "next";
 

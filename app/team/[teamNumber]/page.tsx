@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { fetchTeam, fetchTeamRankingsInSeason, fetchEventAwards, fetchAlliances, fetchMatches, TeamSeasonRanking } from "@/lib/ftc-api";
 import { getCurrentSeason } from "@/lib/constants";
 import { FTCAward } from "@/types/scouting";
@@ -20,9 +21,9 @@ const SUPPORTED_SEASONS = [0, 1, 2, 3].map((i) => getCurrentSeason() - i);
 
 
 interface EventPlayoff {
-    role: string | null;          // Capitán / 1er pick / 2do pick / Backup
+    role: "captain" | "pick1" | "pick2" | "backup" | null;
     allianceNumber: number | null;
-    advancement: string | null;   // Campeón / Finalista / Playoffs
+    advancement: "champion" | "finalist" | "playoffs" | null;
     playoffRecord: string | null; // e.g. "2-1"
 }
 
@@ -44,13 +45,13 @@ async function enrichEvent(season: number, ranking: TeamSeasonRanking, teamNum: 
 
     const awards = evAwards.filter(a => a.teamNumber === teamNum);
 
-    let role: string | null = null;
+    let role: EnrichedEvent["playoff"]["role"] = null;
     let allianceNumber: number | null = null;
     for (const a of alliances) {
-        if (a.captain?.teamNumber === teamNum) { role = "Capitán"; allianceNumber = a.number; break; }
-        if (a.round1?.teamNumber === teamNum) { role = "1er pick"; allianceNumber = a.number; break; }
-        if (a.round2?.teamNumber === teamNum) { role = "2do pick"; allianceNumber = a.number; break; }
-        if (a.backup?.teamNumber === teamNum) { role = "Backup"; allianceNumber = a.number; break; }
+        if (a.captain?.teamNumber === teamNum) { role = "captain"; allianceNumber = a.number; break; }
+        if (a.round1?.teamNumber === teamNum) { role = "pick1"; allianceNumber = a.number; break; }
+        if (a.round2?.teamNumber === teamNum) { role = "pick2"; allianceNumber = a.number; break; }
+        if (a.backup?.teamNumber === teamNum) { role = "backup"; allianceNumber = a.number; break; }
     }
 
     const playoffMatches = evMatches.filter(m =>
@@ -66,10 +67,10 @@ async function enrichEvent(season: number, ranking: TeamSeasonRanking, teamNum: 
     });
 
     const awardNames = awards.map(a => (a.name || a.awardName || "").toLowerCase());
-    let advancement: string | null = null;
-    if (awardNames.some(n => n.includes("winning alliance"))) advancement = "Campeón";
-    else if (awardNames.some(n => n.includes("finalist"))) advancement = "Finalista";
-    else if (playoffMatches.length > 0) advancement = "Playoffs";
+    let advancement: EnrichedEvent["playoff"]["advancement"] = null;
+    if (awardNames.some(n => n.includes("winning alliance"))) advancement = "champion";
+    else if (awardNames.some(n => n.includes("finalist"))) advancement = "finalist";
+    else if (playoffMatches.length > 0) advancement = "playoffs";
 
     return {
         ranking,
@@ -88,6 +89,7 @@ interface TeamPageProps {
 }
 
 export default async function TeamPage(props: TeamPageProps) {
+    const t = await getTranslations("TeamPage");
     const params = await props.params;
     const { teamNumber } = params;
     const teamNum = parseInt(teamNumber);
@@ -145,7 +147,7 @@ export default async function TeamPage(props: TeamPageProps) {
                                 <h1 className="text-4xl md:text-6xl font-black font-display tracking-tight text-foreground">{team.nameShort || team.nameFull}</h1>
                                 {team.rookieYear && (
                                     <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
-                                        Since {team.rookieYear}
+                                        {t("since", { year: team.rookieYear })}
                                     </div>
                                 )}
                             </div>
@@ -156,7 +158,7 @@ export default async function TeamPage(props: TeamPageProps) {
                                 </span>
                                 {team.website && (
                                     <a href={team.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-secondary hover:text-primary transition-colors bg-muted/50 px-3 py-1.5 rounded-xl border border-border/50">
-                                        <Globe size={18} /> Visit Website
+                                        <Globe size={18} /> {t("visitWebsite")}
                                     </a>
                                 )}
                             </div>
@@ -167,17 +169,17 @@ export default async function TeamPage(props: TeamPageProps) {
                     <div className="px-6 md:px-12 py-8 bg-muted/20 border-t border-border/50">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
                             <div className="space-y-1">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block">Full Organization Name</span>
+                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block">{t("orgName")}</span>
                                 <p className="text-foreground font-bold leading-relaxed">{team.nameFull}</p>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block">Robot Identity</span>
-                                <p className="text-foreground font-bold">{team.robotName || "Designation Pending"}</p>
+                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block">{t("robotIdentity")}</span>
+                                <p className="text-foreground font-bold">{team.robotName || t("designationPending")}</p>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block">Sponsors & Affiliations</span>
+                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block">{t("sponsors")}</span>
                                 <p className="text-muted-foreground text-sm italic leading-relaxed">
-                                    {team.nameFull.replace(team.nameShort, "").trim() || "Managed by Local Educational Institution"}
+                                    {team.nameFull.replace(team.nameShort, "").trim() || t("localInstitution")}
                                 </p>
                             </div>
                         </div>
@@ -206,14 +208,14 @@ export default async function TeamPage(props: TeamPageProps) {
             <div className="space-y-12">
                 <div className="flex items-center gap-4">
                     <div className="h-12 w-2 bg-primary rounded-full" />
-                    <h2 className="text-4xl font-black font-display text-foreground tracking-tight">Participation History</h2>
+                    <h2 className="text-4xl font-black font-display text-foreground tracking-tight">{t("history")}</h2>
                 </div>
 
                 <div className="grid grid-cols-1 gap-12">
                     {activeSeasons.length === 0 ? (
                         <div className="p-20 text-center glass rounded-3xl border-dashed border-2 border-border/50">
                             <Calendar size={48} className="mx-auto text-muted-foreground mb-4 opacity-20" />
-                            <p className="text-muted-foreground text-xl font-medium italic">No recent match records found in our database.</p>
+                            <p className="text-muted-foreground text-xl font-medium italic">{t("noRecords")}</p>
                         </div>
                     ) : (
                         activeSeasons.map((year) => (
@@ -225,18 +227,18 @@ export default async function TeamPage(props: TeamPageProps) {
                                                 {year.season}
                                             </h3>
                                             <span className="px-4 py-1.5 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-sm font-black uppercase tracking-widest">
-                                                {seasonGameName(year.season) || "Official Season"}
+                                                {seasonGameName(year.season) || t("officialSeason")}
                                             </span>
                                         </div>
                                         <p className="text-muted-foreground font-medium flex items-center gap-2">
                                             <Trophy size={16} className="text-accent" />
-                                            Analyzing performance across {year.events.length} major tournaments
+                                            {t("analyzing", { count: year.events.length })}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <div className="text-right hidden md:block">
-                                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">Season Peak</span>
-                                            <span className="text-2xl font-black text-primary font-display">Rank #{Math.min(...year.events.map((e) => e.ranking.rank))}</span>
+                                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">{t("seasonPeak")}</span>
+                                            <span className="text-2xl font-black text-primary font-display">{t("rank", { rank: Math.min(...year.events.map((e) => e.ranking.rank)) })}</span>
                                         </div>
                                         <div className="w-14 h-14 rounded-2xl bg-primary shadow-xl shadow-primary/20 flex items-center justify-center text-white">
                                             <Trophy size={32} />
@@ -260,7 +262,7 @@ export default async function TeamPage(props: TeamPageProps) {
                                                             <span className="text-[10px] font-black text-secondary uppercase tracking-[0.25em] block">
                                                                 {rank.eventCode}
                                                             </span>
-                                                            <h4 className="text-xl font-black text-foreground leading-tight">{rank.eventName || "Regional Event"}</h4>
+                                                            <h4 className="text-xl font-black text-foreground leading-tight">{rank.eventName || t("regionalEvent")}</h4>
                                                         </div>
                                                         <div className="flex flex-col items-end">
                                                             <div className="px-3 py-1.5 rounded-xl bg-accent text-white text-sm font-black shadow-lg shadow-accent/20">
@@ -270,10 +272,10 @@ export default async function TeamPage(props: TeamPageProps) {
                                                     </div>
 
                                                     <div className="grid grid-cols-2 gap-3 relative z-10">
-                                                        <KPIItem label="Win Rate" value={`${rank.winRate.toFixed(0)}%`} sub={`${rank.wins}-${rank.losses}-${rank.ties}`} />
-                                                        <KPIItem label="Max Score" value={rank.highScore.toString()} sub="Season Peak" highlighted />
-                                                        <KPIItem label="Avg Net" value={rank.avgNP.toFixed(1)} sub="Performance" />
-                                                        <KPIItem label="Auto Avg" value={rank.avgAuto.toFixed(1)} sub="Consistencia" />
+                                                        <KPIItem label={t("kpiWinRate")} value={`${rank.winRate.toFixed(0)}%`} sub={`${rank.wins}-${rank.losses}-${rank.ties}`} />
+                                                        <KPIItem label={t("kpiMaxScore")} value={rank.highScore.toString()} sub={t("seasonPeak")} highlighted />
+                                                        <KPIItem label={t("kpiAvgNet")} value={rank.avgNP.toFixed(1)} sub={t("kpiPerformance")} />
+                                                        <KPIItem label={t("kpiAutoAvg")} value={rank.avgAuto.toFixed(1)} sub={t("kpiConsistency")} />
                                                     </div>
 
                                                     {/* Playoffs (alliance role + advancement) + awards for this event */}
@@ -281,16 +283,16 @@ export default async function TeamPage(props: TeamPageProps) {
                                                         <div className="relative z-10 flex flex-wrap gap-2 flex-1 content-start">
                                                             {ev.playoff.role && (
                                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-bold">
-                                                                    <Users size={12} /> Alianza {ev.playoff.allianceNumber} · {ev.playoff.role}
+                                                                    <Users size={12} /> {t("alliance", { number: ev.playoff.allianceNumber ?? "", role: t(`role${ev.playoff.role[0].toUpperCase()}${ev.playoff.role.slice(1)}`) })}
                                                                 </span>
                                                             )}
                                                             {ev.playoff.advancement && (
                                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/10 text-secondary border border-secondary/20 text-[11px] font-bold">
-                                                                    <Target size={12} /> {ev.playoff.advancement}{ev.playoff.playoffRecord ? ` · ${ev.playoff.playoffRecord}` : ""}
+                                                                    <Target size={12} /> {t(`adv${ev.playoff.advancement[0].toUpperCase()}${ev.playoff.advancement.slice(1)}`)}{ev.playoff.playoffRecord ? ` · ${ev.playoff.playoffRecord}` : ""}
                                                                 </span>
                                                             )}
                                                             {ev.awards.map((aw, i) => {
-                                                                const label = aw.name || aw.awardName || "Premio";
+                                                                const label = aw.name || aw.awardName || t("award");
                                                                 const isWin = aw.series === 1;
                                                                 return (
                                                                     <span
@@ -308,7 +310,7 @@ export default async function TeamPage(props: TeamPageProps) {
                                                     )}
 
                                                     <Link href={`/event/${rank.eventCode}`} className="relative z-10 w-full py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-black text-center transition-colors border border-border/50 mt-auto">
-                                                        VIEW EVENT DETAILS
+                                                        {t("viewEvent")}
                                                     </Link>
                                                 </Card>
                                             </div>
