@@ -48,7 +48,7 @@ export async function logPrediction(p: PredictionLog): Promise<void> {
             {
                 ...p,
                 predictedAt: FieldValue.serverTimestamp(),
-                modelVersion: p.modelVersion ?? "v3-bayesian",
+                modelVersion: p.modelVersion ?? "v4-k3.5",
             },
             { merge: true },
         );

@@ -1,6 +1,7 @@
 import type { TeamRanking, FTCMatch } from "@/types/scouting";
 import { componentOpr } from "@/lib/component-opr";
 import { winProbabilityFromNormalModel } from "@/lib/win-probability";
+import { estimateAlliances } from "@/lib/event-selector";
 
 /**
  * Live ranking projection during an event (v2, decision #95).
@@ -21,12 +22,17 @@ import { winProbabilityFromNormalModel } from "@/lib/win-probability";
  *  - Win probability of each remaining qual: Φ(Δμ/σ_diff) with σ_diff =
  *    √2 · RMS(residuals) of the played quals — the same normal model the
  *    Oracle uses, backtested at 75.6% on 2026 playoffs (decision #94).
- *  - Bonus RP: each team's observed bonus rate (RS minus its win/tie RP
- *    per match); an alliance earns the mean of its two teams' rates.
+ *  - Bonus RP: each team's observed bonus rate (RS minus its win/tie RP per
+ *    match); an alliance's bonus RPs are drawn as Binomial(3, mean rate / 3).
+ *  - Uncertainty: each run perturbs every team's strength by N(0, SE) with
+ *    SE = σ_alliance / √(matches played) — without it (and with bonus RP as
+ *    a fixed expectation) the 80% ranges covered only 62–76% in simulation.
  *  - 1,000 seeded Monte Carlo runs of the remaining schedule. Final RS =
  *    total RP / matches; ranks by RS, then the official tiebreakers in the
  *    order the FIRST API reports them (sortOrder2…5, held at current values),
  *    then a random draw (the manual's last tiebreaker).
+ *  - Output: projected rank (position by mean simulated rank), p10–p90 range,
+ *    and P(captain) for the event's alliance count (4 / 6 / 8).
  *
  * Limitations: tiebreaker averages are held constant; bonus rates don't react
  * to the opponent; a remaining match that will turn out to be a team's
@@ -53,8 +59,8 @@ export interface RankingProjection {
     projectedFinalRank: number;
     /** 10th–90th percentile of the simulated final rank. */
     rankRange: [number, number];
-    /** Probability of finishing in the top 4 (alliance captains at most qualifiers). */
-    pTop4: number;
+    /** Probability of finishing as an alliance captain (top `captainSlots`). */
+    pCaptain: number;
     /** Positive = climbed (improved from current rank). Negative = dropped. */
     rankDelta: number;
 }
@@ -64,9 +70,11 @@ export interface LiveProjectionResult {
     teamProjections: RankingProjection[];
     qualMatchesTotal: number;
     qualMatchesPlayed: number;
-    /** Set when no qualification matches have been played yet. Caller can
-     *  show "not enough data" instead of an all-zeros table. */
+    /** Set when no qualification matches have been played yet (or the
+     *  match list is unavailable). Caller shows "not enough data". */
     insufficientData: boolean;
+    /** Alliance captains at this event (4 / 6 / 8 by team count). */
+    captainSlots: number;
 }
 
 export interface ProjectionOptions {
@@ -76,6 +84,9 @@ export interface ProjectionOptions {
     simulations?: number;
     seed?: number;
 }
+
+/** Bonus RPs available per match (BIOBUZZ: SWARM + 2 POLLINATOR; DECODE: 3). */
+const BONUS_RP_SLOTS = 3;
 
 function isMatchPlayed(m: FTCMatch): boolean {
     if (m.postResultTime && m.postResultTime.length > 0) return true;
@@ -120,6 +131,8 @@ export interface StrengthModel {
     pRed: (red: number[], blue: number[]) => number;
     /** Teams with an OPR estimate (played at least one counted match). */
     teams: number[];
+    /** σ of a single alliance score (sigmaDiff / √2). */
+    sigmaAlliance: number;
 }
 
 /**
@@ -134,7 +147,10 @@ export function eventStrengthModel(playedQuals: FTCMatch[]): StrengthModel {
         value: npScore(m, color),
     }))).filter(r => r.teams.length > 0);
     const opr = componentOpr(rows, { lambda: 1 });
-    const strength = (t: number) => opr.get(t) ?? 0;
+    // Teams with no counted match yet: the "average robot" prior, not 0.
+    const meanSize = rows.length ? rows.reduce((s, r) => s + r.teams.length, 0) / rows.length : 2;
+    const priorStrength = rows.length ? rows.reduce((s, r) => s + r.value, 0) / rows.length / meanSize : 0;
+    const strength = (t: number) => opr.get(t) ?? priorStrength;
     const residuals = rows.map(r => r.value - r.teams.reduce((s, t) => s + strength(t), 0));
     const rms = residuals.length ? Math.sqrt(residuals.reduce((s, x) => s + x * x, 0) / residuals.length) : 0;
     const meanScore = rows.length ? rows.reduce((s, r) => s + r.value, 0) / rows.length : 0;
@@ -145,6 +161,7 @@ export function eventStrengthModel(playedQuals: FTCMatch[]): StrengthModel {
         sigmaDiff,
         pRed: (red, blue) => winProbabilityFromNormalModel(mu(red), mu(blue), sigmaDiff),
         teams: [...opr.keys()],
+        sigmaAlliance: sigmaDiff / Math.SQRT2,
     };
 }
 
@@ -162,9 +179,15 @@ export function projectFinalRankings(
     const played = quals.filter(isMatchPlayed);
     const remaining = quals.filter(m => !isMatchPlayed(m));
 
-    const insufficientData = rankings.length === 0 || rankings.every(r => (r.matchesPlayed ?? 0) === 0);
+    const captainSlots = estimateAlliances(rankings.length);
+    // Also "insufficient" when rankings show play but the match list is empty:
+    // fetchMatches returns [] on a transient API failure, and simulating an
+    // empty schedule would print false certainty (100% / 0%).
+    const insufficientData = rankings.length === 0
+        || rankings.every(r => (r.matchesPlayed ?? 0) === 0)
+        || quals.length === 0;
     if (insufficientData) {
-        return { eventCode, teamProjections: [], qualMatchesTotal: quals.length, qualMatchesPlayed: played.length, insufficientData: true };
+        return { eventCode, teamProjections: [], qualMatchesTotal: quals.length, qualMatchesPlayed: played.length, insufficientData: true, captainSlots };
     }
 
     // Matches each team still has to play. The final RS denominator is
@@ -174,7 +197,7 @@ export function projectFinalRankings(
     for (const m of remaining) for (const t of m.teams) toPlay.set(t.teamNumber, (toPlay.get(t.teamNumber) ?? 0) + 1);
 
     // --- Team strength from the played quals ---------------------------------
-    const { strength, sigmaDiff } = eventStrengthModel(played);
+    const { strength, sigmaDiff, sigmaAlliance } = eventStrengthModel(played);
 
     // --- Per-team state -------------------------------------------------------
     interface TeamState { r: TeamRanking; played: number; scheduledN: number; rpTotal: number; bonusRate: number; tb: number[] }
@@ -193,21 +216,36 @@ export function projectFinalRankings(
     });
     const idx = new Map(states.map((s, i) => [s.r.teamNumber, i]));
 
-    // Precompute each remaining match: alliances (indices into states), P(red wins), bonus RP.
+    // Precompute each remaining match: alliances (indices into states) and the
+    // per-bonus-RP success probability of each alliance (mean of its teams'
+    // rates, spread over BONUS_RP_SLOTS independent bonus RPs).
     const sims = remaining.map(m => {
         const red = allianceOf(m, "Red").map(t => idx.get(t)).filter((i): i is number => i !== undefined);
         const blue = allianceOf(m, "Blue").map(t => idx.get(t)).filter((i): i is number => i !== undefined);
-        const mu = (a: number[]) => a.reduce((s, i) => s + strength(states[i].r.teamNumber), 0);
-        const bonus = (a: number[]) => (a.length ? a.reduce((s, i) => s + states[i].bonusRate, 0) / a.length : 0);
-        return { red, blue, pRed: winProbabilityFromNormalModel(mu(red), mu(blue), sigmaDiff), bonusRed: bonus(red), bonusBlue: bonus(blue) };
+        const bonusP = (a: number[]) => (a.length ? Math.min(1, a.reduce((s, i) => s + states[i].bonusRate, 0) / a.length / BONUS_RP_SLOTS) : 0);
+        return { red, blue, bonusPRed: bonusP(red), bonusPBlue: bonusP(blue) };
     });
+    const baseStrength = states.map(s => strength(s.r.teamNumber));
+    // Uncertainty of each team's strength: SE ≈ σ_alliance / √(matches played).
+    const strengthSe = states.map(s => sigmaAlliance / Math.sqrt(Math.max(1, s.played)));
 
     // --- Monte Carlo -----------------------------------------------------------
     const rand = rng(opts.seed ?? 20261113);
     const n = states.length;
     const rankSamples: number[][] = states.map(() => []);
     const rpSum = new Float64Array(n);
-    const top4 = new Float64Array(n);
+    const captain = new Float64Array(n);
+    const runStrength = new Float64Array(n);
+    const gauss = () => {
+        // Box–Muller on the seeded PRNG.
+        const u = Math.max(rand(), 1e-12), v = rand();
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    };
+    const bonusDraw = (p: number) => {
+        let k = 0;
+        for (let j = 0; j < BONUS_RP_SLOTS; j++) if (rand() < p) k++;
+        return k;
+    };
     const runs = remaining.length ? N : 1;
     const order = states.map((_, i) => i);
     const rs = new Float64Array(n);
@@ -215,10 +253,16 @@ export function projectFinalRankings(
 
     for (let run = 0; run < runs; run++) {
         const rp = states.map(s => s.rpTotal);
+        // This run's "true" strengths: estimates are uncertain, more so for
+        // teams with few matches. Without this the ranges were overconfident.
+        for (let i = 0; i < n; i++) runStrength[i] = baseStrength[i] + strengthSe[i] * gauss();
         for (const m of sims) {
-            const redWins = rand() < m.pRed;
-            for (const i of m.red) rp[i] += (redWins ? winRp : 0) + m.bonusRed;
-            for (const i of m.blue) rp[i] += (redWins ? 0 : winRp) + m.bonusBlue;
+            const muR = m.red.reduce((s, i) => s + runStrength[i], 0);
+            const muB = m.blue.reduce((s, i) => s + runStrength[i], 0);
+            const redWins = rand() < winProbabilityFromNormalModel(muR, muB, sigmaDiff);
+            const bonusRed = bonusDraw(m.bonusPRed), bonusBlue = bonusDraw(m.bonusPBlue);
+            for (const i of m.red) rp[i] += (redWins ? winRp : 0) + bonusRed;
+            for (const i of m.blue) rp[i] += (redWins ? 0 : winRp) + bonusBlue;
         }
         for (let i = 0; i < n; i++) {
             rs[i] = states[i].scheduledN > 0 ? rp[i] / states[i].scheduledN : 0;
@@ -235,14 +279,14 @@ export function projectFinalRankings(
         });
         order.forEach((i, pos) => {
             rankSamples[i].push(pos + 1);
-            if (pos < 4) top4[i] += 1;
+            if (pos < captainSlots) captain[i] += 1;
         });
     }
 
     const projections: RankingProjection[] = states.map((s, i) => {
         const ranks = rankSamples[i].sort((a, b) => a - b);
         const finalRp = rpSum[i] / runs;
-        const projectedFinalRank = quantile(ranks, 0.5);
+        const projectedFinalRank = 0; // set below from the mean-rank order
         return {
             teamNumber: s.r.teamNumber,
             teamName: s.r.teamName,
@@ -257,14 +301,20 @@ export function projectFinalRankings(
             projectedFinalRS: s.scheduledN > 0 ? finalRp / s.scheduledN : 0,
             projectedFinalRank,
             rankRange: [quantile(ranks, 0.1), quantile(ranks, 0.9)],
-            pTop4: top4[i] / runs,
-            rankDelta: s.r.rank - projectedFinalRank,
+            pCaptain: captain[i] / runs,
+            rankDelta: 0, // set below with projectedFinalRank
         };
     });
 
-    // Display order: by mean simulated rank (more stable than the median for ties).
+    // Projected rank = position in the mean-simulated-rank order, so the column
+    // is a real 1..N ranking (medians repeat: 3,3,6,6…). The p10–p90 range
+    // keeps the spread.
     const meanRank = new Map(states.map((s, i) => [s.r.teamNumber, rankSamples[i].reduce((a, b) => a + b, 0) / rankSamples[i].length]));
     projections.sort((a, b) => meanRank.get(a.teamNumber)! - meanRank.get(b.teamNumber)! || a.currentRank - b.currentRank);
+    projections.forEach((p, pos) => {
+        p.projectedFinalRank = pos + 1;
+        p.rankDelta = p.currentRank - p.projectedFinalRank;
+    });
 
     return {
         eventCode,
@@ -272,5 +322,6 @@ export function projectFinalRankings(
         qualMatchesTotal: quals.length,
         qualMatchesPlayed: played.length,
         insufficientData: false,
+        captainSlots,
     };
 }

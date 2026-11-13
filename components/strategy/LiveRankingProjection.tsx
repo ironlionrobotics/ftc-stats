@@ -233,7 +233,7 @@ function Row({ projection: p, highlighted }: { projection: RankingProjection; hi
                 {p.projectedFinalRS.toFixed(2)}
             </td>
             <td className="px-3 py-2 text-right font-mono text-foreground">
-                {Math.round(p.pTop4 * 100)}%
+                {Math.round(p.pCaptain * 100)}%
             </td>
         </tr>
     );

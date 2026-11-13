@@ -991,3 +991,12 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 **Decisión:** decaimiento 0.7 sin cambio, más `SWARM_CALIBRATION = { a: 0.65, b: 1.05 }` en `biobuzzAllianceRp` (`lib/rp-counts.ts`, `calibrateSwarm`). Los extremos se respetan: p = 1 sigue en 1 y p = 0 sigue en 0. POLLINATOR no se toca: skill 0.27 / 0.21; queda una subestimación en el tramo alto, pero con n pequeño (74 y 4 alianzas).
 
 **Umbrales de RP de Regional, Campeonato y Premier:** siguen sin publicarse (TBA en el manual). El mecanismo de override por evento ya existe (`RP_THRESHOLD_OVERRIDES`, #87); se llena cuando se publiquen.
+
+**Ajustes tras la revisión independiente (mismo día, antes del deploy):**
+- **Faltas:** los puntos sin penalizaciones restaban las faltas al revés. Ahora es el final menos las faltas *recibidas* (`scoreRedFinal − scoreBlueFoul`, #48). El modelo de fuerza quedó extraído en `eventStrengthModel`. En datos reales de AUBRQ1 movía P(capitán) hasta 17 puntos.
+- **Lista de partidos vacía:** si `fetchMatches` falla de forma transitoria con rankings ya jugados, la proyección se reporta como "sin datos" en lugar de mostrar certeza (100% o 0%).
+- **Incertidumbre:** los RP de bonificación se muestrean como Binomial(3, tasa/3) y cada corrida perturba la fuerza de cada equipo con N(0, σ_alianza/√jugados). En eventos sintéticos, la cobertura del rango p10–p90 pasó de 62–76% a **75–83%** (objetivo 80%). P(capitán) ≥ 0.85 queda bien calibrada a 70% del evento (predice 0.94–0.95, se cumple 0.89–0.93), pero sigue algo confiada a 40% (predice 0.91–0.93, se cumple 0.72–0.87).
+- **Equipos sin partidos:** reciben la fuerza del "robot promedio" (el prior del ridge), no 0.
+- **Posición proyectada:** es la posición 1…N en el orden por rango medio simulado; antes era la mediana, que repetía posiciones.
+- **"Top 4" pasa a ser P(capitán)** con 4, 6 u 8 lugares según el tamaño del evento (`estimateAlliances`).
+- **Versiones:** caché del análisis `analytics_v4_` (SWARM cambió de significado) y registro de calibración `modelVersion "v4-k3.5"`, para no mezclar regímenes en la pestaña Calibración.

@@ -98,8 +98,9 @@ describe("projectFinalRankings", () => {
         expect(top.matchesRemaining).toBe(2);
         expect(top.avgRPperMatch).toBe(3);
         expect(top.currentRP).toBe(6);
-        // Winning out keeps the average at 3 — v1 projected "12" as if RS were a total.
-        expect(top.projectedFinalRS).toBeGreaterThan(2.5);
+        // Winning out keeps the average at 3 — v1 projected "12" as if RS were a
+        // total. With 2 matches of evidence the model is not certain they win out.
+        expect(top.projectedFinalRS).toBeGreaterThan(2);
         expect(top.projectedFinalRS).toBeLessThanOrEqual(3 + 1e-9);
         expect(top.projectedFinalRank).toBe(1);
     });
@@ -144,13 +145,15 @@ describe("projectFinalRankings", () => {
         const b = projectFinalRankings(rankings, matches, "X");
         expect(a).toEqual(b);
         for (const p of a.teamProjections) {
-            expect(p.pTop4).toBeGreaterThanOrEqual(0);
-            expect(p.pTop4).toBeLessThanOrEqual(1);
-            expect(p.rankRange[0]).toBeLessThanOrEqual(p.projectedFinalRank);
-            expect(p.projectedFinalRank).toBeLessThanOrEqual(p.rankRange[1]);
+            expect(p.pCaptain).toBeGreaterThanOrEqual(0);
+            expect(p.pCaptain).toBeLessThanOrEqual(1);
+            expect(p.rankRange[0]).toBeLessThanOrEqual(p.rankRange[1]);
         }
-        // Top-4 probabilities sum to 4 (exactly four teams are top 4 in each run).
-        expect(a.teamProjections.reduce((s, p) => s + p.pTop4, 0)).toBeCloseTo(4, 6);
+        // Projected ranks are a real ranking: a permutation of 1..N.
+        expect(a.teamProjections.map(p => p.projectedFinalRank).sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5, 6]);
+        // Captain probabilities sum to the number of captain slots (4 here).
+        expect(a.captainSlots).toBe(4);
+        expect(a.teamProjections.reduce((s, p) => s + p.pCaptain, 0)).toBeCloseTo(4, 6);
     });
 
     it("uses TBP1 to break ties on projected RP", () => {
@@ -236,5 +239,41 @@ describe("eventStrengthModel", () => {
         // np (70) must be what is learned, not 100.
         expect(model.strength(1)).toBeLessThan(75);
         expect(model.pRed([1], [2])).toBeGreaterThan(0.5);
+    });
+});
+
+describe("projectFinalRankings robustness (review of #95)", () => {
+    it("reports insufficient data when the match list is unavailable", () => {
+        const res = projectFinalRankings(
+            [ranking({ rank: 1, teamNumber: 1, sortOrder1: 3, matchesPlayed: 2, wins: 2 }), ranking({ rank: 2, teamNumber: 2, sortOrder1: 0, matchesPlayed: 2 })],
+            [],
+            "X",
+        );
+        expect(res.insufficientData).toBe(true);
+        expect(res.teamProjections).toEqual([]);
+    });
+    it("gives teams with no counted match the average-robot strength, not 0", () => {
+        const played = [
+            { ...match({ matchNumber: 1, redTeams: [1, 2], blueTeams: [3, 4], played: true }), scoreRedFinal: 60, scoreBlueFinal: 40 } as FTCMatch,
+            { ...match({ matchNumber: 2, redTeams: [1, 3], blueTeams: [2, 4], played: true }), scoreRedFinal: 50, scoreBlueFinal: 50 } as FTCMatch,
+        ];
+        const model = eventStrengthModel(played);
+        const unseen = model.strength(99);
+        expect(unseen).toBeGreaterThan(20);
+        expect(unseen).toBeLessThan(30);
+    });
+    it("ranges widen with uncertainty: a mid-pack team is not pinned to one rank", () => {
+        const teams = [1, 2, 3, 4, 5, 6, 7, 8];
+        const sched: FTCMatch[] = [];
+        let n = 1;
+        for (let r = 0; r < 4; r++) for (let k = 0; k < 2; k++) {
+            const rot = teams.map((_, i) => teams[(i + r * 3 + k) % 8]);
+            sched.push(match({ matchNumber: n++, redTeams: [rot[0], rot[1]], blueTeams: [rot[2], rot[3]], played: r < 2 }));
+            sched.push(match({ matchNumber: n++, redTeams: [rot[4], rot[5]], blueTeams: [rot[6], rot[7]], played: r < 2 }));
+        }
+        const rankings = teams.map((t, i) => ranking({ rank: i + 1, teamNumber: t, sortOrder1: 4 - i * 0.4, sortOrder2: 60 - i, matchesPlayed: 2, wins: i < 4 ? 2 : 1 }));
+        const res = projectFinalRankings(rankings, sched, "X");
+        const mid = res.teamProjections.find(p => p.teamNumber === 4)!;
+        expect(mid.rankRange[1] - mid.rankRange[0]).toBeGreaterThanOrEqual(1);
     });
 });
