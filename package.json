@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-pride \"vitest run --config vitest.rules.config.ts\"",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium"
   },
@@ -45,6 +46,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.2",
     "@next/bundle-analyzer": "^16.2.6",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
