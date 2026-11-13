@@ -1,6 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
-import { clientIpFromForwardedFor, forwardedForShape, limiterKeyForIp } from "@/lib/input-guards";
+import { clientIpFromForwardedFor, DEFAULT_TRUSTED_PROXY_HOPS, forwardedForShape, limiterKeyForIp } from "@/lib/input-guards";
 import { FixedWindowLimiter } from "@/lib/rate-limiter";
 
 /**
@@ -28,18 +28,25 @@ const limiters = {
 
 export type GuardBucket = keyof typeof limiters;
 
-// Logged once per instance so the X-Forwarded-For layout behind App Hosting
-// can be confirmed in production logs (decision #91) — shape only, no IPs.
-let shapeLogged = false;
+// Each distinct X-Forwarded-For layout is logged once per instance (capped)
+// so it can be confirmed in production logs (decision #91) — hop kinds only,
+// never the IPs.
+const shapesLogged = new Set<string>();
+
+const TRUSTED_HOPS = (() => {
+    const n = Number(process.env.TRUSTED_PROXY_HOPS);
+    return Number.isInteger(n) && n >= 0 && n <= 5 ? n : DEFAULT_TRUSTED_PROXY_HOPS;
+})();
 
 async function visitorKey(): Promise<string> {
     try {
         const xff = (await headers()).get("x-forwarded-for");
-        if (!shapeLogged) {
-            shapeLogged = true;
-            console.info(`[rate-limit] x-forwarded-for shape: ${forwardedForShape(xff)}`);
+        const shape = forwardedForShape(xff);
+        if (!shapesLogged.has(shape) && shapesLogged.size < 20) {
+            shapesLogged.add(shape);
+            console.info(`[rate-limit] x-forwarded-for shape: ${shape}`);
         }
-        const ip = clientIpFromForwardedFor(xff);
+        const ip = clientIpFromForwardedFor(xff, TRUSTED_HOPS);
         return ip ? limiterKeyForIp(ip) : "unknown";
     } catch {
         return "unknown"; // outside a request scope (scripts/tests)

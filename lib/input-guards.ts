@@ -66,13 +66,22 @@ export function parseRegion(raw: unknown): string | undefined {
 // ---------------------------------------------------------------------------
 
 /**
- * Google Front End / Cloud Load Balancing proxy ranges. App Hosting (Cloud
- * Run behind Google's load balancer) appends `<client-ip>, <proxy-ip>` to
- * X-Forwarded-For; anything to the left of the client IP was supplied by the
- * caller and is untrusted. We strip trailing proxy hops and take the
- * rightmost remaining entry.
+ * How many hops App Hosting's infrastructure appends to X-Forwarded-For after
+ * the visitor's IP. Observed in production on 2026-11-13: a client that sends
+ * no header arrives as 3 hops (`<client>, <infra>, <infra>`). We trust exactly
+ * that many trailing hops — never "anything that looks like Google", because
+ * Google Cloud addresses are rentable by anyone and prefix-stripping would let
+ * a caller on a cloud VM pick its own rate-limit key. Override with
+ * TRUSTED_PROXY_HOPS if the hosting layout changes (watch the shape log).
  */
-const TRUSTED_PROXY_PREFIXES = ["35.191.", "130.211.0.", "130.211.1.", "130.211.2.", "130.211.3."];
+export const DEFAULT_TRUSTED_PROXY_HOPS = 2;
+
+const PRIVATE = /^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|fc|fd|fe80:|::1$)/i;
+
+function hopKind(h: string): "private" | "v6" | "v4" {
+    if (PRIVATE.test(h)) return "private";
+    return h.includes(":") ? "v6" : "v4";
+}
 
 /**
  * Rate-limit key for an IP: IPv6 grouped by /64 (one subscriber's prefix, so
@@ -88,14 +97,24 @@ export function limiterKeyForIp(ip: string): string {
 export function forwardedForShape(xff: string | null | undefined): string {
     if (!xff) return "absent";
     const hops = xff.split(",").map(s => s.trim()).filter(Boolean);
-    const tags = hops.map(h => (TRUSTED_PROXY_PREFIXES.some(p => h.startsWith(p)) ? "gproxy" : h.includes(":") ? "v6" : "v4"));
+    const tags = hops.map(hopKind);
     return `${hops.length} hops [${tags.join(", ")}]`;
 }
 
-export function clientIpFromForwardedFor(xff: string | null | undefined): string | null {
+/**
+ * The visitor's IP: the hop just left of the `trustedHops` the infrastructure
+ * appends. Anything further left was supplied by the caller and is ignored.
+ * With fewer hops than expected (local dev, layout change) it falls back to
+ * the leftmost hop, which is still a stable per-client key in those settings.
+ */
+export function clientIpFromForwardedFor(
+    xff: string | null | undefined,
+    trustedHops: number = DEFAULT_TRUSTED_PROXY_HOPS,
+): string | null {
     if (!xff) return null;
     const hops = xff.split(",").map(s => s.trim()).filter(Boolean);
-    while (hops.length > 1 && TRUSTED_PROXY_PREFIXES.some(p => hops[hops.length - 1].startsWith(p))) hops.pop();
-    const ip = hops[hops.length - 1];
-    return ip && ip.length <= 64 ? ip : null;
+    if (!hops.length) return null;
+    const i = hops.length - 1 - Math.max(0, trustedHops);
+    const ip = hops[i >= 0 ? i : 0];
+    return ip.length <= 64 ? ip : null;
 }
