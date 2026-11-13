@@ -1443,5 +1443,8 @@
     "pickOdds": "chance to be picked ({alliances} alliances)",
     "footnote": "Computed from official FIRST data. Projections are probabilities, not promises.",
     "noSchedule": "The match schedule hasn't been published yet."
+  },
+  "Sidebar": {
+    "teamTools": "Team tools"
   }
 }

@@ -1443,5 +1443,8 @@
     "pickOdds": "probabilidad de ser elegido ({alliances} alianzas)",
     "footnote": "Calculado con datos oficiales de FIRST. Las proyecciones son probabilidades, no promesas.",
     "noSchedule": "El calendario de partidos aún no se publica."
+  },
+  "Sidebar": {
+    "teamTools": "Herramientas del equipo"
   }
 }
