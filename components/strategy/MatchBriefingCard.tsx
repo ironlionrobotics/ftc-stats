@@ -16,6 +16,8 @@ import { guessActiveEventCode } from "@/lib/active-event";
 import { useFormatter, useTranslations } from "next-intl";
 
 interface MatchBriefingCardProps {
+    /** Event chosen on /scouting (#100); the guess is only a fallback. */
+    eventCode?: string;
     teams: AggregatedTeamStats[];
 }
 
@@ -29,11 +31,11 @@ interface MatchBriefingCardProps {
  * print preview from any browser saves to PDF just fine. Drive coaches print
  * once per match at most — perf isn't critical, dependency weight is.
  */
-export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
+export default function MatchBriefingCard({ teams, eventCode: eventCodeProp }: MatchBriefingCardProps) {
     const tCard = useTranslations("MatchBriefingCard");
     const { user, orgId } = useAuth();
     const { season } = useProgram();
-    const eventCode = guessActiveEventCode(teams) ?? "MXTOL";
+    const eventCode = eventCodeProp ?? guessActiveEventCode(teams) ?? "MXTOL";
     const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
 
     const [matchNumber, setMatchNumber] = useState(1);

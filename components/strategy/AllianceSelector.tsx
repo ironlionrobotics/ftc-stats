@@ -17,6 +17,8 @@ import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 interface AllianceSelectorProps {
+    /** Event chosen on /scouting (#100); the guess is only a fallback. */
+    eventCode?: string;
     teams: AggregatedTeamStats[];
 }
 
@@ -26,7 +28,7 @@ interface ScoutingSummary {
     count: number;
 }
 
-export default function AllianceSelector({ teams }: AllianceSelectorProps) {
+export default function AllianceSelector({ teams, eventCode: eventCodeProp }: AllianceSelectorProps) {
     const t = useTranslations("AllianceSelector");
     const { season } = useProgram();
     const { orgId } = useAuth();
@@ -37,13 +39,13 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
 
     // Real-time listen to scouting data to inform strategy
     useEffect(() => {
-        const eventCode = guessActiveEventCode(teams) ?? "MXTOL";
+        const eventCode = eventCodeProp ?? guessActiveEventCode(teams) ?? "MXTOL";
         const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
         const unsubscribe = listenToMatchScouting(season, eventCode, effectiveOrgId, (entries) => {
             setScoutingEntries(entries);
         });
         return () => unsubscribe();
-    }, [season, teams, orgId]);
+    }, [season, teams, orgId, eventCodeProp]);
 
     // Helper to get aggregated scouting info for a team
     const getScoutingSummary = (teamNumber: number) => {

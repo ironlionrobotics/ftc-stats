@@ -1536,7 +1536,13 @@
     "yes": "Yes",
     "no": "No",
     "noSelfReport": "This team hasn't published its self-report yet.",
-    "selfReportAvailable": "Self-report available."
+    "selfReportAvailable": "Self-report available.",
+    "team": "Team",
+    "auto": "Auto",
+    "teleop": "TeleOp",
+    "endgame": "Last 60 s",
+    "backing": "Backed by",
+    "tableLegend": "Typical points per match from official matches, priced with this season's scoring; practice total apart. Own scouting and self-reports are in each robot's Pool tab on Scouting."
   },
   "ScoutBoard": {
     "signIn": "Sign in with your team to split robots with other teams.",

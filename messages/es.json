@@ -1536,7 +1536,13 @@
     "yes": "Sí",
     "no": "No",
     "noSelfReport": "Este equipo todavía no publica su autorreporte.",
-    "selfReportAvailable": "Autorreporte disponible."
+    "selfReportAvailable": "Autorreporte disponible.",
+    "team": "Equipo",
+    "auto": "Auto",
+    "teleop": "TeleOp",
+    "endgame": "Últimos 60 s",
+    "backing": "Respaldo",
+    "tableLegend": "Puntos típicos por partido en partidos oficiales, con la puntuación de esta temporada; el total de práctica va aparte. El scouting propio y los autorreportes están en la pestaña Pool de cada robot en Scouting."
   },
   "ScoutBoard": {
     "signIn": "Inicia sesión con tu equipo para repartir robots con otros equipos.",

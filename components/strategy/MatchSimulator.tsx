@@ -16,10 +16,12 @@ import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { useTranslations } from "next-intl";
 
 interface MatchSimulatorProps {
+    /** Event chosen on /scouting (#100); the guess is only a fallback. */
+    eventCode?: string;
     teams: AggregatedTeamStats[];
 }
 
-export default function MatchSimulator({ teams }: MatchSimulatorProps) {
+export default function MatchSimulator({ teams, eventCode: eventCodeProp }: MatchSimulatorProps) {
     const { season } = useProgram();
     const { orgId } = useAuth();
     // predictMatch returns insights as translation key + params (never
@@ -36,12 +38,12 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
 
     // Listen for live scouting data
     useEffect(() => {
-        const eventCode = guessActiveEventCode(teams) ?? "MXTOL";
+        const eventCode = eventCodeProp ?? guessActiveEventCode(teams) ?? "MXTOL";
         const unsubscribe = listenToMatchScouting(season, eventCode, effectiveOrgId, (entries) => {
             setScoutingData(entries);
         });
         return () => unsubscribe();
-    }, [season, teams, effectiveOrgId]);
+    }, [season, teams, effectiveOrgId, eventCodeProp]);
 
     // Load Pit Data for selected teams
     useEffect(() => {

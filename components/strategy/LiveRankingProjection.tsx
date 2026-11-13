@@ -13,6 +13,8 @@ import { Loader2, ArrowUp, ArrowDown, Minus, RefreshCw, AlertCircle, Trophy, Sta
 import clsx from "clsx";
 
 interface LiveRankingProjectionProps {
+    /** Event chosen on /scouting (#100); the guess is only a fallback. */
+    eventCode?: string;
     teams: AggregatedTeamStats[];
 }
 
@@ -29,7 +31,7 @@ interface LiveRankingProjectionProps {
  * Smart TTL (60s during active events). No polling: leaving a tab open all
  * day shouldn't hammer the API.
  */
-export default function LiveRankingProjection({ teams }: LiveRankingProjectionProps) {
+export default function LiveRankingProjection({ teams, eventCode: eventCodeProp }: LiveRankingProjectionProps) {
     const { orgId } = useAuth();
     const { season } = useProgram();
     const t = useTranslations("LiveRanking");
@@ -46,12 +48,14 @@ export default function LiveRankingProjection({ teams }: LiveRankingProjectionPr
             }
         }
         const byFrequency = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([code]) => code);
+        // The explicitly chosen event goes first even before any team there has results.
+        if (eventCodeProp) return [eventCodeProp, ...byFrequency.filter(c => c !== eventCodeProp)];
         const active = guessActiveEventCode(teams);
         if (active && byFrequency.includes(active)) {
             return [active, ...byFrequency.filter(c => c !== active)];
         }
         return byFrequency;
-    }, [teams]);
+    }, [teams, eventCodeProp]);
 
     const [eventCode, setEventCode] = useState<string>(eventCodes[0] ?? "");
     const [result, setResult] = useState<LiveProjectionResult | null>(null);
