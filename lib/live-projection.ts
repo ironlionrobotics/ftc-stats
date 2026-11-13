@@ -15,8 +15,9 @@ import { winProbabilityFromNormalModel } from "@/lib/win-probability";
  * fewer matches played. v1 also held only one tiebreaker.
  *
  * Model:
- *  - Team strength: event OPR on non-penalty alliance score (ridge,
- *    lib/component-opr.ts) from the quals played so far.
+ *  - Team strength: event OPR on non-penalty alliance score (final minus
+ *    foul points RECEIVED — decision #48), ridge (lib/component-opr.ts),
+ *    from the quals played so far (eventStrengthModel).
  *  - Win probability of each remaining qual: Φ(Δμ/σ_diff) with σ_diff =
  *    √2 · RMS(residuals) of the played quals — the same normal model the
  *    Oracle uses, backtested at 75.6% on 2026 playoffs (decision #94).
@@ -102,6 +103,51 @@ function quantile(sorted: number[], q: number): number {
 const allianceOf = (m: FTCMatch, color: "Red" | "Blue") =>
     m.teams.filter(t => t.station.startsWith(color) && t.onField !== false).map(t => t.teamNumber);
 
+/** Non-penalty score of an alliance: its final minus the foul points it
+ *  RECEIVED, which the API reports on the opponent's field (decision #48). */
+function npScore(m: FTCMatch, color: "Red" | "Blue"): number {
+    return color === "Red"
+        ? (m.scoreRedFinal ?? 0) - (m.scoreBlueFoul ?? 0)
+        : (m.scoreBlueFinal ?? 0) - (m.scoreRedFoul ?? 0);
+}
+
+export interface StrengthModel {
+    /** Event OPR on non-penalty score. */
+    strength: (team: number) => number;
+    /** σ of the score difference between two alliances. */
+    sigmaDiff: number;
+    /** P(red alliance beats blue) under the normal model. */
+    pRed: (red: number[], blue: number[]) => number;
+    /** Teams with an OPR estimate (played at least one counted match). */
+    teams: number[];
+}
+
+/**
+ * Team strength at an event from its played qualification matches: ridge OPR
+ * on non-penalty alliance score, σ_diff = √2 · RMS(residuals) with a floor of
+ * 20% of the mean score (few matches overfit to ~0 residual). Shared by the
+ * ranking projection and "Today"'s next-match odds.
+ */
+export function eventStrengthModel(playedQuals: FTCMatch[]): StrengthModel {
+    const rows = playedQuals.flatMap(m => (["Red", "Blue"] as const).map(color => ({
+        teams: allianceOf(m, color),
+        value: npScore(m, color),
+    }))).filter(r => r.teams.length > 0);
+    const opr = componentOpr(rows, { lambda: 1 });
+    const strength = (t: number) => opr.get(t) ?? 0;
+    const residuals = rows.map(r => r.value - r.teams.reduce((s, t) => s + strength(t), 0));
+    const rms = residuals.length ? Math.sqrt(residuals.reduce((s, x) => s + x * x, 0) / residuals.length) : 0;
+    const meanScore = rows.length ? rows.reduce((s, r) => s + r.value, 0) / rows.length : 0;
+    const sigmaDiff = Math.SQRT2 * Math.max(rms, 0.2 * meanScore, 1);
+    const mu = (a: number[]) => a.reduce((s, t) => s + strength(t), 0);
+    return {
+        strength,
+        sigmaDiff,
+        pRed: (red, blue) => winProbabilityFromNormalModel(mu(red), mu(blue), sigmaDiff),
+        teams: [...opr.keys()],
+    };
+}
+
 export function projectFinalRankings(
     rankings: TeamRanking[],
     matches: FTCMatch[],
@@ -127,19 +173,8 @@ export function projectFinalRankings(
     const toPlay = new Map<number, number>();
     for (const m of remaining) for (const t of m.teams) toPlay.set(t.teamNumber, (toPlay.get(t.teamNumber) ?? 0) + 1);
 
-    // --- Team strength: non-penalty OPR from played quals -------------------
-    const oprRows = played.flatMap(m => (["Red", "Blue"] as const).map(color => ({
-        teams: allianceOf(m, color),
-        value: color === "Red" ? (m.scoreRedFinal ?? 0) - (m.scoreRedFoul ?? 0) : (m.scoreBlueFinal ?? 0) - (m.scoreBlueFoul ?? 0),
-    }))).filter(r => r.teams.length > 0);
-    const opr = componentOpr(oprRows, { lambda: 1 });
-    const strength = (t: number) => opr.get(t) ?? 0;
-    const residuals = oprRows.map(r => r.value - r.teams.reduce((s, t) => s + strength(t), 0));
-    const rms = residuals.length ? Math.sqrt(residuals.reduce((s, x) => s + x * x, 0) / residuals.length) : 0;
-    // σ for one alliance score; diff of two independent alliances → ×√2.
-    // With very few matches residuals are ~0 (overfit): floor at 20% of the mean score.
-    const meanScore = oprRows.length ? oprRows.reduce((s, r) => s + r.value, 0) / oprRows.length : 0;
-    const sigmaDiff = Math.SQRT2 * Math.max(rms, 0.2 * meanScore, 1);
+    // --- Team strength from the played quals ---------------------------------
+    const { strength, sigmaDiff } = eventStrengthModel(played);
 
     // --- Per-team state -------------------------------------------------------
     interface TeamState { r: TeamRanking; played: number; scheduledN: number; rpTotal: number; bonusRate: number; tb: number[] }
