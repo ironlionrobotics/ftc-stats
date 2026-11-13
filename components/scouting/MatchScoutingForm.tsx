@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useProgram } from "@/lib/stores/program-store";
-import { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
+import { ScoutTeam, MatchScouting } from "@/types/scouting";
 import GameScoutingForm from "./games/GameScoutingForm";
 import { gameDefinitionFor } from "@/lib/games/registry";
 import FRC_ReefscapeForm from "./games/FRC_ReefscapeForm";
@@ -15,11 +15,12 @@ import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 interface MatchScoutingFormWrapperProps {
-    team: AggregatedTeamStats;
+    team: ScoutTeam;
+    eventCode: string;
     entries: MatchScouting[];
 }
 
-export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWrapperProps) {
+export default function MatchScoutingForm({ team, eventCode, entries }: MatchScoutingFormWrapperProps) {
     const { program, season } = useProgram();
     const confirm = useConfirm();
     const [pendingData, setPendingData] = useState<MatchScouting[]>([]);
@@ -99,10 +100,10 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
         const definition = gameDefinitionFor("FTC", season);
         const seasonEntries = programEntries.filter(e => e.season === season);
         if (definition) {
-            FormComponent = <GameScoutingForm key={definition.id} definition={definition} team={team} entries={seasonEntries} />;
+            FormComponent = <GameScoutingForm key={definition.id} definition={definition} team={team} eventCode={eventCode} entries={seasonEntries} />;
         }
     } else if (program === "FRC") {
-        FormComponent = <FRC_ReefscapeForm team={team} entries={programEntries} onSaveSuccess={loadPending} />;
+        FormComponent = <FRC_ReefscapeForm team={team} eventCode={eventCode} entries={programEntries} onSaveSuccess={loadPending} />;
     }
 
     return (

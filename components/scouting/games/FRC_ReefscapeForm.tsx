@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AggregatedTeamStats, FRCMatchScouting, MatchScouting, CURRENT_GAME_SCHEMA } from "@/types/scouting";
+import { ScoutTeam, FRCMatchScouting, MatchScouting, CURRENT_GAME_SCHEMA } from "@/types/scouting";
 import { saveToLocal } from "@/lib/localDatabase";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
@@ -12,7 +12,8 @@ import { Save, Plus, Trophy, Minus, QrCode } from "lucide-react";
 import clsx from "clsx";
 
 interface FRC_ReefscapeFormProps {
-    team: AggregatedTeamStats;
+    team: ScoutTeam;
+    eventCode: string;
     entries: MatchScouting[];
     onSaveSuccess: () => void;
 }
@@ -55,7 +56,7 @@ function Checkbox({ label, checked, setter }: CheckboxProps) {
     );
 }
 
-export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_ReefscapeFormProps) {
+export default function FRC_ReefscapeForm({ team, eventCode, entries, onSaveSuccess }: FRC_ReefscapeFormProps) {
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const [isAdding, setIsAdding] = useState(false);
@@ -100,7 +101,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
 
         const data: Omit<FRCMatchScouting, 'id'> = {
             teamNumber: team.teamNumber,
-            eventCode: team.events[0]?.eventCode || "MXFRC",
+            eventCode,
             matchNumber: matchNum,
             season,
             program: 'FRC',

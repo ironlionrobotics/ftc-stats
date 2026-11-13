@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm, Controller, useController, type Control, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AggregatedTeamStats, MatchScouting, CURRENT_GAME_SCHEMA } from "@/types/scouting";
+import { ScoutTeam, MatchScouting, CURRENT_GAME_SCHEMA } from "@/types/scouting";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID, scoutIdFromUser, scoutNameFromUser } from "@/lib/orgs";
@@ -14,10 +14,10 @@ import { Card } from "@/components/ui/Card";
 import { Save, Plus, User, Trophy, Minus, ClipboardList, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
-import { guessActiveEventCode } from "@/lib/active-event";
 
 interface MatchScoutingFormProps {
-    team: AggregatedTeamStats;
+    team: ScoutTeam;
+    eventCode: string;
     entries: MatchScouting[];
 }
 
@@ -49,7 +49,7 @@ const DEFAULTS: FTCDecodeFormValues = {
  * uncontrolled and only triggers re-renders for the specific Controllers
  * that subscribe — important on slower tablets in the venue.
  */
-export default function FTC_DecodeForm({ team, entries }: MatchScoutingFormProps) {
+export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScoutingFormProps) {
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const [isAdding, setIsAdding] = useState(false);
@@ -72,7 +72,6 @@ export default function FTC_DecodeForm({ team, entries }: MatchScoutingFormProps
             toast.error("Debes iniciar sesión");
             return;
         }
-        const eventCode = guessActiveEventCode([team]) ?? "MXTOL";
         const scoutId = scoutIdFromUser(user);
         const scoutName = scoutNameFromUser(user);
         const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;

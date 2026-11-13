@@ -1010,3 +1010,19 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 **Decisión:** declarar las siete `NEXT_PUBLIC_FIREBASE_*` en `apphosting.yaml` con `availability: [BUILD, RUNTIME]`. Son valores públicos por diseño, de la app web "Iron Lion Scouting". Si la configuración vuelve a faltar, `lib/firebase.ts` lo reporta con `console.error` en lugar de seguir en silencio.
 
 **Lección:** la verificación posterior a un deploy debe incluir un login real, o al menos revisar que el fragmento de `lib/firebase.ts` traiga el `authDomain` real. Un 200 en las rutas no prueba que el cliente de Firebase funcione.
+
+## #100 · Scouting por evento explícito, con la lista de inscritos de FIRST (2026-11-13)
+
+**Hallazgo** (primera prueba de captura en producción): `/scouting` armaba su lista de equipos solo con los rankings de eventos MX ya jugados en la temporada. En la temporada 2026 todavía no se juega ninguno, así que la lista salía vacía. En un evento habría seguido vacía hasta el primer partido, justo cuando se hace el pit scouting. Además, los formularios de match y super deducían el evento por equipo (`guessActiveEventCode([team])`) y, si no lo encontraban, guardaban bajo `"MXTOL"` fijo, un código que no existe en 2026.
+
+**Decisión:**
+- **Evento explícito:** `/scouting` elige el evento (`?event=`, si no la cookie `scouting_event`, si no el que está en curso, el siguiente o el último; `lib/scouting-event.ts`). Lo pasa como `eventCode` a todos los formularios y al listener.
+- **Lista de equipos:**
+  - primero los inscritos que publica FIRST (`fetchEventTeams`, `/teams?eventCode=`);
+  - si FIRST no los publicó, los equipos con resultados en la temporada;
+  - y siempre se puede agregar un equipo tecleando su número.
+- **Caché de inscritos:** como máximo 10 minutos mientras el evento no termina, para que aparezcan en cuanto FIRST los publique. Un evento ya terminado conserva el TTL largo. Las respuestas vacías no se cachean.
+- **Cambio de evento:** `ScoutingClient` se remonta (`key` = evento), así que los equipos agregados a mano, la selección y las entradas no pasan de un evento a otro.
+- **Correo:** la captura de pit ya no guarda el correo como `lastUpdatedBy` (`scoutNameFromUser`; esto ya estaba en #92 en las ramas `p3`/`etapa1`, pero faltaba en `main`).
+
+**Pendiente:** al 13-nov FIRST todavía no publica inscritos para ningún evento MX. La región de los eventos sigue fija en MX hasta quitar los supuestos de un solo equipo (Etapa 2). Estrategia (picklist, oracle, simulador, briefing) sigue deduciendo el evento con el mismo respaldo `"MXTOL"`; antes de la selección de alianzas ya hay rankings, así que el evento en curso se detecta bien, pero conviene llevar ahí el mismo evento explícito.
