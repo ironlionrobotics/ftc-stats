@@ -15,7 +15,8 @@
       "userNotFound": "User not found",
       "noOrg": "No team assigned",
       "notAdmin": "Only admins/leads can perform this action",
-      "notSuperadmin": "You don't have superadmin permissions."
+      "notSuperadmin": "You don't have superadmin permissions.",
+      "emailNotVerified": "Verify your email address before requesting a team."
     },
     "invite": {
       "tooShort": "Code is too short",

@@ -30,11 +30,11 @@ type Fail = { ok: false; code: ErrorCode };
 
 const CLAIMS = "team_claims";
 
-async function uidFromToken(idToken: unknown): Promise<{ uid: string; email: string; name: string } | Fail> {
+async function uidFromToken(idToken: unknown): Promise<{ uid: string; email: string; emailVerified: boolean; name: string } | Fail> {
     if (!idToken || typeof idToken !== "string") return { ok: false, code: "auth.missingToken" };
     try {
         const d = await getAdminAuth().verifyIdToken(idToken);
-        return { uid: d.uid, email: d.email ?? "", name: typeof d.name === "string" ? d.name : "" };
+        return { uid: d.uid, email: d.email ?? "", emailVerified: d.email_verified === true, name: typeof d.name === "string" ? d.name : "" };
     } catch {
         return { ok: false, code: "auth.invalidToken" };
     }
@@ -68,6 +68,9 @@ export async function claimTeamAction(input: {
 }): Promise<{ ok: true; claim: MyClaim } | Fail> {
     const who = await uidFromToken(input?.idToken);
     if ("ok" in who) return who;
+    // The reviewer judges a claim by the requester's email, so it must be
+    // proven (always true for Google sign-in; guards future auth methods).
+    if (!who.emailVerified) return { ok: false, code: "auth.emailNotVerified" };
     const v = validateClaimInput(input);
     if (!v.ok) return v;
     const { teamNumber, displayName, program } = v.value;

@@ -15,7 +15,8 @@
       "userNotFound": "Usuario no encontrado",
       "noOrg": "Sin equipo asignado",
       "notAdmin": "Solo admins/leads pueden realizar esta acción",
-      "notSuperadmin": "No tienes permisos de superadmin."
+      "notSuperadmin": "No tienes permisos de superadmin.",
+      "emailNotVerified": "Verifica tu correo antes de solicitar un equipo."
     },
     "invite": {
       "tooShort": "Código demasiado corto",

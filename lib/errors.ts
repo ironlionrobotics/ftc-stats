@@ -34,6 +34,7 @@ export type ErrorCode =
     | "claim.notFound"
     | "claim.notPending"
     | "auth.notSuperadmin"
+    | "auth.emailNotVerified"
     // Firebase Admin SDK unreachable/misconfigured — surfaced by every admin
     // action that looks up users/{uid} or org_secrets/{orgId} server-side.
     | "admin.firestoreUnavailable"
