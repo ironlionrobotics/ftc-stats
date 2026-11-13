@@ -1056,3 +1056,93 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 - **Correo:** la captura de pit ya no guarda el correo como `lastUpdatedBy` (`scoutNameFromUser`; esto ya estaba en #92 en las ramas `p3`/`etapa1`, pero faltaba en `main`).
 
 **Pendiente:** al 13-nov FIRST todavía no publica inscritos para ningún evento MX. La región de los eventos sigue fija en MX hasta quitar los supuestos de un solo equipo (Etapa 2). Estrategia (picklist, oracle, simulador, briefing) sigue deduciendo el evento con el mismo respaldo `"MXTOL"`; antes de la selección de alianzas ya hay rankings, así que el evento en curso se detecta bien, pero conviene llevar ahí el mismo evento explícito.
+
+## #101 · Contexto de cada observación y autorreporte por temporada (2026-11-13)
+
+**Pedido de Héctor:** etiquetar si una observación se hizo en cancha de práctica, partido de práctica, qualy o playoff, y que cada equipo responda las preguntas generales sobre su propio robot.
+
+**Decisión: contexto.**
+- `match_scouting.tournamentLevel` admite `PRACTICE_FIELD | PRACTICE | QUALIFICATION | PLAYOFF` (`lib/scouting-context.ts`). Las entradas sin el campo se leen como QUALIFICATION.
+- La cancha de práctica no lleva número de partido; se guarda 0.
+- **Validación contra el puntaje oficial:** solo usa contextos oficiales y además exige el mismo nivel (`entryObservedMatch`). Antes, una entrada de playoff #3 se validaba contra la qualy #3.
+- **Consenso:** la práctica pesa 0.5. `aggregateEventEntries` agrupa también por contexto.
+- **Regla:** valida el enum, pero el campo es opcional para que sigan sincronizando las colas offline de clientes viejos.
+
+**Decisión: autorreporte.**
+- `GameDefinition.selfReport` define las preguntas de la Trading Card. Los contadores del "partido típico" reutilizan los ids de scouting, así que `score()` convierte la respuesta en puntos y el autorreporte se compara campo a campo con el pool.
+- BIOBUZZ pregunta por autónomo, teleop y últimos 60 s, más tracción, recolección, rutinas de autónomo, defensa y límites conocidos.
+- `team_profiles` ahora solo lo lee quien tiene equipo aprobado (`myOrgId() != null`).
+
+## #102 · Pool compartido de scouting: servidor, reciprocidad y seudónimos (2026-11-13)
+
+**Contexto:** las reglas de Firestore no filtran campos, así que `match_scouting` sigue privado por organización (#78).
+
+**Decisión: el pool solo sale por `getEventPoolAction`** (Admin SDK).
+- **Gate de reciprocidad:** la organización debe tener ≥5 capturas objetivas en ese evento (`POOL_UNLOCK_MIN_ENTRIES`; queda en código, no en `app_config`, para no tocar la consola de admin antes de MXTLQ).
+- **Qué sale:** solo campos de tipo contador, booleano o enum. Nunca salen super scouting, estrellas, texto, notas, nombres, uids ni ids de organización.
+- **Seudónimos:** fuentes con letra estable por evento, en `pool_aliases`, que es solo de servidor.
+- **Resumen por robot:** oficial y práctica por separado. Para cada uno: promedio por partido observado y su dispersión, o el valor mayoritario; n observaciones; n fuentes; campos en desacuerdo; y el puntaje típico calculado con `score()`.
+- **Pit:** el `publicSummary` se comparte con el mismo gate.
+- **Caché:** el snapshot del evento se cachea 60 s en `server_cache`.
+- **Límite de uso:** 60 llamadas por minuto por usuario (`lib/server-caller.ts`).
+
+**UI:**
+- pestaña Pool en `/scouting` (autorreporte, pool oficial y pool de práctica, lado a lado);
+- pestaña Pool en `/strategy` (todos los robots del evento, ordenados por puntos típicos).
+
+**Riesgo conocido:** el gate se puede cumplir con capturas basura. Lo mitiga la confiabilidad por scout medida contra el puntaje oficial (#76): las capturas falsas bajan su peso.
+
+## #103 · Tablero de reparto de scouts entre equipos (2026-11-13)
+
+**Decisión:**
+- **Datos:** `scout_claims/{season}_{event}_QUALIFICATION_{n}` guarda `{[equipo]: [{alias, scout, at}]}`.
+  - `scout` es sha256(uid:temporada:evento), recortado. Así cada scout reconoce lo suyo sin exponer su uid.
+  - Cualquier equipo aprobado puede leerlo; solo escribe el servidor (`claimRobotAction` / `releaseRobotAction`, con transacción).
+- **Validación:** solo acepta robots que FIRST tiene en ese partido de qualy.
+- **Reglas de apartado:** un scout tiene un robot por partido; la cobertura doble se permite y se marca.
+- **UI:** "Tus próximos robots sin scout" sugiere dónde ir, y "Scoutear" abre el formulario de partido del robot.
+- **Alcance:** solo qualys en esta versión.
+
+## #104 · Préstamos de pits entre equipos (2026-11-13)
+
+**Pedido de Héctor:** saber quién en el evento tiene la pieza o herramienta que necesitas, y si lo prestado regresó.
+
+**Colecciones:**
+- **`org_inventory`:** cada equipo escribe solo lo suyo, con campos acotados. Los demás leen solo lo prestable.
+- **`event_presence`:** registro de llegada con pit, bajo un id determinista.
+- **`lend_requests`:** el equipo crea su solicitud abierta y después solo cambia el estado.
+- **`loans`:** solo escribe el servidor (`app/actions/lending.ts`) y solo leen las dos partes.
+
+**Préstamos:**
+- **Estados:** prestado → devolución marcada (quien recibió) → devuelto (quien prestó lo confirma, o lo cierra directamente). Un préstamo con un equipo que no está en PRIDE tiene una sola parte, y esa lo cierra.
+- **Regalo:** los consumibles pueden ir como regalo, con estado "given".
+- **Recordatorio:** en "Hoy" para miembros; el listener se carga solo para ellos.
+
+**Privacidad:** se muestran número de equipo, nombre y pit, nunca personas (#92).
+
+**Pendiente:**
+- avisar por Discord al equipo que tiene un artículo que coincide con una solicitud;
+- notificaciones push (no existe FCM).
+
+## #105 · Taller: práctica privada con reloj de partido (2026-11-13)
+
+**Reloj:**
+- Los tiempos oficiales de BIOBUZZ se verificaron en el Competition Manual TU09:
+  - §10.4: AUTO 0:30, transición de 8 s, TELEOP 2:00;
+  - §9.11, Tabla 9-1: señales de "FLOWER Ownership Unlocked" a 1:00 y de los últimos 20 s.
+- Viven en `SeasonRules.matchTiming`.
+- `lib/match-clock.ts` es puro. La pantalla sigue al reloj del campo: 2:30→2:00 en AUTO, 0:08 en la transición, 2:00→0:00 en TELEOP.
+- El componente mide con `performance.now()` y `requestAnimationFrame`, sin deriva.
+- Los tonos se generan con WebAudio; nunca se copian los sonidos de FIRST.
+- Mantiene la pantalla encendida (Wake Lock) y tiene pantalla completa.
+
+**Registro:**
+- **Puntuación:** cada práctica (partido completo, solo auto o solo teleop) se puntúa en vivo con la definición de la temporada.
+- **Datos que guarda:** versión del robot, pareja de drivers (alias internos) y lugar.
+- **Almacenamiento:**
+  - se guarda primero en Dexie (`pendingPractice`, v3) y luego en `practice_runs` con el mismo id, así que reintentar no duplica;
+  - lo lee solo el equipo; borra el autor o un admin/lead.
+- **Avance:** promedio, mejor puntaje y σ por fase, agrupado por drivers o por versión del robot, más una gráfica de tendencia (Recharts cargado bajo demanda).
+- **Aislamiento:** nunca entra al pool ni a la validación.
+
+**Alcance:** un robot por práctica. El marcador de alianza con dos robots queda pendiente.

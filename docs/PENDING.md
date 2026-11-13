@@ -3,34 +3,53 @@
 **Última actualización:** 13 nov 2026 (sesión 21 — temporada BIOBUZZ, caché Firestore, plan de apertura pública; decisiones #86–#98)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
 
-## ▶️ RETOMAR AQUÍ — PLAN "PRIDE abierta al público" (estado al cierre de la sesión 21, 13-nov-2026)
+## ▶️ RETOMAR AQUÍ — federación, Taller y Préstamos para MXTLQ (13-nov-2026, sesión 21)
 
-Plan aprobado: `~/.claude/plans/replicated-cooking-elephant.md`. Orden acordado con Héctor: **1) calibración BIOBUZZ → 2) lógica de la estructura → 3) apertura no visual → 4) traducción → 5) estética al final.** Producción estable hasta MXTLQ (27-nov) salvo correcciones de bajo riesgo con OK.
+Plan aprobado (13-nov): `~/.claude/plans/replicated-cooking-elephant.md`. Héctor pidió las tres funciones **listas y completas antes de MXTLQ (27-nov)** para invitar a otros equipos. Decisiones: el pool lo ve **quien aporta en el evento**, con **atribución seudónima**. Todo se construyó sobre `etapa1/foundations`, que se despliega **antes** de MXTLQ (se adelanta la Aprobación B).
 
-**Qué hay en producción (`main` 73820d2, desplegado 13-nov):** hotfix #99 (la configuración web de Firebase ahora llega al navegador: login, scouting, picklists e invitaciones funcionan por primera vez en producción; dominio de App Hosting autorizado en Firebase Auth; login de Héctor verificado), además de: BIOBUZZ (#86–#88), caché Firestore (#89), Etapa 0 de seguridad (#90–#92), IP del visitante con 2 saltos de confianza y **la calibración P1 (#94–#96)**. Respaldo diario de Firestore activo (14 días de retención). Pruebas de reglas: 11/11 contra las reglas de producción.
+**Producción (`main` 0f4d937, desplegado el 13-nov):**
+- **Hasta #99:** todo lo anterior.
+- **Hotfix de superadmin:** cuenta horno3 como superadmin.
+- **#100, scouting por evento explícito:** lista de inscritos de FIRST, agregar equipos por número y el correo ya no se guarda en el pit.
+- **Verificado:** rutas en 200, MXTLQ seleccionable y sin errores en logs.
 
-**Ramas (ninguna desplegada):**
-| Rama | Contenido | Siguiente paso |
-|---|---|---|
-| `p1/biobuzz-calibration` | ✅ Mergeada a `main` y desplegada el 13-nov (verificado en producción: RP de 2026 visibles en la vista de evento). | — |
-| `p3/opening-basics` (1960ae2) | Cabeceras (CSP en modo reporte), 404/error/global-error, robots, borrado de cuenta (servidor), pruebas de reglas (#97) | Propuesto desplegar cabeceras + páginas de error junto con p1 |
-| `etapa1/foundations` | Integra p1 + p3 + tokens Transmisión + armazón de 5 destinos + i18n (~690 claves) + "Hoy" (#93, #98) + botón de borrar cuenta + sitemap | Después de MXTLQ, con Aprobación B (revisión en navegador + medición de rendimiento contra `docs/perf/`) |
+**Rama `etapa1/foundations` (sin desplegar), sobre lo que ya tenía (armazón, i18n, "Hoy"):**
+- **#101:** contexto de cada observación y autorreporte BIOBUZZ en la Trading Card.
+- **#102:** pool compartido desde el servidor, con gate de ≥5 capturas y alias por evento. Pestaña Pool en `/scouting` y en `/strategy`.
+- **#103:** tablero de reparto de scouts en `/scouting` ("Reparto de scouts").
+- **#104:** `/lending` con inventario, solicitudes y préstamos; recordatorio en "Hoy".
+- **#105:** `/workshop` con reloj oficial, marcador, historial y avance.
+- **Estrategia:** usa el evento elegido en `/scouting`.
+- **Pruebas:** 532 unitarias y 20/20 de reglas en el emulador; build OK.
 
-**Ahora mismo:** ✅ equipo 30311 aprobado (Iron Lion, FTC; la cuenta horno3 es admin), con un script de servidor que replica la transacción de aprobación, porque el modal de onboarding bloqueaba `/admin`. Rama `hotfix/superadmin-horno3` (fcdc5b7): correo horno3 como superadmin, sin modal de onboarding en `/admin` y herramientas de admin plegadas en el sidebar de producción; con OK, se despliega. **Siguiente:** Héctor captura un partido de scouting y canjea un código de invitación en producción, y se verifica en Firestore (`match_scouting` con orgId 30311; invitado con orgId 30311 y rol scout; `org_invites.uses` +1).
+**Antes del deploy (orden):**
+1. **Revisión independiente:** aplicar los hallazgos.
+2. **Revisión en navegador:** celular y escritorio, claro y oscuro, con dos cuentas de equipos distintos.
+3. **Rendimiento:** comparar contra `docs/perf/`.
+4. **OK de Héctor para el deploy:**
+   - primero `firebase deploy --only firestore:rules,firestore:indexes`;
+   - después App Hosting.
+5. **Prueba real con 2 equipos:**
+   - pool: llegar a 5 capturas desbloquea;
+   - reparto: dos navegadores;
+   - préstamo: A presta a B → B marca devuelto → A confirma;
+   - Taller: una práctica sin conexión.
 
-**Verificación post-deploy (lección #99):** además de las rutas en 200, comprobar que el fragmento servido de `lib/firebase.ts` trae `ironlion-scouting.firebaseapp.com` y que el botón de login abre firebaseapp.com → accounts.google.com.
+**Pendientes heredados:**
+- Captura de scouting de prueba y canje de invitación en producción. Héctor lo hace y yo verifico en Firestore; la captura de prueba en MXTLQ se borra después.
+- OK para alertas de caída y presupuesto.
+- Desactivar el login con email y contraseña.
+- Borrar los secretos `UPSTASH_*`.
 
-**OK pendientes de Héctor:** (1) ✅ p1 desplegado; ¿desplegar también cabeceras + páginas de error de p3 antes de MXTLQ?; (2) ✅ respaldos diarios activos; alertas de caída/presupuesto sin OK todavía; desactivar el login email/password que el proyecto tiene activo y la app no usa; (3) ✅ pruebas de reglas ejecutadas con Java 21 (11/11; `scripts/with-java21.sh` lo encuentra aunque el predeterminado sea 17); (4) aprobar en `/admin` su propia solicitud del equipo 30311 (`orgs/30311` no existe); (5) borrar secretos `UPSTASH_*`; (6) ✅ `AGENTS.md` y `graphify-out/` en `.gitignore`.
+**Siguiente trabajo lógico (después de MXTLQ):**
+- quitar los supuestos de un solo equipo (región MX, 30311, "Iron Lion Intelligence", prompt del asistente);
+- `/event/[code]` dividido en rutas;
+- un solo Oracle y un solo simulador;
+- avisos por Discord de solicitudes de préstamo;
+- marcador de alianza con 2 robots en el Taller;
+- `apiPriorCV` con scouting real.
 
-**Siguiente trabajo lógico (punto 2, sobre `etapa1/foundations`):**
-- Quitar ~25 supuestos de un solo equipo: región MX por defecto (`lib/aggregation.ts`, `EventFilter`), `HERO_TEAM`/`REPORT_TEAMS` 30311, "Iron Lion Intelligence" en `/event/*/pro`, prompt del asistente, "FTC Stats México" en briefing y Discord.
-- Dividir `/event/[code]` en rutas (`/rankings`, `/matches`, `/teams`, `/results`) con redirecciones de las URLs viejas.
-- Un solo Oracle (`/strategy/draft`) y un solo simulador (`/strategy/simulate`, partido o torneo); el evento solo enlaza.
-- Cobertura de scouting en "Hoy" para miembros (isla de cliente; datos privados de la organización).
-- `apiPriorCV` se recalibra cuando haya scouting real de 2026.
-- Reporte de `oracle-backtest report` con NaN en 2024/2025 (formato de registros).
-
-**Reglas de trabajo:** nada de `git add -A` (rutas explícitas); servidores locales se detienen por PID; cada cambio de UI se mide con `scripts/perf-baseline.mjs`.
+**Reglas de trabajo:** nada de `git add -A`; servidores locales se detienen por PID; cada cambio de UI se mide con `scripts/perf-baseline.mjs`.
 
 ## Historial: arranque de temporada BIOBUZZ (sesión 21, 13 nov)
 
