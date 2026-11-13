@@ -262,5 +262,11 @@ service cloud.firestore {
         match /ground_truth_runs/{doc} {
             allow read, write: if false;
         }
+
+        // Federated pool (#102): per-event pseudonyms (org → "A", "B"…).
+        // Server-only: knowing the mapping would undo the pseudonymity.
+        match /pool_aliases/{doc} {
+            allow read, write: if false;
+        }
     }
 }

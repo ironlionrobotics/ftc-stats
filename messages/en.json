@@ -34,7 +34,8 @@
       "alreadyOpen": "You already have a pending request for another team.",
       "alreadyInTeam": "You already belong to a team.",
       "notFound": "Request not found",
-      "notPending": "This request was already decided"
+      "notPending": "This request was already decided",
+      "taken": "Another scout already has that robot."
     },
     "admin": {
       "firestoreUnavailable": "Could not reach Firestore (is Firebase Admin configured on the server?)"
@@ -61,10 +62,18 @@
       "likertRange": "1-5",
       "notesMax2000": "Max 2000 characters",
       "notesMax5000": "Max 5000 characters",
-      "publicSummaryMax1000": "Max 1000 characters"
+      "publicSummaryMax1000": "Max 1000 characters",
+      "season": "Invalid season."
     },
     "account": {
       "confirmRequired": "Type DELETE to confirm."
+    },
+    "rateLimited": "Too many requests — wait a minute and try again.",
+    "lending": {
+      "notFound": "That loan or request no longer exists.",
+      "notAllowed": "Only the teams involved can do that.",
+      "badState": "That step doesn't apply anymore — refresh.",
+      "notAtEvent": "Check in to the event first."
     }
   },
   "DraftOdds": {
@@ -1487,7 +1496,8 @@
     "teamByNumber": "Team {n}",
     "addTeam": "Scout team {n}",
     "emptyTypeNumber": "Type a team number to add it.",
-    "needEvent": "Pick an event to record match scouting."
+    "needEvent": "Pick an event to record match scouting.",
+    "tabPool": "Shared pool"
   },
   "ScoutingContext": {
     "label": "Where",
@@ -1501,5 +1511,27 @@
     "savedNoMatch": "Practice-field observation saved",
     "savedNoMatchOffline": "Practice-field observation saved offline — it will sync when the connection returns",
     "saveFailedNoMatch": "Could not save the observation — check and try again"
+  },
+  "ScoutingPool": {
+    "signIn": "Sign in with your team to see the shared pool.",
+    "loading": "Loading the event pool…",
+    "lockedTitle": "Shared pool locked",
+    "lockedBody": "Teams that scout share what they see. Save {needed} match captures at {event} and you'll see what every contributing team observed about each robot.",
+    "progress": "Your team: {n} of {needed} captures",
+    "summary": "{sources, plural, one {# team contributes} other {# teams contribute}} · you appear as source {alias}",
+    "refresh": "Refresh",
+    "colField": "Field",
+    "colClaim": "Self-report",
+    "colOfficial": "Pool · official",
+    "colPractice": "Pool · practice",
+    "noData": "no data yet",
+    "bucketNote": "{obs, plural, one {# observation} other {# observations}} · {sources, plural, one {# source} other {# sources}}",
+    "legend": "Mean per observed match (± spread). Amber: scouts of the same match disagreed. Practice counts half and doesn't change scout reliability.",
+    "pitTitle": "Shared pit notes",
+    "source": "Source {alias}",
+    "yes": "Yes",
+    "no": "No",
+    "noSelfReport": "This team hasn't published its self-report yet.",
+    "selfReportAvailable": "Self-report available."
   }
 }

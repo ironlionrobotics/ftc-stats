@@ -57,7 +57,15 @@ export type ErrorCode =
     | "validation.likertRange"
     | "validation.notesMax2000"
     | "validation.notesMax5000"
-    | "validation.publicSummaryMax1000";
+    | "validation.publicSummaryMax1000"
+    | "validation.season"
+    // Authenticated actions over their per-user rate (#102–#104).
+    | "rateLimited"
+    | "claim.taken"
+    | "lending.notFound"
+    | "lending.notAllowed"
+    | "lending.badState"
+    | "lending.notAtEvent";
 
 /**
  * Error carrying a stable code. `message` is the code itself so stack traces

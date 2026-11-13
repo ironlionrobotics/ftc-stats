@@ -34,7 +34,8 @@
       "alreadyOpen": "Ya tienes una solicitud pendiente para otro equipo.",
       "alreadyInTeam": "Ya perteneces a un equipo.",
       "notFound": "Solicitud no encontrada",
-      "notPending": "Esta solicitud ya fue resuelta"
+      "notPending": "Esta solicitud ya fue resuelta",
+      "taken": "Otro scout ya tiene ese robot."
     },
     "admin": {
       "firestoreUnavailable": "No se pudo acceder a Firestore (¿falta configurar Firebase Admin en el servidor?)"
@@ -61,10 +62,18 @@
       "likertRange": "1-5",
       "notesMax2000": "Máx 2000 caracteres",
       "notesMax5000": "Máx 5000 caracteres",
-      "publicSummaryMax1000": "Máx 1000 caracteres"
+      "publicSummaryMax1000": "Máx 1000 caracteres",
+      "season": "Temporada inválida."
     },
     "account": {
       "confirmRequired": "Escribe DELETE para confirmar."
+    },
+    "rateLimited": "Demasiadas solicitudes: espera un minuto e intenta de nuevo.",
+    "lending": {
+      "notFound": "Ese préstamo o solicitud ya no existe.",
+      "notAllowed": "Solo los equipos involucrados pueden hacer eso.",
+      "badState": "Ese paso ya no aplica: actualiza la página.",
+      "notAtEvent": "Primero registra tu llegada al evento."
     }
   },
   "DraftOdds": {
@@ -1487,7 +1496,8 @@
     "teamByNumber": "Equipo {n}",
     "addTeam": "Scoutear al equipo {n}",
     "emptyTypeNumber": "Escribe un número de equipo para agregarlo.",
-    "needEvent": "Elige un evento para registrar scouting de partidos."
+    "needEvent": "Elige un evento para registrar scouting de partidos.",
+    "tabPool": "Pool compartido"
   },
   "ScoutingContext": {
     "label": "Dónde",
@@ -1501,5 +1511,27 @@
     "savedNoMatch": "Observación de cancha de práctica guardada",
     "savedNoMatchOffline": "Observación de cancha de práctica guardada offline: se sincronizará al volver la conexión",
     "saveFailedNoMatch": "No se pudo guardar la observación; revisa e intenta de nuevo"
+  },
+  "ScoutingPool": {
+    "signIn": "Inicia sesión con tu equipo para ver el pool compartido.",
+    "loading": "Cargando el pool del evento…",
+    "lockedTitle": "Pool compartido bloqueado",
+    "lockedBody": "Los equipos que scoutean comparten lo que ven. Guarda {needed} capturas de partidos en {event} y verás lo que observaron todos los equipos que aportan sobre cada robot.",
+    "progress": "Tu equipo: {n} de {needed} capturas",
+    "summary": "{sources, plural, one {Aporta # equipo} other {Aportan # equipos}} · tú apareces como fuente {alias}",
+    "refresh": "Actualizar",
+    "colField": "Campo",
+    "colClaim": "Autorreporte",
+    "colOfficial": "Pool · oficial",
+    "colPractice": "Pool · práctica",
+    "noData": "sin datos aún",
+    "bucketNote": "{obs, plural, one {# observación} other {# observaciones}} · {sources, plural, one {# fuente} other {# fuentes}}",
+    "legend": "Promedio por partido observado (± dispersión). Ámbar: los scouts del mismo partido no coincidieron. La práctica cuenta la mitad y no cambia la confiabilidad de los scouts.",
+    "pitTitle": "Notas de pit compartidas",
+    "source": "Fuente {alias}",
+    "yes": "Sí",
+    "no": "No",
+    "noSelfReport": "Este equipo todavía no publica su autorreporte.",
+    "selfReportAvailable": "Autorreporte disponible."
   }
 }

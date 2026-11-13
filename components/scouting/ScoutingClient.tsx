@@ -9,6 +9,7 @@ import TeamList from "@/components/scouting/TeamList";
 import ScoutingForm from "@/components/scouting/ScoutingForm";
 import MatchScoutingForm from "@/components/scouting/MatchScoutingForm";
 import SuperScoutingForm from "@/components/scouting/SuperScoutingForm";
+import PoolPanel from "@/components/scouting/PoolPanel";
 import { getPitScouting, listenToMatchScouting } from "@/lib/scouting-service";
 import { useSavePitScouting } from "@/lib/hooks/use-scouting-mutations";
 import { useAuth } from "@/context/AuthContext";
@@ -16,7 +17,7 @@ import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID, scoutNameFromUser } from "@/lib/orgs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import Tip from "@/components/ui/Tip";
-import { ClipboardList, Trophy, Eye, ChevronLeft } from "lucide-react";
+import { ClipboardList, Trophy, Eye, ChevronLeft, Users } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
 
@@ -212,6 +213,11 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
                                 <TabsTrigger value="super" className="flex items-center gap-2">
                                     <Eye size={16} /> {t("tabSuper")}
                                 </TabsTrigger>
+                                {program === "FTC" && (
+                                    <TabsTrigger value="pool" className="flex items-center gap-2">
+                                        <Users size={16} /> {tEvent("tabPool")}
+                                    </TabsTrigger>
+                                )}
                             </TabsList>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -243,6 +249,13 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
                                         />
                                     ) : <p className="p-6 text-muted-foreground">{tEvent("needEvent")}</p>}
                                 </TabsContent>
+                                {program === "FTC" && (
+                                    <TabsContent value="pool" className="m-0 h-full">
+                                        {eventCode ? (
+                                            <PoolPanel season={season} eventCode={eventCode} teamNumber={selectedTeam.teamNumber} />
+                                        ) : <p className="p-6 text-muted-foreground">{tEvent("needEvent")}</p>}
+                                    </TabsContent>
+                                )}
                             </div>
                         </Tabs>
                     ) : (

@@ -459,8 +459,9 @@ export function aggregateEventEntries(
 ): MatchTeamAggregation[] {
     const groups = new Map<string, BaseMatchScouting[]>();
     for (const e of entries) {
-        // Season in the key so a group can never mix two games' field maps.
-            const key = `${e.season}__${e.matchNumber}__${e.teamNumber}`;
+        // Season in the key so a group can never mix two games' field maps;
+        // context so practice #3 and qualification #3 stay apart (#101).
+        const key = `${e.season}__${contextOf(e)}__${e.matchNumber}__${e.teamNumber}`;
         const bucket = groups.get(key) ?? [];
         bucket.push(e);
         groups.set(key, bucket);
