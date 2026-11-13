@@ -6,7 +6,7 @@ import {
     initializeTestEnvironment,
     type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where } from "firebase/firestore";
 
 /**
  * Security-rules regression tests (decisions #78, #90, #97). Run against the
@@ -100,5 +100,109 @@ describe("scouting is private to the team (decision #78)", () => {
     it("anonymous visitors cannot read scouting", async () => {
         const db = env.unauthenticatedContext().firestore();
         await assertFails(getDoc(doc(db, "match_scouting/e1")));
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Federation, workshop and pit lending (decisions #101–#105)
+// ---------------------------------------------------------------------------
+
+/** Two approved teams (A = 111, B = 222) and a user with no team. */
+async function seedTeams() {
+    await seed("users/a1", { ...bareProfile, orgId: "111", role: "admin" });
+    await seed("users/a2", { ...bareProfile, orgId: "111", role: "scout" });
+    await seed("users/b1", { ...bareProfile, orgId: "222", role: "admin" });
+    await seed("users/n1", { ...bareProfile });
+}
+const as = (uid: string) => env.authenticatedContext(uid).firestore();
+
+describe("match_scouting context and privacy (#101/#102)", () => {
+    const entry = { scoutId: "a1", orgId: "111", season: 2026, eventCode: "MXTLQ", teamNumber: 5, matchNumber: 1 };
+    it("accepts the four contexts and rejects anything else", async () => {
+        await seedTeams();
+        await assertSucceeds(setDoc(doc(as("a1"), "match_scouting/e1"), { ...entry, tournamentLevel: "PRACTICE_FIELD" }));
+        await assertSucceeds(setDoc(doc(as("a1"), "match_scouting/e2"), { ...entry }));
+        await assertFails(setDoc(doc(as("a1"), "match_scouting/e3"), { ...entry, tournamentLevel: "FINAL" }));
+    });
+    it("another team still cannot read raw entries (the pool goes through the server)", async () => {
+        await seedTeams();
+        await seed("match_scouting/e1", { ...entry, notes: "private" });
+        await assertFails(getDoc(doc(as("b1"), "match_scouting/e1")));
+    });
+});
+
+describe("team_profiles (#101)", () => {
+    it("readable by approved teams only", async () => {
+        await seedTeams();
+        await seed("team_profiles/2026_111", { teamNumber: 111, season: 2026 });
+        await assertSucceeds(getDoc(doc(as("b1"), "team_profiles/2026_111")));
+        await assertFails(getDoc(doc(as("n1"), "team_profiles/2026_111")));
+    });
+});
+
+describe("server-only federation docs (#102/#103)", () => {
+    it("pool aliases are invisible; claims are readable but never client-written", async () => {
+        await seedTeams();
+        await seed("pool_aliases/2026_MXTLQ", { aliases: { "111": "A" } });
+        await seed("scout_claims/2026_MXTLQ_QUALIFICATION_1", { season: 2026, eventCode: "MXTLQ", claims: {} });
+        await assertFails(getDoc(doc(as("a1"), "pool_aliases/2026_MXTLQ")));
+        await assertSucceeds(getDoc(doc(as("b1"), "scout_claims/2026_MXTLQ_QUALIFICATION_1")));
+        await assertFails(getDoc(doc(as("n1"), "scout_claims/2026_MXTLQ_QUALIFICATION_1")));
+        await assertFails(setDoc(doc(as("a1"), "scout_claims/2026_MXTLQ_QUALIFICATION_2"), { claims: {} }));
+    });
+});
+
+describe("practice_runs (#105)", () => {
+    const run = { orgId: "111", season: 2026, createdBy: "a2", total: 50 };
+    it("private to the team; author or admin deletes", async () => {
+        await seedTeams();
+        await assertSucceeds(setDoc(doc(as("a2"), "practice_runs/r1"), run));
+        await assertFails(setDoc(doc(as("a2"), "practice_runs/r2"), { ...run, createdBy: "a1" }));
+        await assertFails(setDoc(doc(as("b1"), "practice_runs/r3"), run));
+        await assertSucceeds(getDoc(doc(as("a1"), "practice_runs/r1")));
+        await assertFails(getDoc(doc(as("b1"), "practice_runs/r1")));
+        await seed("practice_runs/r4", run);
+        await assertSucceeds(deleteDoc(doc(as("a1"), "practice_runs/r4")));
+    });
+});
+
+describe("pit lending (#104)", () => {
+    const item = { orgId: "111", teamNumber: 111, name: "Servo", category: "part", qty: 2, lendable: true, giveaway: false };
+    it("inventory: own writes only, bounded fields; others see lendable items only", async () => {
+        await seedTeams();
+        await assertSucceeds(setDoc(doc(as("a1"), "org_inventory/111_x"), item));
+        await assertFails(setDoc(doc(as("a1"), "org_inventory/222_x"), item));
+        await assertFails(setDoc(doc(as("b1"), "org_inventory/111_y"), item));
+        await assertFails(setDoc(doc(as("a1"), "org_inventory/111_z"), { ...item, qty: 5000 }));
+        await seed("org_inventory/111_hidden", { ...item, lendable: false });
+        await assertSucceeds(getDoc(doc(as("b1"), "org_inventory/111_x")));
+        await assertFails(getDoc(doc(as("b1"), "org_inventory/111_hidden")));
+        await assertSucceeds(getDocs(query(collection(as("b1"), "org_inventory"), where("lendable", "==", true))));
+    });
+    it("presence: under its own deterministic id only", async () => {
+        await seedTeams();
+        const p = { season: 2026, eventCode: "MXTLQ", orgId: "111", teamNumber: 111, teamName: "A", pit: "12" };
+        await assertSucceeds(setDoc(doc(as("a1"), "event_presence/2026_MXTLQ_111"), p));
+        await assertFails(setDoc(doc(as("a1"), "event_presence/2026_MXTLQ_222"), p));
+    });
+    it("requests: created open by the team, only their status changes, only by the team", async () => {
+        await seedTeams();
+        const r = { season: 2026, eventCode: "MXTLQ", orgId: "111", teamNumber: 111, pit: "12", item: "Servo", note: "", status: "open" };
+        await assertSucceeds(setDoc(doc(as("a2"), "lend_requests/q1"), r));
+        await assertFails(setDoc(doc(as("a2"), "lend_requests/q2"), { ...r, status: "resolved" }));
+        await assertSucceeds(updateDoc(doc(as("a1"), "lend_requests/q1"), { status: "resolved" }));
+        await assertFails(updateDoc(doc(as("a1"), "lend_requests/q1"), { item: "Motor" }));
+        await assertFails(updateDoc(doc(as("b1"), "lend_requests/q1"), { status: "cancelled" }));
+        await assertSucceeds(getDoc(doc(as("b1"), "lend_requests/q1")));
+    });
+    it("loans: only the parties read them and nobody writes from the client", async () => {
+        await seedTeams();
+        await seed("users/c1", { ...bareProfile, orgId: "333" });
+        await seed("loans/l1", { parties: ["111", "222"], status: "lent" });
+        await assertSucceeds(getDoc(doc(as("a2"), "loans/l1")));
+        await assertSucceeds(getDoc(doc(as("b1"), "loans/l1")));
+        await assertFails(getDoc(doc(as("c1"), "loans/l1")));
+        await assertFails(updateDoc(doc(as("b1"), "loans/l1"), { status: "returned" }));
+        await assertFails(setDoc(doc(as("a1"), "loans/l2"), { parties: ["111"], status: "lent" }));
     });
 });
