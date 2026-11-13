@@ -16,5 +16,14 @@
   "firestore": {
     "indexes": "firestore.indexes.json",
     "rules": "firestore.rules"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8085
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
   }
 }

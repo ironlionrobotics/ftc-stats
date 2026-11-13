@@ -10,7 +10,7 @@ npm run build            # production build — must use --webpack (Serwist requ
 npm run start            # serve the production build
 npm run lint             # ESLint
 npm test                 # Vitest unit tests (480+ tests, must all pass before commit)
-npm run test:rules       # Firestore security-rules tests on the emulator (needs Java 21)
+npm run test:rules       # Firestore security-rules tests on the emulator (picks a Java ≥21 from /usr/lib/jvm via scripts/with-java21.sh; emulator on port 8085)
 node scripts/perf-baseline.mjs [url]  # mobile perf (JS KB, TBT, LCP) vs docs/perf/ baselines
 npm run test:watch       # Vitest in watch mode
 npm run test:e2e         # Playwright smoke tests (requires `npm run test:e2e:install` once)

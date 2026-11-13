@@ -16,7 +16,7 @@ Plan aprobado: `~/.claude/plans/replicated-cooking-elephant.md`. Orden acordado 
 | `p3/opening-basics` (1960ae2) | Cabeceras (CSP en modo reporte), 404/error/global-error, robots, borrado de cuenta (servidor), pruebas de reglas (#97) | Propuesto desplegar cabeceras + páginas de error junto con p1 |
 | `etapa1/foundations` | Integra p1 + p3 + tokens Transmisión + armazón de 5 destinos + i18n (~690 claves) + "Hoy" (#93, #98) + botón de borrar cuenta + sitemap | Después de MXTLQ, con Aprobación B (revisión en navegador + medición de rendimiento contra `docs/perf/`) |
 
-**OK pendientes de Héctor:** (1) deploy de p1 (+ parte de p3); (2) respaldos diarios de Firestore y alertas de caída/presupuesto en Google Cloud; (3) instalar Java 21 para correr `npm run test:rules` (escritas, nunca ejecutadas); (4) aprobar en `/admin` su propia solicitud del equipo 30311 (`orgs/30311` no existe); (5) borrar secretos `UPSTASH_*`; (6) decidir si `AGENTS.md` (lo regenera `next dev`) va a `.gitignore`.
+**OK pendientes de Héctor:** (1) deploy de p1 (+ parte de p3); (2) respaldos diarios de Firestore y alertas de caída/presupuesto en Google Cloud; (3) ✅ pruebas de reglas ejecutadas con Java 21 (11/11; `scripts/with-java21.sh` lo encuentra aunque el predeterminado sea 17); (4) aprobar en `/admin` su propia solicitud del equipo 30311 (`orgs/30311` no existe); (5) borrar secretos `UPSTASH_*`; (6) decidir si `AGENTS.md` (lo regenera `next dev`) va a `.gitignore`.
 
 **Siguiente trabajo lógico (punto 2, sobre `etapa1/foundations`):**
 - Quitar ~25 supuestos de un solo equipo: región MX por defecto (`lib/aggregation.ts`, `EventFilter`), `HERO_TEAM`/`REPORT_TEAMS` 30311, "Iron Lion Intelligence" en `/event/*/pro`, prompt del asistente, "FTC Stats México" en briefing y Discord.
