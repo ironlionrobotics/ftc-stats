@@ -17,7 +17,7 @@ import {
     type EventFrame,
     type PoolTeamSummary,
 } from "@/lib/scouting-pool";
-import { fetchEventTeams, fetchHybridSchedule } from "@/lib/ftc-api";
+import { fetchEvents, fetchEventTeams, fetchHybridSchedule } from "@/lib/ftc-api";
 import { scheduledQuals } from "@/lib/scout-claims";
 import type { GameDefinition } from "@/types/game-definition";
 import type { ErrorCode } from "@/lib/errors";
@@ -145,6 +145,8 @@ export async function getEventPoolAction(input: {
 
     const def = gameDefinitionFor("FTC", season);
     if (!def) return { ok: false, code: "generic" };
+    // Only real events: no FIRST fan-out or alias docs for invented codes.
+    if (!(await fetchEvents(season)).some(e => e.code === eventCode)) return { ok: false, code: "validation.eventCode" };
 
     try {
         const snap = await eventSnapshot(season, eventCode, def);
@@ -187,13 +189,20 @@ async function publicPitSummaries(
         .where("teamNumber", "==", teamNumber)
         .get();
     const out: PitShare[] = [];
+    const candidates = snap.docs
+        .map(d => d.data() as { orgId?: unknown; publicSummary?: unknown })
+        .filter(d => typeof d.orgId === "string" && d.orgId !== "" && typeof d.publicSummary === "string" && d.publicSummary.trim() !== "");
+    // Only approved teams share (orgs/{id} must exist).
+    const db = getAdminDb();
+    const orgIds = [...new Set(candidates.map(d => d.orgId as string))];
+    const real = new Set((orgIds.length ? await db.getAll(...orgIds.map(id => db.collection("orgs").doc(id))) : [])
+        .filter(d => d.exists).map(d => d.id));
     const needAlias: string[] = [];
-    for (const d of snap.docs) {
-        const data = d.data() as { orgId?: string; publicSummary?: string };
-        const text = (data.publicSummary ?? "").trim();
-        if (!text || !data.orgId) continue;
-        if (!aliases[data.orgId]) needAlias.push(data.orgId);
-        out.push({ source: data.orgId, text: text.slice(0, 1000) });
+    for (const data of candidates) {
+        const org = data.orgId as string;
+        if (!real.has(org)) continue;
+        if (!aliases[org]) needAlias.push(org);
+        out.push({ source: org, text: (data.publicSummary as string).trim().slice(0, 1000) });
     }
     const all = needAlias.length > 0 ? await ensureAliases(season, eventCode, needAlias) : aliases;
     return out.map(p => ({ source: all[p.source] ?? "?", text: p.text }));

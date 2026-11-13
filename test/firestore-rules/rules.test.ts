@@ -231,3 +231,22 @@ describe("review hardening (#102 review)", () => {
         await assertSucceeds(setDoc(doc(as("b1"), "team_profiles/2026_222"), { teamNumber: 222, season: 2026 }, { merge: true }));
     });
 });
+
+describe("no team-less writes, whatever orgId they claim (#102 review 2)", () => {
+    it("a sentinel-looking orgId does not open any write", async () => {
+        await seedTeams();
+        await seed("users/n2", { email: "x@y.z", displayName: "N", role: "scout", reliability: 1, matchesScouted: 0 }); // no orgId field at all
+        for (const uid of ["n1", "n2"]) {
+            const d = as(uid);
+            for (const orgId of ["__no_team__", null, ""]) {
+                await assertFails(setDoc(doc(d, `match_scouting/m_${uid}`), { scoutId: uid, orgId, season: 2026, eventCode: "MXTLQ", teamNumber: 5, matchNumber: 1 }));
+                await assertFails(setDoc(doc(d, `pit_scouting/p_${uid}`), { orgId, season: 2026, teamNumber: 5 }));
+                await assertFails(setDoc(doc(d, `practice_runs/r_${uid}`), { orgId, createdBy: uid, season: 2026 }));
+                await assertFails(setDoc(doc(d, `lend_requests/q_${uid}`), { orgId, teamNumber: orgId, season: 2026, eventCode: "MXTLQ", pit: "", item: "x", note: "", status: "open" }));
+                await assertFails(setDoc(doc(d, `event_presence/2026_MXTLQ_${orgId}`), { orgId, teamNumber: orgId, season: 2026, eventCode: "MXTLQ", teamName: "", pit: "" }));
+                await assertFails(setDoc(doc(d, `org_inventory/${orgId}_i`), { orgId, teamNumber: orgId, name: "x", category: "part", qty: 1, lendable: true, giveaway: false }));
+                await assertFails(setDoc(doc(d, `picklists/k_${uid}`), { orgId, eventCode: "MXTLQ", createdBy: uid }));
+            }
+        }
+    });
+});

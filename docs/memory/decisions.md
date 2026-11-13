@@ -1090,7 +1090,19 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 - pestaña Pool en `/scouting` (autorreporte, pool oficial y pool de práctica, lado a lado);
 - pestaña Pool en `/strategy` (todos los robots del evento, ordenados por puntos típicos).
 
-**Riesgo conocido:** el gate se puede cumplir con capturas basura. Lo mitiga la confiabilidad por scout medida contra el puntaje oficial (#76): las capturas falsas bajan su peso.
+**Endurecimiento tras la revisión independiente (mismo día):**
+- **Validación:** cada captura se valida contra la definición (contadores enteros en rango, booleanos reales, enums de la lista, `confidence` válida). Además debe venir de un `orgs/{id}` existente y encajar con el roster y el calendario de qualys de FIRST una vez publicados.
+- **Gate:** cuenta capturas únicas por (contexto, partido, robot).
+- **Caché:** guarda solo campos compartibles (`select` de Admin).
+- **Eventos inventados:** se rechazan.
+- **Reglas:** `myOrgId()` falla cerrado sin equipo y todas las escrituras pasan por `isMyOrg()`. Antes, `orgId == myOrgId()` aceptaba `null == null`, y un centinela de texto también se podía escribir.
+
+**Riesgo residual (aceptado para el piloto):**
+- El gate se puede cumplir con 5 capturas inventadas de práctica o playoff sobre robots que sí están en el evento, porque solo las qualys se cruzan con el calendario.
+- Lo mitigan dos cosas:
+  - las capturas de práctica pesan 0.5;
+  - en qualys, la confiabilidad medida contra el puntaje oficial baja el peso de quien captura mal.
+- Si aparece abuso, subir el umbral o exigir capturas de qualy.
 
 ## #103 · Tablero de reparto de scouts entre equipos (2026-11-13)
 

@@ -44,11 +44,17 @@ service cloud.firestore {
             return isAuthed() && myUserDoc().get('orgId', null) is string;
         }
 
-        // The caller's team, or a sentinel that matches no document. Returning
-        // null for team-less users made `resource.data.orgId == myOrgId()`
-        // true for any document written with orgId null (#102 review).
+        // The caller's team. Without one, reading a field that never exists
+        // makes the rule ERROR, which denies: returning null let
+        // `isMyOrg(orgId)` match documents written with orgId null, and a
+        // string sentinel could simply be written by a client (#102 review).
         function myOrgId() {
-            return hasTeam() ? myUserDoc().orgId : '__no_team__';
+            return hasTeam() ? myUserDoc().orgId : myUserDoc().__team_required__;
+        }
+
+        // `value` is the caller's own team (and the caller has one).
+        function isMyOrg(value) {
+            return hasTeam() && value == myUserDoc().orgId;
         }
 
         function myRole() {
@@ -105,7 +111,7 @@ service cloud.firestore {
             allow read: if isAuthed();
             allow create: if false;
             allow update, delete: if isAuthed()
-                && myOrgId() == orgId
+                && isMyOrg(orgId)
                 && isOrgAdminOrLead();
         }
 
@@ -114,7 +120,7 @@ service cloud.firestore {
         // webhook URL never leaks via Firestore queries.
         match /org_secrets/{orgId} {
             allow read, write: if isAuthed()
-                && myOrgId() == orgId
+                && isMyOrg(orgId)
                 && isOrgAdminOrLead();
         }
 
@@ -127,13 +133,13 @@ service cloud.firestore {
             allow get: if isAuthed();
             allow list: if false;
             allow create: if isAuthed()
-                && request.resource.data.orgId == myOrgId()
+                && isMyOrg(request.resource.data.orgId)
                 && isOrgAdminOrLead()
                 && request.resource.data.createdBy == request.auth.uid;
             // `uses` is incremented only by redeemInviteAction (Admin SDK).
             allow update: if false;
             allow delete: if isAuthed()
-                && resource.data.orgId == myOrgId()
+                && isMyOrg(resource.data.orgId)
                 && isOrgAdminOrLead();
         }
 
@@ -141,7 +147,7 @@ service cloud.firestore {
         match /event_subscriptions/{subId} {
             allow read: if isAuthed();
             allow write: if isAuthed()
-                && request.resource.data.orgId == myOrgId()
+                && isMyOrg(request.resource.data.orgId)
                 && isOrgAdminOrLead();
         }
 
@@ -163,11 +169,11 @@ service cloud.firestore {
         match /match_scouting/{entryId} {
             allow read: if isAuthed() && (
                 resource == null
-                || (('orgId' in resource.data) && resource.data.orgId == myOrgId())
+                || (('orgId' in resource.data) && isMyOrg(resource.data.orgId))
             );
             allow create: if isAuthed()
                 && request.resource.data.scoutId == request.auth.uid
-                && request.resource.data.orgId == myOrgId()
+                && isMyOrg(request.resource.data.orgId)
                 // Observation context (#101). Optional so entries queued
                 // offline by an older client still sync.
                 && (!('tournamentLevel' in request.resource.data)
@@ -189,15 +195,15 @@ service cloud.firestore {
         match /pit_scouting/{pitId} {
             allow read: if isAuthed() && (
                 resource == null
-                || (('orgId' in resource.data) && resource.data.orgId == myOrgId())
-                || (!('orgId' in resource.data) && myOrgId() == legacyOrgId())
+                || (('orgId' in resource.data) && isMyOrg(resource.data.orgId))
+                || (!('orgId' in resource.data) && isMyOrg(legacyOrgId()))
             );
             allow create: if isAuthed()
-                && request.resource.data.orgId == myOrgId();
+                && isMyOrg(request.resource.data.orgId);
             allow update: if isAuthed()
-                && resource.data.orgId == myOrgId();
+                && isMyOrg(resource.data.orgId);
             allow delete: if isAuthed()
-                && resource.data.orgId == myOrgId()
+                && isMyOrg(resource.data.orgId)
                 && isOrgAdminOrLead();
         }
 
@@ -210,7 +216,7 @@ service cloud.firestore {
             // Own card only, under its own deterministic id (a merge write to
             // another team's id must not pass on a matching body alone).
             allow write: if hasTeam()
-                && string(request.resource.data.teamNumber) == myOrgId()
+                && isMyOrg(string(request.resource.data.teamNumber))
                 && profileId == string(request.resource.data.season) + '_' + myOrgId();
         }
 
@@ -218,23 +224,23 @@ service cloud.firestore {
         // collaborative alliance selection. Read/write restricted to the
         // owning org so other orgs can't snoop on each other's strategy.
         match /picklists/{picklistId} {
-            allow read: if isAuthed() && resource.data.orgId == myOrgId();
+            allow read: if isAuthed() && isMyOrg(resource.data.orgId);
             allow create: if isAuthed()
-                && request.resource.data.orgId == myOrgId()
+                && isMyOrg(request.resource.data.orgId)
                 && request.resource.data.createdBy == request.auth.uid;
             allow update: if isAuthed()
-                && resource.data.orgId == myOrgId();
+                && isMyOrg(resource.data.orgId);
             allow delete: if isAuthed()
-                && resource.data.orgId == myOrgId()
+                && isMyOrg(resource.data.orgId)
                 && isOrgAdminOrLead();
         }
 
         // Calibration log: per-org. Reads/writes restricted to the owning org.
         match /calibration_log/{entryId} {
             allow read: if isAuthed()
-                && resource.data.orgId == myOrgId();
+                && isMyOrg(resource.data.orgId);
             allow create: if isAuthed()
-                && request.resource.data.orgId == myOrgId();
+                && isMyOrg(request.resource.data.orgId);
             allow update, delete: if false;
         }
 
@@ -277,12 +283,12 @@ service cloud.firestore {
 
         // Workshop practice runs (#105): private to the team, never shared.
         match /practice_runs/{runId} {
-            allow read: if isAuthed() && resource.data.orgId == myOrgId();
+            allow read: if isAuthed() && isMyOrg(resource.data.orgId);
             allow create, update: if isAuthed()
-                && request.resource.data.orgId == myOrgId()
+                && isMyOrg(request.resource.data.orgId)
                 && request.resource.data.createdBy == request.auth.uid
-                && (resource == null || resource.data.orgId == myOrgId());
-            allow delete: if isAuthed() && resource.data.orgId == myOrgId()
+                && (resource == null || isMyOrg(resource.data.orgId));
+            allow delete: if isAuthed() && isMyOrg(resource.data.orgId)
                 && (resource.data.createdBy == request.auth.uid || isOrgAdminOrLead());
         }
 
@@ -292,12 +298,12 @@ service cloud.firestore {
         // only to your own team's items, with bounded fields.
         match /org_inventory/{itemId} {
             allow read: if hasTeam()
-                && (resource.data.lendable == true || resource.data.orgId == myOrgId());
+                && (resource.data.lendable == true || isMyOrg(resource.data.orgId));
             allow create, update: if isAuthed()
-                && request.resource.data.orgId == myOrgId()
-                && (resource == null || resource.data.orgId == myOrgId())
+                && isMyOrg(request.resource.data.orgId)
+                && (resource == null || isMyOrg(resource.data.orgId))
                 && itemId.matches('^' + myOrgId() + '_.+')
-                && string(request.resource.data.teamNumber) == myOrgId()
+                && isMyOrg(string(request.resource.data.teamNumber))
                 && request.resource.data.name is string
                 && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
                 && request.resource.data.category in ['part', 'tool', 'consumable']
@@ -305,7 +311,7 @@ service cloud.firestore {
                 && request.resource.data.qty >= 0 && request.resource.data.qty <= 999
                 && request.resource.data.lendable is bool
                 && request.resource.data.giveaway is bool;
-            allow delete: if isAuthed() && resource.data.orgId == myOrgId();
+            allow delete: if isAuthed() && isMyOrg(resource.data.orgId);
         }
 
         // "We're at MXTLQ, pit 12": readable by approved teams, written by
@@ -313,12 +319,12 @@ service cloud.firestore {
         match /event_presence/{presenceId} {
             allow read: if hasTeam();
             allow create, update: if isAuthed()
-                && request.resource.data.orgId == myOrgId()
+                && isMyOrg(request.resource.data.orgId)
                 && presenceId == string(request.resource.data.season) + '_' + request.resource.data.eventCode + '_' + myOrgId()
-                && string(request.resource.data.teamNumber) == myOrgId()
+                && isMyOrg(string(request.resource.data.teamNumber))
                 && request.resource.data.pit is string && request.resource.data.pit.size() <= 10
                 && request.resource.data.teamName is string && request.resource.data.teamName.size() <= 80;
-            allow delete: if isAuthed() && resource.data.orgId == myOrgId();
+            allow delete: if isAuthed() && isMyOrg(resource.data.orgId);
         }
 
         // "Anyone have X?": readable by approved teams; a team creates its own
@@ -326,14 +332,14 @@ service cloud.firestore {
         match /lend_requests/{requestId} {
             allow read: if hasTeam();
             allow create: if isAuthed()
-                && request.resource.data.orgId == myOrgId()
+                && isMyOrg(request.resource.data.orgId)
                 && request.resource.data.status == 'open'
-                && string(request.resource.data.teamNumber) == myOrgId()
+                && isMyOrg(string(request.resource.data.teamNumber))
                 && request.resource.data.item is string
                 && request.resource.data.item.size() > 0 && request.resource.data.item.size() <= 60
                 && request.resource.data.note is string && request.resource.data.note.size() <= 200;
             allow update: if isAuthed()
-                && resource.data.orgId == myOrgId()
+                && isMyOrg(resource.data.orgId)
                 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
                 && request.resource.data.status in ['open', 'resolved', 'cancelled'];
             allow delete: if false;
