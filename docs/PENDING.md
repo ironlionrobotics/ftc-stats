@@ -13,6 +13,15 @@ Plan completo: estructura nueva (Hoy · Eventos · Equipos · Scouting · Estrat
 - ✅ Tres direcciones visuales: `docs/design/direcciones-2026-11.html` (abrir en el navegador). **Falta: Héctor elige dirección y confirma el mapa de estructura (Aprobación A).**
 - ✅ Etapa 0 desplegada (13-nov). Pendiente de Héctor: aprobar en `/admin` la solicitud del equipo 30311 (hoy no existe `orgs/30311`) y verificar en logs el formato de `X-Forwarded-For` (#91).
 
+**Puntos del plan acordado el 13-nov ("lógica primero, estética al final"):**
+1. ✅ Calibración BIOBUZZ (rama `p1/biobuzz-calibration`, #94–#96): k = 3.5, proyección de ranking v2 (Monte Carlo, RS como promedio), RP reales en la vista de evento, SWARM calibrado con 201 eventos. **Falta el OK de deploy antes de MXTLQ.**
+2. Estructura de la Etapa 2, parte lógica: en curso sobre `etapa1/foundations`.
+3. Apertura, parte no visual (rama `p3/opening-basics`, #97): ✅ cabeceras, páginas de error, robots y borrado de cuenta (el botón está en el panel de cuenta de la Etapa 1). ✅ Pruebas de reglas escritas (`npm run test:rules`), **sin ejecutar: el emulador necesita Java 21 y la máquina tiene 17**. Falta: respaldos de Firestore y alertas de caídas y presupuesto (cambios de infraestructura: requieren OK).
+4. ✅ Traducción del resto de la interfaz (~690 claves; quedan el reporte editorial de 30311 y algunos textos de `lib/`).
+5. Estética: al final.
+
+`etapa1/foundations` ya integra los puntos 1, 3 y 4. No hacer `git add -A`: `next dev` regenera un `AGENTS.md` que no se commitea.
+
 **Etapa 1 (rama `etapa1/foundations`, sin deploy hasta después de MXTLQ):**
 - ✅ Dirección **Transmisión** elegida como base (#93), tokens aplicados y fuentes del sistema.
 - ✅ Armazón nuevo (5 destinos, barra inferior en celular y riel en escritorio, panel de cuenta), seguir un equipo sin cuenta, `/events` y `/teams`.

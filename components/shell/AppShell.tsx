@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/lib/stores/theme-store";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import { setFollowedTeamAction } from "@/app/actions/follow-team";
+import { deleteMyAccountAction } from "@/app/actions/delete-account";
 import { PRIMARY_NAV, SECONDARY_NAV, isActive, type NavItem } from "./nav";
 
 // Team-admin panels. Each self-gates on role; deferred so the Firebase client
@@ -290,6 +291,7 @@ function AccountPanel({ team, onClose }: { team: number | null; onClose: () => v
                             <button onClick={() => { logout(); onClose(); }} className="flex h-9 items-center gap-2 text-sm text-muted-foreground hover:text-danger">
                                 <LogOut className="h-4 w-4" /> {t("account.signOut")}
                             </button>
+                            <DeleteAccount onDeleted={() => { logout(); onClose(); }} />
                         </div>
                     ) : (
                         <button
@@ -307,6 +309,55 @@ function AccountPanel({ team, onClose }: { team: number | null; onClose: () => v
                         {tAttr("linkLabel")}
                     </a>
                 </p>
+            </div>
+        </div>
+    );
+}
+
+/** Self-service account deletion (decision #97): type DELETE to confirm. */
+function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
+    const t = useTranslations("Shell");
+    const tErr = useTranslations("Errors");
+    const { user } = useAuth();
+    const [open, setOpen] = useState(false);
+    const [confirm, setConfirm] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [pending, startTransition] = useTransition();
+    if (!user) return null;
+    if (!open) {
+        return (
+            <button onClick={() => setOpen(true)} className="text-xs text-muted-foreground underline hover:text-danger">
+                {t("delete.open")}
+            </button>
+        );
+    }
+    return (
+        <div className="space-y-2 rounded-[4px] border border-danger/40 p-3">
+            <p className="text-xs text-muted-foreground">{t("delete.explain")}</p>
+            <input
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                placeholder="DELETE"
+                aria-label={t("delete.confirmLabel")}
+                className="h-9 w-full rounded-[4px] border border-border bg-muted px-2 font-mono text-sm text-foreground focus:border-danger focus:outline-none"
+            />
+            {error && <p className="text-xs text-danger">{error}</p>}
+            <div className="flex gap-2">
+                <button
+                    disabled={pending || confirm !== "DELETE"}
+                    onClick={() => startTransition(async () => {
+                        setError(null);
+                        const res = await deleteMyAccountAction({ idToken: await user.getIdToken(), confirm });
+                        if (res.ok) onDeleted();
+                        else setError(tErr(res.code));
+                    })}
+                    className="h-9 rounded-[4px] bg-danger px-3 text-sm font-semibold text-white disabled:opacity-40"
+                >
+                    {t("delete.submit")}
+                </button>
+                <button onClick={() => { setOpen(false); setConfirm(""); }} className="h-9 px-2 text-sm text-muted-foreground">
+                    {t("delete.cancel")}
+                </button>
             </div>
         </div>
     );

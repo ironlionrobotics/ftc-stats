@@ -576,6 +576,13 @@
     "theme": {
       "light": "Claro",
       "dark": "Oscuro"
+    },
+    "delete": {
+      "open": "Eliminar mi cuenta",
+      "explain": "Borra tu perfil y tu acceso. El scouting que capturaste se queda con tu equipo, sin tu nombre. Escribe DELETE para confirmar.",
+      "confirmLabel": "Escribe DELETE para confirmar",
+      "submit": "Eliminar definitivamente",
+      "cancel": "Cancelar"
     }
   },
   "TeamsPage": {

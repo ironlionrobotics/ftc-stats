@@ -576,6 +576,13 @@
     "theme": {
       "light": "Light",
       "dark": "Dark"
+    },
+    "delete": {
+      "open": "Delete my account",
+      "explain": "Deletes your profile and sign-in. Scouting you captured stays with your team, without your name. Type DELETE to confirm.",
+      "confirmLabel": "Type DELETE to confirm",
+      "submit": "Delete permanently",
+      "cancel": "Cancel"
     }
   },
   "TeamsPage": {
