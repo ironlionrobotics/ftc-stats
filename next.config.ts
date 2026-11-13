@@ -15,8 +15,10 @@ const cspReportOnly = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://lh3.googleusercontent.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
-  "frame-src https://*.firebaseapp.com https://accounts.google.com",
+  "connect-src 'self' https://*.googleapis.com https://firebasestorage.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+  "frame-src https://*.firebaseapp.com https://accounts.google.com https://www.youtube-nocookie.com",
+  // Trading Card clips are played from blob: URLs read through the Storage SDK (#106).
+  "media-src 'self' blob:",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "object-src 'none'",

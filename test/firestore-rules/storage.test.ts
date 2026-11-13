@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { ref, uploadBytes, getBytes, deleteObject } from "firebase/storage";
 
 /**
@@ -32,26 +32,26 @@ beforeEach(async () => {
 });
 
 const img = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
-const path = "team_media/2026/111/m1/original";
+const path = "team_media/2026/111/AAAAAAAAAAAAAAAAAAA1/original";
 
 describe("storage team_media (#106)", () => {
     it("an admin uploads an image of its own team; scouts and other teams can't", async () => {
         const st = (uid: string) => env.authenticatedContext(uid).storage();
         await assertSucceeds(uploadBytes(ref(st("adm"), path), img, { contentType: "image/jpeg" }));
-        await assertFails(uploadBytes(ref(st("sc"), "team_media/2026/111/m2/original"), img, { contentType: "image/jpeg" }));
-        await assertFails(uploadBytes(ref(st("oth"), "team_media/2026/111/m3/original"), img, { contentType: "image/jpeg" }));
+        await assertFails(uploadBytes(ref(st("sc"), "team_media/2026/111/AAAAAAAAAAAAAAAAAAA2/original"), img, { contentType: "image/jpeg" }));
+        await assertFails(uploadBytes(ref(st("oth"), "team_media/2026/111/AAAAAAAAAAAAAAAAAAA3/original"), img, { contentType: "image/jpeg" }));
     });
     it("rejects wrong types and clips in the thumb slot", async () => {
         const st = env.authenticatedContext("adm").storage();
-        await assertFails(uploadBytes(ref(st, "team_media/2026/111/m4/original"), img, { contentType: "text/html" }));
-        await assertFails(uploadBytes(ref(st, "team_media/2026/111/m5/thumb"), img, { contentType: "video/mp4" }));
-        await assertSucceeds(uploadBytes(ref(st, "team_media/2026/111/m6/original"), img, { contentType: "video/mp4" }));
+        await assertFails(uploadBytes(ref(st, "team_media/2026/111/AAAAAAAAAAAAAAAAAAA4/original"), img, { contentType: "text/html" }));
+        await assertFails(uploadBytes(ref(st, "team_media/2026/111/AAAAAAAAAAAAAAAAAAA5/thumb"), img, { contentType: "video/mp4" }));
+        await assertSucceeds(uploadBytes(ref(st, "team_media/2026/111/AAAAAAAAAAAAAAAAAAA6/original"), img, { contentType: "video/mp4" }));
         await assertFails(uploadBytes(ref(st, "other/file"), img, { contentType: "image/jpeg" }));
     });
     it("rejects files over the size limits", async () => {
         const st = env.authenticatedContext("adm").storage();
         const big = new Uint8Array(5 * 1024 * 1024 + 1);
-        await assertFails(uploadBytes(ref(st, "team_media/2026/111/m7/original"), big, { contentType: "image/jpeg" }));
+        await assertFails(uploadBytes(ref(st, "team_media/2026/111/AAAAAAAAAAAAAAAAAAA7/original"), big, { contentType: "image/jpeg" }));
     });
     it("only approved team members read; nobody anonymous", async () => {
         await assertSucceeds(uploadBytes(ref(env.authenticatedContext("adm").storage(), path), img, { contentType: "image/jpeg" }));
@@ -64,28 +64,57 @@ describe("storage team_media (#106)", () => {
 });
 
 describe("firestore team_media metadata (#106)", () => {
-    const meta = { teamNumber: 111, season: 2026, kind: "photo", path, caption: "", consent: true, uploadedBy: "adm" };
+    const meta = { teamNumber: 111, season: 2026, kind: "photo", path, contentType: "image/webp", bytes: 1000, caption: "", consent: true, uploadedBy: "adm" };
     it("admin of the team with consent; never scouts, other teams or without consent", async () => {
         const db = (uid: string) => env.authenticatedContext(uid).firestore();
-        await assertSucceeds(setDoc(doc(db("adm"), "team_media/m1"), meta));
-        await assertFails(setDoc(doc(db("adm"), "team_media/m2"), { ...meta, consent: false, path: "team_media/2026/111/m2/original" }));
-        await assertFails(setDoc(doc(db("sc"), "team_media/m3"), { ...meta, uploadedBy: "sc", path: "team_media/2026/111/m3/original" }));
-        await assertFails(setDoc(doc(db("oth"), "team_media/m4"), { ...meta, uploadedBy: "oth", path: "team_media/2026/111/m4/original" }));
-        await assertFails(setDoc(doc(db("adm"), "team_media/m5"), { ...meta, path: "team_media/2026/222/m5/original" }));
-        await assertSucceeds(setDoc(doc(db("adm"), "team_media/y1"), { ...meta, kind: "youtube", path: null, youtubeId: "dQw4w9WgXcQ" }));
-        await assertFails(setDoc(doc(db("adm"), "team_media/y2"), { ...meta, kind: "youtube", path: null, youtubeId: "<script>" }));
-        await assertSucceeds(getDoc(doc(db("oth"), "team_media/m1")));
-        await assertFails(getDoc(doc(db("none"), "team_media/m1")));
-        await assertSucceeds(updateDoc(doc(db("adm"), "team_media/m1"), { caption: "Robot v2" }));
-        await assertFails(updateDoc(doc(db("adm"), "team_media/m1"), { teamNumber: 222 }));
+        await assertSucceeds(setDoc(doc(db("adm"), "team_media/AAAAAAAAAAAAAAAAAAA1"), meta));
+        await assertFails(setDoc(doc(db("adm"), "team_media/AAAAAAAAAAAAAAAAAAA2"), { ...meta, consent: false, path: "team_media/2026/111/AAAAAAAAAAAAAAAAAAA2/original" }));
+        await assertFails(setDoc(doc(db("sc"), "team_media/AAAAAAAAAAAAAAAAAAA3"), { ...meta, uploadedBy: "sc", path: "team_media/2026/111/AAAAAAAAAAAAAAAAAAA3/original" }));
+        await assertFails(setDoc(doc(db("oth"), "team_media/AAAAAAAAAAAAAAAAAAA4"), { ...meta, uploadedBy: "oth", path: "team_media/2026/111/AAAAAAAAAAAAAAAAAAA4/original" }));
+        await assertFails(setDoc(doc(db("adm"), "team_media/AAAAAAAAAAAAAAAAAAA5"), { ...meta, path: "team_media/2026/222/AAAAAAAAAAAAAAAAAAA5/original" }));
+        const yt = { teamNumber: 111, season: 2026, kind: "youtube", caption: "", consent: true, uploadedBy: "adm" };
+        await assertSucceeds(setDoc(doc(db("adm"), "team_media/YYYYYYYYYYYYYYYYYYY1"), { ...yt, youtubeId: "dQw4w9WgXcQ" }));
+        await assertFails(setDoc(doc(db("adm"), "team_media/YYYYYYYYYYYYYYYYYYY2"), { ...yt, youtubeId: "<script>" }));
+        await assertSucceeds(getDoc(doc(db("oth"), "team_media/AAAAAAAAAAAAAAAAAAA1")));
+        await assertFails(getDoc(doc(db("none"), "team_media/AAAAAAAAAAAAAAAAAAA1")));
+        await assertSucceeds(updateDoc(doc(db("adm"), "team_media/AAAAAAAAAAAAAAAAAAA1"), { caption: "Robot v2" }));
+        await assertFails(updateDoc(doc(db("adm"), "team_media/AAAAAAAAAAAAAAAAAAA1"), { teamNumber: 222 }));
     });
     it("reports are write-only; the profile photo is chosen by admin/lead", async () => {
         const db = (uid: string) => env.authenticatedContext(uid).firestore();
-        await assertSucceeds(setDoc(doc(db("oth"), "media_reports/r1"), { mediaId: "m1", reason: "faces", reportedBy: "oth" }));
-        await assertFails(getDoc(doc(db("oth"), "media_reports/r1")));
-        await assertFails(setDoc(doc(db("none"), "media_reports/r2"), { mediaId: "m1", reason: "x", reportedBy: "none" }));
+        await assertSucceeds(setDoc(doc(db("oth"), "media_reports/AAAAAAAAAAAAAAAAAAA1_oth"), { mediaId: "AAAAAAAAAAAAAAAAAAA1", reason: "faces", reportedBy: "oth" }));
+        await assertFails(getDoc(doc(db("oth"), "media_reports/AAAAAAAAAAAAAAAAAAA1_oth")));
+        await assertFails(setDoc(doc(db("none"), "media_reports/AAAAAAAAAAAAAAAAAAA1_none"), { mediaId: "AAAAAAAAAAAAAAAAAAA1", reason: "x", reportedBy: "none" }));
         await assertSucceeds(setDoc(doc(db("sc"), "team_profiles/2026_111"), { teamNumber: 111, season: 2026 }, { merge: true }));
-        await assertFails(setDoc(doc(db("sc"), "team_profiles/2026_111"), { teamNumber: 111, season: 2026, profileMediaId: "m1" }, { merge: true }));
-        await assertSucceeds(setDoc(doc(db("adm"), "team_profiles/2026_111"), { teamNumber: 111, season: 2026, profileMediaId: "m1" }, { merge: true }));
+        await assertFails(setDoc(doc(db("sc"), "team_profiles/2026_111"), { teamNumber: 111, season: 2026, profileMediaId: "AAAAAAAAAAAAAAAAAAA1" }, { merge: true }));
+        await assertSucceeds(setDoc(doc(db("adm"), "team_profiles/2026_111"), { teamNumber: 111, season: 2026, profileMediaId: "AAAAAAAAAAAAAAAAAAA1" }, { merge: true }));
+    });
+});
+
+describe("media hardening (#106 review)", () => {
+    const base = { teamNumber: 111, season: 2026, kind: "photo", contentType: "image/webp", bytes: 1000, caption: "", consent: true, uploadedBy: "adm" };
+    const id = "BBBBBBBBBBBBBBBBBBB1";
+    const own = `team_media/2026/111/${id}`;
+    it("paths can only point at the item's own folder; no extra keys; youtube carries no paths", async () => {
+        const db = env.authenticatedContext("adm").firestore();
+        await assertFails(setDoc(doc(db, `team_media/${id}`), { ...base, path: `${own}/original`, thumbPath: "team_media/2026/222/XXXXXXXXXXXXXXXXXXXX/original" }));
+        await assertFails(setDoc(doc(db, `team_media/${id}`), { ...base, path: `${own}/original`, junk: "x".repeat(1000) }));
+        await assertFails(setDoc(doc(db, `team_media/${id}`), { teamNumber: 111, season: 2026, kind: "youtube", youtubeId: "dQw4w9WgXcQ", path: "team_media/2026/222/x/original", caption: "", consent: true, uploadedBy: "adm" }));
+        await assertFails(setDoc(doc(db, "team_media/short"), { ...base, path: "team_media/2026/111/short/original" }));
+        await assertSucceeds(setDoc(doc(db, `team_media/${id}`), { ...base, path: `${own}/original`, thumbPath: `${own}/thumb` }));
+    });
+    it("another team's admin can't edit or delete; reports are one per user with fixed keys", async () => {
+        await env.withSecurityRulesDisabled(async ctx => { await setDoc(doc(ctx.firestore(), `team_media/${id}`), { ...base, path: `${own}/original` }); });
+        const oth = env.authenticatedContext("oth").firestore();
+        await assertFails(updateDoc(doc(oth, `team_media/${id}`), { caption: "hacked" }));
+        await assertFails(deleteDoc(doc(oth, `team_media/${id}`)));
+        await assertFails(setDoc(doc(oth, `media_reports/${id}_someoneelse`), { mediaId: id, reason: "x", reportedBy: "oth" }));
+        await assertFails(setDoc(doc(oth, `media_reports/${id}_oth`), { mediaId: id, reason: "x", reportedBy: "oth", extra: "y" }));
+        await assertSucceeds(setDoc(doc(oth, `media_reports/${id}_oth`), { mediaId: id, reason: "x", reportedBy: "oth" }));
+    });
+    it("storage paths must look like real season and media ids", async () => {
+        const st = env.authenticatedContext("adm").storage();
+        await assertFails(uploadBytes(ref(st, "team_media/9999x/111/BBBBBBBBBBBBBBBBBBB1/original"), img, { contentType: "image/jpeg" }));
+        await assertFails(uploadBytes(ref(st, "team_media/2026/111/short/original"), img, { contentType: "image/jpeg" }));
     });
 });

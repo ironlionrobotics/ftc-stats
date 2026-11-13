@@ -38,6 +38,11 @@ service cloud.firestore {
             return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
         }
 
+        // Storage folder of a Trading Card media item (#106).
+        function mediaFolder(data, mediaId) {
+            return 'team_media/' + string(data.season) + '/' + string(data.teamNumber) + '/' + mediaId;
+        }
+
         // Member of an approved team. Users start with orgId null; only the
         // server sets it (team claim approval or invite redemption).
         function hasTeam() {
@@ -229,17 +234,28 @@ service cloud.firestore {
         // team adds or removes, with the no-faces-or-permission consent.
         match /team_media/{mediaId} {
             allow read: if hasTeam();
+            // Fixed key set and bounded values (#106 review): no free-form
+            // fields, and file paths can only point at THIS item's own folder.
             allow create: if isMyOrg(string(request.resource.data.teamNumber))
                 && isOrgAdminOrLead()
+                && mediaId.matches('^[A-Za-z0-9]{20}$')
+                && request.resource.data.season is int
                 && request.resource.data.consent == true
                 && request.resource.data.uploadedBy == request.auth.uid
-                && request.resource.data.kind in ['photo', 'clip', 'youtube']
                 && request.resource.data.caption is string
                 && request.resource.data.caption.size() <= 80
-                && (request.resource.data.kind != 'youtube'
-                    || request.resource.data.youtubeId.matches('^[A-Za-z0-9_-]{11}$'))
-                && (request.resource.data.kind == 'youtube'
-                    || request.resource.data.path == 'team_media/' + string(request.resource.data.season) + '/' + string(request.resource.data.teamNumber) + '/' + mediaId + '/original');
+                && (
+                    (request.resource.data.kind == 'youtube'
+                        && request.resource.data.keys().hasOnly(['teamNumber', 'season', 'kind', 'youtubeId', 'caption', 'consent', 'uploadedBy', 'createdAt'])
+                        && request.resource.data.youtubeId.matches('^[A-Za-z0-9_-]{11}$'))
+                    || (request.resource.data.kind in ['photo', 'clip']
+                        && request.resource.data.keys().hasOnly(['teamNumber', 'season', 'kind', 'path', 'thumbPath', 'contentType', 'bytes', 'durationS', 'width', 'height', 'caption', 'consent', 'uploadedBy', 'createdAt'])
+                        && request.resource.data.path == mediaFolder(request.resource.data, mediaId) + '/original'
+                        && (!('thumbPath' in request.resource.data)
+                            || request.resource.data.thumbPath == mediaFolder(request.resource.data, mediaId) + '/thumb')
+                        && request.resource.data.contentType is string && request.resource.data.contentType.size() <= 40
+                        && request.resource.data.bytes is int && request.resource.data.bytes <= 52428800)
+                );
             allow update: if isMyOrg(string(resource.data.teamNumber))
                 && isOrgAdminOrLead()
                 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caption'])
@@ -248,16 +264,19 @@ service cloud.firestore {
             allow delete: if isMyOrg(string(resource.data.teamNumber)) && isOrgAdminOrLead();
         }
 
-        // "Report this media": any approved team files a report; only the
-        // server (superadmin console) reads them.
+        // "Report this media": one report per user and item (id mediaId_uid),
+        // fixed keys; only the server (superadmin console) reads them.
         match /media_reports/{reportId} {
             allow read: if false;
-            allow create: if hasTeam()
+            allow create, update: if hasTeam()
+                && reportId == request.resource.data.mediaId + '_' + request.auth.uid
+                && request.resource.data.keys().hasOnly(['mediaId', 'reason', 'reportedBy', 'createdAt'])
                 && request.resource.data.reportedBy == request.auth.uid
                 && request.resource.data.mediaId is string
+                && request.resource.data.mediaId.matches('^[A-Za-z0-9]{20}$')
                 && request.resource.data.reason is string
                 && request.resource.data.reason.size() <= 200;
-            allow update, delete: if false;
+            allow delete: if false;
         }
 
         // Picklists: one document per (org, event), real-time-synced for

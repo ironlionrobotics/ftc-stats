@@ -12,6 +12,7 @@ import { mediaBlobUrl } from "@/lib/team-media-service";
 export default function MediaReportsReview() {
     const t = useTranslations("AdminMedia");
     const tErr = useTranslations("Errors");
+    const tMedia = useTranslations("CardMedia");
     const { user } = useAuth();
     const [items, setItems] = useState<ReportedMedia[] | null>(null);
     const [reload, setReload] = useState(0);
@@ -45,7 +46,7 @@ export default function MediaReportsReview() {
                             <li key={media.id} className="flex flex-wrap items-center gap-3 py-3">
                                 <Preview path={media.thumbPath ?? (media.kind === "photo" ? media.path : undefined)} youtubeId={media.youtubeId} />
                                 <div className="min-w-0 flex-1 text-sm">
-                                    <div className="font-semibold">{t("line", { team: media.teamNumber, kind: media.kind, n: reports })}</div>
+                                    <div className="font-semibold">{t("line", { team: media.teamNumber, kind: tMedia(`kind.${media.kind}`), n: reports })}</div>
                                     {media.caption && <div className="text-muted-foreground">{media.caption}</div>}
                                 </div>
                                 <button type="button" onClick={() => act(removeMediaAction, media.id)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-border px-3 text-sm text-danger"><Trash2 size={14} /> {t("remove")}</button>

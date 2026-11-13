@@ -24,7 +24,7 @@ export async function getMeasuredStatsAction(
 ): Promise<MeasuredStats | null> {
     // Public action (decision #91): validate before the per-event fan-out.
     if (!isValidSeason(season, getCurrentSeason()) || !isValidTeamNumber(teamNumber)) return null;
-    if (!(await allowRequest("light"))) return null;
+    if (!(await allowRequest("fanout"))) return null;
     try {
         const [rankings, info, awards] = await Promise.all([
             fetchTeamRankingsInSeason(season, teamNumber),

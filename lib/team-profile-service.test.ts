@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { profileToForm, formToProfile } from "./team-profile-service";
+import { profileToForm, formToProfile, normalizeProfile } from "./team-profile-service";
 import { emptyTeamProfile, type TeamProfile } from "@/types/team-profile";
 
 const SAMPLE: TeamProfile = {
@@ -40,5 +40,16 @@ describe("team profile form mapping", () => {
         expect(form.autoLow).toBe(0);
         expect(form.canClimb).toBe(false);
         expect(form.drivetrain).toBe("");
+    });
+});
+
+describe("normalizeProfile (#106 review)", () => {
+    it("a partial doc (photo chosen before publishing) renders as a full profile", () => {
+        const p = normalizeProfile({ teamNumber: 111, season: 2026, profileMediaId: "AAAAAAAAAAAAAAAAAAA1" } as Partial<TeamProfile>, 111, 2026);
+        expect(p.capabilities.canClimb).toBe(false);
+        expect(p.points.teleop).toEqual({ low: 0, high: 0 });
+        expect(p.descriptions.robot).toBe("");
+        expect(p.profileMediaId).toBe("AAAAAAAAAAAAAAAAAAA1");
+        expect(() => profileToForm(p)).not.toThrow();
     });
 });

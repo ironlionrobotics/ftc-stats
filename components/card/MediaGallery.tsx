@@ -34,7 +34,8 @@ export default function MediaGallery({
     const tErr = useTranslations("CardMedia.errors");
     const confirm = useConfirm();
     const [media, setMedia] = useState<TeamMedia[]>([]);
-    const [open, setOpen] = useState<TeamMedia | null>(null);
+    // The open item is looked up live, so captions/deletions reflect immediately.
+    const [openId, setOpenId] = useState<string | null>(null);
     const [consent, setConsent] = useState(false);
     const [caption, setCaption] = useState("");
     const [yt, setYt] = useState("");
@@ -43,9 +44,16 @@ export default function MediaGallery({
     const photoInput = useRef<HTMLInputElement>(null);
     const clipInput = useRef<HTMLInputElement>(null);
 
-    useEffect(() => listenTeamMedia(season, teamNumber, rows => { setMedia(rows); onMedia?.(rows); }), [season, teamNumber, onMedia]);
+    // onMedia is held in a ref so an inline callback can't resubscribe the listener.
+    const onMediaRef = useRef(onMedia);
+    useEffect(() => { onMediaRef.current = onMedia; }, [onMedia]);
+    useEffect(() => listenTeamMedia(season, teamNumber, rows => { setMedia(rows); onMediaRef.current?.(rows); }), [season, teamNumber]);
+    const open = media.find(m => m.id === openId) ?? null;
+    const setOpen = (m: TeamMedia | null) => setOpenId(m?.id ?? null);
 
     const fail = (e: unknown) => {
+        // A user-cancelled upload is not an error.
+        if ((e as { code?: string })?.code === "storage/canceled") return;
         const code = e instanceof MediaUploadError ? e.code : "media.upload";
         toast.error(tErr(code.replace("media.", "")));
     };
@@ -63,6 +71,7 @@ export default function MediaGallery({
         try {
             await uploadPhoto(file, ctx());
             setCaption("");
+            setConsent(false); // confirmed per upload
             toast.success(t("uploaded"));
         } catch (e) { fail(e); } finally { setProgress(null); taskRef.current = null; }
     };
@@ -76,6 +85,7 @@ export default function MediaGallery({
             if (err) throw new MediaUploadError(err);
             await uploadClip(file, probe, ctx());
             setCaption("");
+            setConsent(false);
             toast.success(t("uploaded"));
         } catch (e) { fail(e); } finally { setProgress(null); taskRef.current = null; }
     };
@@ -86,7 +96,7 @@ export default function MediaGallery({
         if (!canAdd("youtube", media)) return toast.error(tErr("tooMany"));
         try {
             await addYouTube(id, { season, teamNumber, uid, caption });
-            setYt(""); setCaption("");
+            setYt(""); setCaption(""); setConsent(false);
         } catch (e) { fail(e); }
     };
     const remove = async (m: TeamMedia) => {
@@ -104,7 +114,7 @@ export default function MediaGallery({
         const ok = await confirm({ title: t("reportTitle"), description: t("reportBody"), confirmText: t("report") });
         if (!ok) return;
         try {
-            await reportMedia(m.id, "reported from card", uid);
+            await reportMedia(m.id, "card", uid);
             toast.success(t("reported"));
         } catch (e) { fail(e); }
     };
@@ -208,6 +218,7 @@ function useBlobUrl(path?: string): string | null {
 function Thumb({ media }: { media: TeamMedia }) {
     const url = useBlobUrl(media.kind === "youtube" ? undefined : media.thumbPath ?? (media.kind === "photo" ? media.path : undefined));
     if (media.kind === "youtube") return <span className="flex h-full w-full items-center justify-center text-muted-foreground"><Youtube size={28} /></span>;
+    if (media.kind === "clip" && !media.thumbPath) return <span className="flex h-full w-full items-center justify-center text-muted-foreground"><Film size={28} /></span>;
     if (!url) return <span className="flex h-full w-full items-center justify-center text-muted-foreground"><Loader2 className="animate-spin" size={18} /></span>;
     // Blob URL from the Storage SDK: plain <img> (next/image can't optimize blob: URLs).
     // eslint-disable-next-line @next/next/no-img-element

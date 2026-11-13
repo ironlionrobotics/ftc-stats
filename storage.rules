@@ -37,6 +37,8 @@ service firebase.storage {
         match /team_media/{season}/{team}/{mediaId}/{variant} {
             allow read: if hasTeam();
             allow create: if managesTeam(team)
+                && season.matches('^20[0-9]{2}$')
+                && mediaId.matches('^[A-Za-z0-9]{20}$')
                 && variant in ['original', 'thumb']
                 && (okImage() || okClip(variant));
             allow update: if false;

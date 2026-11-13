@@ -4,6 +4,7 @@ import {
     collection, doc, query, where, onSnapshot, setDoc, updateDoc, deleteDoc, serverTimestamp, type Unsubscribe,
 } from "firebase/firestore";
 import { fitWithin, mediaPath, cleanCaption, MEDIA_LIMITS, type TeamMedia, type MediaError } from "@/lib/team-media";
+import { scrubMp4Metadata } from "@/lib/mp4-scrub";
 
 /**
  * Client side of Trading Card media (#106). Photos are re-encoded in the
@@ -92,7 +93,7 @@ function upload(path: string, data: Blob, contentType: string, onProgress: (f: n
         onTask?.(task);
         task.on("state_changed",
             snap => onProgress(snap.totalBytes ? snap.bytesTransferred / snap.totalBytes : 0),
-            () => reject(new MediaUploadError("media.upload")),
+            err => reject((err as { code?: string })?.code === "storage/canceled" ? err : new MediaUploadError("media.upload")),
             () => resolve());
     });
 }
@@ -110,33 +111,61 @@ interface UploadCtx {
     onTask?: (t: UploadTask) => void;
 }
 
+/** Best-effort removal of files uploaded before a failure/cancel (no orphans the UI can't list). */
+async function cleanup(paths: Array<string | null>): Promise<void> {
+    for (const p of paths) if (p) await deleteObject(ref(storage(), p)).catch(() => {});
+}
+
 export async function uploadPhoto(file: File, ctx: UploadCtx): Promise<string> {
     const id = newMediaId();
     const { full, thumb, width, height } = await preparePhoto(file);
     const path = mediaPath(ctx.season, ctx.teamNumber, id, "original");
     const thumbPath = mediaPath(ctx.season, ctx.teamNumber, id, "thumb");
-    await upload(thumbPath, thumb, thumb.type, () => {}, ctx.onTask);
-    await upload(path, full, full.type, ctx.onProgress, ctx.onTask);
-    await setDoc(doc(db, "team_media", id), {
-        teamNumber: ctx.teamNumber, season: ctx.season, kind: "photo", path, thumbPath,
-        contentType: full.type, bytes: full.size, width, height,
-        caption: cleanCaption(ctx.caption), consent: true, uploadedBy: ctx.uid, createdAt: serverTimestamp(),
-    });
+    try {
+        await upload(thumbPath, thumb, thumb.type, () => {}, ctx.onTask);
+        await upload(path, full, full.type, ctx.onProgress, ctx.onTask);
+        await setDoc(doc(db, "team_media", id), {
+            teamNumber: ctx.teamNumber, season: ctx.season, kind: "photo", path, thumbPath,
+            contentType: full.type, bytes: full.size, width, height,
+            caption: cleanCaption(ctx.caption), consent: true, uploadedBy: ctx.uid, createdAt: serverTimestamp(),
+        });
+    } catch (e) {
+        await cleanup([thumbPath, path]);
+        throw e;
+    }
     return id;
+}
+
+/**
+ * Clip bytes ready to upload: MP4/MOV get their metadata boxes (GPS, device
+ * info) neutralized in the browser (#106 review). WebM rarely carries
+ * location and is uploaded as is.
+ */
+export async function prepareClip(file: File): Promise<Blob> {
+    if (file.type !== "video/mp4" && file.type !== "video/quicktime") return file;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    scrubMp4Metadata(bytes);
+    return new Blob([bytes], { type: file.type });
 }
 
 export async function uploadClip(file: File, probe: { durationS: number; width: number; height: number; poster: Blob | null }, ctx: UploadCtx): Promise<string> {
     const id = newMediaId();
     const path = mediaPath(ctx.season, ctx.teamNumber, id, "original");
     const thumbPath = probe.poster ? mediaPath(ctx.season, ctx.teamNumber, id, "thumb") : null;
-    if (probe.poster && thumbPath) await upload(thumbPath, probe.poster, probe.poster.type, () => {}, ctx.onTask);
-    await upload(path, file, file.type, ctx.onProgress, ctx.onTask);
-    await setDoc(doc(db, "team_media", id), {
-        teamNumber: ctx.teamNumber, season: ctx.season, kind: "clip", path, ...(thumbPath ? { thumbPath } : {}),
-        contentType: file.type, bytes: file.size, durationS: Math.round(probe.durationS * 10) / 10,
-        width: probe.width, height: probe.height,
-        caption: cleanCaption(ctx.caption), consent: true, uploadedBy: ctx.uid, createdAt: serverTimestamp(),
-    });
+    const clean = await prepareClip(file);
+    try {
+        if (probe.poster && thumbPath) await upload(thumbPath, probe.poster, probe.poster.type, () => {}, ctx.onTask);
+        await upload(path, clean, file.type, ctx.onProgress, ctx.onTask);
+        await setDoc(doc(db, "team_media", id), {
+            teamNumber: ctx.teamNumber, season: ctx.season, kind: "clip", path, ...(thumbPath ? { thumbPath } : {}),
+            contentType: file.type, bytes: file.size, durationS: Math.round(probe.durationS * 10) / 10,
+            width: probe.width, height: probe.height,
+            caption: cleanCaption(ctx.caption), consent: true, uploadedBy: ctx.uid, createdAt: serverTimestamp(),
+        });
+    } catch (e) {
+        await cleanup([thumbPath, path]);
+        throw e;
+    }
     return id;
 }
 
@@ -180,8 +209,9 @@ export async function setProfileMedia(season: number, teamNumber: number, mediaI
     await setDoc(doc(db, "team_profiles", `${season}_${teamNumber}`), { teamNumber, season, profileMediaId: mediaId }, { merge: true });
 }
 
+/** One report per user and item (doc id mediaId_uid); reporting again just refreshes it. */
 export async function reportMedia(mediaId: string, reason: string, uid: string): Promise<void> {
-    await setDoc(doc(collection(db, "media_reports")), {
+    await setDoc(doc(db, "media_reports", `${mediaId}_${uid}`), {
         mediaId, reason: reason.trim().slice(0, 200), reportedBy: uid, createdAt: serverTimestamp(),
     });
 }

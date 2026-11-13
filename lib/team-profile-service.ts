@@ -27,7 +27,7 @@ export async function getTeamProfile(
     teamNumber: number,
 ): Promise<TeamProfile | null> {
     const snap = await getDoc(doc(db, COLLECTION, profileId(season, teamNumber)));
-    return snap.exists() ? (snap.data() as TeamProfile) : null;
+    return snap.exists() ? normalizeProfile(snap.data() as Partial<TeamProfile>, teamNumber, season) : null;
 }
 
 /**
@@ -42,6 +42,27 @@ export async function saveTeamProfile(profile: TeamProfile): Promise<void> {
         { ...profile, updatedAt: Timestamp.now() },
         { merge: true },
     );
+}
+
+/**
+ * Fills a stored profile over the empty shape: a document can be partial (e.g.
+ * a profile photo chosen before the card was ever published, #106 review),
+ * and every view reads nested fields.
+ */
+export function normalizeProfile(data: Partial<TeamProfile>, teamNumber: number, season: number): TeamProfile {
+    const base = emptyTeamProfile(teamNumber, season);
+    return {
+        ...base,
+        ...data,
+        capabilities: { ...base.capabilities, ...(data.capabilities ?? {}) },
+        points: {
+            auto: { ...base.points.auto, ...(data.points?.auto ?? {}) },
+            teleop: { ...base.points.teleop, ...(data.points?.teleop ?? {}) },
+            endgame: { ...base.points.endgame, ...(data.points?.endgame ?? {}) },
+        },
+        descriptions: { ...base.descriptions, ...(data.descriptions ?? {}) },
+        photoUrl: data.photoUrl ?? "",
+    };
 }
 
 // --- form <-> profile mapping (single source of truth for both directions) ---

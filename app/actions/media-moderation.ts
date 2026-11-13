@@ -35,12 +35,24 @@ export async function listMediaReportsAction(idToken: string): Promise<Result<{ 
         }
         const ids = [...byMedia.keys()];
         const docs = ids.length ? await db.getAll(...ids.map(id => db.collection("team_media").doc(id))) : [];
+        // Explicit, serializable fields only (stored docs could carry extras).
+        const str = (v: unknown) => (typeof v === "string" ? v : undefined);
         const items: ReportedMedia[] = docs.filter(d => d.exists).map(d => {
-            const data = d.data() as Omit<TeamMedia, "id"> & { createdAt?: unknown };
-            const { createdAt: _drop, ...rest } = data;
-            void _drop;
+            const x = d.data() as Record<string, unknown>;
             const meta = byMedia.get(d.id)!;
-            return { media: { ...rest, id: d.id } as TeamMedia, reports: meta.n, lastReportAtMs: meta.last };
+            const media: TeamMedia = {
+                id: d.id,
+                teamNumber: Number(x.teamNumber),
+                season: Number(x.season),
+                kind: (x.kind === "clip" || x.kind === "youtube" ? x.kind : "photo"),
+                path: str(x.path),
+                thumbPath: str(x.thumbPath),
+                youtubeId: str(x.youtubeId),
+                caption: str(x.caption)?.slice(0, 80) ?? "",
+                consent: true,
+                uploadedBy: "",
+            };
+            return { media, reports: meta.n, lastReportAtMs: meta.last };
         }).sort((a, b) => b.reports - a.reports || b.lastReportAtMs - a.lastReportAtMs);
         return { ok: true, items };
     } catch (e) {
@@ -68,7 +80,11 @@ export async function removeMediaAction(input: { idToken: string; mediaId: strin
         if (snap.exists) {
             const m = snap.data() as TeamMedia;
             const bucket = getStorage(getAdminApp()).bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
-            for (const p of [m.path, m.thumbPath]) if (p) await bucket.file(p).delete({ ignoreNotFound: true });
+            // Only this item's own folder: never trust stored paths blindly (#106 review).
+            const folder = `team_media/${m.season}/${m.teamNumber}/${input.mediaId}/`;
+            for (const p of [m.path, m.thumbPath]) {
+                if (typeof p === "string" && p.startsWith(folder) && !p.includes("..")) await bucket.file(p).delete({ ignoreNotFound: true });
+            }
             const profileRef = db.collection("team_profiles").doc(`${m.season}_${m.teamNumber}`);
             await db.runTransaction(async tx => {
                 const prof = await tx.get(profileRef);
