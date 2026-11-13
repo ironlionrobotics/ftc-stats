@@ -73,7 +73,8 @@
       "notFound": "That loan or request no longer exists.",
       "notAllowed": "Only the teams involved can do that.",
       "badState": "That step doesn't apply anymore — refresh.",
-      "notAtEvent": "Check in to the event first."
+      "notAtEvent": "Check in to the event first.",
+      "itemRequired": "Write what you need or lend."
     }
   },
   "DraftOdds": {
@@ -589,7 +590,9 @@
       "title": "More",
       "dataLab": "Data Lab",
       "oracle": "Model accuracy",
-      "card": "Trading Card"
+      "card": "Trading Card",
+      "lending": "Pit lending",
+      "workshop": "Workshop"
     },
     "aria": {
       "primary": "Main navigation",
@@ -1548,5 +1551,73 @@
     "take": "Take",
     "release": "Release",
     "scoutNow": "Scout"
+  },
+  "Lending": {
+    "title": "Pit lending",
+    "subtitle": "Who at this event has the part or tool you need — and did what was lent come back.",
+    "event": "Event",
+    "signIn": "Sign in with your team to borrow and lend.",
+    "needTeam": "Register your team (or join it with a code) to use pit lending.",
+    "noEvent": "No event to show.",
+    "openLoans": "{n, plural, one {# loan still open} other {# loans still open}} — check the Loans tab before you leave.",
+    "tabFind": "Find",
+    "tabRequests": "Requests ({n})",
+    "tabInventory": "My inventory",
+    "tabLoans": "Loans ({n})",
+    "checkInPrompt": "Is your team at {event}? Check in so other teams can find your pit.",
+    "pitPlaceholder": "Pit #",
+    "checkIn": "We're here",
+    "checkedIn": "Checked in",
+    "hereAt": "At {event} · pit {pit}",
+    "changePit": "Change pit",
+    "saveError": "Could not save — check your connection and try again.",
+    "searchPlaceholder": "Search a part or tool (e.g. servo, Allen key)",
+    "findHint": "Items teams marked as lendable, among the {teams, plural, one {# team} other {# teams}} checked in here.",
+    "noItems": "Nothing found. Post a request so every team sees it.",
+    "teamPit": "Team {team} {name} · pit {pit}",
+    "theyLentMe": "They lent me this",
+    "giveaway": "Free",
+    "needSomething": "Need something?",
+    "itemPlaceholder": "What (e.g. REV battery)",
+    "notePlaceholder": "Detail (optional)",
+    "postRequest": "Ask every team",
+    "checkInFirst": "Check in to the event first.",
+    "requestPosted": "Request posted",
+    "noRequests": "No open requests.",
+    "youHaveIt": "You have this",
+    "gotIt": "Got it",
+    "cancel": "Cancel",
+    "iLendIt": "I lend it",
+    "inventoryHint": "What your team can lend or give. Other teams only see items marked lendable, and the Find tab lists them only for teams checked in at the event.",
+    "category": "Category",
+    "categories": {
+      "part": "Part",
+      "tool": "Tool",
+      "consumable": "Consumable"
+    },
+    "qty": "Quantity",
+    "add": "Add",
+    "emptyInventory": "Your inventory is empty.",
+    "lendable": "Lendable",
+    "delete": "Delete",
+    "recordLoan": "Record a loan",
+    "iLent": "I lent",
+    "iBorrowed": "I borrowed",
+    "toTeam": "To team #",
+    "fromTeam": "From team #",
+    "giveawayNoReturn": "Gift (no return)",
+    "save": "Save",
+    "loanRecorded": "Loan recorded",
+    "noLoans": "No loans yet.",
+    "lentTo": "Lent to {team}",
+    "borrowedFrom": "Borrowed from {team}",
+    "status": {
+      "lent": "Out",
+      "return_marked": "Marked returned — waiting for the lender",
+      "returned": "Returned",
+      "given": "Given"
+    },
+    "confirmReturned": "It came back",
+    "markReturned": "I returned it"
   }
 }

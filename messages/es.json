@@ -73,7 +73,8 @@
       "notFound": "Ese préstamo o solicitud ya no existe.",
       "notAllowed": "Solo los equipos involucrados pueden hacer eso.",
       "badState": "Ese paso ya no aplica: actualiza la página.",
-      "notAtEvent": "Primero registra tu llegada al evento."
+      "notAtEvent": "Primero registra tu llegada al evento.",
+      "itemRequired": "Escribe qué necesitas o prestas."
     }
   },
   "DraftOdds": {
@@ -589,7 +590,9 @@
       "title": "Más",
       "dataLab": "Data Lab",
       "oracle": "Precisión del modelo",
-      "card": "Trading Card"
+      "card": "Trading Card",
+      "lending": "Préstamos de pits",
+      "workshop": "Taller"
     },
     "aria": {
       "primary": "Navegación principal",
@@ -1548,5 +1551,73 @@
     "take": "Tomar",
     "release": "Soltar",
     "scoutNow": "Scoutear"
+  },
+  "Lending": {
+    "title": "Préstamos de pits",
+    "subtitle": "Quién tiene en este evento la pieza o herramienta que necesitas, y si lo prestado ya regresó.",
+    "event": "Evento",
+    "signIn": "Inicia sesión con tu equipo para pedir y prestar.",
+    "needTeam": "Registra tu equipo (o únete con un código) para usar los préstamos.",
+    "noEvent": "No hay evento que mostrar.",
+    "openLoans": "{n, plural, one {# préstamo sigue abierto} other {# préstamos siguen abiertos}}: revisa la pestaña Préstamos antes de irte.",
+    "tabFind": "Buscar",
+    "tabRequests": "Solicitudes ({n})",
+    "tabInventory": "Mi inventario",
+    "tabLoans": "Préstamos ({n})",
+    "checkInPrompt": "¿Tu equipo está en {event}? Regístrate para que los demás encuentren tu pit.",
+    "pitPlaceholder": "Pit #",
+    "checkIn": "Aquí estamos",
+    "checkedIn": "Llegada registrada",
+    "hereAt": "En {event} · pit {pit}",
+    "changePit": "Cambiar pit",
+    "saveError": "No se pudo guardar: revisa tu conexión e intenta de nuevo.",
+    "searchPlaceholder": "Busca una pieza o herramienta (ej. servo, llave Allen)",
+    "findHint": "Artículos que los equipos marcaron como prestables, entre {teams, plural, one {# equipo registrado} other {# equipos registrados}} aquí.",
+    "noItems": "No se encontró nada. Publica una solicitud para que la vean todos los equipos.",
+    "teamPit": "Equipo {team} {name} · pit {pit}",
+    "theyLentMe": "Me lo prestaron",
+    "giveaway": "Regalo",
+    "needSomething": "¿Necesitas algo?",
+    "itemPlaceholder": "Qué (ej. batería REV)",
+    "notePlaceholder": "Detalle (opcional)",
+    "postRequest": "Preguntar a todos",
+    "checkInFirst": "Primero registra tu llegada al evento.",
+    "requestPosted": "Solicitud publicada",
+    "noRequests": "No hay solicitudes abiertas.",
+    "youHaveIt": "Tú lo tienes",
+    "gotIt": "Ya lo conseguí",
+    "cancel": "Cancelar",
+    "iLendIt": "Yo lo presto",
+    "inventoryHint": "Lo que tu equipo puede prestar o regalar. Los demás equipos solo ven lo marcado como prestable, y la pestaña Buscar lo muestra solo de los equipos registrados en el evento.",
+    "category": "Categoría",
+    "categories": {
+      "part": "Pieza",
+      "tool": "Herramienta",
+      "consumable": "Consumible"
+    },
+    "qty": "Cantidad",
+    "add": "Agregar",
+    "emptyInventory": "Tu inventario está vacío.",
+    "lendable": "Prestable",
+    "delete": "Borrar",
+    "recordLoan": "Registrar préstamo",
+    "iLent": "Yo presté",
+    "iBorrowed": "Me prestaron",
+    "toTeam": "Al equipo #",
+    "fromTeam": "Del equipo #",
+    "giveawayNoReturn": "Regalo (sin devolución)",
+    "save": "Guardar",
+    "loanRecorded": "Préstamo registrado",
+    "noLoans": "Todavía no hay préstamos.",
+    "lentTo": "Prestado a {team}",
+    "borrowedFrom": "Prestado por {team}",
+    "status": {
+      "lent": "Prestado",
+      "return_marked": "Marcado como devuelto: falta que lo confirme quien prestó",
+      "returned": "Devuelto",
+      "given": "Regalado"
+    },
+    "confirmReturned": "Ya regresó",
+    "markReturned": "Ya lo devolví"
   }
 }

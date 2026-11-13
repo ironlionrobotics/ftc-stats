@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Home, Swords, Users, BarChart2, Target, IdCard, type LucideIcon } from "lucide-react";
+import { CalendarDays, ClipboardList, Home, Swords, Users, BarChart2, Target, IdCard, Wrench, Timer, type LucideIcon } from "lucide-react";
 
 /**
  * Navigation model of the app shell (plan "PRIDE abierta al público", §1).
@@ -26,6 +26,8 @@ export const SECONDARY_NAV: NavItem[] = [
     { href: "/analytics", labelKey: "more.dataLab", icon: BarChart2, match: ["/analytics"] },
     { href: "/oracle", labelKey: "more.oracle", icon: Target, match: ["/oracle"] },
     { href: "/card", labelKey: "more.card", icon: IdCard, match: ["/card"] },
+    { href: "/lending", labelKey: "more.lending", icon: Wrench, match: ["/lending"] },
+    { href: "/workshop", labelKey: "more.workshop", icon: Timer, match: ["/workshop"] },
 ];
 
 export function isActive(item: NavItem, pathname: string): boolean {

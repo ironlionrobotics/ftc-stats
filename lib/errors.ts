@@ -65,7 +65,8 @@ export type ErrorCode =
     | "lending.notFound"
     | "lending.notAllowed"
     | "lending.badState"
-    | "lending.notAtEvent";
+    | "lending.notAtEvent"
+    | "lending.itemRequired";
 
 /**
  * Error carrying a stable code. `message` is the code itself so stack traces

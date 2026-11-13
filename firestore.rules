@@ -263,6 +263,63 @@ service cloud.firestore {
             allow read, write: if false;
         }
 
+        // ---- Pit lending (#104) ------------------------------------------
+        // Inventory: a team sees its whole inventory; other approved teams see
+        // only lendable items (queries must filter lendable == true). Writes
+        // only to your own team's items, with bounded fields.
+        match /org_inventory/{itemId} {
+            allow read: if isAuthed() && myOrgId() != null
+                && (resource.data.lendable == true || resource.data.orgId == myOrgId());
+            allow create, update: if isAuthed()
+                && request.resource.data.orgId == myOrgId()
+                && (resource == null || resource.data.orgId == myOrgId())
+                && itemId.matches('^' + myOrgId() + '_.+')
+                && request.resource.data.name is string
+                && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
+                && request.resource.data.category in ['part', 'tool', 'consumable']
+                && request.resource.data.qty is int
+                && request.resource.data.qty >= 0 && request.resource.data.qty <= 999
+                && request.resource.data.lendable is bool
+                && request.resource.data.giveaway is bool;
+            allow delete: if isAuthed() && resource.data.orgId == myOrgId();
+        }
+
+        // "We're at MXTLQ, pit 12": readable by approved teams, written by
+        // the team itself under its own deterministic id.
+        match /event_presence/{presenceId} {
+            allow read: if isAuthed() && myOrgId() != null;
+            allow create, update: if isAuthed()
+                && request.resource.data.orgId == myOrgId()
+                && presenceId == string(request.resource.data.season) + '_' + request.resource.data.eventCode + '_' + myOrgId()
+                && request.resource.data.pit is string && request.resource.data.pit.size() <= 10
+                && request.resource.data.teamName is string && request.resource.data.teamName.size() <= 80;
+            allow delete: if isAuthed() && resource.data.orgId == myOrgId();
+        }
+
+        // "Anyone have X?": readable by approved teams; a team creates its own
+        // open requests and may later only change their status.
+        match /lend_requests/{requestId} {
+            allow read: if isAuthed() && myOrgId() != null;
+            allow create: if isAuthed()
+                && request.resource.data.orgId == myOrgId()
+                && request.resource.data.status == 'open'
+                && request.resource.data.item is string
+                && request.resource.data.item.size() > 0 && request.resource.data.item.size() <= 60
+                && request.resource.data.note is string && request.resource.data.note.size() <= 200;
+            allow update: if isAuthed()
+                && resource.data.orgId == myOrgId()
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+                && request.resource.data.status in ['open', 'resolved', 'cancelled'];
+            allow delete: if false;
+        }
+
+        // Loans: only the two teams involved read them; every transition goes
+        // through app/actions/lending.ts so neither side can rewrite history.
+        match /loans/{loanId} {
+            allow read: if isAuthed() && myOrgId() != null && myOrgId() in resource.data.parties;
+            allow write: if false;
+        }
+
         // Scout assignment board (#103): any approved team can watch who
         // covers which robot; only the server writes (claims carry the team
         // alias and an opaque scout hash derived from the verified token).
