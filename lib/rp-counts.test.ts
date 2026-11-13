@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
     pAtLeastNegBin,
     nbDispersion,
+    calibrateSwarm,
     pSwarm,
     shrunkRate,
     decayedUpdate,
@@ -111,5 +112,22 @@ describe("decayedUpdate (SWARM recency)", () => {
     it("decay 1 reduces to plain counts", () => {
         const c = decayedUpdate(decayedUpdate({ leave: 0, autoPark: 0, teleopPark: 0, n: 0 }, { leave: true, autoPark: false, teleopPark: true }, 1), { leave: false, autoPark: false, teleopPark: true }, 1);
         expect(c).toEqual({ leave: 1, autoPark: 0, teleopPark: 2, n: 2 });
+    });
+});
+
+describe("calibrateSwarm (decision #96)", () => {
+    it("lifts mid-range probabilities and keeps the extremes", () => {
+        expect(calibrateSwarm(0.5)).toBeGreaterThan(0.6);
+        expect(calibrateSwarm(0.5)).toBeLessThan(0.7);
+        expect(calibrateSwarm(1)).toBe(1);
+        expect(calibrateSwarm(0)).toBe(0);
+    });
+    it("is monotone", () => {
+        let prev = 0;
+        for (let p = 0.01; p < 1; p += 0.01) {
+            const q = calibrateSwarm(p);
+            expect(q).toBeGreaterThan(prev);
+            prev = q;
+        }
     });
 });

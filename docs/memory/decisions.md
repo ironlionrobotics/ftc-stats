@@ -972,3 +972,22 @@ Un modelo conjunto de 8 estados por robot no mejora (0.1772): el sesgo residual 
 **Vista de evento:**
 - La página del servidor trae `/scores` y pasa los RP de bonificación oficiales de cada alianza. El deslizador "Historia por ronda" reconstruye rondas pasadas con 3 RP por victoria (antes usaba 2, la regla de antes de DECODE) más esos RP de bonificación.
 - Para 2026 pasa también las probabilidades de RP de los modelos de conteo (#88), el mismo análisis que usa Data Lab, ya en caché. Antes esa vista dejaba los RP de 2026 vacíos.
+
+## #96 · SWARM calibrado con 201 eventos (2026-11-13)
+
+**Contexto:** la decisión #88 dejó a SWARM con un sesgo de unos −0.12: predecía de menos. Con 15 eventos no daba para corregirlo sin sobreajustar. Ahora hay 201 eventos 2026 con `/scores` (2,960 alianzas de prueba). Mismo método: entrenar con el 60% inicial de las calificaciones de cada evento y predecir el resto.
+
+**Decaimiento por recencia:** 1.0 → skill 0.133; **0.7 → 0.168**; 0.4 → 0.186; 0.25 → 0.185. Por sí solo, un decaimiento más agresivo ayuda poco y vuelve más ruidosa la tasa de cada robot.
+
+**Calibración Platt** p' = σ(a + b·logit p), validación cruzada de 2 mitades por evento:
+
+| Decaimiento | Brier sin calibrar | Brier calibrado | Skill calibrado | Media predicha vs observada |
+|---|---|---|---|---|
+| 0.7 | 0.177 / 0.173 | **0.161 / 0.158** | **0.23 / 0.26** | 0.68–0.69 vs 0.68–0.69 |
+| 0.4 | 0.173 / 0.169 | 0.164 / 0.162 | 0.21 / 0.24 | 0.68–0.70 vs 0.68–0.69 |
+
+Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.108/1.010.
+
+**Decisión:** decaimiento 0.7 sin cambio, más `SWARM_CALIBRATION = { a: 0.65, b: 1.05 }` en `biobuzzAllianceRp` (`lib/rp-counts.ts`, `calibrateSwarm`). Los extremos se respetan: p = 1 sigue en 1 y p = 0 sigue en 0. POLLINATOR no se toca: skill 0.27 / 0.21; queda una subestimación en el tramo alto, pero con n pequeño (74 y 4 alianzas).
+
+**Umbrales de RP de Regional, Campeonato y Premier:** siguen sin publicarse (TBA en el manual). El mecanismo de override por evento ya existe (`RP_THRESHOLD_OVERRIDES`, #87); se llena cuando se publiquen.
