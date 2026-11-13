@@ -97,7 +97,8 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
     // Using a hash if strings get too long? Firestore limit is 1500 bytes for ID.
     // 20 events * 10 chars = 200 chars. Totally fine.
     // v3: real /scores breakdowns (fetchMatchScores fix) change tele/end splits.
-    const cacheKey = `analytics_v3_${season}_${sortedCodes}_${maxMatchesPerTeam || 'all'}`;
+    // v4: SWARM probabilities are calibrated (decision #96).
+    const cacheKey = `analytics_v4_${season}_${sortedCodes}_${maxMatchesPerTeam || 'all'}`;
 
     const allEvents = await getAvailableEvents(season);
 

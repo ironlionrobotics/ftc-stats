@@ -1371,7 +1371,7 @@
   },
   "LiveRanking": {
     "title": "Proyección final del ranking",
-    "subtitle": "Simula 1,000 veces los partidos de calificación que faltan con el calendario real y la fuerza de cada equipo en este evento. Ordena por Ranking Score (promedio de RP) y los desempates oficiales.",
+    "subtitle": "Simula 1,000 veces los partidos de calificación que faltan con el calendario real, la fuerza de cada equipo en este evento y su incertidumbre. Ordena por Ranking Score (promedio de RP) y los desempates oficiales. \"Capitán\" es la probabilidad de terminar en los lugares de capitán de alianza.",
     "noEvents": "Sin eventos",
     "refresh": "Actualizar",
     "played": "{played} / {total} partidos de calificación jugados",
@@ -1386,7 +1386,7 @@
       "matches": "Jugados/Total",
       "rsNow": "RS actual",
       "rsFinal": "RS final",
-      "top4": "Top 4"
+      "top4": "Capitán"
     }
   },
   "ErrorPages": {
