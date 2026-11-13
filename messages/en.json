@@ -360,7 +360,10 @@
     "atEvent": "at {event}",
     "noMeasured": "No official results yet",
     "notPublished": "Not published yet",
-    "none": "—"
+    "none": "—",
+    "typicalMatch": "Typical match · self-report",
+    "selfReportTitle": "Your robot this season",
+    "selfReportHint": "Answer for your TYPICAL match. Teams that scout you will see your answers next to what they observe and to official results."
   },
   "Today": {
     "kicker": "Happening now",
@@ -487,6 +490,35 @@
           "NoShow": "No show",
           "Died": "Died / disabled",
           "TippedOver": "Tipped over"
+        }
+      },
+      "selfReport": {
+        "sections": {
+          "auto": "Autonomous — your typical match",
+          "teleop": "TeleOp — your typical match",
+          "endgame": "Last 60 s — your typical match",
+          "robot": "Robot"
+        },
+        "fields": {
+          "drivetrain": "Drivetrain",
+          "intake": "Intake",
+          "autoRoutines": "Autonomous routines available",
+          "canPlayDefense": "Can play defense",
+          "knownLimits": "Known limits (optional)",
+          "knownLimitsPlaceholder": "E.g. can't reach the top FLOWER, slow on the far side"
+        },
+        "options": {
+          "drivetrain": {
+            "Mecanum": "Mecanum",
+            "Tank": "Tank",
+            "Swerve": "Swerve",
+            "Other": "Other"
+          },
+          "intake": {
+            "Ground": "Ground",
+            "HumanPlayer": "Human player",
+            "Both": "Both"
+          }
         }
       }
     },

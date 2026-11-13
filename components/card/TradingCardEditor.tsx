@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, Controller, useWatch, type Control, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
@@ -20,6 +20,10 @@ import {
 import { getMeasuredStatsAction } from "@/app/actions/team-card";
 import type { MeasuredStats } from "@/types/team-profile";
 import TradingCardPreview from "./TradingCardPreview";
+import DynamicGameForm from "@/components/scouting/games/DynamicGameForm";
+import { gameDefinitionFor } from "@/lib/games/registry";
+import { zodSchemaFromDefinition } from "@/lib/games/zod-from-definition";
+import { selfReportDefinition, defaultsForDefinition } from "@/types/game-definition";
 
 export default function TradingCardEditor() {
     const t = useTranslations("TradingCard");
@@ -35,6 +39,14 @@ export default function TradingCardEditor() {
         defaultValues: profileToForm(emptyTeamProfile(teamNumber ?? 0, season)),
     });
 
+    // The season's self-report questions (#101), rendered by the same engine as
+    // scouting. A second form because DynamicGameForm binds field ids at the root.
+    const selfReport = useMemo(() => selfReportDefinition(gameDefinitionFor("FTC", season)), [season]);
+    const selfReportSchema = useMemo(() => (selfReport ? zodSchemaFromDefinition(selfReport) : null), [selfReport]);
+    const answersForm = useForm<Record<string, unknown>>({
+        defaultValues: selfReport ? defaultsForDefinition(selfReport) : {},
+    });
+
     // Load the team's published card + its measured stats once the team is known.
     useEffect(() => {
         if (!teamNumber) return;
@@ -46,20 +58,42 @@ export default function TradingCardEditor() {
             ]);
             if (cancelled) return;
             if (profile) reset(profileToForm(profile));
+            if (profile?.answers && selfReport && profile.answersDefinitionId === selfReport.id) {
+                answersForm.reset({ ...defaultsForDefinition(selfReport), ...profile.answers });
+            }
             setMeasured(stats);
             setLoaded(true);
         })();
         return () => { cancelled = true; };
-    }, [teamNumber, season, reset]);
+    }, [teamNumber, season, reset, selfReport, answersForm]);
 
     // Live preview reflects unsaved edits.
     const values = useWatch({ control }) as TeamProfileFormValues;
-    const livePreview = formToProfile(values, teamNumber ?? 0, season);
+    const liveAnswers = useWatch({ control: answersForm.control });
+    const parsedAnswers = selfReportSchema?.safeParse(liveAnswers);
+    const livePreview = {
+        ...formToProfile(values, teamNumber ?? 0, season),
+        ...(selfReport && parsedAnswers?.success
+            ? { answers: parsedAnswers.data as Record<string, number | boolean | string>, answersDefinitionId: selfReport.id }
+            : {}),
+    };
 
     const onSubmit = async (v: TeamProfileFormValues) => {
         if (!teamNumber) return;
+        let answers: Record<string, number | boolean | string> | undefined;
+        if (selfReport && selfReportSchema) {
+            const parsed = selfReportSchema.safeParse(answersForm.getValues());
+            if (!parsed.success) {
+                toast.error(t("saveError"));
+                return;
+            }
+            answers = parsed.data as Record<string, number | boolean | string>;
+        }
         try {
-            await saveTeamProfile(formToProfile(v, teamNumber, season));
+            await saveTeamProfile({
+                ...formToProfile(v, teamNumber, season),
+                ...(answers && selfReport ? { answers, answersDefinitionId: selfReport.id } : {}),
+            });
             toast.success(t("saved"));
         } catch {
             toast.error(t("saveError"));
@@ -72,7 +106,15 @@ export default function TradingCardEditor() {
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 items-start">
             <div className="space-y-6 min-w-0">
-                {/* Capabilities */}
+                {/* Season self-report (#101); legacy generic capabilities otherwise */}
+                {selfReport ? (
+                    <Section title={t("selfReportTitle")} hint={t("selfReportHint")}>
+                        <DynamicGameForm
+                            definition={selfReport}
+                            control={answersForm.control as unknown as Control<Record<string, unknown>>}
+                        />
+                    </Section>
+                ) : (
                 <Section title={t("capabilities")}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Toggle control={control} name="canClimb" label={t("canClimb")} />
@@ -84,6 +126,7 @@ export default function TradingCardEditor() {
                         <TextField control={control} name="drivetrain" label={t("drivetrain")} placeholder={t("drivetrainPlaceholder")} />
                     </div>
                 </Section>
+                )}
 
                 {/* Self-reported points */}
                 <Section title={t("points")} hint={t("pointsHint")}>
@@ -119,7 +162,7 @@ export default function TradingCardEditor() {
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                     <IdCard size={14} /> {t("previewTitle")}
                 </div>
-                <TradingCardPreview profile={livePreview} measured={loaded ? measured : null} />
+                <TradingCardPreview profile={livePreview} measured={loaded ? measured : null} selfReport={selfReport} />
             </div>
         </form>
     );

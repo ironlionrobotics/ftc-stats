@@ -9,7 +9,7 @@ import { seasonRulesFor, rpThresholdsFor, RP_THRESHOLD_OVERRIDES } from "./seaso
 import { zodSchemaFromDefinition } from "./zod-from-definition";
 import { buildEntryGameFields } from "./build-entry";
 import { inputsFromEntry, inputsFromConsensus } from "./score-inputs";
-import { totalOf, type GameDefinition } from "@/types/game-definition";
+import { totalOf, selfReportDefinition, type GameDefinition } from "@/types/game-definition";
 import { fieldMapFromDefinition, fieldsFor, type FieldConsensus } from "@/lib/scouting-aggregation";
 
 const scoreOf = (def: GameDefinition, entry: Record<string, unknown>) =>
@@ -146,7 +146,7 @@ describe("i18n: every definition label key exists in en and es", () => {
     for (const def of ALL_GAME_DEFINITIONS) {
         it(def.id, () => {
             const keys: string[] = [];
-            for (const s of def.sections) {
+            for (const s of [...def.sections, ...(def.selfReport ?? [])]) {
                 keys.push(s.label);
                 for (const f of s.fields) {
                     keys.push(f.label);
@@ -210,5 +210,18 @@ describe("season game names", () => {
         expect(seasonGameName(2025)).toBe("Decode");
         for (const s of [2022, 2023, 2024, 2025, 2026]) expect(seasonGameName(s)).toBeTruthy();
         expect(seasonGameName(1999)).toBeUndefined();
+    });
+});
+
+describe("BIOBUZZ self-report (#101)", () => {
+    it("prices a typical-match claim with the same score() as scouting", () => {
+        const sr = selfReportDefinition(FTC_BIOBUZZ_2026)!;
+        const ids = sr.sections.flatMap(s => s.fields.map(f => f.id));
+        expect(ids).toEqual(expect.arrayContaining(["autoHiveTips", "teleopGardenElements", "teleopPark", "drivetrain"]));
+        const claim = { autoLeave: true, autoHiveTips: 1, teleopHiveTips: 2, teleopGardenElements: 6, flowerElementsPlaced: 3, teleopPark: true };
+        expect(FTC_BIOBUZZ_2026.score!(inputsFromEntry(claim))).toEqual({ auto: 23, teleop: 46, endgame: 11 });
+    });
+    it("seasons without questions return null", () => {
+        expect(selfReportDefinition({ ...FTC_BIOBUZZ_2026, selfReport: undefined })).toBeNull();
     });
 });

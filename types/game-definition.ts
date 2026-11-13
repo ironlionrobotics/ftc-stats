@@ -60,6 +60,19 @@ export interface GameDefinition {
      * the official score breakdown.
      */
     score?: (s: ScoreInputs) => PhaseScore;
+    /**
+     * Questions a team answers about ITS OWN robot (Trading Card self-report,
+     * decision #101). Typical-match counters reuse the scouting field ids, so
+     * `score()` turns a team's claim into points and the claim lines up field
+     * by field with what other teams observed in the shared pool.
+     */
+    selfReport?: GameSection[];
+}
+
+/** The self-report questions as a renderable definition, or null if the season has none. */
+export function selfReportDefinition(def: GameDefinition | null | undefined): GameDefinition | null {
+    if (!def?.selfReport?.length) return null;
+    return { ...def, sections: def.selfReport };
 }
 
 /** Points split by match phase. `endgame` is "late-match" for games without

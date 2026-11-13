@@ -360,7 +360,10 @@
     "atEvent": "en {event}",
     "noMeasured": "Sin resultados oficiales aún",
     "notPublished": "Sin publicar",
-    "none": "—"
+    "none": "—",
+    "typicalMatch": "Partido típico · autorreporte",
+    "selfReportTitle": "Tu robot esta temporada",
+    "selfReportHint": "Responde por tu partido TÍPICO. Los equipos que te scouteen verán tus respuestas junto a lo que observan y a los resultados oficiales."
   },
   "Today": {
     "kicker": "Ahora mismo",
@@ -483,6 +486,35 @@
           "NoShow": "No se presentó",
           "Died": "Murió / deshabilitado",
           "TippedOver": "Se volteó"
+        }
+      },
+      "selfReport": {
+        "sections": {
+          "auto": "Autónomo: tu partido típico",
+          "teleop": "TeleOp: tu partido típico",
+          "endgame": "Últimos 60 s: tu partido típico",
+          "robot": "Robot"
+        },
+        "fields": {
+          "drivetrain": "Tracción",
+          "intake": "Recolección",
+          "autoRoutines": "Rutinas de autónomo disponibles",
+          "canPlayDefense": "Puede jugar defensa",
+          "knownLimits": "Límites conocidos (opcional)",
+          "knownLimitsPlaceholder": "Ej.: no alcanza la FLOWER superior, lento del lado lejano"
+        },
+        "options": {
+          "drivetrain": {
+            "Mecanum": "Mecanum",
+            "Tank": "Tanque",
+            "Swerve": "Swerve",
+            "Other": "Otra"
+          },
+          "intake": {
+            "Ground": "Del piso",
+            "HumanPlayer": "Jugador humano",
+            "Both": "Ambas"
+          }
         }
       }
     },

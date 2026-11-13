@@ -195,7 +195,9 @@ service cloud.firestore {
         // Team profiles (Virtual Pit): public read, write only by the team itself.
         // The team's "owner" is the org whose teamNumber matches.
         match /team_profiles/{profileId} {
-            allow read: if isAuthed();
+            // Readable by members of an approved team only (#101): a self-report
+            // is for the teams in the network, not for any Google account.
+            allow read: if isAuthed() && myOrgId() != null;
             allow write: if isAuthed()
                 && string(request.resource.data.teamNumber) == myOrgId();
         }

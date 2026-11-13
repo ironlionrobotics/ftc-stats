@@ -60,6 +60,13 @@ export interface TeamProfile {
     descriptions: CardDescriptions;
     /** Public photo URL (self-hosted or a link). Empty until uploaded. */
     photoUrl: string;
+    /**
+     * Answers to the season's self-report questions (GameDefinition.selfReport,
+     * #101), keyed by field id. Counters describe the team's TYPICAL match.
+     */
+    answers?: Record<string, number | boolean | string>;
+    /** Definition the answers belong to: a new season ignores last season's. */
+    answersDefinitionId?: string;
     /** Server timestamp of the last publish. */
     updatedAt?: { seconds: number; nanoseconds: number } | null;
 }

@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import { Trophy, ImageIcon, ArrowUp, Crosshair, Target, Download, Upload } from "lucide-react";
 import type { TeamProfile, MeasuredStats } from "@/types/team-profile";
+import type { GameDefinition } from "@/types/game-definition";
+import { inputsFromEntry } from "@/lib/games/score-inputs";
 
 /**
  * The shareable Trading Card. Left half of every stat pairing is SELF-REPORTED
@@ -16,12 +18,29 @@ export default function TradingCardPreview({
     profile,
     teamName,
     measured,
+    selfReport,
 }: {
     profile: TeamProfile;
     teamName?: string;
     measured: MeasuredStats | null;
+    /** The season's self-report definition; with answers, the card shows the claimed typical match. */
+    selfReport?: GameDefinition | null;
 }) {
     const t = useTranslations("TradingCard");
+    const tGames = useTranslations("Games");
+    const answers = selfReport && profile.answersDefinitionId === selfReport.id ? profile.answers : undefined;
+    const typical = answers && selfReport?.score ? selfReport.score(inputsFromEntry(answers)) : null;
+    const answerChips = answers && selfReport
+        ? selfReport.sections.flatMap(s => s.fields).flatMap(f => {
+            const v = answers[f.id];
+            if (f.kind === "enum" && typeof v === "string") {
+                const opt = f.options.find(o => o.value === v);
+                return opt ? [`${tGames(f.label)}: ${tGames(opt.label)}`] : [];
+            }
+            if (f.kind === "boolean" && v === true) return [tGames(f.label)];
+            return [];
+        })
+        : [];
     const { capabilities: cap, points, descriptions, photoUrl } = profile;
 
     const capChips: { on: boolean; label: string; icon: React.ElementType }[] = [
@@ -88,6 +107,25 @@ export default function TradingCardPreview({
                 )}
             </div>
 
+            {/* Claimed typical match, priced by the season's score() (#101) */}
+            {typical && (
+                <div className="mx-5 mb-4">
+                    <div className="text-[9px] font-black uppercase tracking-widest text-primary mb-2">{t("typicalMatch")}</div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <PhaseCell label={t("auto")} p={{ low: typical.auto, high: typical.auto }} />
+                        <PhaseCell label={t("teleop")} p={{ low: typical.teleop, high: typical.teleop }} />
+                        <PhaseCell label={t("endgame")} p={{ low: typical.endgame, high: typical.endgame }} />
+                    </div>
+                </div>
+            )}
+            {answerChips.length > 0 && (
+                <div className="mx-5 mb-4 flex flex-wrap gap-1.5">
+                    {answerChips.map(c => (
+                        <span key={c} className="rounded-full bg-primary/10 border border-primary/25 px-2.5 py-1 text-[10px] font-bold text-primary">{c}</span>
+                    ))}
+                </div>
+            )}
+
             {/* Self-reported points */}
             <div className="mx-5 mb-4">
                 <div className="text-[9px] font-black uppercase tracking-widest text-primary mb-2">{t("claimed")}</div>
@@ -99,7 +137,7 @@ export default function TradingCardPreview({
             </div>
 
             {/* Capability chips */}
-            {(capChips.length > 0 || cap.drivetrain) && (
+            {!answers && (capChips.length > 0 || cap.drivetrain) && (
                 <div className="mx-5 mb-4 flex flex-wrap gap-1.5">
                     {cap.drivetrain && (
                         <span className="rounded-full bg-muted border border-border px-2.5 py-1 text-[10px] font-bold text-foreground">
