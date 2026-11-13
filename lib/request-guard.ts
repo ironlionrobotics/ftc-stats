@@ -1,6 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
-import { clientIpFromForwardedFor, forwardedForShape, limiterKeyForIp } from "@/lib/input-guards";
+import { clientIpFromForwardedFor, DEFAULT_TRUSTED_PROXY_HOPS, forwardedForShape, limiterKeyForIp } from "@/lib/input-guards";
 import { FixedWindowLimiter } from "@/lib/rate-limiter";
 
 /**
@@ -33,6 +33,11 @@ export type GuardBucket = keyof typeof limiters;
 // never the IPs.
 const shapesLogged = new Set<string>();
 
+const TRUSTED_HOPS = (() => {
+    const n = Number(process.env.TRUSTED_PROXY_HOPS);
+    return Number.isInteger(n) && n >= 0 && n <= 5 ? n : DEFAULT_TRUSTED_PROXY_HOPS;
+})();
+
 async function visitorKey(): Promise<string> {
     try {
         const xff = (await headers()).get("x-forwarded-for");
@@ -41,7 +46,7 @@ async function visitorKey(): Promise<string> {
             shapesLogged.add(shape);
             console.info(`[rate-limit] x-forwarded-for shape: ${shape}`);
         }
-        const ip = clientIpFromForwardedFor(xff);
+        const ip = clientIpFromForwardedFor(xff, TRUSTED_HOPS);
         return ip ? limiterKeyForIp(ip) : "unknown";
     } catch {
         return "unknown"; // outside a request scope (scripts/tests)

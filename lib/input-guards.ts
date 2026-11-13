@@ -66,22 +66,20 @@ export function parseRegion(raw: unknown): string | undefined {
 // ---------------------------------------------------------------------------
 
 /**
- * Infrastructure hops appended to X-Forwarded-For between the visitor and the
- * app. Production (App Hosting = Cloud CDN + external Application LB + Cloud
- * Run) was observed on 2026-11-13 to send 3 hops for a client that sent none,
- * none of them in the LB health-check ranges — i.e. `<client>, <google>,
- * <google>`. We strip trailing Google-owned and private hops and take the
- * rightmost remaining one; anything further left was supplied by the caller.
+ * How many hops App Hosting's infrastructure appends to X-Forwarded-For after
+ * the visitor's IP. Observed in production on 2026-11-13: a client that sends
+ * no header arrives as 3 hops (`<client>, <infra>, <infra>`). We trust exactly
+ * that many trailing hops — never "anything that looks like Google", because
+ * Google Cloud addresses are rentable by anyone and prefix-stripping would let
+ * a caller on a cloud VM pick its own rate-limit key. Override with
+ * TRUSTED_PROXY_HOPS if the hosting layout changes (watch the shape log).
  */
-const GOOGLE_PREFIXES = [
-    "35.191.", "130.211.", "34.", "35.", "107.178.", "108.177.", "142.250.", "172.217.",
-    "172.253.", "173.194.", "209.85.", "216.239.", "66.102.", "66.249.", "74.125.",
-];
+export const DEFAULT_TRUSTED_PROXY_HOPS = 2;
+
 const PRIVATE = /^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|fc|fd|fe80:|::1$)/i;
 
-function hopKind(h: string): "google" | "private" | "v6" | "v4" {
+function hopKind(h: string): "private" | "v6" | "v4" {
     if (PRIVATE.test(h)) return "private";
-    if (GOOGLE_PREFIXES.some(p => h.startsWith(p))) return "google";
     return h.includes(":") ? "v6" : "v4";
 }
 
@@ -103,10 +101,20 @@ export function forwardedForShape(xff: string | null | undefined): string {
     return `${hops.length} hops [${tags.join(", ")}]`;
 }
 
-export function clientIpFromForwardedFor(xff: string | null | undefined): string | null {
+/**
+ * The visitor's IP: the hop just left of the `trustedHops` the infrastructure
+ * appends. Anything further left was supplied by the caller and is ignored.
+ * With fewer hops than expected (local dev, layout change) it falls back to
+ * the leftmost hop, which is still a stable per-client key in those settings.
+ */
+export function clientIpFromForwardedFor(
+    xff: string | null | undefined,
+    trustedHops: number = DEFAULT_TRUSTED_PROXY_HOPS,
+): string | null {
     if (!xff) return null;
     const hops = xff.split(",").map(s => s.trim()).filter(Boolean);
-    while (hops.length > 1 && hopKind(hops[hops.length - 1]) !== "v4" && hopKind(hops[hops.length - 1]) !== "v6") hops.pop();
-    const ip = hops[hops.length - 1];
-    return ip && ip.length <= 64 ? ip : null;
+    if (!hops.length) return null;
+    const i = hops.length - 1 - Math.max(0, trustedHops);
+    const ip = hops[i >= 0 ? i : 0];
+    return ip.length <= 64 ? ip : null;
 }
