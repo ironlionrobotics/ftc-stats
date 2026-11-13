@@ -375,3 +375,6 @@ Después del cierre de caché, Héctor pidió abrir PRIDE a todo público (multi
 - **Punto 2 (en curso):** "Hoy" como portada del equipo seguido, sin cuenta (#98); la vista de temporada pasó a `/events`.
 
 **Errores propios que quedaron como lección (memoria `feedback_git_y_procesos_locales`):** `git add -A` coló el `AGENTS.md` que genera `next dev` y un worktree de agente; `pkill` por patrón cerró un `next-server` ajeno no identificado.
+
+**Cierre de la sesión 21 (13 nov, tarde):** la calibración P1 (#94–#96) se desplegó con OK y se verificó en producción. Se activó el respaldo diario de Firestore (14 días) y las pruebas de reglas corrieron 11/11 con Java 21 (`scripts/with-java21.sh`, emulador en el puerto 8085). Al intentar el primer login en producción se encontraron dos fallas desde julio: el dominio de App Hosting no estaba autorizado en Firebase Auth (Héctor lo agregó) y la configuración web de Firebase nunca llegaba al navegador. Esa segunda falla rompía login, scouting, picklists e invitaciones y explica los 0 documentos de scouting; se corrigió con el hotfix #99, desplegado y verificado. Héctor entró y solicitó el equipo 30311 desde su cuenta horno3. Agregar ese correo como superadmin (`hotfix/superadmin-horno3`) espera OK.
+

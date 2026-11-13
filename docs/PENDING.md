@@ -7,7 +7,7 @@
 
 Plan aprobado: `~/.claude/plans/replicated-cooking-elephant.md`. Orden acordado con Héctor: **1) calibración BIOBUZZ → 2) lógica de la estructura → 3) apertura no visual → 4) traducción → 5) estética al final.** Producción estable hasta MXTLQ (27-nov) salvo correcciones de bajo riesgo con OK.
 
-**Qué hay en producción (`main` ff33abb, desplegado 13-nov):** BIOBUZZ (#86–#88), caché Firestore (#89), Etapa 0 de seguridad (#90–#92), IP del visitante con 2 saltos de confianza y **la calibración P1 (#94–#96)**. Respaldo diario de Firestore activo (14 días de retención). Pruebas de reglas: 11/11 contra las reglas de producción.
+**Qué hay en producción (`main` 73820d2, desplegado 13-nov):** hotfix #99 (la configuración web de Firebase ahora llega al navegador: login, scouting, picklists e invitaciones funcionan por primera vez en producción; dominio de App Hosting autorizado en Firebase Auth; login de Héctor verificado), además de: BIOBUZZ (#86–#88), caché Firestore (#89), Etapa 0 de seguridad (#90–#92), IP del visitante con 2 saltos de confianza y **la calibración P1 (#94–#96)**. Respaldo diario de Firestore activo (14 días de retención). Pruebas de reglas: 11/11 contra las reglas de producción.
 
 **Ramas (ninguna desplegada):**
 | Rama | Contenido | Siguiente paso |
@@ -16,7 +16,11 @@ Plan aprobado: `~/.claude/plans/replicated-cooking-elephant.md`. Orden acordado 
 | `p3/opening-basics` (1960ae2) | Cabeceras (CSP en modo reporte), 404/error/global-error, robots, borrado de cuenta (servidor), pruebas de reglas (#97) | Propuesto desplegar cabeceras + páginas de error junto con p1 |
 | `etapa1/foundations` | Integra p1 + p3 + tokens Transmisión + armazón de 5 destinos + i18n (~690 claves) + "Hoy" (#93, #98) + botón de borrar cuenta + sitemap | Después de MXTLQ, con Aprobación B (revisión en navegador + medición de rendimiento contra `docs/perf/`) |
 
-**OK pendientes de Héctor:** (1) ✅ p1 desplegado; ¿desplegar también cabeceras + páginas de error de p3 antes de MXTLQ?; (2) ✅ respaldos diarios activos; alertas de caída/presupuesto sin OK todavía; (3) ✅ pruebas de reglas ejecutadas con Java 21 (11/11; `scripts/with-java21.sh` lo encuentra aunque el predeterminado sea 17); (4) aprobar en `/admin` su propia solicitud del equipo 30311 (`orgs/30311` no existe); (5) borrar secretos `UPSTASH_*`; (6) ✅ `AGENTS.md` y `graphify-out/` en `.gitignore`.
+**Ahora mismo:** Héctor solicitó el equipo 30311 desde `hectorturrubiates@horno3.org` (pendiente). La rama `hotfix/superadmin-horno3` (2fca2ab) agrega ese correo a `SUPERADMIN_EMAILS`: **espera OK de deploy**. Alternativa sin deploy: aprobar desde `/admin` con la cuenta Gmail. Después: confirmar en Firestore `orgs/30311` y `users/{uid}` con orgId 30311 y rol admin, y hacer una captura de scouting de prueba en producción antes de MXTLQ.
+
+**Verificación post-deploy (lección #99):** además de las rutas en 200, comprobar que el fragmento servido de `lib/firebase.ts` trae `ironlion-scouting.firebaseapp.com` y que el botón de login abre firebaseapp.com → accounts.google.com.
+
+**OK pendientes de Héctor:** (1) ✅ p1 desplegado; ¿desplegar también cabeceras + páginas de error de p3 antes de MXTLQ?; (2) ✅ respaldos diarios activos; alertas de caída/presupuesto sin OK todavía; desactivar el login email/password que el proyecto tiene activo y la app no usa; (3) ✅ pruebas de reglas ejecutadas con Java 21 (11/11; `scripts/with-java21.sh` lo encuentra aunque el predeterminado sea 17); (4) aprobar en `/admin` su propia solicitud del equipo 30311 (`orgs/30311` no existe); (5) borrar secretos `UPSTASH_*`; (6) ✅ `AGENTS.md` y `graphify-out/` en `.gitignore`.
 
 **Siguiente trabajo lógico (punto 2, sobre `etapa1/foundations`):**
 - Quitar ~25 supuestos de un solo equipo: región MX por defecto (`lib/aggregation.ts`, `EventFilter`), `HERO_TEAM`/`REPORT_TEAMS` 30311, "Iron Lion Intelligence" en `/event/*/pro`, prompt del asistente, "FTC Stats México" en briefing y Discord.
