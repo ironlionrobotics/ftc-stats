@@ -1,6 +1,7 @@
 import { getAggregatedStats } from "@/lib/aggregation";
 import { fetchEvents } from "@/lib/ftc-api";
 import { getCurrentSeason } from "@/lib/constants";
+import { seasonGameName } from "@/lib/games/season-names";
 import StatsTable from "@/components/StatsTable";
 import { cookies } from "next/headers";
 import type { AggregatedTeamStats, FTCEvent } from "@/types/scouting";
@@ -51,14 +52,7 @@ export default async function Home({ searchParams }: PageProps) {
 
   const cacheKey = `home:${season}:${JSON.stringify(filters)}`;
 
-  const gameNames: Record<number, string> = {
-    2025: "Decode",
-    2024: "Into The Deep",
-    2023: "CenterStage",
-    2022: "PowerPlay",
-  };
-
-  const gameName = gameNames[season] || "Season Stats";
+  const gameName = seasonGameName(season) || "Season Stats";
 
   return (
     <main className="min-h-screen bg-background relative">

@@ -19,6 +19,7 @@ export interface EventFilterOption {
 }
 import clsx from "clsx";
 import { Calendar, MapPin, Search, CheckSquare, Square } from "lucide-react";
+import { seasonGameName } from "@/lib/games/season-names";
 
 interface EventFilterProps {
     currentSeason: number;
@@ -286,11 +287,5 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
 }
 
 function getGameName(season: number) {
-    switch (season) {
-        case 2025: return "Decode";
-        case 2024: return "Into The Deep";
-        case 2023: return "CenterStage";
-        case 2022: return "PowerPlay";
-        default: return "";
-    }
+    return seasonGameName(season) ?? "";
 }

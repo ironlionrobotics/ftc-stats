@@ -9,6 +9,7 @@ import clsx from "clsx";
 import Link from "next/link";
 import { TeamSeasonReport } from "@/components/team/TeamSeasonReport";
 import { TeamSeasonAnalysis } from "@/components/team/TeamSeasonAnalysis";
+import { seasonGameName } from "@/lib/games/season-names";
 
 // Teams with a hand-curated season retrospective (sponsor-grade). 30311-only
 // for now — see lib/reports/team-30311-decode.ts.
@@ -17,12 +18,6 @@ const REPORT_TEAMS = new Set([30311]);
 // Current season first, then the three before it — stays correct at rollover.
 const SUPPORTED_SEASONS = [0, 1, 2, 3].map((i) => getCurrentSeason() - i);
 
-const GAME_NAMES: Record<number, string> = {
-    2025: "Decode",
-    2024: "Into The Deep",
-    2023: "CenterStage",
-    2022: "PowerPlay",
-};
 
 interface EventPlayoff {
     role: string | null;          // Capitán / 1er pick / 2do pick / Backup
@@ -230,7 +225,7 @@ export default async function TeamPage(props: TeamPageProps) {
                                                 {year.season}
                                             </h3>
                                             <span className="px-4 py-1.5 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-sm font-black uppercase tracking-widest">
-                                                {GAME_NAMES[year.season] || "Official Season"}
+                                                {seasonGameName(year.season) || "Official Season"}
                                             </span>
                                         </div>
                                         <p className="text-muted-foreground font-medium flex items-center gap-2">

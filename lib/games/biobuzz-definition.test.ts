@@ -202,3 +202,13 @@ describe("DECODE score() parity", () => {
         }
     });
 });
+
+describe("season game names", () => {
+    it("names every season the selector offers, including the current one", async () => {
+        const { seasonGameName } = await import("./season-names");
+        expect(seasonGameName(2026)).toBe("Biobuzz");
+        expect(seasonGameName(2025)).toBe("Decode");
+        for (const s of [2022, 2023, 2024, 2025, 2026]) expect(seasonGameName(s)).toBeTruthy();
+        expect(seasonGameName(1999)).toBeUndefined();
+    });
+});
