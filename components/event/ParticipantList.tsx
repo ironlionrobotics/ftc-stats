@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { TeamRanking } from "@/types/scouting";
 import { Users, Search, Building2, MapPin } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -10,6 +11,7 @@ interface ParticipantListProps {
 }
 
 export default function ParticipantList({ rankings, onTeamClick }: ParticipantListProps) {
+    const t = useTranslations("ParticipantList");
     const [searchTerm, setSearchTerm] = useState("");
 
     const filteredTeams = useMemo(() => {
@@ -27,7 +29,7 @@ export default function ParticipantList({ rankings, onTeamClick }: ParticipantLi
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     <input
                         type="text"
-                        placeholder="Search by team # or name..."
+                        placeholder={t("search")}
                         className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -36,7 +38,7 @@ export default function ParticipantList({ rankings, onTeamClick }: ParticipantLi
                 <div className="flex items-center gap-4 text-sm font-bold text-muted-foreground">
                     <span className="flex items-center gap-2">
                         <Users size={18} className="text-primary" />
-                        {rankings.length} Total Teams
+                        {t("total", { count: rankings.length })}
                     </span>
                 </div>
             </div>
@@ -60,7 +62,7 @@ export default function ParticipantList({ rankings, onTeamClick }: ParticipantLi
                                     {team.teamNumber}
                                 </div>
                                 <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest bg-muted px-2 py-1 rounded-md border border-border">
-                                    Participant
+                                    {t("participant")}
                                 </div>
                             </div>
 
@@ -71,10 +73,10 @@ export default function ParticipantList({ rankings, onTeamClick }: ParticipantLi
                             <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
                                 <div className="flex items-center gap-1.5 text-muted-foreground">
                                     <MapPin size={12} />
-                                    <span className="text-[10px] font-bold uppercase tracking-tight">Mexico</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-tight">{t("country")}</span>
                                 </div>
                                 <div className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                    View Matches
+                                    {t("viewMatches")}
                                     <span className="text-lg leading-none">→</span>
                                 </div>
                             </div>

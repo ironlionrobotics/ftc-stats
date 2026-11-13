@@ -1,5 +1,6 @@
 import { FTCAward, TeamRanking } from "@/types/scouting";
 import { Award, Trophy } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface AwardListProps {
     awards: FTCAward[];
@@ -7,18 +8,19 @@ interface AwardListProps {
 }
 
 export default function AwardList({ awards, rankings }: AwardListProps) {
+    const t = useTranslations("AwardList");
     if (!awards || awards.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted rounded-2xl border border-dashed border-border">
                 <Trophy size={48} className="mb-4 opacity-20" />
-                <p>No awards data available yet.</p>
+                <p>{t("empty")}</p>
             </div>
         );
     }
 
     // Group awards by name
     const groupedAwards = awards.reduce((acc, award) => {
-        const key = award.name || award.awardName || "Award";
+        const key = award.name || award.awardName || t("fallbackName");
         if (!acc[key]) {
             acc[key] = [];
         }
@@ -40,7 +42,7 @@ export default function AwardList({ awards, rankings }: AwardListProps) {
                     <div className="p-2 space-y-1">
                         {awardList.sort((a, b) => a.series - b.series).map((award, index) => {
                             const team = rankings?.find(r => r.teamNumber === award.teamNumber);
-                            const teamName = team?.teamName || "Unknown Team";
+                            const teamName = team?.teamName || t("unknownTeam");
 
                             return (
                                 <div key={`${award.awardId}-${award.teamNumber}-${index}`} className="flex items-center justify-between p-2 hover:bg-muted rounded-lg transition-colors group">

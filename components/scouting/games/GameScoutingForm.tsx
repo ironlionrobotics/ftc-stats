@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useForm, Controller, type Resolver, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -55,6 +55,7 @@ type FormValues = Record<string, unknown>;
  * schema and rendered here rather than in the definition.
  */
 export default function GameScoutingForm({ definition, team, entries }: GameScoutingFormProps) {
+    const t = useTranslations("GameScouting");
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const [isAdding, setIsAdding] = useState(false);
@@ -84,7 +85,7 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
 
     const onSubmit = async (values: FormValues) => {
         if (!user) {
-            toast.error("Debes iniciar sesión");
+            toast.error(t("signIn"));
             return;
         }
         const eventCode = guessActiveEventCode([team]) ?? "MXTOL";
@@ -115,14 +116,14 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
             result = await saveMutation.mutateAsync(entry);
         } catch (e) {
             console.error("[scouting] save failed completely:", e);
-            toast.error(`No se pudo guardar el match #${matchNumber} — revisa e intenta de nuevo`);
+            toast.error(t("saveFailed", { match: matchNumber }));
             return;
         }
 
         if (result.savedTo === "local") {
-            toast.success(`Match #${matchNumber} guardado offline — se sincronizará al volver la conexión`);
+            toast.success(t("savedOffline", { match: matchNumber }));
         } else {
-            toast.success(`Match #${matchNumber} guardado`);
+            toast.success(t("saved", { match: matchNumber }));
         }
         setIsAdding(false);
         reset({ ...defaults, matchNumber: matchNumber + 1 });
@@ -133,9 +134,9 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
             <div className="flex justify-between items-center">
                 <div className="flex flex-col">
                     <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-                        <Trophy className="text-primary" /> Match Scouting: {definition.label}
+                        <Trophy className="text-primary" /> {t("title", { label: definition.label })}
                     </h3>
-                    <p className="text-xs text-muted-foreground">Temporada {definition.season}-{definition.season + 1}</p>
+                    <p className="text-xs text-muted-foreground">{t("season", { from: definition.season, to: definition.season + 1 })}</p>
                 </div>
                 <button
                     type="button"
@@ -145,7 +146,7 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
                         isAdding ? "bg-danger/20 text-danger border border-danger/50" : "bg-primary text-primary-foreground"
                     )}
                 >
-                    {isAdding ? "Cancelar" : <><Plus size={18} /> Nuevo Registro</>}
+                    {isAdding ? t("cancel") : <><Plus size={18} /> {t("newRecord")}</>}
                 </button>
             </div>
 
@@ -153,7 +154,7 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <Card className="p-6 bg-muted border-primary/20 animate-in slide-in-from-top duration-300 shadow-sm space-y-4">
                         <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Match Number</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">{t("matchNumber")}</label>
                             <Controller
                                 name="matchNumber"
                                 control={control}
@@ -179,7 +180,7 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
                         {saveMutation.isError && (
                             <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-xs">
                                 <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                                <span>Error al guardar: {String((saveMutation.error as Error)?.message ?? saveMutation.error)}</span>
+                                <span>{t("saveError", { message: String((saveMutation.error as Error)?.message ?? saveMutation.error) })}</span>
                             </div>
                         )}
 
@@ -194,7 +195,7 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
                                 ) : (
                                     <Save size={22} className="group-hover:scale-110 transition-transform" />
                                 )}
-                                {isSubmitting || saveMutation.isPending ? "Guardando..." : "Finalizar y Guardar Scouting"}
+                                {isSubmitting || saveMutation.isPending ? t("saving") : t("finish")}
                             </button>
                         </div>
                     </Card>
@@ -225,6 +226,8 @@ function EntriesList({
     isAdding: boolean;
 }) {
     const gameLabel = useGameLabel();
+    const t = useTranslations("GameScouting");
+    const format = useFormatter();
     if (entries.length === 0) {
         return (
             <div className="text-center py-16 bg-muted rounded-2xl border border-dashed border-border text-muted-foreground flex flex-col items-center gap-4">
@@ -232,8 +235,8 @@ function EntriesList({
                     <ClipboardList size={32} className="opacity-30" />
                 </div>
                 <div>
-                    <p className="font-medium text-muted-foreground">Sin observaciones para este equipo</p>
-                    <p className="text-xs mt-1 opacity-70">Captura el primer match para empezar el análisis del robot.</p>
+                    <p className="font-medium text-muted-foreground">{t("emptyTitle")}</p>
+                    <p className="text-xs mt-1 opacity-70">{t("emptyHint")}</p>
                 </div>
                 {!isAdding && (
                     <button
@@ -241,7 +244,7 @@ function EntriesList({
                         onClick={onAdd}
                         className="px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold rounded-lg flex items-center gap-2 transition-colors"
                     >
-                        <Plus size={14} /> Capturar primera observación
+                        <Plus size={14} /> {t("captureFirst")}
                     </button>
                 )}
             </div>
@@ -259,7 +262,7 @@ function EntriesList({
                         <div className="absolute top-0 left-0 w-1 h-full bg-primary/30 group-hover:bg-primary transition-colors" />
                         <div className="flex items-center gap-3 mb-4 flex-wrap">
                             <div className="px-3 py-1 bg-primary/20 text-primary rounded-md text-xs font-black tracking-tighter">
-                                MATCH #{entry.matchNumber}
+                                {t("matchHeading", { number: entry.matchNumber })}
                             </div>
                             {entry.orgId && (
                                 <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-[10px] font-black tracking-wider uppercase">
@@ -271,7 +274,7 @@ function EntriesList({
                                 {entry.scoutName ?? entry.scouterName}
                                 <span className="opacity-30">•</span>
                                 {entry.timestamp?.seconds
-                                    ? new Date(entry.timestamp.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                                    ? format.dateTime(new Date(entry.timestamp.seconds * 1000), { hour: "2-digit", minute: "2-digit" })
                                     : "..."}
                             </div>
                         </div>
@@ -283,7 +286,7 @@ function EntriesList({
                                     .map(field => (
                                         <div key={field.id} className="bg-muted p-3 rounded-xl border border-border">
                                             <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">{gameLabel(field.label)}</span>
-                                            <span className="text-sm font-black text-foreground">{formatFieldValue(field, record[field.id], gameLabel)}</span>
+                                            <span className="text-sm font-black text-foreground">{formatFieldValue(field, record[field.id], gameLabel, t("yes"))}</span>
                                         </div>
                                     ))
                             )}
@@ -298,10 +301,10 @@ function EntriesList({
 }
 
 /** Human-readable value for a field in the entry list. */
-function formatFieldValue(field: GameField, value: unknown, gameLabel: (s?: string) => string | undefined): string {
+function formatFieldValue(field: GameField, value: unknown, gameLabel: (s?: string) => string | undefined, yes: string): string {
     switch (field.kind) {
         case "boolean":
-            return value ? "Sí" : "—";
+            return value ? yes : "—";
         case "stars":
             return `${(value as number) ?? 0}/${field.max ?? 5}`;
         case "enum": {

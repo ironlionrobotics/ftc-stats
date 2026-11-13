@@ -8,6 +8,7 @@ import { pitScoutingFormSchema, type PitScoutingFormValues } from "@/lib/schemas
 import { useZodMessage } from "@/lib/hooks/use-zod-message";
 import { Save, Edit2, Lock, Share2, Globe, Loader2 } from "lucide-react";
 import clsx from "clsx";
+import { useFormatter, useTranslations } from "next-intl";
 import { useProgram } from "@/lib/stores/program-store";
 import { seasonRulesFor } from "@/lib/games/season-rules";
 
@@ -56,6 +57,12 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 export default function ScoutingForm({ team, initialData, onSave }: ScoutingFormProps) {
     const [isEditing, setIsEditing] = useState(false);
     const zodMsg = useZodMessage();
+    const t = useTranslations("ScoutingPit");
+    const format = useFormatter();
+    const optionLabels = Object.fromEntries(
+        ["Mecanno", "X-Drive", "Tanque", "Omnidireccional", "Swerve", "Otros", "Fricción (Ruedas)", "Garra", "Succión", "Activo-Vertical", "Otro", "Lanzador", "Elevador/Depósito", "Rampa Directa", "Close", "Mid", "Far"]
+            .map(v => [v, t(`opt_${v}`)]),
+    );
     const { season } = useProgram();
 
     // See SuperScoutingForm for the `as any` rationale (Zod coerce TInput/TOutput mismatch).
@@ -132,13 +139,13 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                             <span className="text-primary font-display text-2xl md:text-3xl shrink-0">{team.teamNumber}</span>
                             <span className="truncate">{team.teamName}</span>
                         </h2>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Temporada {season}: {seasonRulesFor(season).gameName}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{t("season", { season, game: seasonRulesFor(season).gameName })}</span>
                     </div>
                     <span className={clsx(
                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
                         !isEditing ? "bg-secondary/10 border-secondary/30 text-secondary" : "bg-success/10 border-success/30 text-success"
                     )}>
-                        {!isEditing ? "Lectura" : "Edición"}
+                        {!isEditing ? t("readOnly") : t("editing")}
                     </span>
                 </div>
 
@@ -149,7 +156,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                         className="min-h-[44px] px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg bg-success hover:bg-success/90 active:scale-[0.98] text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/40"
                     >
                         {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                        {isSubmitting ? "Guardando..." : "Guardar Pit Data"}
+                        {isSubmitting ? t("saving") : t("save")}
                     </button>
                 ) : (
                     <button
@@ -157,66 +164,66 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                         onClick={() => setIsEditing(true)}
                         className="px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
-                        <Edit2 size={18} /> Editar Pit Data
+                        <Edit2 size={18} /> {t("edit")}
                     </button>
                 )}
             </div>
 
             <div className="p-6 md:p-8 pt-0 overflow-y-auto custom-scrollbar space-y-8 pb-16">
                 <section>
-                    <SectionTitle>Especificaciones Técnicas</SectionTitle>
+                    <SectionTitle>{t("secSpecs")}</SectionTitle>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <TextField control={control} name="robotName" label="Nombre del Robot" placeholder="Ej: Iron Lion Bot" disabled={!isEditing} error={zodMsg(errors.robotName?.message)} />
-                        <SelectField control={control} name="driveTrain" label="Tipo de Tracción" options={['Mecanno', 'X-Drive', 'Tanque', 'Omnidireccional', 'Swerve', 'Otros']} disabled={!isEditing} />
-                        <NumberField control={control} name="servoCount" label="Cantidad de Servos (Max 20)" disabled={!isEditing} error={zodMsg(errors.servoCount?.message)} />
-                        <TextField control={control} name="dimensions" label="Dimensiones (Pulgadas)" placeholder="Ej: 18x18x18" disabled={!isEditing} />
-                        <TextField control={control} name="weight" label="Peso (Kg)" placeholder="Ej: 12.5" disabled={!isEditing} />
-                        <TextField control={control} name="motors" label="Motores" placeholder="Ej: 4 Rev HD Hex" disabled={!isEditing} />
+                        <TextField control={control} name="robotName" label={t("robotName")} placeholder={t("robotNamePh")} disabled={!isEditing} error={zodMsg(errors.robotName?.message)} />
+                        <SelectField control={control} name="driveTrain" label={t("driveTrain")} optionLabels={optionLabels} options={['Mecanno', 'X-Drive', 'Tanque', 'Omnidireccional', 'Swerve', 'Otros']} disabled={!isEditing} />
+                        <NumberField control={control} name="servoCount" label={t("servoCount")} disabled={!isEditing} error={zodMsg(errors.servoCount?.message)} />
+                        <TextField control={control} name="dimensions" label={t("dimensions")} placeholder={t("dimensionsPh")} disabled={!isEditing} />
+                        <TextField control={control} name="weight" label={t("weight")} placeholder={t("weightPh")} disabled={!isEditing} />
+                        <TextField control={control} name="motors" label={t("motors")} placeholder={t("motorsPh")} disabled={!isEditing} />
                     </div>
                 </section>
 
                 <section>
-                    <SectionTitle>Mecanismos de Artifacts & Patterns</SectionTitle>
+                    <SectionTitle>{t("secMechanisms")}</SectionTitle>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <SelectField control={control} name="intakeType" label="Tipo de Intake" options={['Fricción (Ruedas)', 'Garra', 'Succión', 'Activo-Vertical', 'Otro']} disabled={!isEditing} />
-                        <SelectField control={control} name="scoringMechanism" label="Mecanismo Scoring (Goal)" options={['Lanzador', 'Elevador/Depósito', 'Rampa Directa', 'Otro']} disabled={!isEditing} />
-                        <TextField control={control} name="patternMechanism" label="Mecanismo de Patrones (Ramp)" placeholder="Ej: Rampa con Gates" disabled={!isEditing} />
+                        <SelectField control={control} name="intakeType" label={t("intakeType")} optionLabels={optionLabels} options={['Fricción (Ruedas)', 'Garra', 'Succión', 'Activo-Vertical', 'Otro']} disabled={!isEditing} />
+                        <SelectField control={control} name="scoringMechanism" label={t("scoringMechanism")} optionLabels={optionLabels} options={['Lanzador', 'Elevador/Depósito', 'Rampa Directa', 'Otro']} disabled={!isEditing} />
+                        <TextField control={control} name="patternMechanism" label={t("patternMechanism")} placeholder={t("patternMechanismPh")} disabled={!isEditing} />
                     </div>
                 </section>
 
                 <section>
-                    <SectionTitle>Capacidades de Juego & Visión</SectionTitle>
+                    <SectionTitle>{t("secGame")}</SectionTitle>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4 bg-muted p-4 rounded-xl border border-border">
-                            <BooleanField control={control} name="canDualPark" label="¿Permite Dual Parking (18x18)?" disabled={!isEditing} />
+                            <BooleanField control={control} name="canDualPark" label={t("canDualPark")} disabled={!isEditing} />
                         </div>
-                        <TextField control={control} name="sensors" label="Sensores / Cámaras" placeholder="Ej: Webcam C920, Sensores de color" disabled={!isEditing} />
+                        <TextField control={control} name="sensors" label={t("sensors")} placeholder={t("sensorsPh")} disabled={!isEditing} />
                     </div>
                 </section>
 
                 <section>
-                    <SectionTitle>Capacidades BIOBUZZ</SectionTitle>
+                    <SectionTitle>{t("secBiobuzz")}</SectionTitle>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div className="space-y-4 bg-muted p-4 rounded-xl border border-border">
-                            <BooleanField control={control} name="canTipHive" label="¿Puede voltear la HIVE (TIP)?" disabled={!isEditing} />
-                            <BooleanField control={control} name="scoresPollen" label="¿Anota POLLEN?" disabled={!isEditing} />
-                            <BooleanField control={control} name="scoresNectar" label="¿Anota NECTAR?" disabled={!isEditing} />
-                            <BooleanField control={control} name="scoresFlower" label="¿Juega FLOWERS?" disabled={!isEditing} />
-                            <BooleanField control={control} name="scoresGarden" label="¿Llena GARDEN?" disabled={!isEditing} />
+                            <BooleanField control={control} name="canTipHive" label={t("canTipHive")} disabled={!isEditing} />
+                            <BooleanField control={control} name="scoresPollen" label={t("scoresPollen")} disabled={!isEditing} />
+                            <BooleanField control={control} name="scoresNectar" label={t("scoresNectar")} disabled={!isEditing} />
+                            <BooleanField control={control} name="scoresFlower" label={t("scoresFlower")} disabled={!isEditing} />
+                            <BooleanField control={control} name="scoresGarden" label={t("scoresGarden")} disabled={!isEditing} />
                         </div>
                         <div className="space-y-4">
-                            <NumberField control={control} name="maxCapacity" label="Capacidad máx. de elementos (≤4)" disabled={!isEditing} error={zodMsg(errors.maxCapacity?.message)} />
-                            <SelectField control={control} name="launchRange" label="Alcance de lanzamiento" options={['Close', 'Mid', 'Far']} disabled={!isEditing} />
-                            <NumberField control={control} name="autoTipsClaimed" label="TIPs en Auto (declarados)" disabled={!isEditing} error={zodMsg(errors.autoTipsClaimed?.message)} />
+                            <NumberField control={control} name="maxCapacity" label={t("maxCapacity")} disabled={!isEditing} error={zodMsg(errors.maxCapacity?.message)} />
+                            <SelectField control={control} name="launchRange" label={t("launchRange")} optionLabels={optionLabels} options={['Close', 'Mid', 'Far']} disabled={!isEditing} />
+                            <NumberField control={control} name="autoTipsClaimed" label={t("autoTips")} disabled={!isEditing} error={zodMsg(errors.autoTipsClaimed?.message)} />
                         </div>
                     </div>
                 </section>
 
                 <section>
-                    <SectionTitle>Fotos</SectionTitle>
+                    <SectionTitle>{t("secPhotos")}</SectionTitle>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-1">
-                            <Label>URL de la Foto</Label>
+                            <Label>{t("photoUrl")}</Label>
                             <TextField control={control} name="photoUrl" label="" placeholder="https://..." disabled={!isEditing} hideLabel />
                         </div>
                     </div>
@@ -227,14 +234,13 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                     <div className="rounded-2xl border border-warning/30 bg-warning/5 p-5 space-y-3">
                         <div className="flex items-center gap-2">
                             <Lock size={16} className="text-warning" />
-                            <h3 className="text-lg font-bold text-warning">Notas privadas</h3>
+                            <h3 className="text-lg font-bold text-warning">{t("privateNotes")}</h3>
                             <span className="ml-auto px-2 py-0.5 bg-warning/20 text-warning rounded text-[10px] font-black uppercase tracking-wider border border-warning/30">
-                                Solo mi equipo
+                                {t("onlyMyTeam")}
                             </span>
                         </div>
                         <p className="text-xs text-warning/70 leading-relaxed">
-                            Estas notas son <strong>internas de tu equipo</strong>. Otros equipos NUNCA verán este campo.
-                            Útil para anotar debilidades estratégicas, planes de defensa, especulaciones.
+                            {t.rich("privateNotesHint", { b: (chunks) => <strong>{chunks}</strong> })}
                         </p>
                         <Controller
                             name="notes"
@@ -244,7 +250,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                                     {...field}
                                     disabled={!isEditing}
                                     className="w-full h-32 px-4 py-3 bg-muted border border-warning/20 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-warning/50 disabled:opacity-50 placeholder:text-warning/30"
-                                    placeholder="Ej: 'Su intake se atora con artifacts verdes', 'Driver coach poco experimentado'..."
+                                    placeholder={t("privateNotesPh")}
                                 />
                             )}
                         />
@@ -257,14 +263,13 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                     <div className="rounded-2xl border border-success/30 bg-success/5 p-5 space-y-3">
                         <div className="flex items-center gap-2">
                             <Share2 size={16} className="text-success" />
-                            <h3 className="text-lg font-bold text-success">Resumen público</h3>
+                            <h3 className="text-lg font-bold text-success">{t("publicSummary")}</h3>
                             <span className="ml-auto px-2 py-0.5 bg-success/20 text-success rounded text-[10px] font-black uppercase tracking-wider border border-success/30 flex items-center gap-1.5">
-                                <Globe size={10} /> Visible a otros equipos
+                                <Globe size={10} /> {t("visibleOthers")}
                             </span>
                         </div>
                         <p className="text-xs text-success/70 leading-relaxed">
-                            Resumen <strong>opt-in</strong> que otros equipos en eventos compartidos podrán ver.
-                            Déjalo vacío para no compartir nada.
+                            {t.rich("publicSummaryHint", { b: (chunks) => <strong>{chunks}</strong> })}
                         </p>
                         <Controller
                             name="publicSummary"
@@ -274,15 +279,15 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                                     {...field}
                                     disabled={!isEditing}
                                     className="w-full h-24 px-4 py-3 bg-muted border border-success/20 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-success/50 disabled:opacity-50 placeholder:text-success/30"
-                                    placeholder="Ej: 'Robot con tracción mecanno, intake de fricción, lanzador para meta. Climb tipo Full.'"
+                                    placeholder={t("publicSummaryPh")}
                                 />
                             )}
                         />
                         {errors.publicSummary && <p className="text-xs text-danger">{zodMsg(errors.publicSummary.message)}</p>}
                         {initialData?.publicSummarySharedAt?.seconds && (
                             <div className="text-[10px] text-success/60 font-medium">
-                                Compartido por última vez:{" "}
-                                {new Date(initialData.publicSummarySharedAt.seconds * 1000).toLocaleString()}
+                                {t("lastShared")}{" "}
+                                {format.dateTime(new Date(initialData.publicSummarySharedAt.seconds * 1000), { dateStyle: "medium", timeStyle: "short" })}
                             </div>
                         )}
                     </div>
@@ -290,7 +295,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
 
                 {initialData?.lastUpdatedBy && (
                     <p className="text-xs text-muted-foreground italic">
-                        Última actualización por {initialData.lastUpdatedBy}
+                        {t("lastUpdatedBy", { name: initialData.lastUpdatedBy })}
                     </p>
                 )}
             </div>
@@ -367,9 +372,10 @@ function NumberField({ control, name, label, disabled, error }: NumberFieldProps
 
 interface SelectFieldProps extends BaseFieldProps<string> {
     options: string[];
+    optionLabels?: Record<string, string>;
 }
 
-function SelectField({ control, name, label, options, disabled }: SelectFieldProps) {
+function SelectField({ control, name, label, options, optionLabels, disabled }: SelectFieldProps) {
     return (
         <div>
             <label className="block text-sm font-medium text-muted-foreground mb-1">{label}</label>
@@ -383,7 +389,7 @@ function SelectField({ control, name, label, options, disabled }: SelectFieldPro
                         className="px-4 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed appearance-none w-full"
                     >
                         {options.map((opt: string) => (
-                            <option key={opt} value={opt} className="bg-card">{opt}</option>
+                            <option key={opt} value={opt} className="bg-card">{optionLabels?.[opt] ?? opt}</option>
                         ))}
                     </select>
                 )}

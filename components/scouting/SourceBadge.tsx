@@ -9,6 +9,7 @@ import {
 } from "@/lib/scouting-aggregation";
 import { Users, AlertTriangle, ChevronDown } from "lucide-react";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 interface SourceBadgeProps {
     /** All scouting entries that flow into the consensus being displayed. */
@@ -40,6 +41,7 @@ export default function SourceBadge({
     variant = "full",
     className,
 }: SourceBadgeProps) {
+    const t = useTranslations("SourceBadge");
     const [expanded, setExpanded] = useState(false);
 
     const summary = useMemo(() => {
@@ -97,10 +99,10 @@ export default function SourceBadge({
                     "inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-wider",
                     className,
                 )}
-                title="No hay observaciones de scouting para este equipo en este match"
+                title={t("noScoutingTitle")}
             >
                 <Users size={11} />
-                Sin scouting
+                {t("noScouting")}
             </div>
         );
     }
@@ -124,14 +126,13 @@ export default function SourceBadge({
                 )}
                 title={
                     hasFlags
-                        ? `${summary.flaggedFieldCount} de ${summary.totalFieldCount} campos con desacuerdo entre scouts`
-                        : "Consenso entre scouts"
+                        ? t("flaggedTitle", { flagged: summary.flaggedFieldCount, total: summary.totalFieldCount })
+                        : t("consensus")
                 }
             >
                 <Users size={11} />
                 <span>
-                    {summary.scoutCount} scout{summary.scoutCount === 1 ? "" : "s"} · {summary.orgCount} org
-                    {summary.orgCount === 1 ? "" : "s"}
+                    {t("counts", { scouts: summary.scoutCount, orgs: summary.orgCount })}
                 </span>
                 {hasFlags && (
                     <>
@@ -175,6 +176,7 @@ function SourcePopover({
     entries: BaseMatchScouting[];
     onClose: () => void;
 }) {
+    const t = useTranslations("SourceBadge");
     // Group by orgId for display.
     const byOrg = useMemo(() => {
         const m = new Map<string, BaseMatchScouting[]>();
@@ -199,7 +201,7 @@ function SourcePopover({
             <div className="absolute top-full left-0 mt-1 z-50 min-w-[280px] max-w-sm bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
                 <div className="p-3 border-b border-white/10 bg-white/[0.02]">
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                        Fuente del dato
+                        {t("source")}
                     </div>
                 </div>
                 <div className="p-3 space-y-3 max-h-[60vh] overflow-y-auto">
@@ -207,10 +209,10 @@ function SourcePopover({
                         <div key={orgId} className="space-y-1.5">
                             <div className="flex items-center gap-2">
                                 <span className="px-1.5 py-0.5 bg-primary/20 text-primary text-[9px] font-black uppercase tracking-wider rounded">
-                                    {orgId === "unknown" ? "Sin org" : `#${orgId}`}
+                                    {orgId === "unknown" ? t("noOrg") : `#${orgId}`}
                                 </span>
                                 <span className="text-[10px] text-gray-500 font-medium">
-                                    {orgEntries.length} obs
+                                    {t("obs", { count: orgEntries.length })}
                                 </span>
                             </div>
                             <ul className="space-y-1 pl-1">
@@ -238,6 +240,7 @@ function SourcePopover({
 }
 
 function ConfidenceDot({ confidence }: { confidence: "high" | "medium" | "low" }) {
+    const t = useTranslations("SourceBadge");
     const color =
         confidence === "high"
             ? "bg-success"
@@ -247,7 +250,7 @@ function ConfidenceDot({ confidence }: { confidence: "high" | "medium" | "low" }
     return (
         <span
             className={clsx("inline-block w-1.5 h-1.5 rounded-full", color)}
-            title={`Confianza: ${confidence}`}
+            title={t("confidence", { level: t(`confidence_${confidence}`) })}
         />
     );
 }

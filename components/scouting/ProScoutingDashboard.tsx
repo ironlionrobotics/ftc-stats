@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { fetchEventParticipants, fetchTeamSeasonHistory, TeamSeasonStats } from "@/app/actions/pro-scouting";
 import TeamAnalysisCard from "./TeamAnalysisCard";
@@ -13,6 +14,7 @@ interface ProScoutingDashboardProps {
 }
 
 export default function ProScoutingDashboard({ eventCode, season }: ProScoutingDashboardProps) {
+    const t = useTranslations("ProScouting");
     const [participants, setParticipants] = useState<TeamRanking[]>([]);
     const [teamStats, setTeamStats] = useState<Record<number, TeamSeasonStats>>({});
     const [loading, setLoading] = useState(true);
@@ -82,7 +84,7 @@ export default function ProScoutingDashboard({ eventCode, season }: ProScoutingD
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px]">
                 <Loader2 className="animate-spin text-secondary mb-4" size={40} />
-                <p className="text-muted-foreground font-medium">Initializing Pro-Scouting Module...</p>
+                <p className="text-muted-foreground font-medium">{t("initializing")}</p>
             </div>
         );
     }
@@ -94,7 +96,7 @@ export default function ProScoutingDashboard({ eventCode, season }: ProScoutingD
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" onClick={() => setSelectedOpponent(null)}>
                     <div className="bg-card rounded-2xl shadow-sm max-w-2xl w-full p-6 animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-black text-foreground">Head-to-Head Analysis</h3>
+                            <h3 className="text-xl font-black text-foreground">{t("headToHead")}</h3>
                             <button onClick={() => setSelectedOpponent(null)} className="p-2 hover:bg-muted rounded-full text-muted-foreground">
                                 <X size={20} />
                             </button>
@@ -110,7 +112,7 @@ export default function ProScoutingDashboard({ eventCode, season }: ProScoutingD
                                 onClick={() => setSelectedOpponent(null)}
                                 className="px-4 py-2 bg-muted font-bold text-foreground rounded-lg hover:bg-border"
                             >
-                                Close Analysis
+                                {t("closeAnalysis")}
                             </button>
                         </div>
                     </div>
@@ -120,10 +122,10 @@ export default function ProScoutingDashboard({ eventCode, season }: ProScoutingD
             {/* Header / Controls */}
             <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-card p-4 rounded-xl shadow-sm border border-border">
                 <div>
-                    <h2 className="text-2xl font-black text-foreground">Pro-Scouting Database</h2>
+                    <h2 className="text-2xl font-black text-foreground">{t("database")}</h2>
                     <p className="text-sm text-muted-foreground">
-                        Deep analysis for {participants.length} teams
-                        {loadingStats && <span className="ml-2 text-secondary animate-pulse text-xs font-bold uppercase">(Loading Season Data...)</span>}
+                        {t("deepAnalysis", { count: participants.length })}
+                        {loadingStats && <span className="ml-2 text-secondary animate-pulse text-xs font-bold uppercase">{t("loadingSeason")}</span>}
                     </p>
                 </div>
 
@@ -132,7 +134,7 @@ export default function ProScoutingDashboard({ eventCode, season }: ProScoutingD
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                         <input
                             type="text"
-                            placeholder="Search Team..."
+                            placeholder={t("searchTeam")}
                             className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -144,10 +146,10 @@ export default function ProScoutingDashboard({ eventCode, season }: ProScoutingD
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as 'rank' | 'opr' | 'max' | 'consistency')}
                     >
-                        <option value="rank">Sort: Rank</option>
-                        <option value="opr">Sort: Est. OPR</option>
-                        <option value="max">Sort: Max Score</option>
-                        <option value="consistency">Sort: High Consistency</option>
+                        <option value="rank">{t("sortRank")}</option>
+                        <option value="opr">{t("sortOpr")}</option>
+                        <option value="max">{t("sortMax")}</option>
+                        <option value="consistency">{t("sortConsistency")}</option>
                     </select>
                 </div>
             </div>

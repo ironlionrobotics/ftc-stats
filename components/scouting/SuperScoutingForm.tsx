@@ -17,6 +17,7 @@ import { useScoutReliabilities } from "@/lib/hooks/use-scout-reliabilities";
 import { Save, Star, Shield, Wrench, ThumbsUp, ThumbsDown, Eye, User, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { guessActiveEventCode } from "@/lib/active-event";
 
 interface SuperScoutingFormProps {
@@ -42,6 +43,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
     const [isAdding, setIsAdding] = useState(false);
     const saveMutation = useSaveMatchScouting();
     const zodMsg = useZodMessage();
+    const t = useTranslations("ScoutingSuper");
 
     // RHF replaces ~5 useState calls. Validation, default values, and the
     // submit handler all flow through the schema, which is the single source
@@ -68,7 +70,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
 
     const onSubmit = async (values: SuperScoutingFormValues) => {
         if (!user) {
-            toast.error("Debes iniciar sesión");
+            toast.error(t("signIn"));
             return;
         }
         const scoutId = scoutIdFromUser(user);
@@ -113,13 +115,13 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
             result = await saveMutation.mutateAsync(payload as MatchScouting);
         } catch (e) {
             console.error("[super-scouting] save failed completely:", e);
-            toast.error(`No se pudo guardar la observación M#${values.matchNumber} — revisa e intenta de nuevo`);
+            toast.error(t("saveFailed", { match: values.matchNumber }));
             return;
         }
         if (result.savedTo === "local") {
-            toast.success(`Observación M#${values.matchNumber} guardada offline — se sincronizará al volver la conexión`);
+            toast.success(t("savedOffline", { match: values.matchNumber }));
         } else {
-            toast.success(`Observación M#${values.matchNumber} guardada`);
+            toast.success(t("saved", { match: values.matchNumber }));
         }
 
         // Reset for next observation, auto-increment match number
@@ -144,13 +146,13 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <Eye className="text-primary" size={20} />
-                            <h2 className="text-2xl font-black text-foreground">Super Scouting</h2>
+                            <h2 className="text-2xl font-black text-foreground">{t("title")}</h2>
                             <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-black uppercase tracking-wider border border-primary/30">
-                                Subjetivo
+                                {t("subjective")}
                             </span>
                         </div>
                         <p className="text-xs text-primary/60 max-w-md leading-relaxed">
-                            Captura impresiones cualitativas. Tus valoraciones <strong>quedan dentro de tu equipo</strong>; otros equipos ven sus propias escalas por separado.
+                            {t.rich("intro", { b: (chunks) => <strong>{chunks}</strong> })}
                         </p>
                     </div>
                     {!isAdding && (
@@ -158,7 +160,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                             onClick={() => setIsAdding(true)}
                             className="min-h-[44px] px-4 py-2 bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground font-bold rounded-lg flex items-center gap-2 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         >
-                            <Star size={16} /> Nueva observación
+                            <Star size={16} /> {t("newObservation")}
                         </button>
                     )}
                 </div>
@@ -171,7 +173,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                     <Card className="p-6 bg-muted border-border space-y-6">
                         <div className="flex items-center gap-4">
                             <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                                Match #
+                                {t("matchNumber")}
                             </label>
                             <Controller
                                 name="matchNumber"
@@ -195,11 +197,11 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                             control={control}
                             render={({ field }) => (
                                 <StarPicker
-                                    label="Driver Skill"
+                                    label={t("driverSkill")}
                                     icon={<User size={14} />}
                                     value={field.value}
                                     onChange={field.onChange}
-                                    helperText="¿Qué tan bien manejaba el robot?"
+                                    helperText={t("driverSkillHelp")}
                                 />
                             )}
                         />
@@ -208,11 +210,11 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                             control={control}
                             render={({ field }) => (
                                 <StarPicker
-                                    label="Defense"
+                                    label={t("defense")}
                                     icon={<Shield size={14} />}
                                     value={field.value}
                                     onChange={field.onChange}
-                                    helperText="¿Qué tan efectivos son jugando defensa?"
+                                    helperText={t("defenseHelp")}
                                 />
                             )}
                         />
@@ -221,18 +223,18 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                             control={control}
                             render={({ field }) => (
                                 <StarPicker
-                                    label="Reliability"
+                                    label={t("reliability")}
                                     icon={<Wrench size={14} />}
                                     value={field.value}
                                     onChange={field.onChange}
-                                    helperText="¿Tuvo problemas mecánicos / desconexiones?"
+                                    helperText={t("reliabilityHelp")}
                                 />
                             )}
                         />
 
                         <div className="space-y-2">
                             <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                                ¿Lo escogerías en alliance selection?
+                                {t("wouldPick")}
                             </div>
                             <Controller
                                 name="wouldPick"
@@ -249,7 +251,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                                     : "bg-muted border-border text-muted-foreground hover:border-success/30",
                                             )}
                                         >
-                                            <ThumbsUp size={16} /> Sí
+                                            <ThumbsUp size={16} /> {t("yes")}
                                         </button>
                                         <button
                                             type="button"
@@ -261,7 +263,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                                     : "bg-muted border-border text-muted-foreground hover:border-danger/30",
                                             )}
                                         >
-                                            <ThumbsDown size={16} /> No
+                                            <ThumbsDown size={16} /> {t("no")}
                                         </button>
                                     </div>
                                 )}
@@ -273,7 +275,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
 
                         <div className="space-y-2">
                             <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                                Notas
+                                {t("notes")}
                             </label>
                             <Controller
                                 name="notes"
@@ -281,7 +283,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                 render={({ field }) => (
                                     <textarea
                                         {...field}
-                                        placeholder="Ej: 'Driver tarda en reaccionar pero el robot tiene buen ciclo'"
+                                        placeholder={t("notesPh")}
                                         className="w-full h-24 px-4 py-2 bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground"
                                     />
                                 )}
@@ -295,7 +297,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                             <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-xs">
                                 <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
                                 <span>
-                                    Error al guardar: {String((saveMutation.error as Error)?.message ?? saveMutation.error)}
+                                    {t("saveError", { message: String((saveMutation.error as Error)?.message ?? saveMutation.error) })}
                                 </span>
                             </div>
                         )}
@@ -306,7 +308,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                 onClick={() => setIsAdding(false)}
                                 className="px-4 py-2 bg-muted hover:bg-border text-muted-foreground rounded-lg font-bold text-sm"
                             >
-                                Cancelar
+                                {t("cancel")}
                             </button>
                             <button
                                 type="submit"
@@ -318,7 +320,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                 ) : (
                                     <Save size={16} />
                                 )}
-                                {isSubmitting || saveMutation.isPending ? "Guardando..." : "Guardar observación"}
+                                {isSubmitting || saveMutation.isPending ? t("saving") : t("save")}
                             </button>
                         </div>
                     </Card>
@@ -330,9 +332,9 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                     <div className="text-center py-12 bg-muted rounded-xl border border-dashed border-border text-muted-foreground flex flex-col items-center gap-3">
                         <Eye size={32} className="opacity-20" />
                         <div>
-                            <p className="text-sm text-muted-foreground font-medium">Sin observaciones cualitativas</p>
+                            <p className="text-sm text-muted-foreground font-medium">{t("emptyTitle")}</p>
                             <p className="text-xs mt-0.5 opacity-70">
-                                Driver skill, defense y &quot;would-pick&quot; alimentan la lista de alianzas.
+                                {t("emptyHint")}
                             </p>
                         </div>
                         {!isAdding && (
@@ -341,7 +343,7 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                 onClick={() => setIsAdding(true)}
                                 className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg flex items-center gap-2"
                             >
-                                <Star size={12} /> Primera observación
+                                <Star size={12} /> {t("firstObservation")}
                             </button>
                         )}
                     </div>
@@ -375,14 +377,14 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
                                                         : "bg-danger/15 text-danger border border-danger/30",
                                                 )}
                                             >
-                                                {e.wouldPick ? "Pick" : "Skip"}
+                                                {e.wouldPick ? t("pick") : t("skip")}
                                             </span>
                                         )}
                                     </div>
                                     <div className="grid grid-cols-3 gap-3 text-xs">
-                                        <RatingBadge label="Driver" value={e.driverSkill} icon={<User size={12} />} />
-                                        <RatingBadge label="Defense" value={e.defenseRating} icon={<Shield size={12} />} />
-                                        <RatingBadge label="Reliability" value={e.reliability} icon={<Wrench size={12} />} />
+                                        <RatingBadge label={t("badgeDriver")} value={e.driverSkill} icon={<User size={12} />} />
+                                        <RatingBadge label={t("defense")} value={e.defenseRating} icon={<Shield size={12} />} />
+                                        <RatingBadge label={t("reliability")} value={e.reliability} icon={<Wrench size={12} />} />
                                     </div>
                                     {e.notes && e.notes.trim().length > 0 && (
                                         <p className="mt-3 text-xs text-muted-foreground italic leading-relaxed border-l-2 border-primary/30 pl-3">

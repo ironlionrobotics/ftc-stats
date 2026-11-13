@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
 import { MatchScouting } from "@/types/scouting";
 import { Camera, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface QRScannerProps {
     onScan: (data: MatchScouting[]) => void;
@@ -11,6 +12,7 @@ interface QRScannerProps {
 }
 
 export default function QRScanner({ onScan, onClose }: QRScannerProps) {
+    const t = useTranslations("QRScanner");
     const videoRef = useRef<HTMLVideoElement>(null);
     const [error, setError] = useState<string>("");
 
@@ -34,16 +36,16 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
                                 } else if (parsed && parsed.teamNumber) {
                                     onScan([parsed as MatchScouting]);
                                 } else {
-                                    setError("Invalid QR format");
+                                    setError(t("invalidFormat"));
                                 }
                             } catch {
-                                setError("Failed to parse data");
+                                setError(t("parseFailed"));
                             }
                         }
                     }
                 );
             } catch {
-                setError("Camera access denied.");
+                setError(t("cameraDenied"));
             }
         };
 
@@ -52,7 +54,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
         return () => {
             if (controls) controls.stop();
         };
-    }, [onScan]);
+    }, [onScan, t]);
 
     return (
         <div className="fixed inset-0 z-50 bg-slate-900/90 flex flex-col items-center justify-center p-6">
@@ -66,7 +68,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
                 <video ref={videoRef} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 border-[6px] border-dashed border-primary/30 m-8 rounded-xl pointer-events-none" />
                 <div className="absolute top-6 left-6 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs font-bold tracking-wider flex items-center gap-2">
-                    <Camera size={14} /> SCANNING
+                    <Camera size={14} /> {t("scanning")}
                 </div>
             </div>
             {error && (
@@ -75,7 +77,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
                 </div>
             )}
             <p className="mt-10 text-slate-300 font-medium text-center text-sm max-w-[250px]">
-                Position the offline QR code inside the frame to sync data.
+                {t("hint")}
             </p>
         </div>
     );

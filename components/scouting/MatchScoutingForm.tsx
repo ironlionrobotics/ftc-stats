@@ -12,6 +12,7 @@ import { getPendingScouting, clearPending } from "@/lib/localDatabase";
 import { saveMatchScouting } from "@/lib/scouting-service";
 import { Scan, Send, Database, QrCode } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 interface MatchScoutingFormWrapperProps {
@@ -22,6 +23,7 @@ interface MatchScoutingFormWrapperProps {
 export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWrapperProps) {
     const { program, season } = useProgram();
     const confirm = useConfirm();
+    const t = useTranslations("MatchScoutingHub");
     const [pendingData, setPendingData] = useState<MatchScouting[]>([]);
     const [showScanner, setShowScanner] = useState(false);
     const [showExport, setShowExport] = useState(false);
@@ -57,7 +59,7 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
             }
             toast.success(`Sincronizados ${data.length} registros a la nube`);
         } catch (e) {
-            toast.error("Error al subir los datos escaneados", {
+            toast.error(t("uploadScannedFailed"), {
                 description: e instanceof Error ? e.message : undefined,
             });
         }
@@ -66,9 +68,9 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
     const handleSyncLocalToCloud = async () => {
         if (pendingData.length === 0) return;
         const ok = await confirm({
-            title: "Subir registros a la nube",
-            description: `Se enviarán ${pendingData.length} registros locales a Firestore vía Wi-Fi. Asegúrate de tener conexión estable.`,
-            confirmText: "Subir",
+            title: t("confirmTitle"),
+            description: t("confirmBody", { count: pendingData.length }),
+            confirmText: t("confirmText"),
         });
         if (!ok) return;
 
@@ -80,15 +82,15 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
             }
             await clearPending();
             setPendingData([]);
-            toast.success("Sincronización completada");
+            toast.success(t("syncDone"));
         } catch {
-            toast.error("Error al sincronizar", {
-                description: "Revisa tu conexión a internet",
+            toast.error(t("syncFailed"), {
+                description: t("checkConnection"),
             });
         }
     };
 
-    let FormComponent = <div className="text-foreground p-6">Programa no soportado</div>;
+    let FormComponent = <div className="text-foreground p-6">{t("unsupported")}</div>;
 
     const programEntries = entries.filter(e => e.program === program);
 
@@ -117,10 +119,10 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
                                 <Database size={28} />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-black text-foreground tracking-wide">FRC Offline Hub</h2>
+                                <h2 className="text-2xl font-black text-foreground tracking-wide">{t("hubTitle")}</h2>
                                 <p className="text-xs text-secondary font-bold tracking-widest uppercase mt-1 flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-                                    {pendingData.length} Registros sin Sincronizar
+                                    {t("unsynced", { count: pendingData.length })}
                                 </p>
                             </div>
                         </div>
@@ -132,13 +134,13 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
                                         onClick={() => setShowExport(!showExport)}
                                         className="flex items-center justify-center gap-2 px-6 py-3.5 bg-muted hover:bg-border text-foreground font-bold rounded-xl border border-border transition flex-1 md:flex-none"
                                     >
-                                        <QrCode size={18} /> {showExport ? "Ocultar QR" : "Exportar QR"}
+                                        <QrCode size={18} /> {showExport ? t("hideQr") : t("exportQr")}
                                     </button>
                                     <button
                                         onClick={handleSyncLocalToCloud}
                                         className="flex items-center justify-center gap-2 px-6 py-3.5 bg-muted hover:bg-border text-foreground font-bold rounded-xl border border-border transition flex-1 md:flex-none text-nowrap"
                                     >
-                                        <Send size={18} /> Sync Wi-Fi
+                                        <Send size={18} /> {t("syncWifi")}
                                     </button>
                                 </>
                             )}
@@ -146,7 +148,7 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
                                 onClick={() => setShowScanner(true)}
                                 className="flex items-center justify-center gap-2 px-8 py-3.5 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-black rounded-xl transition flex-1 md:flex-none uppercase tracking-wider"
                             >
-                                <Scan size={18} /> Lector QR
+                                <Scan size={18} /> {t("scanner")}
                             </button>
                         </div>
                     </div>

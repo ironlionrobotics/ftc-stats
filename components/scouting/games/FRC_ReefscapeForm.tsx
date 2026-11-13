@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/Card";
 import { Save, Plus, Trophy, Minus, QrCode } from "lucide-react";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 interface FRC_ReefscapeFormProps {
     team: AggregatedTeamStats;
@@ -56,6 +57,7 @@ function Checkbox({ label, checked, setter }: CheckboxProps) {
 }
 
 export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_ReefscapeFormProps) {
+    const t = useTranslations("FrcReefscape");
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const [isAdding, setIsAdding] = useState(false);
@@ -90,7 +92,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
 
     const handleSave = async () => {
         if (!user) {
-            toast.error("Debes iniciar sesión para hacer scouting");
+            toast.error(t("signIn"));
             return;
         }
 
@@ -158,9 +160,9 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
             <div className="flex justify-between items-center bg-secondary/10 p-4 rounded-2xl border border-secondary/20">
                 <div className="flex flex-col">
                     <h3 className="text-xl font-black text-secondary flex items-center gap-2">
-                        <Trophy size={20} /> Match Scouting: FRC REEFSCAPE
+                        <Trophy size={20} /> {t("title")}
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1">Temporada 2025 • Coral & Algae</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("season")}</p>
                 </div>
                 <button
                     onClick={() => setIsAdding(!isAdding)}
@@ -169,7 +171,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                         isAdding ? "bg-danger/20 text-danger border border-danger/30" : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
                     )}
                 >
-                    {isAdding ? "Cancelar" : <><Plus size={18} /> Nuevo Registro</>}
+                    {isAdding ? t("cancel") : <><Plus size={18} /> {t("newRecord")}</>}
                 </button>
             </div>
 
@@ -179,7 +181,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                         {/* Upper Section */}
                         <div className="flex flex-col md:flex-row gap-6">
                             <div className="md:w-1/4">
-                                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Match Number</label>
+                                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("matchNumber")}</label>
                                 <input
                                     type="number"
                                     value={matchNum}
@@ -188,7 +190,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                                 />
                             </div>
                             <div className="md:w-3/4 flex flex-col justify-end">
-                                <Checkbox label="Salió de la zona de inicio (Auto Leave)" checked={autoLeave} setter={setAutoLeave} />
+                                <Checkbox label={t("autoLeave")} checked={autoLeave} setter={setAutoLeave} />
                             </div>
                         </div>
 
@@ -196,9 +198,9 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-border pt-8">
                             {/* Auto Grid */}
                             <div className="space-y-6">
-                                <h4 className="text-sm font-black text-secondary uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-secondary" /> Autónomo</h4>
+                                <h4 className="text-sm font-black text-secondary uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-secondary" /> {t("auto")}</h4>
                                 <div className="space-y-4 bg-muted p-4 rounded-2xl border border-border">
-                                    <div className="text-center text-xs font-bold text-muted-foreground uppercase">Coral Score (Auto)</div>
+                                    <div className="text-center text-xs font-bold text-muted-foreground uppercase">{t("coralAuto")}</div>
                                     <div className="grid grid-cols-4 gap-2">
                                         <Counter label="L1" value={autoCoralL1} setter={setAutoCoralL1} color="cyan" />
                                         <Counter label="L2" value={autoCoralL2} setter={setAutoCoralL2} color="cyan" />
@@ -206,7 +208,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                                         <Counter label="L4" value={autoCoralL4} setter={setAutoCoralL4} color="cyan" />
                                     </div>
                                     <div className="border-t border-border pt-4 grid grid-cols-2 gap-2">
-                                        <Counter label="Proc." value={autoAlgaeProcessor} setter={setAutoAlgaeProcessor} color="primary" />
+                                        <Counter label={t("processor")} value={autoAlgaeProcessor} setter={setAutoAlgaeProcessor} color="primary" />
                                         <Counter label="Net" value={autoAlgaeNet} setter={setAutoAlgaeNet} color="primary" />
                                     </div>
                                 </div>
@@ -216,7 +218,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                             <div className="space-y-6">
                                 <h4 className="text-sm font-black text-secondary uppercase tracking-widest flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-secondary" /> TeleOp</h4>
                                 <div className="space-y-4 bg-muted p-4 rounded-2xl border border-border">
-                                    <div className="text-center text-xs font-bold text-muted-foreground uppercase">Coral Score (Tele)</div>
+                                    <div className="text-center text-xs font-bold text-muted-foreground uppercase">{t("coralTele")}</div>
                                     <div className="grid grid-cols-4 gap-2">
                                         <Counter label="L1" value={teleopCoralL1} setter={setTeleopCoralL1} color="cyan" />
                                         <Counter label="L2" value={teleopCoralL2} setter={setTeleopCoralL2} color="cyan" />
@@ -224,7 +226,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                                         <Counter label="L4" value={teleopCoralL4} setter={setTeleopCoralL4} color="cyan" />
                                     </div>
                                     <div className="border-t border-border pt-4 grid grid-cols-2 gap-2">
-                                        <Counter label="Proc." value={teleopAlgaeProcessor} setter={setTeleopAlgaeProcessor} color="primary" />
+                                        <Counter label={t("processor")} value={teleopAlgaeProcessor} setter={setTeleopAlgaeProcessor} color="primary" />
                                         <Counter label="Net" value={teleopAlgaeNet} setter={setTeleopAlgaeNet} color="primary" />
                                     </div>
                                 </div>
@@ -235,7 +237,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-border pt-8">
                             <div className="space-y-6">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Driver Skill (1-5)</label>
+                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("driverSkill")}</label>
                                     <div className="flex gap-2">
                                         {[1, 2, 3, 4, 5].map(s => (
                                             <button
@@ -249,7 +251,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Defense Rating (1-5)</label>
+                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("defenseRating")}</label>
                                     <div className="flex gap-2">
                                         {[1, 2, 3, 4, 5].map(s => (
                                             <button
@@ -261,14 +263,14 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                                             </button>
                                         ))}
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground mt-2">1 = Nula/Cero defensa, 5 = Defensa asfixiante e impenetrable.</p>
+                                    <p className="text-[10px] text-muted-foreground mt-2">{t("defenseScale")}</p>
                                 </div>
                             </div>
 
                             <div className="space-y-6">
                                 <h4 className="text-sm font-black text-secondary uppercase tracking-widest">Endgame</h4>
                                 <div className="space-y-4">
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Climb State (Escindida en la jaula)</label>
+                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t("climbState")}</label>
                                     <div className="grid grid-cols-3 gap-2">
                                         {(['None', 'Shallow', 'Deep'] as const).map(c => (
                                             <button
@@ -280,18 +282,18 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                                             </button>
                                         ))}
                                     </div>
-                                    <Checkbox label="Parked (No climb)" checked={endgameParked} setter={setEndgameParked} />
+                                    <Checkbox label={t("parked")} checked={endgameParked} setter={setEndgameParked} />
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Notas</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("notes")}</label>
                             <textarea
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
                                 className="w-full h-32 px-4 py-3 bg-muted border border-border rounded-xl text-foreground focus:ring-2 focus:ring-secondary outline-none transition"
-                                placeholder="Escribe aquí si el robot se descompuso, causó faltas, o tuvo alguna jugada espectacular."
+                                placeholder={t("notesPh")}
                             />
                         </div>
                     </div>
@@ -302,10 +304,10 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                             className="w-full py-4 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-xl font-black flex items-center justify-center gap-3 transition text-lg"
                         >
                             <Save size={22} />
-                            Guardar Scouting Localmente
+                            {t("saveLocal")}
                         </button>
                         <p className="text-center font-bold text-xs text-warning flex items-center justify-center gap-1.5 opacity-80">
-                            <QrCode size={14} /> Los datos se guardarán en tu dispositivo hasta que los sincronices con el código QR.
+                            <QrCode size={14} /> {t("localHint")}
                         </p>
                     </div>
                 </Card>
@@ -314,7 +316,7 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
             <div className="grid grid-cols-1 gap-4">
                 {entries.length === 0 ? (
                     <div className="text-center py-24 bg-muted rounded-2xl border border-border text-muted-foreground italic">
-                        No hay registros de Reefscape para este equipo.
+                        {t("empty")}
                     </div>
                 ) : (
                     entries.sort((a, b) => b.matchNumber - a.matchNumber).map((item, idx) => {
@@ -326,21 +328,21 @@ export default function FRC_ReefscapeForm({ team, entries, onSaveSuccess }: FRC_
                                 </div>
                                 <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-bold">
                                     <div className="bg-muted p-3 rounded-xl border border-border">
-                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">Total Auto Coral</div>
+                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">{t("totalAutoCoral")}</div>
                                         <div className="text-lg text-foreground">{(entry.autoCoralL1 ?? 0) + (entry.autoCoralL2 ?? 0) + (entry.autoCoralL3 ?? 0) + (entry.autoCoralL4 ?? 0)}</div>
                                     </div>
                                     <div className="bg-muted p-3 rounded-xl border border-border">
-                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">Total Tele Coral</div>
+                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">{t("totalTeleCoral")}</div>
                                         <div className="text-lg text-foreground">{(entry.teleopCoralL1 ?? 0) + (entry.teleopCoralL2 ?? 0) + (entry.teleopCoralL3 ?? 0) + (entry.teleopCoralL4 ?? 0)}</div>
                                     </div>
                                     <div className="bg-muted p-3 rounded-xl border border-border">
-                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">Climb State</div>
+                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">{t("climb")}</div>
                                         <div className={clsx("text-lg", (entry.endgameClimbState ?? 'None') === 'None' ? "text-muted-foreground" : "text-warning")}>
                                             {entry.endgameClimbState ?? 'None'}
                                         </div>
                                     </div>
                                     <div className="bg-muted p-3 rounded-xl border border-border flex flex-col justify-center">
-                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">Driver</div>
+                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">{t("driver")}</div>
                                         <div className="text-lg text-success">{entry.driverSkill ?? '—'} / 5</div>
                                     </div>
                                 </div>

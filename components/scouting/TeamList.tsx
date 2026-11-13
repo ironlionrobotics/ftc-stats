@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AggregatedTeamStats, ScoutingData } from "@/types/scouting";
 import { Search } from "lucide-react";
@@ -13,6 +14,7 @@ interface TeamListProps {
 }
 
 export default function TeamList({ teams, selectedTeamId, onSelectTeam }: TeamListProps) {
+    const t = useTranslations("ScoutingTeamList");
     const [searchTerm, setSearchTerm] = useState("");
     const [showAdvancedOnly, setShowAdvancedOnly] = useState(false);
 
@@ -29,7 +31,7 @@ export default function TeamList({ teams, selectedTeamId, onSelectTeam }: TeamLi
         <div className="w-full md:w-64 h-full bg-muted border border-border rounded-xl flex flex-col">
             <div className="p-4 border-b border-border">
                 <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-bold text-foreground">Equipos</h2>
+                    <h2 className="text-lg font-bold text-foreground">{t("title")}</h2>
                     <button
                         onClick={() => setShowAdvancedOnly(!showAdvancedOnly)}
                         className={clsx(
@@ -39,14 +41,14 @@ export default function TeamList({ teams, selectedTeamId, onSelectTeam }: TeamLi
                                 : "bg-muted border-border text-muted-foreground hover:text-foreground"
                         )}
                     >
-                        Clasificados
+                        {t("advanced")}
                     </button>
                 </div>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <input
                         type="text"
-                        placeholder="Buscar..."
+                        placeholder={t("search")}
                         className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -85,7 +87,7 @@ export default function TeamList({ teams, selectedTeamId, onSelectTeam }: TeamLi
                 })}
                 {filteredTeams.length === 0 && (
                     <div className="p-4 text-center text-muted-foreground text-sm">
-                        No se encontraron equipos
+                        {t("empty")}
                     </div>
                 )}
             </div>
@@ -94,7 +96,7 @@ export default function TeamList({ teams, selectedTeamId, onSelectTeam }: TeamLi
                     disabled
                     className="w-full px-4 py-2 bg-muted border border-border rounded-lg text-muted-foreground text-sm font-medium opacity-50 cursor-not-allowed hover:bg-border transition-colors"
                 >
-                    Regresar
+                    {t("back")}
                 </button>
             </div>
         </div>

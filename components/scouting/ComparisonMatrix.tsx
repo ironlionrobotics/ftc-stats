@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { TeamSeasonStats } from "@/app/actions/pro-scouting";
 import { ArrowRight, Trophy, Zap, Target, Flag } from "lucide-react";
 import clsx from "clsx";
@@ -20,13 +21,14 @@ interface Metric {
 }
 
 export default function ComparisonMatrix({ heroStats, opponentStats }: ComparisonMatrixProps) {
+    const t = useTranslations("ComparisonMatrix");
     const metrics: Metric[] = [
-        { label: "Est. OPR", key: "avgOPR", icon: Trophy, format: (v: number) => v.toFixed(1) },
-        { label: "Max Score", key: "maxScore", icon: Zap, format: (v: number) => v.toFixed(0) },
-        { label: "Auto Avg", key: "avgAuto", icon: Target, format: (v: number) => v.toFixed(1) },
-        { label: "Tele Avg", key: "avgTele", icon: Target, format: (v: number) => v.toFixed(1) },
-        { label: "Endgame Avg", key: "avgEnd", icon: Flag, format: (v: number) => v.toFixed(1) },
-        { label: "Consistency (σ)", key: "consistency", icon: Target, format: (v: number) => v.toFixed(1), inverse: true },
+        { label: t("opr"), key: "avgOPR", icon: Trophy, format: (v: number) => v.toFixed(1) },
+        { label: t("maxScore"), key: "maxScore", icon: Zap, format: (v: number) => v.toFixed(0) },
+        { label: t("autoAvg"), key: "avgAuto", icon: Target, format: (v: number) => v.toFixed(1) },
+        { label: t("teleAvg"), key: "avgTele", icon: Target, format: (v: number) => v.toFixed(1) },
+        { label: t("endAvg"), key: "avgEnd", icon: Flag, format: (v: number) => v.toFixed(1) },
+        { label: t("consistency"), key: "consistency", icon: Target, format: (v: number) => v.toFixed(1), inverse: true },
     ];
 
     return (

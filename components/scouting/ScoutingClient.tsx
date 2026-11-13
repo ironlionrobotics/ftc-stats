@@ -16,6 +16,7 @@ import Tip from "@/components/ui/Tip";
 import { ClipboardList, Trophy, Eye, ChevronLeft } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { guessActiveEventCode } from "@/lib/active-event";
 
 interface ScoutingClientProps {
@@ -23,6 +24,7 @@ interface ScoutingClientProps {
 }
 
 export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
+    const t = useTranslations("ScoutingClient");
     const { user, orgId } = useAuth();
     const { season, program } = useProgram();
     const [selectedTeamId, setSelectedTeamId] = useState<number | null>(
@@ -63,7 +65,7 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
 
     const handleSavePitData = async (data: PitScouting) => {
         if (!user) {
-            toast.error("Debes iniciar sesión para guardar");
+            toast.error(t("signInToSave"));
             return;
         }
         const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
@@ -83,18 +85,18 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
             const result = await savePitMutation.mutateAsync(enriched);
             setPitData(enriched);
             if (result.savedTo === "local") {
-                toast.success("Pit scouting guardado offline — se sincronizará al volver la conexión");
+                toast.success(t("pitSavedOffline"));
             } else {
-                toast.success("Pit scouting guardado");
+                toast.success(t("pitSaved"));
             }
         } catch (e) {
-            toast.error("No se pudo guardar el pit scouting — revisa e intenta de nuevo", {
+            toast.error(t("pitSaveFailed"), {
                 description: e instanceof Error ? e.message : undefined,
             });
         }
     };
 
-    const selectedTeam = initialTeams.find((t) => t.teamNumber === selectedTeamId);
+    const selectedTeam = initialTeams.find((team) => team.teamNumber === selectedTeamId);
 
     return (
         <div className="min-h-screen bg-background relative overflow-hidden">
@@ -126,28 +128,28 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
                         onClick={() => setMobileShowForm(false)}
                         className="md:hidden flex items-center gap-1 mb-3 text-sm font-medium text-muted-foreground hover:text-foreground min-h-[44px]"
                     >
-                        <ChevronLeft size={18} /> Equipos
+                        <ChevronLeft size={18} /> {t("teams")}
                     </button>
                     {selectedTeam ? (
                         <Tabs defaultValue={program === 'FTC' ? "pit" : "match"} className="flex-1 flex flex-col">
                             <Tip
                                 id="scouting-modes-v1"
-                                title="Tres modos de scouting"
+                                title={t("tipTitle")}
                                 className="mb-3"
                             >
-                                <strong>Pit:</strong> specs del robot (1×). <strong>Match:</strong> counters por match jugado. <strong>Super:</strong> impresiones cualitativas (driver, defense, would-pick) — alimenta el picklist.
+                                {t.rich("tipBody", { b: (chunks) => <strong>{chunks}</strong> })}
                             </Tip>
                             <TabsList className="mb-4 bg-muted border border-border p-1 w-full md:w-fit">
                                 {program === 'FTC' && (
                                     <TabsTrigger value="pit" className="flex items-center gap-2">
-                                        <ClipboardList size={16} /> Pit Scouting
+                                        <ClipboardList size={16} /> {t("tabPit")}
                                     </TabsTrigger>
                                 )}
                                 <TabsTrigger value="match" className="flex items-center gap-2">
-                                    <Trophy size={16} /> Match Scouting
+                                    <Trophy size={16} /> {t("tabMatch")}
                                 </TabsTrigger>
                                 <TabsTrigger value="super" className="flex items-center gap-2">
-                                    <Eye size={16} /> Super Scouting
+                                    <Eye size={16} /> {t("tabSuper")}
                                 </TabsTrigger>
                             </TabsList>
 
@@ -178,7 +180,7 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
                         </Tabs>
                     ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground bg-muted border border-border rounded-xl">
-                            Selecciona un equipo de la lista
+                            {t("selectTeam")}
                         </div>
                     )}
                 </main>

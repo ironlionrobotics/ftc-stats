@@ -5,6 +5,7 @@ import { generateSpyLinks } from "@/lib/utils";
 import { Youtube, Instagram, Database, Bot } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 
 interface TeamAnalysisCardProps {
     stats: TeamSeasonStats;
@@ -12,6 +13,7 @@ interface TeamAnalysisCardProps {
 }
 
 export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps) {
+    const t = useTranslations("TeamAnalysisCard");
     const spyLinks = generateSpyLinks(stats.teamNumber, stats.teamName);
 
     return (
@@ -44,7 +46,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                             stats.consistency < 30 ? "bg-secondary/15 text-secondary" :
                                 "bg-danger/15 text-danger"
                     )}>
-                        {stats.consistency < 15 ? "Consistent" : stats.consistency < 30 ? "Volatile" : "Wild"}
+                        {stats.consistency < 15 ? t("consistent") : stats.consistency < 30 ? t("volatile") : t("wild")}
                     </div>
                     <div className="text-[9px] text-muted-foreground mt-0.5">
                         σ: {stats.consistency.toFixed(1)}
@@ -56,13 +58,13 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                 {/* Key Metrics */}
                 <div className="space-y-3">
                     <div>
-                        <div className="text-[9px] font-bold text-muted-foreground uppercase">Avg Score (Est OPR)</div>
+                        <div className="text-[9px] font-bold text-muted-foreground uppercase">{t("avgScore")}</div>
                         <div className="text-2xl font-black text-secondary tabular-nums">
                             {stats.avgOPR.toFixed(1)}
                         </div>
                     </div>
                     <div>
-                        <div className="text-[9px] font-bold text-muted-foreground uppercase">Max Score</div>
+                        <div className="text-[9px] font-bold text-muted-foreground uppercase">{t("maxScore")}</div>
                         <div className="text-lg font-black text-foreground tabular-nums">
                             {stats.maxScore.toFixed(0)}
                         </div>
@@ -72,7 +74,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                 {/* Score Breakdown */}
                 <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium text-muted-foreground">Auto</span>
+                        <span className="font-medium text-muted-foreground">{t("auto")}</span>
                         <span className="font-bold text-foreground">{stats.avgAuto.toFixed(1)}</span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
@@ -80,7 +82,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium text-muted-foreground">Tele</span>
+                        <span className="font-medium text-muted-foreground">{t("tele")}</span>
                         <span className="font-bold text-foreground">{stats.avgTele.toFixed(1)}</span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
@@ -88,7 +90,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
-                        <span className="font-medium text-muted-foreground">End</span>
+                        <span className="font-medium text-muted-foreground">{t("end")}</span>
                         <span className="font-bold text-foreground">{stats.avgEnd.toFixed(1)}</span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
@@ -106,13 +108,13 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                         // The chat attaches the event's scouting-notes digest as
                         // context on event pages (see AssistantChat).
                         window.dispatchEvent(new CustomEvent("open-ai-chat", {
-                            detail: { message: `Sintetiza las notas de scouting del equipo ${stats.teamNumber} (${stats.teamName}). Agrupa por tema y cita quién observó cada cosa. Si no hay notas de ese equipo, dímelo.` },
+                            detail: { message: t("aiNotesPrompt", { number: stats.teamNumber, name: stats.teamName }) },
                         }));
                     }}
                     className="flex flex-col items-center justify-center p-2 rounded hover:bg-secondary/10 hover:text-secondary text-muted-foreground transition-colors group"
                 >
                     <Bot size={16} className="mb-1 group-hover:scale-110 transition-transform" />
-                    <span className="text-[9px] font-bold uppercase">Notas IA</span>
+                    <span className="text-[9px] font-bold uppercase">{t("aiNotes")}</span>
                 </button>
                 <Link
                     href={spyLinks.youtube}
@@ -120,7 +122,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                     className="flex flex-col items-center justify-center p-2 rounded hover:bg-danger/10 hover:text-danger text-muted-foreground transition-colors group"
                 >
                     <Youtube size={16} className="mb-1 group-hover:scale-110 transition-transform" />
-                    <span className="text-[9px] font-bold uppercase">Video</span>
+                    <span className="text-[9px] font-bold uppercase">{t("video")}</span>
                 </Link>
                 <Link
                     href={spyLinks.instagram}
@@ -128,7 +130,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                     className="flex flex-col items-center justify-center p-2 rounded hover:bg-primary/10 hover:text-primary text-muted-foreground transition-colors group"
                 >
                     <Instagram size={16} className="mb-1 group-hover:scale-110 transition-transform" />
-                    <span className="text-[9px] font-bold uppercase">Social</span>
+                    <span className="text-[9px] font-bold uppercase">{t("social")}</span>
                 </Link>
                 <Link
                     href={spyLinks.theOrangeAlliance}
@@ -136,7 +138,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                     className="flex flex-col items-center justify-center p-2 rounded hover:bg-primary/10 hover:text-primary text-muted-foreground transition-colors group"
                 >
                     <Database size={16} className="mb-1 group-hover:scale-110 transition-transform" />
-                    <span className="text-[9px] font-bold uppercase">TOA</span>
+                    <span className="text-[9px] font-bold uppercase">{t("toa")}</span>
                 </Link>
             </div>
         </div>
