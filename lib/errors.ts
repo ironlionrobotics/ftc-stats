@@ -35,6 +35,8 @@ export type ErrorCode =
     | "claim.notPending"
     | "auth.notSuperadmin"
     | "auth.emailNotVerified"
+    // Account deletion requires typing the confirmation word.
+    | "account.confirmRequired"
     // Firebase Admin SDK unreachable/misconfigured — surfaced by every admin
     // action that looks up users/{uid} or org_secrets/{orgId} server-side.
     | "admin.firestoreUnavailable"

@@ -62,6 +62,9 @@
       "notesMax2000": "Máx 2000 caracteres",
       "notesMax5000": "Máx 5000 caracteres",
       "publicSummaryMax1000": "Máx 1000 caracteres"
+    },
+    "account": {
+      "confirmRequired": "Escribe DELETE para confirmar."
     }
   },
   "DraftOdds": {
@@ -532,5 +535,14 @@
     "reject": "Rechazar",
     "approved": "Equipo {team} activado",
     "rejected": "Solicitud del equipo {team} rechazada"
+  },
+  "ErrorPages": {
+    "notFoundTitle": "Página no encontrada",
+    "notFoundBody": "Esa página no existe. Revisa el número de equipo o el código del evento en la dirección, o empieza desde Hoy.",
+    "home": "Ir a Hoy",
+    "errorTitle": "Algo salió mal",
+    "errorBody": "No se pudo cargar esta página. La fuente de datos puede estar lenta o caída; intenta de nuevo en un momento.",
+    "errorRef": "Referencia: {ref}",
+    "retry": "Reintentar"
   }
 }

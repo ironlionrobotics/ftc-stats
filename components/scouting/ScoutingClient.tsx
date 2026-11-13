@@ -10,7 +10,7 @@ import { getPitScouting, listenToMatchScouting } from "@/lib/scouting-service";
 import { useSavePitScouting } from "@/lib/hooks/use-scouting-mutations";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
-import { DEFAULT_ORG_ID } from "@/lib/orgs";
+import { DEFAULT_ORG_ID, scoutNameFromUser } from "@/lib/orgs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import Tip from "@/components/ui/Tip";
 import { ClipboardList, Trophy, Eye, ChevronLeft } from "lucide-react";
@@ -71,7 +71,7 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
             ...data,
             orgId: effectiveOrgId,
             scoutedBy: user.uid,
-            lastUpdatedBy: user.displayName || user.email || "Anonymous",
+            lastUpdatedBy: scoutNameFromUser(user), // never the email (#92)
             season,
         };
         // useSavePitScouting tries Firestore first and, on failure (bad venue

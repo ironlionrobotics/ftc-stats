@@ -937,3 +937,12 @@ Un modelo conjunto de 8 estados por robot no mejora (0.1772): el sesgo residual 
 
 - **Firebase Analytics** se inicializaba en cada visita sin consentimiento, y la mayoría de los usuarios son menores. Ahora solo carga si `localStorage["pride-analytics-consent"] === "granted"`; nada lo concede hasta que exista el aviso de consentimiento (plan, Etapa 4). Se importa de forma diferida, así que `firebase/analytics` sale del bundle.
 - **`scoutNameFromUser`** y la semilla del perfil caían al correo cuando faltaba el nombre, y ese valor se graba en cada entrada de scouting, visible para toda la organización. Ahora caen a "Scout".
+
+## #97 · Requisitos de apertura, primera parte: cabeceras, páginas de error y borrado de cuenta (2026-11-13)
+
+- **Cabeceras de seguridad** (`next.config.ts`): HSTS (2 años), `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, y `Permissions-Policy` con la cámara permitida solo al propio sitio (lector QR) y lo demás desactivado.
+- **CSP en modo reporte:** se registra en la consola del navegador sin bloquear. Lista Firebase Auth (popup), Firestore, Sentry y el service worker. Se pasa a modo obligatorio cuando unos días de tráfico real no muestren violaciones.
+- **Páginas de error:** `app/not-found.tsx` (404 traducido), `app/error.tsx` (error de una ruta, con reintento y reporte a Sentry) y `app/global-error.tsx` (falla el layout raíz: marcado mínimo bilingüe sin providers).
+- **`robots.ts`:** indexa lo público y excluye `/admin`, `/scouting` y `/card`. El `sitemap` llega con las rutas nuevas de la Etapa 2.
+- **Borrado de cuenta** (`deleteMyAccountAction`, hay que escribir "DELETE"): el scouting se queda con el equipo, pero queda des-identificado ("Deleted scout"; se conserva el uid, que ya no apunta a nadie, porque la fiabilidad y la deduplicación dependen de él). Se borran las solicitudes pendientes de equipo, el perfil `users/{uid}` y la cuenta de Firebase Auth, en ese orden, para poder reintentar si falla Firestore. **Hueco conocido:** si era el único admin de su equipo, el equipo queda sin admin; lo reasigna un superadmin.
+- **Otra fuga de correo cerrada:** el pit scouting guardaba `displayName || email` como "última actualización por". Ahora usa `scoutNameFromUser` (#92).
