@@ -87,13 +87,24 @@ Three tabs in `/scouting`:
 
 Game schemas are declarative and **routed by season** (`lib/games/registry.ts` → `ftc-biobuzz-2026.ts` / `ftc-decode-2025.ts`; each definition owns its fields AND its `score()`), with season rules (fouls, RP targets, tiebreakers) in `lib/games/season-rules.ts`. New season: follow the runbook in `docs/architecture/game-schema-migration.md` (decisions #86–#88).
 
-### Strategy page (5 tabs)
+### Federation, workshop and pit lending (decisions #101–#105, branch `etapa1/foundations`)
+
+- **Observation context** (`lib/scouting-context.ts`): every match/super entry has `tournamentLevel` PRACTICE_FIELD | PRACTICE | QUALIFICATION | PLAYOFF. Only official contexts feed ground truth (same level), practice weighs 0.5.
+- **Shared pool** (`lib/scouting-pool.ts` + `app/actions/scouting-pool.ts`): the ONLY cross-team read of scouting. Server-side (match_scouting stays own-org in rules), unlocked after 5 objective captures at the event, objective fields only, pseudonymous per-event aliases (`pool_aliases`, server-only, `lib/pool-aliases.ts`). Never return notes, stars, names, uids or org ids from it.
+- **Self-report**: `GameDefinition.selfReport` drives the Trading Card questions; typical-match counters reuse scouting field ids so `score()` prices the claim.
+- **Scout board** (`lib/scout-claims.ts`, `app/actions/scout-claims.ts`): `scout_claims` is read-only for clients; claims carry alias + hashed scout id.
+- **Pit lending** (`lib/lending.ts`, `/lending`): inventory, presence and requests are client-written within the own team; `loans` only via `app/actions/lending.ts`, readable by the two parties.
+- **Workshop** (`/workshop`, `lib/match-clock.ts`): official match timing in `SeasonRules.matchTiming`; runs saved to Dexie v3 first, then `practice_runs` (own-org, never shared).
+- Team-scoped server actions resolve the caller with `callerWithTeam()` and rate-limit with `allowUser()` (`lib/server-caller.ts`).
+
+### Strategy page (6 tabs)
 
 - **Picklist** — drag-and-drop (dnd-kit, lazy-loaded), DNP list, real-time collab via Firestore listener, weighted-score sliders persisted in localStorage
 - **Alliance Oracle** — greedy auto-pick
 - **Simulator** — Monte Carlo match prediction with per-team σ
 - **Briefing** — printable 1-page handout for drive coach (CSS @print, NOT @react-pdf/renderer)
 - **Live Ranking** — Monte Carlo projection of the final ranking (likely range, P(captain)); see `lib/live-projection.ts`
+- **Pool** — every robot of the event from the shared pool (#102). All tabs use the event chosen on /scouting (cookie `scouting_event`, #100)
 
 ### Analytics page (2 tabs)
 
