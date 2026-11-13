@@ -806,3 +806,86 @@ Resuelve el "patrón nuevo" pendiente de #80 para `games/ftc-decode-2025.ts` (la
 **Por qué así y no de otra forma:** (a) una definición sin catálogo **degrada a texto legible, no truena** — el runbook de septiembre no se vuelve frágil por una clave olvidada; (b) la idea futura de Custom Questions (campos definidos por el usuario, benchmark WikiScout) renderiza la prosa del usuario verbatim por el mismo código, sin caso especial; (c) se rechazó labels por-locale dentro de la definición (`{en, es}`) porque añadir un idioma tocaría todas las definiciones y divorcia el motor del sistema de catálogos. El `label` top-level del juego ("FTC DECODE") es **nombre propio → queda como data** (regla #80).
 
 **Alcance:** resolver `useGameLabel()` en `DynamicGameForm` + `GameScoutingForm` (únicos lectores de labels — verificado: `build-entry`/`zod-from-definition` trabajan solo con `id`/`kind`/bounds); DECODE migrado (25 claves + 3 de `aria` para el andamiaje de accesibilidad); contrato de datos intacto (`id`/`value`/`toEntry` idénticos, decode-parity verde); convención documentada en `game-schema-migration.md` como requisito del contrato para la definición 2026. Catálogos en 288 claves con paridad. Sonnet sobre spec + revisión; commit `e6158f1`. Gate: tsc 0, lint 0, 366 tests, build OK.
+
+---
+
+## #86 · BIOBUZZ 2026: la definición del juego es dueña de su puntuación; se enruta por `season` (2026-11-13)
+
+Temporada FTC 2026-27 = **BIOBUZZ™ presented by RTX** (FIRST CANOPY). Research con fuentes en `docs/research/2026-11-13-biobuzz.md` (Competition Manual TU09). `getCurrentSeason()` ya devolvía 2026, así que la app pedía datos BIOBUZZ pero capturaba, proyectaba y etiquetaba RP con DECODE.
+
+**Decisión 1: `GameDefinition.score(ScoreInputs) → {auto, teleop, endgame}`.** La fórmula DECODE estaba copiada a mano en `projections.ts` y `ground-truth-validation.ts`. Ahora vive en la definición. `lib/games/score-inputs.ts` adapta una entry cruda o un consenso federado a la misma interfaz. El runbook "un archivo + un import" de septiembre era optimista porque la puntuación vivía fuera del motor; ahora una temporada nueva es un archivo más una línea en `lib/games/registry.ts`. Paridad DECODE: los tests existentes pasan sin cambiar expectativas, más un test directo de 2000 entradas pseudoaleatorias. El revisor confirmó la paridad con 5000.
+
+**Decisión 2: enrutar por `entry.season`, nunca por `gameSchemaVersion`.** DECODE se guardó con versión 1 (la constante nunca se subió), que choca con Into The Deep. BIOBUZZ persiste `schemaVersion: 3` solo como procedencia. Si la temporada falta o es NaN, cae al juego FTC más viejo, nunca al mapa FRC. Los grupos de agregación ahora incluyen `season` en la clave.
+
+**Decisión 3: el mapa de agregación FTC se deriva de la definición:**
+- counter → numeric; boolean y enum → categorical; stars → subjective.
+- Más `derivedFields` (lo que produce `toEntry`) y los campos de super-scouting.
+
+El mapa derivado de DECODE es igual al literal anterior (hay test), así que el literal se borró.
+
+**Decisión 4: diseño del form BIOBUZZ (formulario detallado, elegido por Héctor).**
+- Lanzamientos a la CELL acertados y fallados, para medir precisión y repartir TIPs más adelante.
+- Un TIP se acredita al robot **solo si SU lanzamiento volteó la CELL**, para no contarlo doble entre los dos scouts de la alianza.
+- Se captura GARDEN, FLOWER, bottom NECTAR, park, defensa, problema del robot y fouls.
+- **Los RP no se capturan a mano** (vienen de `/scores`), y los elementos que quedan en la CELL no se scoutean: son de alianza.
+- FLOWER se acredita a 2 pts, lo cual es cota superior porque el dueño de la FLOWER se decide al final; falta calibrarlo.
+
+**Decisión 5: reglas por temporada en `lib/games/season-rules.ts`.**
+- Fouls: BIOBUZZ major = 20 (DECODE 15). Los conteos legacy `foulsRed/Blue` siguen ×15.
+- Targets de RP: SWARM ≥16, POLLINATOR ≥4 y ≥7.
+- Umbrales por evento sobreescribibles en `RP_THRESHOLD_OVERRIDES`: los Premier los fijan ellos, y los de Regional y CMP siguen TBA.
+- Desempates.
+
+---
+
+## #87 · `/scores` nunca funcionó: parseo real, split por temporada y ground truth contra lo scouteable (2026-11-13)
+
+Verificado con llamadas autenticadas (2025/FPEMX y 2026/AUBRQ1):
+
+- La respuesta es `matchScores[].alliances[]`, pero `fetchMatchScores` leía `.scores[].scoreBreakdown`. **Siempre devolvía `[]` y cacheaba el vacío hasta 30 días.**
+- Efecto en cadena: `getTeleop({})` devolvía un `0` literal en vez de undefined, así que `allianceScoreComponents` nunca entraba a su fallback y **el promedio de teleop salía 0 para todos los equipos** en analytics.
+- `/matches` no trae RP: `scoreRedRp1/Rp2` no existen.
+
+**Fix:**
+- `lib/score-breakdown.ts` (puro, con tests sobre fixtures reales recortados en `lib/__fixtures__/`): `flattenMatchScores`, tipos DECODE y BIOBUZZ, `phaseSplit` por temporada y `robotSlotsFor`.
+  - `phaseSplit` en 2026: end = FLOWER + park final. En 2025: end = BASE. En ambos casos `teleopPoints` ya las incluye.
+  - `robotSlotsFor`: robot1/2 = estación 1/2. Evidencia: los 3 robots fuera de campo del fixture tienen todos sus flags en false justo en su slot.
+- Sin breakdown, el split devuelve null y el fallback vuelve a funcionar.
+- Claves de caché subidas: `scores_v5`, `analytics_v3`, `season_stats_v2`.
+- **El ground truth compara ahora contra el puntaje SCOUTEABLE de la alianza:**
+  - Base: `autoPoints + teleopPoints` del breakdown, sin fouls recibidos.
+  - BIOBUZZ: además −2 por elemento que queda en la CELL, porque es de alianza y no se scoutea.
+  - Sin breakdown: final − foul recibido.
+  - No se usa `preFoulTotal` porque DECODE lo trae en 0 en un match puntuado (FPEMX Q1 Blue).
+  - Esto también cambia DECODE: antes se comparaba contra `scoreXFinal`, que incluye fouls, cosa que ningún robot "anota".
+
+---
+
+## #88 · RP: etiquetas oficiales y modelos de conteo para BIOBUZZ (2026-11-13)
+
+**Hallazgo:** como las etiquetas venían de campos inexistentes, **ningún modelo logístico se entrenó nunca** (positivos < 10), y la heurística contaba esos mismos campos. **Las probabilidades de RP de DECODE fueron 0 toda la temporada**, salvo el fallback por scouting en EventViewManager.
+
+**Decisión 1: etiquetas desde `/scores`.**
+- DECODE: `movementRP`, `goalRP` y `patternRP`. `patternRP` ahora tiene etiqueta y modelo propios, y se eliminó el amortiguador ×0.7.
+- BIOBUZZ: `swarmRP`, `pollinator1RP` y `pollinator2RP`.
+- `withRpObservations` adjunta además los TIPs de la alianza y el resultado por robot.
+- Las alianzas sin breakdown se excluyen del entrenamiento, en vez de contar como negativos.
+- El id del target es `goal`, alineado con la API; antes era `artifact`.
+- Clave de caché del modelo: `v3`.
+
+**Decisión 2: para BIOBUZZ, modelos de conteo en vez de regresión logística (`lib/rp-counts.ts`).** Los RP son funciones deterministas de conteos:
+- **POLLINATOR:** cola de una Binomial Negativa. μ = tipsOPR(A) + tipsOPR(B), donde el OPR por componente es ridge, `lib/component-opr.ts`. La dispersión de la temporada sale de media 1.16 y varianza 1.61 (r ≈ 2.99).
+- **SWARM:** enumeración exacta de 2⁶ Bernoullis por robot (LEAVE 3, AUTO PARK 5, PARK 5), con tasas encogidas con prior Beta.
+- No requiere entrenamiento. El panel de entrenamiento lo indica (`countModel`).
+- `TeamEvolution.rp` (P(RP) con compañero promedio) es la fuente de verdad, y `rpInputs` permite calcular la probabilidad exacta de cualquier pareja (lo usa AlliancePredictor).
+- `rpMovement/rpArtifacts/rpPattern` quedan como alias DECODE deprecados.
+
+**Decisión 3: decay de recencia 0.7 en las tasas por robot de SWARM.** La tasa de SWARM sube dentro de un evento, de 48% en el primer quinto de quals a 78% en el último (15 eventos). Backtest con datos reales 2026, entrenando con el 60% inicial de cada evento y prediciendo el resto (348 alianzas):
+
+| RP | Brier | Baseline (tasa base) | Skill |
+|---|---|---|---|
+| SWARM | 0.1769 → **0.1688** con decay | 0.2017 | 0.12 → **0.16** |
+| POLLINATOR 1 | **0.0817** | 0.1151 | **0.29** |
+| POLLINATOR 2 | **0.0097** | 0.0114 | **0.15** |
+
+Un modelo conjunto de 8 estados por robot no mejora (0.1772): el sesgo residual de SWARM (≈ −0.12) es deriva, no correlación entre LEAVE y PARK. **Pendiente: recalibrar con más eventos.** No se ajustó más el decay para no sobreajustar a 348 alianzas. Script del backtest: scratchpad de la sesión 21; reproducible con `lib/rp-counts.ts` + `lib/component-opr.ts` sobre `/scores`.

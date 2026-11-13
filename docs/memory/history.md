@@ -336,3 +336,25 @@ Los tres patrones i18n del repo quedan así: análisis = clave+params (#80); err
 2. **Acción de usuario:** OK para deploy de App Hosting → la atribución FIRST llega a producción (riesgo de licencia vivo mientras tanto).
 3. **Verificación visual con sesión:** panel "Hoy" (requiere evento en ventana viva o bypass dev), pill de entradas atascadas y cola offline de pit (#66).
 4. Siguientes features: `HydrateAndCache` en `/analytics`, splash iOS, renombrar "Iron Lion Intelligence" en `/pro`, `lead` vs `admin`, Trading Card Fase 2, Firestore Fase 2 con la primera invitación.
+
+## Sesión 21 — 13 nov 2026 · Temporada BIOBUZZ: research en paralelo, motor por temporada y dos bugs que venían desde DECODE
+
+**Research** en una sesión remota, para no gastar la cuota de búsqueda local. Resultado en `docs/research/2026-11-13-biobuzz.md`: reglas del Competition Manual TU09, APIs FIRST y FTCScout, benchmark (FTCScout, FTCStats, TOA, WikiScout, g-scout, scoutingvcs, Refract) y lista P0/P1/P2. Héctor eligió **formulario detallado** y **alcance P0 + modelo de RP**.
+
+**Verificación con API autenticada.** Destapó que `/scores` nunca se parseó bien (siempre `[]`, cacheado) y que `/matches` no trae RP. Consecuencias, todas desde DECODE:
+- El promedio de teleop salía 0.
+- Ningún modelo de RP se entrenó nunca.
+- Las probabilidades de RP eran 0.
+
+**Commits (rama `feat/biobuzz-2026`):**
+1. `4374f43`: motor por temporada (decisión #86). `score()` en la definición, registro por `season`, BIOBUZZ, reglas por temporada, mapa de agregación derivado, i18n.
+2. `e3f4023`: parseo real de `/scores` + `phaseSplit` + slots de robot (#87).
+3. `2dc0dcd`: pit BIOBUZZ (subagente mecanico en worktree).
+4. `5154f42`: etiquetas RP oficiales + modelos de conteo (NegBin para POLLINATOR, enumeración para SWARM) + OPR ridge por componente (#88).
+5. `c55ab14`: hallazgos del revisor. Ground truth contra el puntaje scouteable, procedencia de `schemaVersion`, clave de grupo con `season` y tests de paridad.
+6. `0ade81e`: UI por temporada en MatchList, AllianceSelector, AlliancePredictor (pareja exacta con `rpInputs`) y EventViewManager (mecanico en worktree).
+7. `59a334e`: decay de recencia en SWARM, respaldado por backtest sobre 15 eventos y 348 alianzas. Skill: SWARM 0.16, POLLINATOR 1 0.29, POLLINATOR 2 0.15.
+
+**Método:** Opus orquestó e hizo el núcleo (patrón nuevo, modelo y contrato de datos). Dos delegaciones mecánicas en worktrees aislados (un escritor por árbol) y un revisor independiente sobre la Fase A. Gate final: tsc 0, lint 0, 420 tests.
+
+**Pendientes:** `docs/PENDING.md` § RETOMAR AQUÍ (sesión 21).

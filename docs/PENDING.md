@@ -3,13 +3,24 @@
 **Última actualización:** 30 jul 2026 (sesión 20 — cumplimiento FIRST, Season Analysis genérico, home "Hoy", cierre de patrones i18n; decisiones #82–#85)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
 
-## ▶️ RETOMAR AQUÍ (cierre sesión 20, 30 jul)
+## ▶️ RETOMAR AQUÍ (cierre sesión 21, 13 nov · temporada BIOBUZZ)
 
-1. **Acción de Héctor (bloqueante):** `firebase deploy --only firestore:rules,firestore:indexes` — el lockdown de lectura Fase 1 (#78) y `ground_truth_runs` NO aplican hasta esto. Después: probar que org A no lee scouting de org B + ambos flujos de onboarding (crear org → `admin`; redimir invitación → `scout`).
-2. **Acción de Héctor:** OK para deploy de App Hosting — la **atribución FIRST** (`8bc90a0`) solo llega a producción con eso; el incumplimiento de licencia sigue vivo en prod mientras tanto.
-3. **Verificación visual con sesión iniciada** (nada de esto se ha visto en navegador autenticado): panel "Hoy" en `/` (requiere evento en ventana viva [inicio−1d, fin+2d] o bypass dev de una línea en `TodayPanelLoader.tsx:57`), pill de entradas atascadas y cola offline de pit (#66).
-4. **Siguientes features candidatas:** `HydrateAndCache` en `/analytics` · splash screens iOS (~30 min) · renombrar "Iron Lion Intelligence" en `/pro` · distinguir `lead` vs `admin` · Trading Card Fase 2 · Firestore Fase 2 (con la 1ª invitación).
-5. **Método de trabajo vigente:** Fable 5 orquesta (análisis/spec/revisión); código → subagentes Opus (features/delicado) y Sonnet (mecánico). Funcionó bien en sesión 20 (5 delegaciones, 0 retrabajos).
+Rama `feat/biobuzz-2026` (sin push, sin deploy). Research: `docs/research/2026-11-13-biobuzz.md`. Decisiones #86–#88. **Primer qualifier MX: MXTLQ 27-nov; MXCUQ 9-dic.**
+
+1. **Acción de Héctor:** revisar y mergear `feat/biobuzz-2026` → OK de deploy de App Hosting antes del 27-nov. Sin deploy, producción sigue capturando DECODE en 2026.
+2. **Verificación visual en dev (no hecha):** formulario BIOBUZZ en `/scouting` con temporada 2026 (guarda `season: 2026`, `gameSchemaVersion: 3`); `/event/AUBRQ1?season=2026` con breakdown real; AlliancePredictor 2026 (razones POLLINATOR/SWARM); pit con sección BIOBUZZ; temporada 2025 intacta.
+3. **Pendientes de sesión 20 (verificar si ya se hicieron):** `firebase deploy --only firestore:rules,firestore:indexes` + tests cross-org; verificación visual del panel "Hoy".
+4. **P1 BIOBUZZ, antes del 2.º evento:**
+   - Live Ranking / briefing con desempates oficiales (TB2 promedio np, **TB3 promedio de TIPS**, TB4 auto). Ya están en `seasonRulesFor(2026).tiebreakers`.
+   - Recalibrar `WIN_PROB_LOGISTIC_K` y `apiPriorCV` con datos 2026 (np medio ≈ 47, otra escala).
+   - SWARM subpredice ~0.12 por deriva intra-evento → recalibrar con más eventos (#88).
+   - EventViewManager 2026: hoy deja RP vacío. Pasarle `TeamEvolution.rp` del servidor.
+   - Ground truth por robot con `autoRobot{1,2}Leave/Park` y `teleopRobot{1,2}Park`.
+   - Atribuir TIPs por proporción de lanzamientos contra los TIPs oficiales de la alianza.
+   - Calibrar FLOWER (hoy es cota superior, ×2 sin verificar dueño) con los arreglos `*Flower`.
+   - Umbrales de RP para Regional/CMP y Premier MX → `RP_THRESHOLD_OVERRIDES`.
+5. **P2:** insights de FLOWER (nadie los ofrece) · OPR por componente + "RS Bonus OPR" en UI · listas `*_EVENTS_2025` en `lib/constants.ts` · borrar `FTC_DecodeForm.tsx` · texto "Dual Parking" en pit · strength of schedule.
+6. **Riesgo conocido:** el backtest de RP es de eventos no mexicanos de noviembre; la escala de TIPs cambiará rápido conforme suban las FLOWERS (hoy 0.8% de alianzas).
 
 ---
 

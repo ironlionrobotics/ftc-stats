@@ -1,13 +1,18 @@
 # Migrar al juego de la siguiente temporada
 
-**Estado:** el motor declarativo está **conectado en producción para FTC** desde
-sesión 19 (29 jul 2026). La rama FTC de `MatchScoutingForm` ya no usa el form
-hardcodeado; renderiza `GameScoutingForm` con la definición `FTC_DECODE_2025`.
-Adaptarse al juego 2026-2027 es **escribir un archivo de definición y cambiar un
-import** — sin tocar React.
+**Estado (13 nov 2026):** BIOBUZZ 2026-27 migrado (decisiones #86–#88).
+`MatchScoutingForm` elige la definición **por temporada** con
+`gameDefinitionFor(program, season)` (`lib/games/registry.ts`): 2026+ →
+`FTC_BIOBUZZ_2026`, 2025 → `FTC_DECODE_2025`. La definición es dueña de sus
+campos, sus derivados (`toEntry` + `derivedFields`) **y su puntuación**
+(`score`), y las reglas que no son de formulario (fouls, RP, desempates) viven
+en `lib/games/season-rules.ts`.
 
-Este documento es el runbook para ese cambio (septiembre, cuando FIRST anuncia
-el juego nuevo).
+**Lección de la migración 2026:** el runbook original ("un archivo + un
+import") era optimista: la fórmula de puntos vivía copiada en projections y
+ground-truth, el mapa de agregación era literal y los RP estaban cableados a
+DECODE. Todo eso ya se movió a la definición y a las reglas por temporada; el
+runbook de abajo refleja el proceso real.
 
 ---
 
@@ -74,33 +79,26 @@ observaciones) manejado por la definición.
 
 ---
 
-## Pasos para septiembre (juego 2026-2027)
+## Pasos para la siguiente temporada (2027-2028)
 
-1. **Crear `lib/games/ftc-<nombre>-2026.ts`** exportando una `GameDefinition`.
-   Copia `ftc-decode-2025.ts` como plantilla. Define secciones/campos con el
-   set real del juego nuevo. Añade `toEntry` si hay derivados o constantes.
-   Bumpea `CURRENT_GAME_SCHEMA.FTC` en `types/scouting.ts` (a 3) si la forma de
-   datos cambia de forma incompatible.
-
-2. **Cambiar el import en `MatchScoutingForm.tsx`:**
-   ```diff
-   - import { FTC_DECODE_2025 } from "@/lib/games/ftc-decode-2025";
-   + import { FTC_GALACTIC_2026 } from "@/lib/games/ftc-galactic-2026";
-   ...
-   - <GameScoutingForm definition={FTC_DECODE_2025} team={team} entries={programEntries} />
-   + <GameScoutingForm definition={FTC_GALACTIC_2026} team={team} entries={programEntries} />
-   ```
-
-3. **QA de paridad** — solo si estás *reemplazando* campos que la agregación ya
-   lee. Para un juego nuevo con campos nuevos no hay paridad que romper; basta
-   verificar que la definición valida y guarda (ver `decode-parity.test.ts` como
-   patrón: mismo set de claves, mismos valores en input válido).
-
-4. **`npm test` + `npm run build`** y capturar una entrada de prueba en dev.
-
-Eso es todo. Sin componentes nuevos.
-
----
+1. **`lib/games/ftc-<nombre>-2027.ts`** exportando una `GameDefinition`
+   (plantilla: `ftc-biobuzz-2026.ts`): secciones/campos con claves i18n,
+   `schemaVersion` nuevo, `toEntry` + `derivedFields`, y **`score()`** con la
+   tabla de puntos del manual (por robot; lo de alianza viene de `/scores`).
+2. **Registrarla** en `lib/games/registry.ts` (`{ from: 2027, def }` arriba).
+3. **Reglas** en `lib/games/season-rules.ts`: fouls, `rpTargets` (con
+   `breakdownKey` = campo booleano del breakdown oficial y `kind` del modelo),
+   umbrales por defecto, desempates.
+4. **Breakdown oficial:** revisar el swagger (`ScoreDetailAllianceModel_<año>`),
+   añadir los tipos y el caso de la temporada en `phaseSplit` y
+   `scoutableAllianceScore` (`lib/score-breakdown.ts`), con un fixture real
+   recortado en `lib/__fixtures__/` (requiere llamada autenticada).
+5. **Modelo de RP:** si los RP son umbrales sobre conteos, reutilizar
+   `lib/rp-counts.ts`; si no, `kind: "logistic"` y entrenar desde el panel.
+6. **i18n** `Games.<juego>.*` y `Games.rp.*` con paridad en/es (el test de
+   `biobuzz-definition.test.ts` recorre todas las definiciones registradas).
+7. **Pit scouting** (`ScoutingForm.tsx`): capacidades del juego nuevo.
+8. `npm test` + `npm run build` + una entrada de prueba en dev.
 
 ## Trade-offs conocidos (decididos, no bugs)
 
