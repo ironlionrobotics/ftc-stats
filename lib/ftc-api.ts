@@ -496,6 +496,48 @@ export async function fetchTeam(season: number, teamNumber: number): Promise<FTC
     });
 }
 
+/** A team registered for an event — the subset scouting needs. */
+export interface EventTeam {
+    teamNumber: number;
+    teamName: string;
+}
+
+/**
+ * Teams registered for an event (`/teams?eventCode=`), available before any
+ * match is played — scouting needs the roster on day 1 (pit interviews,
+ * practice), when rankings are still empty. FIRST publishes the list days
+ * before the event, so it is cached short (≤10 min) until the event is over;
+ * a finished event keeps the long smart TTL.
+ */
+export async function fetchEventTeams(season: number, eventCode: string): Promise<EventTeam[]> {
+    const cacheKey = `event_teams_${season}_${eventCode}`;
+    const smart = await getSmartTTL(season, eventCode);
+    const ttl = smart > 86400 ? smart : Math.min(smart, 600);
+
+    return readThrough(cacheKey, ttl, async () => {
+        try {
+            const response = await fetchWithRetry(`${BASE_URL}/${season}/teams?eventCode=${encodeURIComponent(eventCode)}`, {
+                headers: AUTH_HEADER,
+                next: { revalidate: ttl < 60 ? 60 : ttl },
+            });
+            if (!response.ok) {
+                if (response.status !== 404) console.error(`Status: ${response.status} for event teams ${eventCode} (${season})`);
+                return [];
+            }
+            const data = await response.json();
+            const teams: EventTeam[] = (data.teams ?? []).map((t: FTCTeamInfo) => ({
+                teamNumber: t.teamNumber,
+                teamName: t.nameShort || t.nameFull || `Team ${t.teamNumber}`,
+            }));
+            await setCachedData(cacheKey, teams, ttl);
+            return teams;
+        } catch (error) {
+            console.error(`Error fetching event teams for ${eventCode}:`, error);
+            return [];
+        }
+    });
+}
+
 export async function fetchTeamEvents(season: number, teamNumber: number): Promise<FTCEvent[]> {
     const cacheKey = `team_events_${season}_${teamNumber}`;
 

@@ -555,5 +555,15 @@
   },
   "Sidebar": {
     "teamTools": "Herramientas del equipo"
+  },
+  "ScoutingEvent": {
+    "event": "Evento",
+    "noEvents": "Todavía no hay eventos en esta temporada.",
+    "rosterSeason": "FIRST aún no publica los equipos de este evento: se muestran los equipos con resultados en la temporada. Escribe un número para scoutear a cualquier equipo.",
+    "rosterNone": "FIRST aún no publica los equipos de este evento. Escribe un número de equipo en el buscador para scoutearlo.",
+    "teamByNumber": "Equipo {n}",
+    "addTeam": "Scoutear al equipo {n}",
+    "emptyTypeNumber": "Escribe un número de equipo para agregarlo.",
+    "needEvent": "Elige un evento para registrar scouting de partidos."
   }
 }

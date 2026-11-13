@@ -1,18 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { AggregatedTeamStats, ScoutingData } from "@/types/scouting";
+import { useTranslations } from "next-intl";
+import { isValidTeamNumber } from "@/lib/input-guards";
+import { ScoutTeam, ScoutingData } from "@/types/scouting";
 import { Search } from "lucide-react";
 import clsx from "clsx";
 
 interface TeamListProps {
-    teams: AggregatedTeamStats[];
+    teams: ScoutTeam[];
     selectedTeamId: number | null;
     onSelectTeam: (teamNumber: number) => void;
     scoutingDataMap: Record<number, ScoutingData>;
+    /** When set, a typed team number that isn't listed can be scouted anyway
+     *  (FIRST publishes event rosters late). */
+    onAddTeam?: (teamNumber: number) => void;
 }
 
-export default function TeamList({ teams, selectedTeamId, onSelectTeam }: TeamListProps) {
+export default function TeamList({ teams, selectedTeamId, onSelectTeam, onAddTeam }: TeamListProps) {
+    const t = useTranslations("ScoutingEvent");
     const [searchTerm, setSearchTerm] = useState("");
     const [showAdvancedOnly, setShowAdvancedOnly] = useState(false);
 
@@ -24,9 +30,12 @@ export default function TeamList({ teams, selectedTeamId, onSelectTeam }: TeamLi
             return matchesSearch && matchesAdvanced;
         })
         .sort((a, b) => a.teamNumber - b.teamNumber);
+    const typedNumber = /^\d{1,5}$/.test(searchTerm.trim()) ? Number(searchTerm.trim()) : null;
+    const canAdd = onAddTeam && typedNumber !== null && isValidTeamNumber(typedNumber)
+        && !teams.some(tm => tm.teamNumber === typedNumber);
 
     return (
-        <div className="w-full md:w-64 h-full bg-muted border border-border rounded-xl flex flex-col">
+        <div className="w-full md:w-64 min-h-0 flex-1 bg-muted border border-border rounded-xl flex flex-col">
             <div className="p-4 border-b border-border">
                 <div className="flex items-center justify-between mb-3">
                     <h2 className="text-lg font-bold text-foreground">Equipos</h2>
@@ -83,9 +92,18 @@ export default function TeamList({ teams, selectedTeamId, onSelectTeam }: TeamLi
                         </button>
                     )
                 })}
-                {filteredTeams.length === 0 && (
+                {canAdd && (
+                    <button
+                        type="button"
+                        onClick={() => { onAddTeam(typedNumber); setSearchTerm(""); }}
+                        className="w-full rounded-lg border border-dashed border-border px-4 py-3 text-left text-sm font-semibold text-foreground hover:bg-background"
+                    >
+                        {t("addTeam", { n: typedNumber })}
+                    </button>
+                )}
+                {filteredTeams.length === 0 && !canAdd && (
                     <div className="p-4 text-center text-muted-foreground text-sm">
-                        No se encontraron equipos
+                        {teams.length === 0 && onAddTeam ? t("emptyTypeNumber") : "No se encontraron equipos"}
                     </div>
                 )}
             </div>

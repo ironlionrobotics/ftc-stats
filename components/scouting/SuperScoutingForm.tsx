@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm, Controller, Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AggregatedTeamStats, MatchScouting, CURRENT_GAME_SCHEMA, FTCMatchScouting } from "@/types/scouting";
+import { ScoutTeam, MatchScouting, CURRENT_GAME_SCHEMA, FTCMatchScouting } from "@/types/scouting";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { gameDefinitionFor } from "@/lib/games/registry";
@@ -17,10 +17,10 @@ import { useScoutReliabilities } from "@/lib/hooks/use-scout-reliabilities";
 import { Save, Star, Shield, Wrench, ThumbsUp, ThumbsDown, Eye, User, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
-import { guessActiveEventCode } from "@/lib/active-event";
 
 interface SuperScoutingFormProps {
-    team: AggregatedTeamStats;
+    team: ScoutTeam;
+    eventCode: string;
     entries: MatchScouting[];
 }
 
@@ -35,7 +35,7 @@ interface SuperScoutingFormProps {
  * Stored as a regular match_scouting entry with `scoutingMode: "super"` so
  * the objective aggregator skips it for numeric/categorical counters.
  */
-export default function SuperScoutingForm({ team, entries }: SuperScoutingFormProps) {
+export default function SuperScoutingForm({ team, eventCode, entries }: SuperScoutingFormProps) {
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const scoutReliabilities = useScoutReliabilities();
@@ -74,7 +74,6 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
         const scoutId = scoutIdFromUser(user);
         const scoutName = scoutNameFromUser(user);
         const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
-        const eventCode = guessActiveEventCode([team]) ?? "MXTOL";
 
         // Super entry: numeric/categorical counters intentionally left undefined.
         const payload: Partial<FTCMatchScouting> & {
