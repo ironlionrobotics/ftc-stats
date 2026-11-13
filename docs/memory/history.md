@@ -358,3 +358,5 @@ Los tres patrones i18n del repo quedan así: análisis = clave+params (#80); err
 **Método:** Opus orquestó e hizo el núcleo (patrón nuevo, modelo y contrato de datos). Dos delegaciones mecánicas en worktrees aislados (un escritor por árbol) y un revisor independiente sobre la Fase A. Gate final: tsc 0, lint 0, 420 tests.
 
 **Pendientes:** `docs/PENDING.md` § RETOMAR AQUÍ (sesión 21).
+
+**Cierre (mismo día):** Héctor autorizó merge + deploy. Merge a `main` (`9fa483b`) reaplicando los parches de seguridad de oct-2026 (next 16.4.6, react 19.2.9, sharp 0.35.5); gate tsc 0, 420 tests, build OK; lint con 16 hallazgos previos aflorados por react-hooks 7.1.1 (PENDING P2). Secuencia: `firestore:rules,indexes` → `apphosting` (rollout completo, todas las rutas 200, `/event/AUBRQ1?season=2026` sirve SWARM/POLLINATOR). Hallazgo post-deploy: el host de Upstash no resuelve → app sin caché y lenta (PENDING #1).

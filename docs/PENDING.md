@@ -5,11 +5,11 @@
 
 ## ▶️ RETOMAR AQUÍ (cierre sesión 21, 13 nov · temporada BIOBUZZ)
 
-Rama `feat/biobuzz-2026` (sin push, sin deploy). Research: `docs/research/2026-11-13-biobuzz.md`. Decisiones #86–#88. **Primer qualifier MX: MXTLQ 27-nov; MXCUQ 9-dic.**
+**Mergeado a `main` y DESPLEGADO el 13-nov** (merge `9fa483b`, con los parches de seguridad de oct-2026). Reglas + índices de Firestore desplegados antes del rollout. Research: `docs/research/2026-11-13-biobuzz.md`. Decisiones #86–#88. **Primer qualifier MX: MXTLQ 27-nov; MXCUQ 9-dic.**
 
-1. **Acción de Héctor:** revisar y mergear `feat/biobuzz-2026` → OK de deploy de App Hosting antes del 27-nov. Sin deploy, producción sigue capturando DECODE en 2026.
+1. **🔴 Upstash Redis caído (detectado post-deploy 13-nov):** el host de `UPSTASH_REDIS_REST_URL` no resuelve en DNS (base borrada/archivada en Upstash, probablemente por inactividad). Todo lee y escribe directo a la API FIRST; cada llamada a caché agota 5 reintentos (~4 s) → `/` y `/scouting` ~48 s, `/team` ~65 s. **Acción de Héctor:** crear base nueva en Upstash, actualizar los secretos `UPSTASH_REDIS_REST_URL`/`_TOKEN` en Secret Manager y hacer un rollout. **Código (pendiente de OK):** `retry` corto + circuit breaker en `lib/redis.ts` para que una caché caída no cueste segundos por request.
 2. **Verificación visual en dev (no hecha):** formulario BIOBUZZ en `/scouting` con temporada 2026 (guarda `season: 2026`, `gameSchemaVersion: 3`); `/event/AUBRQ1?season=2026` con breakdown real; AlliancePredictor 2026 (razones POLLINATOR/SWARM); pit con sección BIOBUZZ; temporada 2025 intacta.
-3. **Pendientes de sesión 20 (verificar si ya se hicieron):** `firebase deploy --only firestore:rules,firestore:indexes` + tests cross-org; verificación visual del panel "Hoy".
+3. **Pendientes de sesión 20:** reglas + índices ya desplegados (13-nov, 12 índices READY); falta test cross-org (org A no lee scouting de org B) y verificación visual del panel "Hoy".
 4. **P1 BIOBUZZ, antes del 2.º evento:**
    - Live Ranking / briefing con desempates oficiales (TB2 promedio np, **TB3 promedio de TIPS**, TB4 auto). Ya están en `seasonRulesFor(2026).tiebreakers`.
    - Recalibrar `WIN_PROB_LOGISTIC_K` y `apiPriorCV` con datos 2026 (np medio ≈ 47, otra escala).
