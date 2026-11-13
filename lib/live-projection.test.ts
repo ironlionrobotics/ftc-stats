@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { projectFinalRankings } from "./live-projection";
+import { projectFinalRankings, eventStrengthModel } from "./live-projection";
 import type { TeamRanking, FTCMatch } from "@/types/scouting";
 
 function ranking(overrides: Partial<TeamRanking> & Pick<TeamRanking, "rank" | "teamNumber">): TeamRanking {
@@ -223,5 +223,18 @@ describe("projectFinalRankings on real data (AUBRQ1 2026)", () => {
             expect(p.projectedFinalRank).toBe(p.currentRank);
             expect(p.matchesRemaining).toBe(0);
         }
+    });
+});
+
+describe("eventStrengthModel", () => {
+    it("scores alliances without the foul points they RECEIVED (decision #48)", () => {
+        // Red 100 final but 30 of it came from Blue's fouls (scoreBlueFoul = 30): red np = 70.
+        const m = { ...match({ matchNumber: 1, redTeams: [1], blueTeams: [2], played: true }), scoreRedFinal: 100, scoreBlueFinal: 60, scoreRedFoul: 0, scoreBlueFoul: 30 } as FTCMatch;
+        const model = eventStrengthModel([m, { ...m, matchNumber: 2 }, { ...m, matchNumber: 3 }]);
+        expect(model.strength(1)).toBeGreaterThan(model.strength(2));
+        // With λ=1 ridge the estimates shrink a bit toward the prior, but red's
+        // np (70) must be what is learned, not 100.
+        expect(model.strength(1)).toBeLessThan(75);
+        expect(model.pRed([1], [2])).toBeGreaterThan(0.5);
     });
 });
