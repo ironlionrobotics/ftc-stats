@@ -11,8 +11,10 @@ import { toast } from "sonner";
 
 /**
  * Admin/lead panel for triggering per-RP logistic-regression training.
- * Pulls the season's full match history from the FTC API (cached), trains
- * 3 models (movement, artifact, pattern-via-artifact), caches in Redis 30d.
+ * Pulls the season's Mexican match history + official /scores breakdowns
+ * (cached), trains one model per logistic RP target (DECODE: movement, goal,
+ * pattern), caches in Redis 30d. BIOBUZZ (2026+) uses count models and needs
+ * no training — the action reports `countModel` and the panel says so.
  *
  * Cost-aware: the operation is heavy enough (~10-30 cached event fetches +
  * 2 training passes) that we don't auto-run it. Strategy lead runs manually,
@@ -34,6 +36,7 @@ export default function RpModelTrainer() {
             trainedAt: number;
         }>;
         eventsProcessed: number;
+        countModel?: boolean;
     }>(null);
 
     const canTrain = userDoc?.role === "admin" || userDoc?.role === "lead";
@@ -89,9 +92,13 @@ export default function RpModelTrainer() {
                 <div className="space-y-1.5 pt-1 border-t border-border">
                     <div className="flex items-center gap-1.5 text-[10px] text-success">
                         <CheckCircle2 size={11} />
-                        <span>{report.eventsProcessed} eventos procesados</span>
+                        <span>
+                            {report.countModel
+                                ? "Esta temporada usa modelos de conteo (SWARM/POLLINATOR): no requiere entrenamiento."
+                                : `${report.eventsProcessed} eventos procesados`}
+                        </span>
                     </div>
-                    {report.models.length === 0 ? (
+                    {report.countModel ? null : report.models.length === 0 ? (
                         <div className="flex items-start gap-1.5 text-[10px] text-warning">
                             <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />
                             <span>Sin datos suficientes (necesita 10+ pos y 10+ neg per RP).</span>

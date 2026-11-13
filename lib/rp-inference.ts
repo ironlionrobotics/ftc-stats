@@ -1,33 +1,89 @@
 /**
- * Ranking-Point (RP) inference. Replaces the previous "empirical rate per
- * match" heuristic with logistic-regression predictions, with a graceful
- * fallback to the heuristic when no model is trained yet.
+ * Ranking-Point (RP) inference.
  *
- * Models are trained offline by app/actions/train-rp-models.ts and persisted
- * in Upstash Redis (per season). At inference time we load the model and
- * compute P(RP=1) given an alliance's average score profile.
+ * Two model families, chosen per season by seasonRulesFor(season).rpTargets:
+ *  - "logistic" (DECODE 2025): logistic regression over an alliance's
+ *    (auto, tele, end) profile, trained by app/actions/train-rp-models.ts and
+ *    cached in Redis; falls back to the team's empirical RP rate.
+ *  - count models (BIOBUZZ 2026): lib/rp-counts.ts — no training needed.
  *
- * Why this matters:
- *   - Heuristic: every alliance with rate > X gets a fixed prob → loses
- *     granularity. Two alliances on the same "side" of the threshold are
- *     treated identically.
- *   - Logistic: continuous P(RP) as a function of features → ranks alliances
- *     correctly. A team scoring 20% above the average matches with RP gets
- *     a higher P than one barely above.
- *
- * Targets supported (DECODE 2025-2026):
- *   - "movement" → RP1 (alliance achieves Movement RP — sortOrder maps to
- *     scoreRedRp1 / scoreBlueRp1)
- *   - "artifact" → RP2 (Artifact / Goal scoring threshold)
- *   - "pattern"  → derived from artifact at 70% (no separate RP slot; the
- *     same heuristic-derived correlation factor)
+ * LABELS come from the official /scores breakdown (movementRP / goalRP /
+ * patternRP; swarmRP / pollinator1RP / pollinator2RP), attached to matches
+ * via withRpObservations(). Until 2026-11, labels were read from
+ * `scoreRedRp1/Rp2` on /matches — fields the API never returns — so no model
+ * ever trained and every heuristic RP rate was 0.
  */
 
 import type { FTCMatch } from "@/types/scouting";
 import type { LogisticModel } from "./logistic-regression";
 import { predictLogistic } from "./logistic-regression";
+import { seasonRulesFor } from "@/lib/games/season-rules";
+import {
+    type AllianceScoreBreakdown,
+    type MatchScoreEntry,
+    biobuzzRobotOutcomes,
+    biobuzzTips,
+    robotSlotsFor,
+} from "@/lib/score-breakdown";
+import { levelsMatch } from "@/lib/scoring-utils";
 
-export type RPTarget = "movement" | "artifact" | "pattern";
+/** RP target id — one of seasonRulesFor(season).rpTargets[].id. */
+export type RPTarget = string;
+
+/** Per-robot LEAVE/PARK outcome (BIOBUZZ) attributed to a team. */
+export interface RobotOutcome {
+    teamNumber: number;
+    leave: boolean;
+    autoPark: boolean;
+    teleopPark: boolean;
+}
+
+/** Compact, serializable RP observation for one alliance of one match. */
+export interface AllianceRpObs {
+    /** target id → RP earned (from the official breakdown). */
+    rp: Record<string, boolean>;
+    /** BIOBUZZ: alliance HIVE TIPS (auto + teleop). */
+    tips?: number;
+    /** BIOBUZZ: per-robot outcomes in station order. */
+    robots?: RobotOutcome[];
+}
+
+/** An FTCMatch enriched with its official RP observations. */
+export type RpLabeledMatch = FTCMatch & { redRp?: AllianceRpObs; blueRp?: AllianceRpObs };
+
+/** Builds the RP observation of one alliance from its official breakdown. */
+export function allianceRpObs(
+    season: number,
+    b: AllianceScoreBreakdown | undefined,
+    match: Pick<FTCMatch, "teams">,
+    alliance: "Red" | "Blue",
+): AllianceRpObs | undefined {
+    if (!b || Object.keys(b).length === 0) return undefined;
+    const raw = b as Record<string, unknown>;
+    const rp: Record<string, boolean> = {};
+    for (const t of seasonRulesFor(season).rpTargets) rp[t.id] = raw[t.breakdownKey] === true;
+    if (season < 2026) return { rp };
+    const slots = robotSlotsFor(match.teams ?? [], alliance);
+    const robots: RobotOutcome[] = [];
+    slots.forEach((team, i) => {
+        if (team != null) robots.push({ teamNumber: team, ...biobuzzRobotOutcomes(b, (i + 1) as 1 | 2) });
+    });
+    return { rp, tips: biobuzzTips(b), robots };
+}
+
+/** Attaches redRp/blueRp to every match that has an official breakdown. */
+export function withRpObservations(
+    season: number,
+    matches: FTCMatch[],
+    scores: MatchScoreEntry[],
+): RpLabeledMatch[] {
+    return matches.map(m => {
+        const forMatch = scores.filter(s => s.matchNumber === m.matchNumber && levelsMatch(m.tournamentLevel, s.matchLevel));
+        const red = forMatch.find(s => s.alliance.toLowerCase() === "red")?.scoreBreakdown;
+        const blue = forMatch.find(s => s.alliance.toLowerCase() === "blue")?.scoreBreakdown;
+        return { ...m, redRp: allianceRpObs(season, red, m, "Red"), blueRp: allianceRpObs(season, blue, m, "Blue") };
+    });
+}
 
 /**
  * Feature vector for an alliance-match observation. Order matters — same order
@@ -99,33 +155,24 @@ export function allianceScoreComponents(
  * `target` selects which RP slot becomes the label.
  */
 export function extractObservations(
-    match: FTCMatch,
+    match: RpLabeledMatch,
     target: RPTarget,
 ): AllianceObservation[] {
     if (!isMatchScored(match)) return [];
-    const red = allianceScoreComponents(match, "red");
-    const blue = allianceScoreComponents(match, "blue");
-    return [
-        {
-            features: [red.auto, red.tele, red.end],
-            label: labelFor(match, "red", target),
-        },
-        {
-            features: [blue.auto, blue.tele, blue.end],
-            label: labelFor(match, "blue", target),
-        },
-    ];
+    const out: AllianceObservation[] = [];
+    for (const side of ["red", "blue"] as const) {
+        const label = labelFor(match, side, target);
+        if (label === null) continue;
+        const c = allianceScoreComponents(match, side);
+        out.push({ features: [c.auto, c.tele, c.end], label });
+    }
+    return out;
 }
 
-function labelFor(match: FTCMatch, side: "red" | "blue", target: RPTarget): 0 | 1 {
-    // DECODE 2025-2026: scoreRedRp1 = Movement, scoreRedRp2 = Artifact (Goal).
-    // Pattern doesn't have its own RP slot in DECODE — we proxy it as the
-    // same outcome as Artifact at training time and post-multiply by 0.7 at
-    // inference (matches the legacy heuristic in analytics.ts).
-    const rp1 = side === "red" ? (match.scoreRedRp1 ?? 0) : (match.scoreBlueRp1 ?? 0);
-    const rp2 = side === "red" ? (match.scoreRedRp2 ?? 0) : (match.scoreBlueRp2 ?? 0);
-    if (target === "movement") return rp1 >= 1 ? 1 : 0;
-    return rp2 >= 1 ? 1 : 0;  // "artifact" or "pattern" share the same training label
+function labelFor(match: RpLabeledMatch, side: "red" | "blue", target: RPTarget): 0 | 1 | null {
+    const obs = side === "red" ? match.redRp : match.blueRp;
+    if (!obs || !(target in obs.rp)) return null;
+    return obs.rp[target] ? 1 : 0;
 }
 
 function isMatchScored(match: FTCMatch): boolean {
@@ -138,7 +185,7 @@ function isMatchScored(match: FTCMatch): boolean {
  * RP target. Useful as input to trainLogistic.
  */
 export function extractTrainingSet(
-    matches: FTCMatch[],
+    matches: RpLabeledMatch[],
     target: RPTarget,
 ): { features: number[][]; labels: number[] } {
     const features: number[][] = [];
@@ -164,43 +211,24 @@ export interface TeamRpProfile {
     /** Average endgame points. */
     avgEnd: number;
     /**
-     * Heuristic fallback: empirical RP rate per match across the season.
-     * Used when no logistic model is available (e.g., fresh season).
+     * Heuristic fallback: the team's empirical RP rate per target (from the
+     * official breakdowns). Used when no logistic model is available.
      */
-    heuristicMovementProb?: number;
-    heuristicArtifactProb?: number;
+    heuristic?: Record<string, number>;
 }
 
 /**
- * Returns P(RP=1) for a single team given its average score profile and an
- * optional trained model. When `model` is undefined, falls back to the
- * supplied heuristic — preserving the pre-logistic behavior so the app keeps
- * working before any model is trained.
- *
- * The 0.7 multiplier on `pattern` is a legacy correction inherited from
- * `app/actions/analytics.ts` — Pattern RP correlates with Artifact RP but
- * not 1:1.
+ * P(RP=1) for a logistic-family target given a team's average score profile.
+ * Without a model, returns the empirical rate. (The former 0.7 "pattern"
+ * dampening is gone: pattern now has its own official label and model.)
  */
 export function inferTeamRpProbability(
     profile: TeamRpProfile,
     target: RPTarget,
     model: LogisticModel | null | undefined,
 ): number {
-    if (!model) {
-        // Heuristic fallback — return whatever the caller already had.
-        if (target === "movement") return profile.heuristicMovementProb ?? 0;
-        if (target === "artifact") return profile.heuristicArtifactProb ?? 0;
-        // Pattern: 70% of artifact (legacy)
-        return (profile.heuristicArtifactProb ?? 0) * 0.7;
-    }
-
-    const features = [profile.avgAuto, profile.avgTele, profile.avgEnd];
-    const p = predictLogistic(model, features);
-
-    // Pattern shares the artifact-trained model but is dampened to keep
-    // parity with the empirical correlation factor.
-    if (target === "pattern") return p * 0.7;
-    return p;
+    if (!model) return profile.heuristic?.[target] ?? 0;
+    return predictLogistic(model, [profile.avgAuto, profile.avgTele, profile.avgEnd]);
 }
 
 /**
@@ -214,7 +242,10 @@ export function inferTeamRpProbability(
  *   v2 — M8 fix: shared allianceScoreComponents() decomposition on both
  *        sides; tele fallback subtracts endgame. v1 models are incompatible
  *        (inference transparently falls back to the heuristic until retrain).
+ *   v3 — labels from the official /scores breakdown (v2 never trained: its
+ *        labels came from nonexistent /matches fields) and real tele/end
+ *        splits from phaseSplit(). DECODE targets: movement / goal / pattern.
  */
 export function rpModelCacheKey(season: number, target: RPTarget): string {
-    return `rp-model:${season}:${target}:v2`;
+    return `rp-model:${season}:${target}:v3`;
 }

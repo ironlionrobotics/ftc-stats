@@ -2,7 +2,11 @@
 
 import { fetchMatches, fetchRankings, fetchEvents, fetchEventAwards, fetchMatchScores, getCachedData, setCachedData } from "@/lib/ftc-api";
 import { FTCMatch, TeamRanking, FTCAward, FTCEvent } from "@/types/scouting";
-import { allianceScoreComponents, inferTeamRpProbability } from "@/lib/rp-inference";
+import { allianceScoreComponents, allianceRpObs, inferTeamRpProbability, type RpLabeledMatch } from "@/lib/rp-inference";
+import { seasonRulesFor, rpThresholdsFor } from "@/lib/games/season-rules";
+import { componentOpr } from "@/lib/component-opr";
+import { biobuzzAllianceRp, shrunkRate, type BiobuzzRpInputs } from "@/lib/rp-counts";
+import type { LogisticModel } from "@/lib/logistic-regression";
 import { phaseSplit } from "@/lib/score-breakdown";
 import { getRpModelAction } from "./train-rp-models";
 import { sanitizeEventCodes } from "@/lib/analytics-guards";
@@ -54,6 +58,13 @@ export interface TeamEvolution {
     teleOPR?: number;
     endgameOPR?: number;
     netDiscipline?: number;
+    /** RP target id (seasonRulesFor(season).rpTargets) → P(RP) for this team
+     *  with an average partner. Source of truth for every season. */
+    rp?: Record<string, number>;
+    /** BIOBUZZ (2026+): inputs to compute exact pair probabilities
+     *  (lib/rp-counts.ts biobuzzAllianceRp) for any two teams. */
+    rpInputs?: BiobuzzRpInputs;
+    /** @deprecated DECODE aliases of rp.movement / rp.goal / rp.pattern. */
     rpMovement?: number; // 0-1 probability
     rpArtifacts?: number; // 0-1 probability
     rpPattern?: number; // 0-1 probability
@@ -121,10 +132,14 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
     // is cold or Redis is unconfigured, both come back as null and the team
     // loop transparently falls back to the empirical heuristic (preserving
     // pre-C.3 behavior). See lib/rp-inference.ts.
-    const [rpMovementModel, rpArtifactModel] = await Promise.all([
-        getRpModelAction({ season, target: "movement" }),
-        getRpModelAction({ season, target: "artifact" }),
-    ]);
+    const seasonRules = seasonRulesFor(season);
+    const isCountSeason = seasonRules.rpTargets.every(t => t.kind !== "logistic");
+    const logisticTargets = seasonRules.rpTargets.filter(t => t.kind === "logistic").map(t => t.id);
+    const rpModels = new Map<string, LogisticModel | null>(
+        await Promise.all(logisticTargets.map(async t => [t, await getRpModelAction({ season, target: t })] as const)),
+    );
+    // BIOBUZZ per-team accumulators across events (count models).
+    const bbAcc = new Map<number, { tipsWeighted: number; tipsMatches: number; leave: number; autoPark: number; teleopPark: number; robotMatches: number }>();
 
     // No need to fetch allEvents again, already fetched above
 
@@ -185,7 +200,11 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                     scoreBlueEndgame: blueSplit?.end,
                     scoreRedTeleOp: redSplit?.tele,
                     scoreBlueTeleOp: blueSplit?.tele,
-                };
+                    // Compact official RP observations (labels, tips, per-robot
+                    // outcomes) — replaces the nonexistent scoreXRp1/Rp2 fields.
+                    redRp: allianceRpObs(season, redScoreData, m, "Red"),
+                    blueRp: allianceRpObs(season, blueScoreData, m, "Blue"),
+                } as RpLabeledMatch;
             });
 
             let totalScore = 0;
@@ -238,6 +257,20 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
         results.push(eventData);
         const code = eventData.eventCode;
 
+        // BIOBUZZ: per-event HIVE TIPS component OPR from official breakdowns.
+        const tipsOpr = isCountSeason
+            ? componentOpr(
+                (matches as RpLabeledMatch[])
+                    .filter(m => m.tournamentLevel === "QUALIFICATION")
+                    .flatMap(m => (["Red", "Blue"] as const).flatMap(color => {
+                        const obs = color === "Red" ? m.redRp : m.blueRp;
+                        if (obs?.tips == null) return [];
+                        const teams = m.teams.filter(t => t.station.startsWith(color)).map(t => t.teamNumber);
+                        return teams.length ? [{ teams, value: obs.tips }] : [];
+                    })),
+            )
+            : new Map<number, number>();
+
         rankings.forEach(rank => {
             if (!teamMap.has(rank.teamNumber)) {
                 teamMap.set(rank.teamNumber, {
@@ -276,9 +309,9 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
             let teamMaxPoints = 0;
             let teamQualMatches = 0;
 
-            // RP Accumulators
-            let rpMovCount = 0;
-            let rpArtCount = 0;
+            // RP accumulators — official breakdown labels per target.
+            const rpCounts: Record<string, number> = {};
+            let rpObservedMatches = 0;
 
             teamMatches.forEach(m => {
                 if (m.tournamentLevel === 'QUALIFICATION') {
@@ -301,13 +334,23 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                     teamMaxPoints = Math.max(teamMaxPoints, score);
                     teamQualMatches++;
 
-                    // RP Logic
-                    if (isRed) {
-                        if (m.scoreRedRp1 >= 1) rpMovCount++;
-                        if (m.scoreRedRp2 >= 1) rpArtCount++;
-                    } else {
-                        if (m.scoreBlueRp1 >= 1) rpMovCount++;
-                        if (m.scoreBlueRp2 >= 1) rpArtCount++;
+                    // RP from the official breakdown (when present).
+                    const lm = m as RpLabeledMatch;
+                    const obs = isRed ? lm.redRp : lm.blueRp;
+                    if (obs) {
+                        rpObservedMatches++;
+                        for (const [id, earned] of Object.entries(obs.rp)) {
+                            if (earned) rpCounts[id] = (rpCounts[id] ?? 0) + 1;
+                        }
+                        const robot = obs.robots?.find(r => r.teamNumber === rank.teamNumber);
+                        if (robot) {
+                            const acc = bbAcc.get(rank.teamNumber) ?? { tipsWeighted: 0, tipsMatches: 0, leave: 0, autoPark: 0, teleopPark: 0, robotMatches: 0 };
+                            acc.robotMatches++;
+                            if (robot.leave) acc.leave++;
+                            if (robot.autoPark) acc.autoPark++;
+                            if (robot.teleopPark) acc.teleopPark++;
+                            bbAcc.set(rank.teamNumber, acc);
+                        }
                     }
                 }
             });
@@ -336,26 +379,70 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
             // over the empirical rate. When the model is null (cold cache,
             // pre-training, Redis offline), inferTeamRpProbability falls back
             // to the heuristic — same behavior as before.
-            if (teamQualMatches > 0) {
-                const eventMovProb = rpMovCount / teamQualMatches;
-                const eventArtProb = rpArtCount / teamQualMatches;
+            if (isCountSeason) {
+                // Weight this event's tips OPR by the team's matches in it.
+                const opr = tipsOpr.get(rank.teamNumber);
+                if (opr != null && teamQualMatches > 0) {
+                    const acc = bbAcc.get(rank.teamNumber) ?? { tipsWeighted: 0, tipsMatches: 0, leave: 0, autoPark: 0, teleopPark: 0, robotMatches: 0 };
+                    acc.tipsWeighted += opr * teamQualMatches;
+                    acc.tipsMatches += teamQualMatches;
+                    bbAcc.set(rank.teamNumber, acc);
+                }
+            } else if (rpObservedMatches > 0) {
+                // Logistic seasons: trained model when cached, else the team's
+                // empirical rate. Keep the best event for the Oracle.
                 const profile = {
-                    avgAuto: teamTotalAuto / teamQualMatches,
-                    avgTele: teamTotalTele / teamQualMatches,
-                    avgEnd: teamTotalEndGame / teamQualMatches,
-                    heuristicMovementProb: eventMovProb,
-                    heuristicArtifactProb: eventArtProb,
+                    avgAuto: teamTotalAuto / Math.max(teamQualMatches, 1),
+                    avgTele: teamTotalTele / Math.max(teamQualMatches, 1),
+                    avgEnd: teamTotalEndGame / Math.max(teamQualMatches, 1),
+                    heuristic: Object.fromEntries(logisticTargets.map(id => [id, (rpCounts[id] ?? 0) / rpObservedMatches])),
                 };
-                const predMov = inferTeamRpProbability(profile, "movement", rpMovementModel);
-                const predArt = inferTeamRpProbability(profile, "artifact", rpArtifactModel);
-                const predPat = inferTeamRpProbability(profile, "pattern", rpArtifactModel);
-
-                // Keep the highest probability observed across events for the Oracle.
-                teamEntry.rpMovement = Math.max(teamEntry.rpMovement || 0, predMov);
-                teamEntry.rpArtifacts = Math.max(teamEntry.rpArtifacts || 0, predArt);
-                teamEntry.rpPattern = Math.max(teamEntry.rpPattern || 0, predPat);
+                const rpMap = { ...(teamEntry.rp ?? {}) };
+                for (const id of logisticTargets) {
+                    rpMap[id] = Math.max(rpMap[id] ?? 0, inferTeamRpProbability(profile, id, rpModels.get(id)));
+                }
+                teamEntry.rp = rpMap;
+                // DECODE aliases for the legacy UI.
+                teamEntry.rpMovement = rpMap.movement ?? 0;
+                teamEntry.rpArtifacts = rpMap.goal ?? 0;
+                teamEntry.rpPattern = rpMap.pattern ?? 0;
             }
         });
+    }
+
+    // BIOBUZZ: turn accumulated counts into per-team RP inputs, shrunk toward
+    // the analysis-wide average robot, then P(RP) with an average partner.
+    if (isCountSeason && bbAcc.size > 0) {
+        const all = Array.from(bbAcc.values());
+        const sum = (f: (a: typeof all[number]) => number) => all.reduce((s, a) => s + f(a), 0);
+        const robotTrials = Math.max(sum(a => a.robotMatches), 1);
+        const prior = {
+            leave: sum(a => a.leave) / robotTrials,
+            autoPark: sum(a => a.autoPark) / robotTrials,
+            teleopPark: sum(a => a.teleopPark) / robotTrials,
+            tips: sum(a => a.tipsWeighted) / Math.max(sum(a => a.tipsMatches), 1),
+        };
+        const avgPartner: BiobuzzRpInputs = {
+            tipsOpr: prior.tips,
+            rates: { leave: prior.leave, autoPark: prior.autoPark, teleopPark: prior.teleopPark },
+            matches: 0,
+        };
+        const thresholds = rpThresholdsFor(season);
+        for (const [teamNumber, a] of bbAcc) {
+            const team = teamMap.get(teamNumber);
+            if (!team) continue;
+            const inputs: BiobuzzRpInputs = {
+                tipsOpr: a.tipsMatches > 0 ? a.tipsWeighted / a.tipsMatches : prior.tips,
+                rates: {
+                    leave: shrunkRate(a.leave, a.robotMatches, prior.leave),
+                    autoPark: shrunkRate(a.autoPark, a.robotMatches, prior.autoPark),
+                    teleopPark: shrunkRate(a.teleopPark, a.robotMatches, prior.teleopPark),
+                },
+                matches: a.robotMatches,
+            };
+            team.rpInputs = inputs;
+            team.rp = biobuzzAllianceRp(inputs, avgPartner, thresholds);
+        }
     }
 
     // -------------------------------------------------------------------------

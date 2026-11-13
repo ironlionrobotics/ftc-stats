@@ -6,11 +6,18 @@ import {
     inferTeamRpProbability,
     RP_FEATURE_COUNT,
     rpModelCacheKey,
+    withRpObservations,
+    type RpLabeledMatch,
 } from "./rp-inference";
 import { trainLogistic } from "./logistic-regression";
+import { flattenMatchScores } from "./score-breakdown";
+import scores2026 from "@/lib/__fixtures__/scores-2026-AUBRQ1-qual.json";
+import matches2026 from "@/lib/__fixtures__/matches-2026-AUBRQ1-qual.json";
 import type { FTCMatch } from "@/types/scouting";
 
-function ftcMatch(overrides: Partial<FTCMatch> = {}): FTCMatch {
+const rp = (movement: boolean, goal = false, pattern = false) => ({ rp: { movement, goal, pattern } });
+
+function ftcMatch(overrides: Partial<RpLabeledMatch> = {}): RpLabeledMatch {
     return {
         description: "Q1",
         matchNumber: 1,
@@ -21,14 +28,12 @@ function ftcMatch(overrides: Partial<FTCMatch> = {}): FTCMatch {
         scoreBlueAuto: 15,
         scoreRedFoul: 0,
         scoreBlueFoul: 0,
-        scoreRedRp1: 1,
-        scoreRedRp2: 0,
-        scoreBlueRp1: 0,
-        scoreBlueRp2: 1,
+        redRp: rp(true, false),
+        blueRp: rp(false, true),
         teams: [],
         postResultTime: new Date().toISOString(),
         ...overrides,
-    } as FTCMatch;
+    } as RpLabeledMatch;
 }
 
 describe("extractObservations", () => {
@@ -52,22 +57,21 @@ describe("extractObservations", () => {
         expect(obs).toHaveLength(0);
     });
 
-    it("maps movement target to scoreRpX_1", () => {
-        const obs = extractObservations(ftcMatch({ scoreRedRp1: 1, scoreBlueRp1: 0 }), "movement");
+    it("labels come from the official breakdown observation per target", () => {
+        const m = ftcMatch({ redRp: rp(true, false, true), blueRp: rp(false, true, false) });
+        expect(extractObservations(m, "movement").map(o => o.label)).toEqual([1, 0]);
+        expect(extractObservations(m, "goal").map(o => o.label)).toEqual([0, 1]);
+        expect(extractObservations(m, "pattern").map(o => o.label)).toEqual([1, 0]);
+    });
+
+    it("skips alliances without a breakdown instead of labeling them 0", () => {
+        // REGRESSION: labels used to come from /matches scoreXRp1/Rp2, which the
+        // API never returns → every label was 0 and no model ever trained.
+        const m = ftcMatch({ redRp: undefined, blueRp: rp(true) });
+        const obs = extractObservations(m, "movement");
+        expect(obs).toHaveLength(1);
         expect(obs[0].label).toBe(1);
-        expect(obs[1].label).toBe(0);
-    });
-
-    it("maps artifact target to scoreRpX_2", () => {
-        const obs = extractObservations(ftcMatch({ scoreRedRp2: 0, scoreBlueRp2: 1 }), "artifact");
-        expect(obs[0].label).toBe(0);
-        expect(obs[1].label).toBe(1);
-    });
-
-    it("pattern target shares labels with artifact (no separate RP slot)", () => {
-        const artObs = extractObservations(ftcMatch({ scoreRedRp2: 1 }), "artifact");
-        const patObs = extractObservations(ftcMatch({ scoreRedRp2: 1 }), "pattern");
-        expect(artObs[0].label).toBe(patObs[0].label);
+        expect(extractObservations(ftcMatch({ redRp: undefined, blueRp: undefined }), "movement")).toEqual([]);
     });
 
     it("backs out tele from total - auto - foul when scoreTeleOp is absent", () => {
@@ -144,9 +148,9 @@ describe("allianceScoreComponents — train-serve parity (M8 regression)", () =>
 describe("extractTrainingSet", () => {
     it("aggregates observations across many matches", () => {
         const matches = [
-            ftcMatch({ matchNumber: 1, scoreRedRp1: 1 }),
-            ftcMatch({ matchNumber: 2, scoreRedRp1: 0 }),
-            ftcMatch({ matchNumber: 3, scoreRedRp1: 1 }),
+            ftcMatch({ matchNumber: 1, redRp: rp(true) }),
+            ftcMatch({ matchNumber: 2, redRp: rp(false) }),
+            ftcMatch({ matchNumber: 3, redRp: rp(true) }),
         ];
         const { features, labels } = extractTrainingSet(matches, "movement");
         expect(features).toHaveLength(6); // 3 matches × 2 alliances
@@ -155,22 +159,11 @@ describe("extractTrainingSet", () => {
 });
 
 describe("inferTeamRpProbability — fallback path", () => {
-    it("returns heuristic prob when no model is provided (movement)", () => {
-        const p = inferTeamRpProbability(
-            { avgAuto: 20, avgTele: 50, avgEnd: 10, heuristicMovementProb: 0.6 },
-            "movement",
-            null,
-        );
-        expect(p).toBe(0.6);
-    });
-
-    it("returns 0.7x heuristic for pattern (legacy correlation factor)", () => {
-        const p = inferTeamRpProbability(
-            { avgAuto: 20, avgTele: 50, avgEnd: 10, heuristicArtifactProb: 0.8 },
-            "pattern",
-            null,
-        );
-        expect(p).toBeCloseTo(0.56, 2);
+    it("returns the empirical rate for the target when no model is provided", () => {
+        const profile = { avgAuto: 20, avgTele: 50, avgEnd: 10, heuristic: { movement: 0.6, pattern: 0.3 } };
+        expect(inferTeamRpProbability(profile, "movement", null)).toBe(0.6);
+        // No more 0.7 dampening: pattern has its own official label.
+        expect(inferTeamRpProbability(profile, "pattern", null)).toBe(0.3);
     });
 
     it("returns 0 when no heuristic is provided either", () => {
@@ -214,19 +207,30 @@ describe("inferTeamRpProbability — trained model path", () => {
         expect(pLow).toBeLessThan(0.3);
     });
 
-    it("pattern target dampens trained prediction by 0.7", () => {
-        const profile = { avgAuto: 10, avgTele: 100, avgEnd: 5 };
-        const pArt = inferTeamRpProbability(profile, "artifact", model);
-        const pPat = inferTeamRpProbability(profile, "pattern", model);
-        expect(pPat).toBeCloseTo(pArt * 0.7, 5);
-    });
 });
 
 describe("rpModelCacheKey", () => {
     it("formats stably per (season, target) at the current feature version", () => {
-        // v2 = M8 fix (tele fallback subtracts endgame). v1 models were
-        // trained under the skewed decomposition and must never be served.
-        expect(rpModelCacheKey(2025, "movement")).toBe("rp-model:2025:movement:v2");
-        expect(rpModelCacheKey(2026, "artifact")).toBe("rp-model:2026:artifact:v2");
+        // v3 = labels from the official /scores breakdown. v2 never trained.
+        expect(rpModelCacheKey(2025, "movement")).toBe("rp-model:2025:movement:v3");
+        expect(rpModelCacheKey(2025, "goal")).toBe("rp-model:2025:goal:v3");
+    });
+});
+
+describe("withRpObservations (real 2026 fixture)", () => {
+    const labeled = withRpObservations(2026, matches2026.matches as unknown as FTCMatch[], flattenMatchScores(scores2026));
+
+    it("attaches SWARM/POLLINATOR labels, tips and per-robot outcomes", () => {
+        const q16 = labeled.find(m => m.matchNumber === 16)!;
+        expect(q16.redRp?.rp).toEqual({ swarm: true, pollinator1: true, pollinator2: false }); // 6 tips ≥ 4
+        expect(q16.redRp?.tips).toBe(6);
+        expect(q16.redRp?.robots?.map(r => r.teamNumber)).toEqual([32874, 26000]);
+        // Blue1 12993 was off the field in Q16.
+        expect(q16.blueRp?.robots?.[0]).toEqual({ teamNumber: 12993, leave: false, autoPark: false, teleopPark: false });
+    });
+
+    it("leaves matches without a breakdown unlabeled", () => {
+        const none = withRpObservations(2026, matches2026.matches as unknown as FTCMatch[], []);
+        expect(none.every(m => m.redRp === undefined && m.blueRp === undefined)).toBe(true);
     });
 });

@@ -1,13 +1,16 @@
 "use server";
 
 import { getRedis } from "@/lib/redis";
-import { fetchEvents, fetchMatches } from "@/lib/ftc-api";
+import { fetchEvents, fetchMatches, fetchMatchScores } from "@/lib/ftc-api";
 import { trainLogistic, type LogisticModel } from "@/lib/logistic-regression";
 import {
     extractTrainingSet,
     rpModelCacheKey,
+    withRpObservations,
     type RPTarget,
+    type RpLabeledMatch,
 } from "@/lib/rp-inference";
+import { seasonRulesFor } from "@/lib/games/season-rules";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import type { ErrorCode } from "@/lib/errors";
 
@@ -37,6 +40,8 @@ export async function trainRpModelsAction(input: {
                   trainedAt: number;
               }>;
               eventsProcessed: number;
+              /** True when the season's RPs use count models (no training). */
+              countModel?: boolean;
           };
       }
     | { ok: false; code: ErrorCode }
@@ -77,19 +82,30 @@ export async function trainRpModelsAction(input: {
     // Sequential to stay polite to the FTC API + the cached fetchMatches
     // already deduplicates within a single request, so this is cheap on
     // warm cache.
-    const allMatches = [];
+    // Count-model seasons (BIOBUZZ) need no training — their RPs are modeled
+    // directly from counts (lib/rp-counts.ts).
+    const targets: RPTarget[] = seasonRulesFor(input.season).rpTargets
+        .filter(t => t.kind === "logistic")
+        .map(t => t.id);
+    if (targets.length === 0) {
+        return { ok: true, report: { season: input.season, models: [], eventsProcessed: 0, countModel: true } };
+    }
+
+    // Labels come from the official /scores breakdown attached per match.
+    const allMatches: RpLabeledMatch[] = [];
     for (const event of events) {
         try {
-            const matches = await fetchMatches(input.season, event.code);
-            allMatches.push(...matches);
+            const [matches, scores] = await Promise.all([
+                fetchMatches(input.season, event.code),
+                fetchMatchScores(input.season, event.code),
+            ]);
+            allMatches.push(...withRpObservations(input.season, matches, scores));
         } catch (e) {
             // Skip events with broken data — better than failing the whole train.
             console.warn(`[train-rp] skipping ${event.code}:`, e instanceof Error ? e.message : e);
         }
     }
 
-    const targets: RPTarget[] = ["movement", "artifact"];
-    // "pattern" shares training data with "artifact" — no separate training pass.
     const reports: Array<{
         target: RPTarget;
         sampleSize: number;
