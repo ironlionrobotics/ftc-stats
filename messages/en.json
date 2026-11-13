@@ -1833,5 +1833,30 @@
       "decode": "Couldn't read the file (HEIC photos: export as JPEG).",
       "upload": "Upload failed — check your connection and try again."
     }
+  },
+  "AdminMedia": {
+    "title": "Reported media",
+    "subtitle": "Photos and videos teams reported (identifiable people without permission, inappropriate). Remove deletes the files and the item; dismiss keeps it.",
+    "empty": "No reports.",
+    "line": "Team {team} · {kind} · {n, plural, one {# report} other {# reports}}",
+    "remove": "Remove",
+    "dismiss": "Dismiss"
+  },
+  "CardView": {
+    "title": "Team {team} card",
+    "signIn": "Sign in with your team to see other teams' cards.",
+    "needTeam": "Only members of approved teams can see team cards.",
+    "loading": "Loading…",
+    "noCard": "This team hasn't published its card yet. Official data and media appear when available.",
+    "media": "Photos and videos",
+    "general": "Robot and team",
+    "season": "This season ({game})",
+    "noAnswers": "No answers yet.",
+    "facts": "Official (FIRST)",
+    "rookie": "Rookie year {year}",
+    "awards": "Awards this season: {list}",
+    "yes": "Yes",
+    "editOwn": "Edit your card",
+    "viewCard": "View card"
   }
 }

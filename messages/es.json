@@ -1833,5 +1833,30 @@
       "decode": "No se pudo leer el archivo (fotos HEIC: expórtalas como JPEG).",
       "upload": "Falló la subida: revisa tu conexión e intenta de nuevo."
     }
+  },
+  "AdminMedia": {
+    "title": "Medios reportados",
+    "subtitle": "Fotos y videos que reportaron los equipos (personas identificables sin permiso, contenido inapropiado). Retirar borra los archivos y el elemento; descartar lo conserva.",
+    "empty": "Sin reportes.",
+    "line": "Equipo {team} · {kind} · {n, plural, one {# reporte} other {# reportes}}",
+    "remove": "Retirar",
+    "dismiss": "Descartar"
+  },
+  "CardView": {
+    "title": "Tarjeta del equipo {team}",
+    "signIn": "Inicia sesión con tu equipo para ver las tarjetas de otros equipos.",
+    "needTeam": "Solo los integrantes de equipos aprobados pueden ver las tarjetas.",
+    "loading": "Cargando…",
+    "noCard": "Este equipo todavía no publica su tarjeta. Los datos oficiales y los medios aparecen cuando existan.",
+    "media": "Fotos y videos",
+    "general": "Robot y equipo",
+    "season": "Esta temporada ({game})",
+    "noAnswers": "Todavía no hay respuestas.",
+    "facts": "Oficial (FIRST)",
+    "rookie": "Año rookie {year}",
+    "awards": "Premios esta temporada: {list}",
+    "yes": "Sí",
+    "editOwn": "Editar tu tarjeta",
+    "viewCard": "Ver tarjeta"
   }
 }

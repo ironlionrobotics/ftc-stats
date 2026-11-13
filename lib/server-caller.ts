@@ -1,6 +1,7 @@
 import "server-only";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { serverCache } from "@/lib/server-cache";
+import { isSuperadminEmail } from "@/lib/app-config-schema";
 import type { ErrorCode } from "@/lib/errors";
 import type { OrgRole } from "@/types/orgs";
 
@@ -40,4 +41,18 @@ export async function callerWithTeam(idToken: string | undefined): Promise<{ ok:
 export async function allowUser(bucket: string, uid: string, maxPerMinute: number): Promise<boolean> {
     const n = await serverCache.incrWindow(`rl:${bucket}:${uid}`, 60);
     return n <= maxPerMinute;
+}
+
+/** Superadmin by verified email allow-list (SUPERADMIN_EMAILS), same gate as team claims (#90). */
+export async function superadminFromToken(idToken: unknown): Promise<{ ok: true; uid: string } | { ok: false; code: ErrorCode }> {
+    if (!idToken || typeof idToken !== "string") return { ok: false, code: "auth.missingToken" };
+    try {
+        const d = await getAdminAuth().verifyIdToken(idToken);
+        if (!d.email_verified || !isSuperadminEmail(d.email, process.env.SUPERADMIN_EMAILS)) {
+            return { ok: false, code: "auth.notSuperadmin" };
+        }
+        return { ok: true, uid: d.uid };
+    } catch {
+        return { ok: false, code: "auth.invalidToken" };
+    }
 }

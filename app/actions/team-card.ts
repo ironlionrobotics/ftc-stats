@@ -3,7 +3,7 @@
 import { allowRequest } from "@/lib/request-guard";
 import { isValidSeason, isValidTeamNumber } from "@/lib/input-guards";
 import { getCurrentSeason } from "@/lib/constants";
-import { fetchTeamRankingsInSeason } from "@/lib/ftc-api";
+import { fetchTeamRankingsInSeason, fetchTeam, fetchTeamAwards } from "@/lib/ftc-api";
 import type { MeasuredStats } from "@/types/team-profile";
 
 /**
@@ -26,8 +26,16 @@ export async function getMeasuredStatsAction(
     if (!isValidSeason(season, getCurrentSeason()) || !isValidTeamNumber(teamNumber)) return null;
     if (!(await allowRequest("light"))) return null;
     try {
-        const rankings = await fetchTeamRankingsInSeason(season, teamNumber);
-        if (!rankings.length) return null;
+        const [rankings, info, awards] = await Promise.all([
+            fetchTeamRankingsInSeason(season, teamNumber),
+            fetchTeam(season, teamNumber),
+            fetchTeamAwards(season, teamNumber).catch(() => []),
+        ]);
+        const team = info
+            ? { name: info.nameShort || info.nameFull, rookieYear: info.rookieYear, city: info.city, state: info.stateProv, country: info.country }
+            : undefined;
+        const awardNames = [...new Set(awards.map(a => a.name || a.awardName).filter(Boolean))] as string[];
+        if (!rankings.length) return team || awardNames.length ? { team, awards: awardNames } : null;
         // Most recent event (FIRST API returns them in chronological order).
         const latest = rankings[rankings.length - 1];
         return {
@@ -36,6 +44,8 @@ export async function getMeasuredStatsAction(
             avgScore: Math.round(latest.avgNP),
             eventCode: latest.eventCode,
             eventName: latest.eventName,
+            team,
+            awards: awardNames,
         };
     } catch {
         return null;

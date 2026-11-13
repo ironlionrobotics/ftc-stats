@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import TeamClaimsReview from "./TeamClaimsReview";
+import MediaReportsReview from "./MediaReportsReview";
 
 /**
  * Superadmin console body. All data + writes go through the superadmin server
@@ -88,6 +89,7 @@ export default function AdminConsole() {
         <div className="space-y-8">
             {/* Team claims awaiting review (decision #90) */}
             <TeamClaimsReview />
+            <MediaReportsReview />
 
             {/* Integrations status */}
             <section>

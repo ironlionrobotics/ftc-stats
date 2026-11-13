@@ -92,6 +92,10 @@ export interface MeasuredStats {
     avgScore?: number;
     eventCode?: string;
     eventName?: string;
+    /** Official team facts from FIRST (never self-reported, #107). */
+    team?: { name?: string; rookieYear?: number; city?: string; state?: string; country?: string };
+    /** Award names this season, from FIRST. */
+    awards?: string[];
 }
 
 /** Empty profile for a team that hasn't published one yet. */

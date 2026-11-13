@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useTranslations, useFormatter } from "next-intl";
 import { toast } from "sonner";
 import clsx from "clsx";
@@ -114,7 +115,7 @@ export default function ScoutBoard({
                                     return (
                                         <div key={n} className={clsx("rounded-lg border p-2", mine ? "border-primary bg-primary/10" : "border-border")}
                                             style={{ borderLeftWidth: 4, borderLeftColor: red ? "var(--color-alliance-red)" : "var(--color-alliance-blue)" }}>
-                                            <div className="font-mono text-lg font-black tabular-nums">{n}</div>
+                                            <Link href={`/card/${n}`} className="font-mono text-lg font-black tabular-nums hover:underline">{n}</Link>
                                             <div className="min-h-[1.25rem] text-xs text-muted-foreground">
                                                 {list.length === 0 ? t("free") : t("watchedBy", { who: [...new Set(list.map(c => c.alias))].join(", ") })}
                                                 {list.length > 1 && <span className="ml-1 text-warning">· {t("duplicate")}</span>}

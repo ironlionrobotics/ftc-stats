@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Lock, Users, RefreshCw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +22,7 @@ export default function PoolPanel({ season, eventCode, teamNumber }: { season: n
     const t = useTranslations("ScoutingPool");
     const tGames = useTranslations("Games");
     const tErr = useTranslations("Errors");
+    const tCard = useTranslations("CardView");
     const { user } = useAuth();
     const [result, setResult] = useState<EventPoolResult | null>(null);
     const [profile, setProfile] = useState<TeamProfile | null>(null);
@@ -63,6 +65,7 @@ export default function PoolPanel({ season, eventCode, teamNumber }: { season: n
                 </div>
                 <p className="text-xs text-muted-foreground">{t("progress", { n: result.myCount, needed: result.needed })}</p>
                 <SelfReportOnly profile={profile} selfReport={selfReport} />
+                <Link href={`/card/${teamNumber}`} className="inline-block text-sm underline">{tCard("viewCard")}</Link>
             </div>
         );
     }
@@ -101,6 +104,9 @@ export default function PoolPanel({ season, eventCode, teamNumber }: { season: n
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users size={16} /> {t("summary", { sources: result.sourceCount, alias: result.myAlias })}
                 </p>
+                <Link href={`/card/${teamNumber}`} className="inline-flex min-h-[40px] items-center rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted">
+                    {tCard("viewCard")}
+                </Link>
                 <button type="button" onClick={() => setReloadKey(k => k + 1)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-border px-3 text-sm text-muted-foreground hover:text-foreground">
                     <RefreshCw size={14} /> {t("refresh")}
                 </button>
