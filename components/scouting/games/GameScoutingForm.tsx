@@ -5,7 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useForm, Controller, type Resolver, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
+import { ScoutTeam, MatchScouting } from "@/types/scouting";
 import type { GameDefinition, GameField } from "@/types/game-definition";
 import { defaultsForDefinition } from "@/types/game-definition";
 import { zodSchemaFromDefinition } from "@/lib/games/zod-from-definition";
@@ -20,11 +20,12 @@ import { Card } from "@/components/ui/Card";
 import { Save, Plus, User, Trophy, ClipboardList, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
-import { guessActiveEventCode } from "@/lib/active-event";
 
 interface GameScoutingFormProps {
     definition: GameDefinition;
-    team: AggregatedTeamStats;
+    team: ScoutTeam;
+    /** Event the entries are filed under — chosen on /scouting, never guessed. */
+    eventCode: string;
     entries: MatchScouting[];
 }
 
@@ -54,7 +55,7 @@ type FormValues = Record<string, unknown>;
  * `matchNumber` is universal (not a per-game field), so it's added to the
  * schema and rendered here rather than in the definition.
  */
-export default function GameScoutingForm({ definition, team, entries }: GameScoutingFormProps) {
+export default function GameScoutingForm({ definition, team, eventCode, entries }: GameScoutingFormProps) {
     const t = useTranslations("GameScouting");
     const { user, orgId } = useAuth();
     const { season } = useProgram();
@@ -88,7 +89,6 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
             toast.error(t("signIn"));
             return;
         }
-        const eventCode = guessActiveEventCode([team]) ?? "MXTOL";
         const scoutId = scoutIdFromUser(user);
         const scoutName = scoutNameFromUser(user);
         const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
@@ -220,7 +220,7 @@ function EntriesList({
     isAdding,
 }: {
     definition: GameDefinition;
-    team: AggregatedTeamStats;
+    team: ScoutTeam;
     entries: MatchScouting[];
     onAdd: () => void;
     isAdding: boolean;

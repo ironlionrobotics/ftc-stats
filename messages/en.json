@@ -1446,5 +1446,15 @@
   },
   "Sidebar": {
     "teamTools": "Team tools"
+  },
+  "ScoutingEvent": {
+    "event": "Event",
+    "noEvents": "No events this season yet.",
+    "rosterSeason": "FIRST hasn't published this event's team list yet — showing teams with results this season. Type a number to scout any team.",
+    "rosterNone": "FIRST hasn't published this event's team list yet. Type a team number in the search box to scout it.",
+    "teamByNumber": "Team {n}",
+    "addTeam": "Scout team {n}",
+    "emptyTypeNumber": "Type a team number to add it.",
+    "needEvent": "Pick an event to record match scouting."
   }
 }

@@ -62,6 +62,18 @@ export interface AdvancementPoints {
     points: number[]; // [Total, Judging, Playoff, Selection, Qualification, RP, RP2, TBP1, TBP2, ...]
 }
 
+/**
+ * What the scouting screens need about a team. Comes from the event's
+ * registered roster (available before any match) or, when FIRST hasn't
+ * published it, from season stats or a number typed by the scout.
+ * `AggregatedTeamStats` satisfies it structurally.
+ */
+export interface ScoutTeam {
+    teamNumber: number;
+    teamName: string;
+    hasAdvanced?: boolean;
+}
+
 export interface AggregatedTeamStats {
     teamNumber: number;
     teamName: string;

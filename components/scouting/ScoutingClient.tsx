@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { AggregatedTeamStats, PitScouting, MatchScouting } from "@/types/scouting";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import type { ScoutTeam, PitScouting, MatchScouting } from "@/types/scouting";
+import { SCOUTING_EVENT_COOKIE } from "@/lib/scouting-event";
 import TeamList from "@/components/scouting/TeamList";
 import ScoutingForm from "@/components/scouting/ScoutingForm";
 import MatchScoutingForm from "@/components/scouting/MatchScoutingForm";
@@ -16,17 +19,35 @@ import Tip from "@/components/ui/Tip";
 import { ClipboardList, Trophy, Eye, ChevronLeft } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
-import { guessActiveEventCode } from "@/lib/active-event";
 
-interface ScoutingClientProps {
-    initialTeams: AggregatedTeamStats[];
+export interface ScoutingEventOption {
+    code: string;
+    name: string;
+    dateStart: string;
 }
 
-export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
+interface ScoutingClientProps {
+    initialTeams: ScoutTeam[];
+    /** Events the scout can pick (oldest first). */
+    events: ScoutingEventOption[];
+    /** Event every match/super entry is filed under; null = no event to scout. */
+    eventCode: string | null;
+    /** Where the team list came from: the event's FIRST roster, season results, or nothing yet. */
+    rosterSource: "event" | "season" | "none";
+}
+
+export default function ScoutingClient({ initialTeams, events, eventCode, rosterSource }: ScoutingClientProps) {
     const t = useTranslations("ScoutingClient");
     const { user, orgId } = useAuth();
     const { season, program } = useProgram();
+    const tEvent = useTranslations("ScoutingEvent");
+    const router = useRouter();
+    // Teams typed in by number when FIRST hasn't published the event roster.
+    const [addedTeams, setAddedTeams] = useState<ScoutTeam[]>([]);
+    const teams = useMemo(() => {
+        const known = new Set(initialTeams.map(tm => tm.teamNumber));
+        return [...initialTeams, ...addedTeams.filter(tm => !known.has(tm.teamNumber))];
+    }, [initialTeams, addedTeams]);
     const [selectedTeamId, setSelectedTeamId] = useState<number | null>(
         initialTeams.length > 0 ? initialTeams[0].teamNumber : null
     );
@@ -54,14 +75,27 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
     // Listen to all match scouting for this event/season to show live updates
     // (In a real scenario, we might want to filter by eventCode properly)
     useEffect(() => {
-        // For now, we assume a default event code or use the one from the teams' first event
-        const eventCode = guessActiveEventCode(initialTeams) ?? "MXTOL";
+        if (!eventCode) return;
         const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
         const unsubscribe = listenToMatchScouting(season, eventCode, effectiveOrgId, (entries) => {
             setMatchScoutingEntries(entries);
         });
         return () => unsubscribe();
-    }, [season, initialTeams, orgId]);
+    }, [season, eventCode, orgId]);
+
+    const changeEvent = (code: string) => {
+        // Remembered for next visits (the server validates it against the season's events).
+        document.cookie = `${SCOUTING_EVENT_COOKIE}=${code}; path=/; max-age=${60 * 60 * 24 * 120}; samesite=lax`;
+        router.push(`/scouting?event=${code}`);
+    };
+
+    const addTeam = (teamNumber: number) => {
+        setAddedTeams(prev => prev.some(tm => tm.teamNumber === teamNumber)
+            ? prev
+            : [...prev, { teamNumber, teamName: tEvent("teamByNumber", { n: teamNumber }) }]);
+        setSelectedTeamId(teamNumber);
+        setMobileShowForm(true);
+    };
 
     const handleSavePitData = async (data: PitScouting) => {
         if (!user) {
@@ -96,7 +130,7 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
         }
     };
 
-    const selectedTeam = initialTeams.find((team) => team.teamNumber === selectedTeamId);
+    const selectedTeam = teams.find((tm) => tm.teamNumber === selectedTeamId);
 
     return (
         <div className="min-h-screen bg-background relative overflow-hidden">
@@ -110,8 +144,35 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
                     "md:w-72 lg:w-80 flex-col h-full bg-muted border border-border rounded-xl overflow-hidden shadow-sm",
                     mobileShowForm ? "hidden md:flex" : "flex"
                 )}>
+                    <div className="border-b border-border p-4 space-y-2">
+                        <label htmlFor="scouting-event" className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {tEvent("event")}
+                        </label>
+                        {events.length > 0 ? (
+                            <select
+                                id="scouting-event"
+                                value={eventCode ?? ""}
+                                onChange={(e) => changeEvent(e.target.value)}
+                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            >
+                                {events.map(ev => (
+                                    <option key={ev.code} value={ev.code}>
+                                        {ev.dateStart.slice(0, 10)} · {ev.name} ({ev.code})
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">{tEvent("noEvents")}</p>
+                        )}
+                        {eventCode && rosterSource !== "event" && (
+                            <p className="text-xs text-muted-foreground">
+                                {rosterSource === "season" ? tEvent("rosterSeason") : tEvent("rosterNone")}
+                            </p>
+                        )}
+                    </div>
                     <TeamList
-                        teams={initialTeams}
+                        teams={teams}
+                        onAddTeam={eventCode ? addTeam : undefined}
                         selectedTeamId={selectedTeamId}
                         onSelectTeam={(id) => { setSelectedTeamId(id); setMobileShowForm(true); }}
                         scoutingDataMap={{}} // Not used anymore for local storage
@@ -165,16 +226,22 @@ export default function ScoutingClient({ initialTeams }: ScoutingClientProps) {
                                     </TabsContent>
                                 )}
                                 <TabsContent value="match" className="m-0 h-full">
-                                    <MatchScoutingForm
-                                        team={selectedTeam}
-                                        entries={matchScoutingEntries.filter(e => e.teamNumber === selectedTeam.teamNumber)}
-                                    />
+                                    {eventCode ? (
+                                        <MatchScoutingForm
+                                            team={selectedTeam}
+                                            eventCode={eventCode}
+                                            entries={matchScoutingEntries.filter(e => e.teamNumber === selectedTeam.teamNumber)}
+                                        />
+                                    ) : <p className="p-6 text-muted-foreground">{tEvent("needEvent")}</p>}
                                 </TabsContent>
                                 <TabsContent value="super" className="m-0 h-full">
-                                    <SuperScoutingForm
-                                        team={selectedTeam}
-                                        entries={matchScoutingEntries.filter(e => e.teamNumber === selectedTeam.teamNumber)}
-                                    />
+                                    {eventCode ? (
+                                        <SuperScoutingForm
+                                            team={selectedTeam}
+                                            eventCode={eventCode}
+                                            entries={matchScoutingEntries.filter(e => e.teamNumber === selectedTeam.teamNumber)}
+                                        />
+                                    ) : <p className="p-6 text-muted-foreground">{tEvent("needEvent")}</p>}
                                 </TabsContent>
                             </div>
                         </Tabs>

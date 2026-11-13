@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useForm, Controller, type Control, type FieldPathByValue, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AggregatedTeamStats, PitScouting } from "@/types/scouting";
+import { ScoutTeam, PitScouting } from "@/types/scouting";
 import { pitScoutingFormSchema, type PitScoutingFormValues } from "@/lib/schemas/scouting";
 import { useZodMessage } from "@/lib/hooks/use-zod-message";
 import { Save, Edit2, Lock, Share2, Globe, Loader2 } from "lucide-react";
@@ -13,7 +13,7 @@ import { useProgram } from "@/lib/stores/program-store";
 import { seasonRulesFor } from "@/lib/games/season-rules";
 
 interface ScoutingFormProps {
-    team: AggregatedTeamStats;
+    team: ScoutTeam;
     initialData?: PitScouting;
     onSave: (data: PitScouting) => Promise<void> | void;
 }
@@ -424,7 +424,7 @@ function BooleanField({ control, name, label, disabled }: BaseFieldProps<boolean
 // ---------------------------------------------------------------------------
 
 function initialDataToFormValues(
-    team: AggregatedTeamStats,
+    team: ScoutTeam,
     currentSeason: number,
     data?: PitScouting,
 ): PitScoutingFormValues {
