@@ -2,13 +2,13 @@
 
 import { getAdminDb } from "@/lib/firebase-admin";
 import { serverCache } from "@/lib/server-cache";
+import { ensureAliases } from "@/lib/pool-aliases";
 import { callerWithTeam, allowUser } from "@/lib/server-caller";
 import { normalizeEventCode, parseSeason, isValidTeamNumber } from "@/lib/input-guards";
 import { getCurrentSeason } from "@/lib/constants";
 import { gameDefinitionFor } from "@/lib/games/registry";
 import {
     buildEventPool,
-    assignAliases,
     contributionCount,
     POOL_UNLOCK_MIN_ENTRIES,
     type PoolTeamSummary,
@@ -90,21 +90,6 @@ async function eventSnapshot(season: number, eventCode: string): Promise<EventSn
     const out = { entries, reliabilities, aliases };
     await serverCache.set(key, out, SNAPSHOT_TTL_S);
     return out;
-}
-
-/** Stable per-event letters, persisted in server-only pool_aliases/{season}_{event}. */
-async function ensureAliases(season: number, eventCode: string, orgIds: string[]): Promise<Record<string, string>> {
-    const db = getAdminDb();
-    const ref = db.collection("pool_aliases").doc(`${season}_${eventCode}`);
-    return db.runTransaction(async tx => {
-        const snap = await tx.get(ref);
-        const existing = (snap.exists ? (snap.data()?.aliases as Record<string, string>) : undefined) ?? {};
-        const next = assignAliases(existing, orgIds);
-        if (Object.keys(next).length !== Object.keys(existing).length) {
-            tx.set(ref, { aliases: next, season, eventCode, updatedAt: new Date() });
-        }
-        return next;
-    });
 }
 
 export async function getEventPoolAction(input: {

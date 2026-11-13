@@ -1,5 +1,6 @@
 import { getAggregatedStats } from "@/lib/aggregation";
-import { fetchEvents, fetchEventTeams } from "@/lib/ftc-api";
+import { fetchEvents, fetchEventTeams, fetchHybridSchedule } from "@/lib/ftc-api";
+import { scheduledQuals } from "@/lib/scout-claims";
 import { getCurrentSeason } from "@/lib/constants";
 import { normalizeEventCode, parseSeason } from "@/lib/input-guards";
 import { scoutingEventOptions, pickScoutingEvent, SCOUTING_EVENT_COOKIE } from "@/lib/scouting-event";
@@ -23,11 +24,11 @@ export default async function ScoutingPage({ searchParams }: { searchParams: Pro
 
     if (program !== "FTC") {
         // FRC: no real data source wired yet (TBA pending) — never show fabricated numbers
-        return <ScoutingClient initialTeams={[]} events={[]} eventCode={null} rosterSource="none" />;
+        return <ScoutingClient initialTeams={[]} events={[]} eventCode={null} rosterSource="none" schedule={[]} />;
     }
 
     const requested = normalizeEventCode(params?.event) ?? normalizeEventCode(cookieStore.get(SCOUTING_EVENT_COOKIE)?.value);
-    const { options, selected, teams, rosterSource } = await loadScoutingRoster(season, requested);
+    const { options, selected, teams, rosterSource, schedule } = await loadScoutingRoster(season, requested);
 
     return (
         <ScoutingClient
@@ -37,6 +38,7 @@ export default async function ScoutingPage({ searchParams }: { searchParams: Pro
             events={options.map(e => ({ code: e.code, name: e.name, dateStart: e.dateStart }))}
             eventCode={selected?.code ?? null}
             rosterSource={rosterSource}
+            schedule={schedule}
         />
     );
 }
@@ -47,7 +49,10 @@ async function loadScoutingRoster(season: number, requested: string | null) {
     const options = scoutingEventOptions(allEvents, "MX", requested);
     const selected = pickScoutingEvent(options, requested, Date.now());
 
-    const registered = selected ? await fetchEventTeams(season, selected.code) : [];
+    const [registered, rawSchedule] = selected
+        ? await Promise.all([fetchEventTeams(season, selected.code), fetchHybridSchedule(season, selected.code)])
+        : [[], []];
+    const schedule = scheduledQuals(rawSchedule);
     const advanced = new Set(teamStats.filter(t => t.hasAdvanced).map(t => t.teamNumber));
     let teams: ScoutTeam[];
     let rosterSource: "event" | "season" | "none";
@@ -58,5 +63,5 @@ async function loadScoutingRoster(season: number, requested: string | null) {
         teams = teamStats.map(t => ({ teamNumber: t.teamNumber, teamName: t.teamName, hasAdvanced: t.hasAdvanced }));
         rosterSource = teams.length > 0 ? "season" : "none";
     }
-    return { options, selected, teams, rosterSource };
+    return { options, selected, teams, rosterSource, schedule };
 }

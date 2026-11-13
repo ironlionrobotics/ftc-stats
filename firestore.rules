@@ -263,6 +263,14 @@ service cloud.firestore {
             allow read, write: if false;
         }
 
+        // Scout assignment board (#103): any approved team can watch who
+        // covers which robot; only the server writes (claims carry the team
+        // alias and an opaque scout hash derived from the verified token).
+        match /scout_claims/{doc} {
+            allow read: if isAuthed() && myOrgId() != null;
+            allow write: if false;
+        }
+
         // Federated pool (#102): per-event pseudonyms (org → "A", "B"…).
         // Server-only: knowing the mapping would undo the pseudonymity.
         match /pool_aliases/{doc} {

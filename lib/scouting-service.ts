@@ -272,3 +272,27 @@ export async function getMatchScoutingForTeam(
     });
     return results;
 }
+
+/**
+ * Live scout-claims board of an event (#103). Readable by any approved team;
+ * written only by app/actions/scout-claims.ts.
+ */
+export function listenToScoutClaims(
+    season: number,
+    eventCode: string,
+    callback: (docs: Record<string, import("@/lib/scout-claims").ClaimDoc>) => void,
+) {
+    const q = query(
+        collection(db, "scout_claims"),
+        where("season", "==", season),
+        where("eventCode", "==", eventCode),
+    );
+    return onSnapshot(q, (snapshot) => {
+        const out: Record<string, import("@/lib/scout-claims").ClaimDoc> = {};
+        snapshot.forEach(d => { out[d.id] = d.data() as import("@/lib/scout-claims").ClaimDoc; });
+        callback(out);
+    }, (error) => {
+        console.error(`[scouting] listenToScoutClaims failed for ${eventCode}:`, error);
+        callback({});
+    });
+}

@@ -1497,7 +1497,8 @@
     "addTeam": "Scoutear al equipo {n}",
     "emptyTypeNumber": "Escribe un número de equipo para agregarlo.",
     "needEvent": "Elige un evento para registrar scouting de partidos.",
-    "tabPool": "Pool compartido"
+    "tabPool": "Pool compartido",
+    "openBoard": "Reparto de scouts"
   },
   "ScoutingContext": {
     "label": "Dónde",
@@ -1533,5 +1534,19 @@
     "no": "No",
     "noSelfReport": "Este equipo todavía no publica su autorreporte.",
     "selfReportAvailable": "Autorreporte disponible."
+  },
+  "ScoutBoard": {
+    "signIn": "Inicia sesión con tu equipo para repartir robots con otros equipos.",
+    "noSchedule": "FIRST aún no publica el calendario de qualys (o ya se jugaron todos los partidos). El tablero se llena solo en cuanto salga.",
+    "intro": "Tu equipo es {alias}. Toma un robot por partido: si los equipos se reparten la cancha, todos los robots quedan cubiertos.",
+    "suggested": "Tus próximos robots sin scout",
+    "takeShort": "{match} · {team}",
+    "coverage": "{covered}/{total} robots cubiertos",
+    "free": "Sin scout",
+    "watchedBy": "Lo ve {who}",
+    "duplicate": "cobertura doble",
+    "take": "Tomar",
+    "release": "Soltar",
+    "scoutNow": "Scoutear"
   }
 }

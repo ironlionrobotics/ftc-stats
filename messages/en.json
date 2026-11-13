@@ -1497,7 +1497,8 @@
     "addTeam": "Scout team {n}",
     "emptyTypeNumber": "Type a team number to add it.",
     "needEvent": "Pick an event to record match scouting.",
-    "tabPool": "Shared pool"
+    "tabPool": "Shared pool",
+    "openBoard": "Scout board"
   },
   "ScoutingContext": {
     "label": "Where",
@@ -1533,5 +1534,19 @@
     "no": "No",
     "noSelfReport": "This team hasn't published its self-report yet.",
     "selfReportAvailable": "Self-report available."
+  },
+  "ScoutBoard": {
+    "signIn": "Sign in with your team to split robots with other teams.",
+    "noSchedule": "FIRST hasn't published the qualification schedule yet (or every match was played). The board fills in by itself once it is out.",
+    "intro": "Your team is {alias}. Take one robot per match — when teams split the field, every robot gets watched.",
+    "suggested": "Your next robots without a scout",
+    "takeShort": "{match} · {team}",
+    "coverage": "{covered}/{total} robots covered",
+    "free": "No scout yet",
+    "watchedBy": "Watched by {who}",
+    "duplicate": "double coverage",
+    "take": "Take",
+    "release": "Release",
+    "scoutNow": "Scout"
   }
 }
