@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID } from "@/lib/orgs";
@@ -50,7 +51,6 @@ import {
     sortTeamsByWeightedScore,
     DEFAULT_WEIGHTS,
     WEIGHT_KEYS,
-    WEIGHT_LABELS,
     type PicklistWeights,
 } from "@/lib/picklist-weights";
 
@@ -79,6 +79,8 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const confirmDialog = useConfirm();
+    const t = useTranslations("PicklistEditor");
+    const format = useFormatter();
     const eventCode = eventCodeProp ?? guessActiveEventCode(teams) ?? "MXTOL";
 
     const [picklist, setPicklist] = useState<Picklist | null>(null);
@@ -244,9 +246,9 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
     const resetAll = async () => {
         if (!picklist || !user) return;
         const ok = await confirmDialog({
-            title: "Reiniciar estado de selección",
-            description: "Borra los marcadores 'selected' y 'declined' de la picklist. La ordenación y la DNP list se conservan intactas.",
-            confirmText: "Reiniciar",
+            title: t("resetTitle"),
+            description: t("resetBody"),
+            confirmText: t("resetConfirm"),
             variant: "danger",
         });
         if (!ok) return;
@@ -265,9 +267,9 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
         if (!picklist || !user) return;
         if (picklist.teams.length === 0) return;
         const ok = await confirmDialog({
-            title: "Aplicar pesos a la picklist",
-            description: "Reordena la lista actual por el score ponderado. Las ediciones manuales de orden se pierden. La DNP y Available no se tocan.",
-            confirmText: "Reordenar",
+            title: t("applyTitle"),
+            description: t("applyBody"),
+            confirmText: t("applyConfirm"),
             variant: "danger",
         });
         if (!ok) return;
@@ -283,7 +285,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
     if (!user) {
         return (
             <Card className="p-8 text-center text-muted-foreground">
-                Inicia sesión para usar el picklist editor.
+                {t("signIn")}
             </Card>
         );
     }
@@ -292,7 +294,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
         return (
             <Card className="p-8 text-center text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="animate-spin" size={16} />
-                Cargando picklist...
+                {t("loading")}
             </Card>
         );
     }
@@ -308,15 +310,15 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
             {/* Header / status */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-foreground">Picklist Editor</h2>
+                    <h2 className="text-2xl font-bold text-foreground">{t("title")}</h2>
                     <p className="text-xs text-muted-foreground mt-1">
-                        Arrastra para reordenar · Click derecho/long-press para mover entre listas · Cambios sincronizan en vivo con tu equipo
+                        {t("hint")}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted border border-border rounded-lg text-xs text-muted-foreground">
                         <Wifi size={12} className={picklist.updatedBy ? "text-success" : "text-muted-foreground"} />
-                        <span>Equipo #{picklist.orgId} · {picklist.eventCode}</span>
+                        <span>{t("teamLine", { org: picklist.orgId, event: picklist.eventCode })}</span>
                     </div>
                     {saving && <Loader2 size={14} className="animate-spin text-primary" />}
                     <button
@@ -328,26 +330,26 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                                 ? "bg-primary/20 text-primary border border-primary/30"
                                 : "bg-muted hover:bg-muted/70 text-muted-foreground border border-border",
                         )}
-                        title="Ajustar pesos del ranking"
+                        title={t("weightsTitle")}
                     >
-                        <Sliders size={12} /> Pesos
+                        <Sliders size={12} /> {t("weights")}
                     </button>
                     <button
                         type="button"
                         onClick={applyWeightsToOrder}
                         disabled={picklist.teams.length === 0}
                         className="min-h-[36px] px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground rounded-lg text-xs font-bold flex items-center gap-1.5 active:scale-[0.98] transition-all"
-                        title="Reordenar la picklist por score ponderado"
+                        title={t("autoSortTitle")}
                     >
-                        <Wand2 size={12} /> Auto-sort
+                        <Wand2 size={12} /> {t("autoSort")}
                     </button>
                     <button
                         type="button"
                         onClick={resetAll}
                         className="min-h-[36px] px-3 py-1.5 bg-muted hover:bg-muted/70 text-muted-foreground rounded-lg text-xs font-bold flex items-center gap-1.5"
-                        title="Reiniciar marcado de selected/declined"
+                        title={t("resetStateTitle")}
                     >
-                        <RotateCcw size={12} /> Reset estado
+                        <RotateCcw size={12} /> {t("resetState")}
                     </button>
                 </div>
             </div>
@@ -357,10 +359,10 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                             <Sliders size={14} className="text-primary" />
-                            Pesos del ranking
+                            {t("weightsHeading")}
                         </h3>
                         <p className="text-[10px] text-muted-foreground">
-                            Cambian solo tu vista del score. Pulsa <strong>Auto-sort</strong> para aplicarlo a la picklist.
+                            {t.rich("weightsHint", { b: (chunks) => <strong>{chunks}</strong> })}
                         </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
@@ -368,7 +370,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                             <div key={key} className="space-y-1">
                                 <div className="flex items-center justify-between">
                                     <label className="text-xs font-medium text-foreground">
-                                        {WEIGHT_LABELS[key]}
+                                        {t(`weight_${key}`)}
                                     </label>
                                     <span className="text-[10px] text-muted-foreground font-mono">
                                         {weights[key]}
@@ -392,14 +394,14 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* RANKED PICKLIST */}
                     <Bucket
-                        title="Picklist"
+                        title={t("bucketPicklist")}
                         count={picklist.teams.length}
                         accent="emerald"
-                        helpText="Orden de prioridad (top = first pick)"
+                        helpText={t("bucketPicklistHelp")}
                     >
                         <SortableContext items={picklist.teams.map(String)} strategy={verticalListSortingStrategy}>
                             {picklist.teams.length === 0 ? (
-                                <EmptyState text="Mueve equipos desde Disponibles" />
+                                <EmptyState text={t("emptyPicklist")} />
                             ) : (
                                 picklist.teams.map((t, idx) => (
                                     <SortableTeamCard
@@ -422,13 +424,13 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
 
                     {/* AVAILABLE */}
                     <Bucket
-                        title="Disponibles"
+                        title={t("bucketAvailable")}
                         count={available.length}
                         accent="blue"
-                        helpText="Equipos sin clasificar"
+                        helpText={t("bucketAvailableHelp")}
                     >
                         {available.length === 0 ? (
-                            <EmptyState text="Todos los equipos están en una lista" />
+                            <EmptyState text={t("emptyAvailable")} />
                         ) : (
                             available.map(t => (
                                 <AvailableTeamCard
@@ -444,13 +446,13 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
 
                     {/* DO NOT PICK */}
                     <Bucket
-                        title="Do Not Pick"
+                        title={t("bucketDnp")}
                         count={picklist.doNotPick.length}
                         accent="red"
-                        helpText="No escoger bajo ninguna circunstancia"
+                        helpText={t("bucketDnpHelp")}
                     >
                         {picklist.doNotPick.length === 0 ? (
-                            <EmptyState text="Sin equipos descartados" />
+                            <EmptyState text={t("emptyDnp")} />
                         ) : (
                             picklist.doNotPick.map(t => (
                                 <DNPTeamCard
@@ -469,7 +471,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
             {picklist.updatedAt?.seconds && (
                 <div className="text-[10px] text-muted-foreground flex items-center gap-2 justify-end">
                     <User size={10} />
-                    Última edición: {new Date(picklist.updatedAt.seconds * 1000).toLocaleString()}
+                    {t("lastEdit", { when: format.dateTime(new Date(picklist.updatedAt.seconds * 1000), { dateStyle: "medium", timeStyle: "short" }) })}
                 </div>
             )}
         </div>
@@ -546,6 +548,7 @@ function SortableTeamCard({
     onToggleSelected: () => void;
     onToggleDeclined: () => void;
 }) {
+    const t = useTranslations("PicklistEditor");
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: String(teamNumber),
     });
@@ -571,7 +574,7 @@ function SortableTeamCard({
                 // 32px touch target so the grip is grabbable on tablet without
                 // accidentally tapping the team card.
                 className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing min-w-[32px] min-h-[32px] flex items-center justify-center"
-                aria-label="Reordenar"
+                aria-label={t("reorder")}
             >
                 <GripVertical size={16} />
             </button>
@@ -591,7 +594,7 @@ function SortableTeamCard({
             </div>
             <div className="flex items-center gap-1">
                 <IconBtn
-                    title="Marcar selected"
+                    title={t("markSelected")}
                     active={selected}
                     activeColor="emerald"
                     onClick={onToggleSelected}
@@ -599,17 +602,17 @@ function SortableTeamCard({
                     <CheckCircle2 size={13} />
                 </IconBtn>
                 <IconBtn
-                    title="Marcar declined"
+                    title={t("markDeclined")}
                     active={declined}
                     activeColor="amber"
                     onClick={onToggleDeclined}
                 >
                     <XCircle size={13} />
                 </IconBtn>
-                <IconBtn title="Mover a DNP" onClick={onMoveToDNP} activeColor="red">
+                <IconBtn title={t("moveToDnp")} onClick={onMoveToDNP} activeColor="red">
                     <Ban size={13} />
                 </IconBtn>
-                <IconBtn title="Quitar del picklist" onClick={onMoveToAvailable} activeColor="blue">
+                <IconBtn title={t("removeFromPicklist")} onClick={onMoveToAvailable} activeColor="blue">
                     <ArrowOut />
                 </IconBtn>
             </div>
@@ -628,6 +631,7 @@ function AvailableTeamCard({
     onAddToPicklist: () => void;
     onAddToDNP: () => void;
 }) {
+    const t = useTranslations("PicklistEditor");
     return (
         <div className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-card/80">
             <div className="flex-1 min-w-0">
@@ -639,10 +643,10 @@ function AvailableTeamCard({
                     {team.teamName} · RS {team.averageRS?.toFixed(1) ?? "—"}
                 </div>
             </div>
-            <IconBtn title="Agregar a picklist" onClick={onAddToPicklist} activeColor="emerald">
+            <IconBtn title={t("addToPicklist")} onClick={onAddToPicklist} activeColor="emerald">
                 <Plus size={13} />
             </IconBtn>
-            <IconBtn title="Marcar DNP" onClick={onAddToDNP} activeColor="red">
+            <IconBtn title={t("markDnp")} onClick={onAddToDNP} activeColor="red">
                 <Ban size={13} />
             </IconBtn>
         </div>
@@ -655,6 +659,7 @@ function AvailableTeamCard({
  * dominar visualmente la card.
  */
 function ScoreBadge({ score }: { score: number }) {
+    const t = useTranslations("PicklistEditor");
     const pct = Math.round(score * 100);
     const color =
         pct >= 67 ? "bg-success/15 text-success border-success/30"
@@ -663,7 +668,7 @@ function ScoreBadge({ score }: { score: number }) {
     return (
         <span
             className={clsx("px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider border font-mono", color)}
-            title={`Score ponderado: ${pct}/100`}
+            title={t("scoreTitle", { pct })}
         >
             {pct}
         </span>
@@ -679,6 +684,7 @@ function DNPTeamCard({
     teamNumber: number;
     onMoveToAvailable: () => void;
 }) {
+    const t = useTranslations("PicklistEditor");
     return (
         <div className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-card/80 opacity-70">
             <div className="flex-1 min-w-0">
@@ -689,7 +695,7 @@ function DNPTeamCard({
                     {team?.teamName ?? "—"}
                 </div>
             </div>
-            <IconBtn title="Quitar de DNP" onClick={onMoveToAvailable} activeColor="blue">
+            <IconBtn title={t("removeFromDnp")} onClick={onMoveToAvailable} activeColor="blue">
                 <ArrowOut />
             </IconBtn>
         </div>

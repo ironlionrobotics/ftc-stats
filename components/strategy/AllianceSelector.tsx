@@ -10,6 +10,7 @@ import { gameDefinitionFor } from "@/lib/games/registry";
 import { inputsFromEntry } from "@/lib/games/score-inputs";
 import { totalOf } from "@/types/game-definition";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { guessActiveEventCode } from "@/lib/active-event";
 import { useAuth } from "@/context/AuthContext";
@@ -26,6 +27,7 @@ interface ScoutingSummary {
 }
 
 export default function AllianceSelector({ teams }: AllianceSelectorProps) {
+    const t = useTranslations("AllianceSelector");
     const { season } = useProgram();
     const { orgId } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
@@ -79,7 +81,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
 
     const addToAlliance = (team: AggregatedTeamStats) => {
         if (selectedTeams.length >= 3) {
-            toast.warning("Alliance full (Top 3)");
+            toast.warning(t("allianceFull"));
             return;
         }
         setSelectedTeams([...selectedTeams, team]);
@@ -95,13 +97,13 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
             <div className="lg:col-span-2 flex flex-col gap-4 h-full">
                 <div className="flex flex-wrap gap-2 mb-2">
                     <button onClick={() => setSortBy("opr")} className={clsx("px-4 py-2 rounded-xl text-xs font-bold transition-all border", sortBy === "opr" ? "bg-primary border-primary text-primary-foreground" : "bg-muted border-border text-muted-foreground")}>
-                        Sort by OPR
+                        {t("sortOpr")}
                     </button>
                     <button onClick={() => setSortBy("auto")} className={clsx("px-4 py-2 rounded-xl text-xs font-bold transition-all border", sortBy === "auto" ? "bg-primary border-primary text-primary-foreground" : "bg-muted border-border text-muted-foreground")}>
-                        Sort by Auto
+                        {t("sortAuto")}
                     </button>
                     <button onClick={() => setSortBy("scouted")} className={clsx("px-4 py-2 rounded-xl text-xs font-bold transition-all border", sortBy === "scouted" ? "bg-accent border-accent text-accent-foreground" : "bg-muted border-border text-muted-foreground")}>
-                        Sort by Scouted Samples
+                        {t("sortScouted")}
                     </button>
                 </div>
 
@@ -111,7 +113,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Search team by number or name..."
+                                placeholder={t("search")}
                                 className="pl-10 pr-4 py-3 bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-sm w-full"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -135,7 +137,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                                                 <span className="bg-secondary/10 text-secondary px-2 py-0.5 rounded font-bold">Auto: {team.averageAutoPoints.toFixed(1)}</span>
                                                 {scouting && (
                                                     <span className="bg-accent/10 text-accent px-2 py-0.5 rounded font-bold flex items-center gap-1 shadow-sm">
-                                                        <Zap size={10} /> Scouted: {scouting.avgPoints.toFixed(1)}
+                                                        <Zap size={10} /> {t("scouted", { points: scouting.avgPoints.toFixed(1) })}
                                                     </span>
                                                 )}
                                             </div>
@@ -144,7 +146,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                                                     {[1, 2, 3, 4, 5].map(star => (
                                                         <Star key={star} size={10} className={clsx(star <= Math.round(scouting.avgSkill) ? "text-warning fill-warning" : "text-muted-foreground/30")} />
                                                     ))}
-                                                    <span className="text-[10px] text-muted-foreground ml-1">({scouting.count} obs)</span>
+                                                    <span className="text-[10px] text-muted-foreground ml-1">{t("obs", { count: scouting.count })}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -170,12 +172,12 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
 
                     <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2 relative z-10">
                         <span className="w-1.5 h-6 bg-primary rounded-full"></span>
-                        Alliance Stack
+                        {t("stack")}
                     </h2>
 
                     <div className="space-y-4 flex-1 relative z-10">
                         {/* Slots */}
-                        {["Captain", "1st Pick", "2nd Pick (rota/backup)"].map((label, idx) => (
+                        {[t("slotCaptain"), t("slotFirst"), t("slotSecond")].map((label, idx) => (
                             <div key={label} className="relative p-6 rounded-2xl border-2 border-dashed border-border min-h-[110px] flex flex-col justify-center items-center bg-muted shadow-inner transition-colors hover:border-border/80 group/slot">
                                 <span className="absolute top-2 left-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest group-hover/slot:text-primary transition-colors">{label}</span>
                                 {selectedTeams[idx] ? (
@@ -186,9 +188,9 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                                     />
                                 ) : (
                                     <div className="flex flex-col items-center gap-2">
-                                        <span className="text-muted-foreground/30 font-bold uppercase tracking-tighter text-lg">Empty Slot</span>
+                                        <span className="text-muted-foreground/30 font-bold uppercase tracking-tighter text-lg">{t("emptySlot")}</span>
                                         {idx > 0 && selectedTeams.length === idx && (
-                                            <span className="text-[10px] text-primary/50 animate-pulse">Select next partner</span>
+                                            <span className="text-[10px] text-primary/50 animate-pulse">{t("selectNext")}</span>
                                         )}
                                     </div>
                                 )}
@@ -199,7 +201,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                         {selectedTeams.length > 0 && selectedTeams.length < 3 && (
                             <div className="mt-4 p-4 bg-muted rounded-xl border border-border">
                                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                                    <Sparkles size={12} className="text-warning" /> Top Recommendations
+                                    <Sparkles size={12} className="text-warning" /> {t("topRecs")}
                                 </h3>
                                 <div className="space-y-2">
                                     {sortedTeams
@@ -227,7 +229,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
 
                         {selectedTeams.length > 0 && (
                             <div className="mt-8 p-6 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl border border-border shadow-lg animate-in zoom-in-95 duration-300">
-                                <div className="text-[10px] text-center text-muted-foreground font-bold uppercase tracking-widest mb-2">Estimated Alliance Score</div>
+                                <div className="text-[10px] text-center text-muted-foreground font-bold uppercase tracking-widest mb-2">{t("estimatedScore")}</div>
                                 <div className="text-4xl font-bold text-center text-foreground font-display">
                                     {/* Only 2 robots play each match (rule 15.3) — with 3
                                         selected, project the strongest pair, not the sum. */}
@@ -238,7 +240,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                                 </div>
                                 {selectedTeams.length === 3 && (
                                     <p className="text-[10px] text-center text-muted-foreground mt-2">
-                                        Mejor par de los 3 — en cancha solo juegan 2 robots por match (regla 15.3).
+                                        {t("bestPair")}
                                     </p>
                                 )}
                             </div>
@@ -250,7 +252,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                             onClick={() => {
                                 const allianceNames = selectedTeams.map(t => `${t.teamNumber} (${t.teamName})`).join(", ");
                                 const totalOPR = selectedTeams.reduce((acc, t) => acc + t.averageMatchPoints, 0).toFixed(1);
-                                const prompt = `Analyze this FTC alliance capability: ${allianceNames}. Their combined OPR is ${totalOPR}. What are their strengths and weaknesses together? Who else would complement them well?`;
+                                const prompt = t("aiPrompt", { teams: allianceNames, opr: totalOPR });
 
                                 const event = new CustomEvent('open-ai-chat', { detail: { message: prompt } });
                                 window.dispatchEvent(event);
@@ -258,7 +260,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                             disabled={selectedTeams.length === 0}
                             className="flex-1 p-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:shadow-none"
                         >
-                            <Bot size={18} /> Ask AI Strategy
+                            <Bot size={18} /> {t("askAi")}
                         </button>
 
                         <button
@@ -276,6 +278,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
 }
 
 function SelectedTeamCard({ team, onRemove, scouting }: { team: AggregatedTeamStats, onRemove: () => void, scouting: ScoutingSummary | null }) {
+    const t = useTranslations("AllianceSelector");
     return (
         <div className="w-full flex justify-between items-center group animate-in slide-in-from-right-4 duration-200">
             <div className="space-y-1">
@@ -284,7 +287,7 @@ function SelectedTeamCard({ team, onRemove, scouting }: { team: AggregatedTeamSt
                 {scouting && (
                     <div className="flex items-center gap-1">
                         <Star size={10} className="text-warning fill-warning" />
-                        <span className="text-[10px] text-muted-foreground">{scouting.avgSkill.toFixed(1)} Driver</span>
+                        <span className="text-[10px] text-muted-foreground">{t("driver", { skill: scouting.avgSkill.toFixed(1) })}</span>
                     </div>
                 )}
             </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { FTCEvent } from "@/types/scouting";
@@ -12,10 +13,13 @@ import { Loader2, Play } from "lucide-react";
 // hits "Run Analysis".
 const ComparisonView = dynamic(() => import("./ComparisonView"), {
     ssr: false,
-    loading: () => (
-        <div className="p-12 text-center text-muted-foreground text-sm">Cargando análisis...</div>
-    ),
+    loading: () => <ComparisonLoading />,
 });
+
+function ComparisonLoading() {
+    const t = useTranslations("AnalyticsDashboard");
+    return <div className="p-12 text-center text-muted-foreground text-sm">{t("loading")}</div>;
+}
 
 interface AnalyticsDashboardProps {
     initialEvents: FTCEvent[];
@@ -23,6 +27,7 @@ interface AnalyticsDashboardProps {
 }
 
 export default function AnalyticsDashboard({ initialEvents, season }: AnalyticsDashboardProps) {
+    const t = useTranslations("AnalyticsDashboard");
     const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [maxRounds, setMaxRounds] = useState<number>(0);
@@ -63,14 +68,14 @@ export default function AnalyticsDashboard({ initialEvents, season }: AnalyticsD
             <div className="bg-card border border-border rounded-2xl p-6 shadow-xl">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
-                        <h2 className="text-xl font-bold text-foreground">Selección de Eventos</h2>
-                        <p className="text-sm text-muted-foreground">Selecciona 2 o más eventos para comparar rendimiento y consistencia.</p>
+                        <h2 className="text-xl font-bold text-foreground">{t("selectTitle")}</h2>
+                        <p className="text-sm text-muted-foreground">{t("selectHint")}</p>
                     </div>
 
                     <div className="flex flex-col gap-2 min-w-[200px]">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Simulación de Torneo</label>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("tournamentSim")}</label>
                         <div className="flex items-center gap-3 bg-muted/30 p-2 rounded-lg border border-border">
-                            <span className="text-xs font-bold text-primary whitespace-nowrap">Ronda {maxRounds === 0 ? 'FINAL' : maxRounds}</span>
+                            <span className="text-xs font-bold text-primary whitespace-nowrap">{maxRounds === 0 ? t("roundFinal") : t("round", { round: maxRounds })}</span>
                             <input
                                 type="range"
                                 min="1"
@@ -93,11 +98,11 @@ export default function AnalyticsDashboard({ initialEvents, season }: AnalyticsD
                     >
                         {isLoading ? (
                             <>
-                                <Loader2 className="animate-spin" /> Procesando...
+                                <Loader2 className="animate-spin" /> {t("processing")}
                             </>
                         ) : (
                             <>
-                                <Play fill="currentColor" size={16} /> Analizar Datos
+                                <Play fill="currentColor" size={16} /> {t("analyze")}
                             </>
                         )}
                     </button>

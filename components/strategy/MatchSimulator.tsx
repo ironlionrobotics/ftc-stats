@@ -25,6 +25,7 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
     // predictMatch returns insights as translation key + params (never
     // prose); render them here. Namespace "Projections" — see lib/projections.ts.
     const tProjections = useTranslations("Projections");
+    const t = useTranslations("MatchSimulator");
     const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
     const scoutReliabilities = useScoutReliabilities();
     const [redAlliance, setRedAlliance] = useState<number[]>([]);
@@ -86,7 +87,7 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
             {/* Pickers */}
             <div className="xl:col-span-1 space-y-4">
                 <Card className="p-4 bg-muted border-border">
-                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">Selección de Equipos</h3>
+                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">{t("selectTeams")}</h3>
                     <div className="space-y-2 overflow-y-auto max-h-[60vh] custom-scrollbar pr-2">
                         {teams.map(team => (
                             <div key={team.teamNumber} className="flex items-center justify-between p-2 bg-muted rounded-lg border border-border group">
@@ -96,12 +97,12 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
                                         onClick={() => addToAlliance(team.teamNumber, 'red')}
                                         disabled={redAlliance.includes(team.teamNumber) || blueAlliance.includes(team.teamNumber)}
                                         className="p-1 px-2 bg-danger/20 text-danger rounded text-[10px] font-bold"
-                                    > Red </button>
+                                    > {t("red")} </button>
                                     <button
                                         onClick={() => addToAlliance(team.teamNumber, 'blue')}
                                         disabled={redAlliance.includes(team.teamNumber) || blueAlliance.includes(team.teamNumber)}
                                         className="p-1 px-2 bg-secondary/20 text-secondary rounded text-[10px] font-bold"
-                                    > Blue </button>
+                                    > {t("blue")} </button>
                                 </div>
                             </div>
                         ))}
@@ -113,7 +114,7 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
             <div className="xl:col-span-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 hidden md:block">
-                        <div className="w-16 h-16 bg-background border-4 border-border rounded-full flex items-center justify-center text-2xl font-black text-foreground italic">VS</div>
+                        <div className="w-16 h-16 bg-background border-4 border-border rounded-full flex items-center justify-center text-2xl font-black text-foreground italic">{t("versus")}</div>
                     </div>
 
                     {/* Red Alliance */}
@@ -152,15 +153,15 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
                                 </div>
                                 <div className="text-xs font-bold text-danger uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
-                                    Predicción Roja
+                                    {t("redPrediction")}
                                 </div>
                                 <div className="text-6xl font-black text-foreground font-display mb-2">{projection.redAlliance.score}</div>
-                                <p className="text-muted-foreground text-sm font-medium">Puntos estimados totales</p>
+                                <p className="text-muted-foreground text-sm font-medium">{t("totalPoints")}</p>
                             </Card>
 
                             <Card className="p-8 bg-card border-primary/20 flex flex-col items-center justify-center text-center relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-danger via-primary to-secondary" />
-                                <div className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] mb-4">Probabilidad de Victoria</div>
+                                <div className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] mb-4">{t("winProbability")}</div>
                                 <div className="text-7xl font-black text-foreground font-display mb-2">{(projection.winProbability * 100).toFixed(0)}%</div>
                                 <div className="w-full max-w-[200px] h-1.5 bg-muted rounded-full overflow-hidden mt-4">
                                     <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${projection.winProbability * 100}%` }} />
@@ -173,10 +174,10 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
                                 </div>
                                 <div className="text-xs font-bold text-secondary uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-                                    Predicción Azul
+                                    {t("bluePrediction")}
                                 </div>
                                 <div className="text-6xl font-black text-foreground font-display mb-2">{projection.blueAlliance.score}</div>
-                                <p className="text-muted-foreground text-sm font-medium">Puntos estimados totales</p>
+                                <p className="text-muted-foreground text-sm font-medium">{t("totalPoints")}</p>
                             </Card>
                         </div>
 
@@ -185,7 +186,7 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
                             <Card className="p-6 bg-muted border-border">
                                 <h4 className="text-sm font-bold text-foreground uppercase tracking-widest mb-6 flex items-center gap-3">
                                     <div className="p-2 bg-primary/10 rounded-lg"><Zap size={18} className="text-primary" /></div>
-                                    Análisis del Predictor IA
+                                    {t("aiAnalysis")}
                                 </h4>
                                 <div className="space-y-4">
                                     {projection.insights.map((insight, i) => (
@@ -202,18 +203,18 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
                             <Card className="p-6 bg-muted border-border">
                                 <h4 className="text-sm font-bold text-foreground uppercase tracking-widest mb-6 flex items-center gap-3">
                                     <div className="p-2 bg-secondary/10 rounded-lg"><Percent size={18} className="text-secondary" /></div>
-                                    Desglose de Puntos Estimados
+                                    {t("breakdown")}
                                 </h4>
                                 <div className="space-y-6">
-                                    <PointBreakdownRow label="Período Autónomo" red={projection.redAlliance.teams.reduce((a, b) => a + b.breakdown.auto, 0)} blue={projection.blueAlliance.teams.reduce((a, b) => a + b.breakdown.auto, 0)} />
-                                    <PointBreakdownRow label="TeleOp (Anotación)" red={projection.redAlliance.teams.reduce((a, b) => a + b.breakdown.teleop, 0)} blue={projection.blueAlliance.teams.reduce((a, b) => a + b.breakdown.teleop, 0)} />
-                                    <PointBreakdownRow label="Endgame / Colgado" red={projection.redAlliance.teams.reduce((a, b) => a + b.breakdown.endgame, 0)} blue={projection.blueAlliance.teams.reduce((a, b) => a + b.breakdown.endgame, 0)} />
+                                    <PointBreakdownRow label={t("rowAuto")} red={projection.redAlliance.teams.reduce((a, b) => a + b.breakdown.auto, 0)} blue={projection.blueAlliance.teams.reduce((a, b) => a + b.breakdown.auto, 0)} />
+                                    <PointBreakdownRow label={t("rowTeleop")} red={projection.redAlliance.teams.reduce((a, b) => a + b.breakdown.teleop, 0)} blue={projection.blueAlliance.teams.reduce((a, b) => a + b.breakdown.teleop, 0)} />
+                                    <PointBreakdownRow label={t("rowEndgame")} red={projection.redAlliance.teams.reduce((a, b) => a + b.breakdown.endgame, 0)} blue={projection.blueAlliance.teams.reduce((a, b) => a + b.breakdown.endgame, 0)} />
 
                                     <div className="pt-6 border-t border-border">
                                         <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
                                             <div className="flex items-center gap-3">
                                                 <AlertTriangle size={18} className="text-warning" />
-                                                <div className="text-xs font-bold text-foreground">Confianza del Modelo</div>
+                                                <div className="text-xs font-bold text-foreground">{t("modelConfidence")}</div>
                                             </div>
                                             <div className="text-sm font-black text-primary">
                                                 {(projection.redAlliance.teams.reduce((a, b) => a + b.confidence, 0) / 4 * 100).toFixed(0)}%
@@ -229,7 +230,7 @@ export default function MatchSimulator({ teams }: MatchSimulatorProps) {
                 {!projection && (
                     <div className="mt-8 h-64 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-3xl text-muted-foreground">
                         <Swords size={48} className="mb-4 opacity-20" />
-                        <p className="font-medium">Selecciona 2 equipos por alianza para ver la simulación</p>
+                        <p className="font-medium">{t("emptyState")}</p>
                     </div>
                 )}
             </div>
@@ -281,6 +282,7 @@ function AllianceBox({
     scoutingData: MatchScouting[];
     scoutReliabilities: Record<string, number>;
 }) {
+    const t = useTranslations("MatchSimulator");
     const isRed = color === 'red';
     return (
         <Card className={clsx(
@@ -291,11 +293,11 @@ function AllianceBox({
         )}>
             <div className="flex justify-between items-center px-2">
                 <h2 className={clsx("font-black italic text-2xl uppercase tracking-tighter", isRed ? "text-danger" : "text-secondary")}>
-                    {isRed ? "Alianza Roja" : "Alianza Azul"}
+                    {isRed ? t("allianceRed") : t("allianceBlue")}
                 </h2>
                 {projection && (
                     <div className="text-right">
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Projected Score</div>
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">{t("projectedScore")}</div>
                         <div className="text-2xl font-bold text-foreground">{projection.score.toFixed(1)}</div>
                     </div>
                 )}
@@ -327,26 +329,26 @@ function AllianceBox({
                                         {teamProj && (
                                             <div className="flex items-center gap-4">
                                                 <div className="flex flex-col items-end gap-1">
-                                                    <div className="text-[10px] text-muted-foreground font-bold">Est. Points</div>
+                                                    <div className="text-[10px] text-muted-foreground font-bold">{t("estPoints")}</div>
                                                     <div className="text-xl font-bold text-primary">{teamProj.projectedPoints.toFixed(0)}</div>
                                                 </div>
                                                 <div className="flex flex-col gap-1">
                                                     <button
                                                         onClick={() => setManualAdjustments((prev: Record<number, number>) => ({ ...prev, [id]: (prev[id] || 0) + 10 }))}
                                                         className="p-1 bg-muted hover:bg-primary/20 rounded text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors"
-                                                        title="Aumentar proyección (+10)"
+                                                        title={t("increase")}
                                                     >+10</button>
                                                     <button
                                                         onClick={() => setManualAdjustments((prev: Record<number, number>) => ({ ...prev, [id]: (prev[id] || 0) - 10 }))}
                                                         className="p-1 bg-muted hover:bg-danger/20 rounded text-[10px] font-bold text-muted-foreground hover:text-danger transition-colors"
-                                                        title="Disminuir proyección (-10)"
+                                                        title={t("decrease")}
                                                     >-10</button>
                                                 </div>
                                             </div>
                                         )}
                                         <button
                                             onClick={() => onRemove(id)}
-                                            aria-label="Remover de alianza"
+                                            aria-label={t("removeFromAlliance")}
                                             className="min-w-[36px] min-h-[36px] flex items-center justify-center text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-md active:scale-[0.95] transition-all"
                                         >
                                             <X size={20} />
@@ -354,7 +356,7 @@ function AllianceBox({
                                     </div>
                                 </div>
                             ) : (
-                                <span className="text-center w-full text-xs font-bold text-muted-foreground uppercase tracking-widest italic">Slot Vacío</span>
+                                <span className="text-center w-full text-xs font-bold text-muted-foreground uppercase tracking-widest italic">{t("emptySlot")}</span>
                             )}
                         </div>
                     );

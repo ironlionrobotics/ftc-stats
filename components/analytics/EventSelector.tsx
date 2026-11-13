@@ -3,6 +3,7 @@
 import { FTCEvent } from "@/types/scouting";
 import { Check, Calendar } from "lucide-react";
 import clsx from "clsx";
+import { useFormatter, useTranslations } from "next-intl";
 
 interface EventSelectorProps {
     events: FTCEvent[];
@@ -12,14 +13,13 @@ interface EventSelectorProps {
 }
 
 export default function EventSelector({ events, selectedCodes, onToggle, onToggleAll }: EventSelectorProps) {
+    const t = useTranslations("EventSelectorGrid");
+    const format = useFormatter();
     const formatDate = (dateStr: string) => {
         try {
             const d = new Date(dateStr);
             if (isNaN(d.getTime())) return dateStr;
-            const day = String(d.getUTCDate()).padStart(2, '0');
-            const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-            const year = d.getUTCFullYear();
-            return `${day}/${month}/${year}`;
+            return format.dateTime(d, { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "UTC" });
         } catch {
             return dateStr;
         }
@@ -32,13 +32,13 @@ export default function EventSelector({ events, selectedCodes, onToggle, onToggl
                     onClick={() => onToggleAll(true)}
                     className="px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-colors"
                 >
-                    Select All
+                    {t("selectAll")}
                 </button>
                 <button
                     onClick={() => onToggleAll(false)}
                     className="px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/70 text-muted-foreground text-xs font-bold transition-colors"
                 >
-                    Deselect All
+                    {t("deselectAll")}
                 </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">

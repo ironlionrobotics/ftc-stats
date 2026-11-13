@@ -20,6 +20,7 @@ import {
     BarChart3
 } from "lucide-react";
 import clsx from "clsx";
+import { useTranslations } from "next-intl";
 import AlliancePredictor from "./AlliancePredictor";
 
 interface ComparisonViewProps {
@@ -31,6 +32,7 @@ export default function ComparisonView({
     eventStats,
     teamEvolution,
 }: ComparisonViewProps) {
+    const t = useTranslations("ComparisonView");
     const [expandedTeam, setExpandedTeam] = useState<number | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: keyof TeamEvolution; direction: 'asc' | 'desc' } | null>(null);
     const [selectedOracleTeam, setSelectedOracleTeam] = useState<TeamEvolution | null>(null);
@@ -77,7 +79,7 @@ export default function ComparisonView({
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                        <BarChart3 className="text-primary" /> Promedio de Alianza
+                        <BarChart3 className="text-primary" /> {t("allianceAvg")}
                     </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -90,8 +92,8 @@ export default function ComparisonView({
                                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                 />
                                 <Legend />
-                                <Bar dataKey="avgScore" name="Promedio Alianza" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="avgAuto" name="Promedio Auto" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="avgScore" name={t("allianceAvgSeries")} fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="avgAuto" name={t("autoAvgSeries")} fill="#10b981" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -99,7 +101,7 @@ export default function ComparisonView({
 
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                        <TrendingUp className="text-success" /> Máximos Scores
+                        <TrendingUp className="text-success" /> {t("maxScores")}
                     </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -112,7 +114,7 @@ export default function ComparisonView({
                                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                 />
                                 <Legend />
-                                <Bar dataKey="maxScore" name="Max Score" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="maxScore" name={t("maxScoreSeries")} fill="#f59e0b" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -129,22 +131,22 @@ export default function ComparisonView({
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                     <div>
                         <h2 className="text-2xl font-bold flex items-center gap-2 text-foreground">
-                            <TrendingUp className="text-warning" /> Evolución de Equipos
+                            <TrendingUp className="text-warning" /> {t("evolution")}
                         </h2>
-                        <p className="text-muted-foreground mt-1">Progresión detallada y estabilidad de rendimiento en la temporada.</p>
+                        <p className="text-muted-foreground mt-1">{t("evolutionHint")}</p>
                     </div>
 
                     <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
-                        <span className="text-[10px] font-bold uppercase px-3 py-1 bg-background rounded shadow-sm text-foreground">Equipos</span>
+                        <span className="text-[10px] font-bold uppercase px-3 py-1 bg-background rounded shadow-sm text-foreground">{t("teamsTab")}</span>
                         <div className="px-2 text-xs text-muted-foreground font-mono border-l border-border ml-2">
-                            {sortedTeams.length} equipos analizados
+                            {t("teamsAnalyzed", { count: sortedTeams.length })}
                         </div>
                     </div>
                 </div>
 
                 <div className="text-right mb-2">
                     <span className="text-[10px] text-warning font-bold uppercase tracking-widest flex items-center justify-end gap-1">
-                        <Sparkles size={10} /> Click en fila para ver detalle
+                        <Sparkles size={10} /> {t("clickRow")}
                     </span>
                 </div>
 
@@ -153,30 +155,30 @@ export default function ComparisonView({
                         <thead>
                             <tr className="bg-muted text-muted-foreground uppercase text-[10px] tracking-wider font-bold">
                                 <th onClick={() => handleSort('teamNumber')} className="p-4 text-left cursor-pointer hover:text-foreground transition-colors group">
-                                    Equipo
+                                    {t("colTeam")}
                                     <div className="w-8 h-0.5 bg-border mt-1 group-hover:bg-primary transition-colors" />
                                 </th>
                                 {eventStats.map(e => (
                                     <th key={e.eventCode} className="p-4 text-center whitespace-nowrap opacity-70">
                                         <div className="flex flex-col items-center">
                                             <span>{e.eventName.replace('Torneo ', '').substring(0, 15)}</span>
-                                            <span className="text-[9px] font-normal opacity-50 mt-1">RANK / SCORE</span>
+                                            <span className="text-[9px] font-normal opacity-50 mt-1">{t("rankScore")}</span>
                                         </div>
                                     </th>
                                 ))}
                                 <th onClick={() => handleSort('powerScore')} className="p-4 text-center cursor-pointer hover:text-foreground transition-colors group bg-gradient-to-b from-primary/5 to-transparent">
                                     <div className="w-fit mx-auto">
-                                        Power Score
+                                        {t("powerScore")}
                                         <div className="w-full h-0.5 bg-primary/30 mt-1 group-hover:bg-primary transition-colors" />
                                     </div>
                                 </th>
                                 <th onClick={() => handleSort('consistencyScore')} className="p-4 text-center cursor-pointer hover:text-foreground transition-colors group">
                                     <div className="w-fit mx-auto">
-                                        Consistencia
+                                        {t("consistency")}
                                         <div className="w-full h-0.5 bg-border mt-1 group-hover:bg-primary transition-colors" />
                                     </div>
                                 </th>
-                                <th className="p-4 text-center w-24">Análisis / Insight</th>
+                                <th className="p-4 text-center w-24">{t("insight")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
@@ -208,7 +210,7 @@ export default function ComparisonView({
                                                     <td key={e.eventCode} className="p-4 text-center">
                                                         {stat ? (
                                                             <div className="flex flex-col items-center">
-                                                                <span className="font-bold text-foreground text-base">{stat.avgPoints.toFixed(1)} <span className="text-[10px] font-normal text-muted-foreground">AVG</span></span>
+                                                                <span className="font-bold text-foreground text-base">{stat.avgPoints.toFixed(1)} <span className="text-[10px] font-normal text-muted-foreground">{t("avg")}</span></span>
                                                                 <span className="text-[10px] font-bold text-primary">#{stat.rank}</span>
                                                             </div>
                                                         ) : (
@@ -226,7 +228,7 @@ export default function ComparisonView({
                                                             team.trend === 'down' ? "bg-danger/10 text-danger" :
                                                                 "bg-secondary/10 text-secondary"
                                                     )}>
-                                                        {team.trend === 'up' ? 'Ascenso' : team.trend === 'down' ? 'Descenso' : 'Estable'}
+                                                        {team.trend === 'up' ? t("trendUp") : team.trend === 'down' ? t("trendDown") : t("trendStable")}
                                                     </span>
                                                 </div>
                                             </td>
@@ -251,16 +253,16 @@ export default function ComparisonView({
                                                     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                                                         {/* Quick Analysis */}
                                                         <div className="col-span-1 bg-card rounded-xl p-5 border border-border shadow-sm">
-                                                            <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-4">Análisis de Rendimiento</h4>
+                                                            <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-4">{t("perfAnalysis")}</h4>
                                                             <div className="space-y-3">
                                                                 <div className="flex justify-between items-center p-2 bg-muted/50 rounded-lg">
-                                                                    <span className="text-xs font-bold text-muted-foreground">Highest Score</span>
+                                                                    <span className="text-xs font-bold text-muted-foreground">{t("highestScore")}</span>
                                                                     <span className="text-sm font-bold text-foreground">
-                                                                        {bestScore} <span className="text-[10px] text-muted-foreground">pts</span>
+                                                                        {bestScore} <span className="text-[10px] text-muted-foreground">{t("pts")}</span>
                                                                     </span>
                                                                 </div>
                                                                 <div className="flex justify-between items-center p-2 bg-muted/50 rounded-lg">
-                                                                    <span className="text-xs font-bold text-muted-foreground">Consistency</span>
+                                                                    <span className="text-xs font-bold text-muted-foreground">{t("consistency")}</span>
                                                                     <span className="text-sm font-bold text-foreground">{(team.consistencyScore * 100).toFixed(0)}%</span>
                                                                 </div>
                                                                 <div className="mt-4 pt-4 border-t border-border">
@@ -271,7 +273,7 @@ export default function ComparisonView({
                                                                         }}
                                                                         className="w-full py-3 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-primary-foreground rounded-xl font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
                                                                     >
-                                                                        <Sparkles size={16} /> Predecir Alianzas
+                                                                        <Sparkles size={16} /> {t("predictAlliances")}
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -281,25 +283,25 @@ export default function ComparisonView({
                                                         <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                             <div className="flex flex-col gap-2">
                                                                 <div className="bg-warning/10 p-3 rounded-lg border border-warning/20">
-                                                                    <div className="text-[10px] font-bold text-warning uppercase mb-1">Favorito Al Podio</div>
-                                                                    <p className="text-xs text-muted-foreground leading-relaxed">Este equipo mantiene un Power Score superior a 85 pts en los últimos 2 eventos.</p>
+                                                                    <div className="text-[10px] font-bold text-warning uppercase mb-1">{t("podiumTitle")}</div>
+                                                                    <p className="text-xs text-muted-foreground leading-relaxed">{t("podiumBody")}</p>
                                                                 </div>
                                                                 <div className="bg-success/10 p-3 rounded-lg border border-success/20">
-                                                                    <div className="text-[10px] font-bold text-success uppercase mb-1">Candidato Fuerte</div>
-                                                                    <p className="text-xs text-muted-foreground leading-relaxed">Muestra una tendencia de {team.trend === 'up' ? 'crecimiento constante' : 'estabilidad sólida'} en el ciclo autónomo.</p>
+                                                                    <div className="text-[10px] font-bold text-success uppercase mb-1">{t("strongTitle")}</div>
+                                                                    <p className="text-xs text-muted-foreground leading-relaxed">{team.trend === 'up' ? t("strongBodyUp") : t("strongBodyStable")}</p>
                                                                 </div>
                                                                 <div className="bg-primary/10 p-3 rounded-lg border border-primary/20">
-                                                                    <div className="text-[10px] font-bold text-primary uppercase mb-1">Ya Clasificado</div>
-                                                                    <p className="text-xs text-muted-foreground leading-relaxed">Probabilidad matemática de avance al nacional &gt; 95%.</p>
+                                                                    <div className="text-[10px] font-bold text-primary uppercase mb-1">{t("qualifiedTitle")}</div>
+                                                                    <p className="text-xs text-muted-foreground leading-relaxed">{t("qualifiedBody")}</p>
                                                                 </div>
                                                             </div>
                                                             <div className="bg-card rounded-xl border border-border p-4 flex flex-col justify-center">
                                                                 <div className="text-right">
-                                                                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Power Score</span>
+                                                                    <span className="text-[10px] text-muted-foreground uppercase font-bold">{t("powerScore")}</span>
                                                                     <div className="text-4xl font-black text-foreground font-display tracking-tight">{team.powerScore.toFixed(1)}</div>
                                                                 </div>
                                                                 <div className="mt-4 text-xs text-muted-foreground italic">
-                                                                    &quot;Proyección Nacional: #{team.projectedNationalRank ?? 'N/A'}. El equipo {team.teamNumber} muestra un desempeño sólido.&quot;
+                                                                    {t("natProjection", { rank: team.projectedNationalRank ?? "N/A", team: team.teamNumber })}
                                                                 </div>
                                                             </div>
                                                         </div>

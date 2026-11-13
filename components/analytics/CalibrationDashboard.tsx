@@ -48,6 +48,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
     const { user, userDoc } = useAuth();
     const { season } = useProgram();
     const tErr = useTranslations("Errors");
+    const t = useTranslations("CalibrationDashboard");
     const [snapshot, setSnapshot] = useState<CalibrationSnapshot | null>(null);
     const [scouts, setScouts] = useState<Array<{
         scoutId: string;
@@ -114,7 +115,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
     if (!user) {
         return (
             <Card className="p-8 text-center text-muted-foreground">
-                Inicia sesión para ver métricas de calibración.
+                {t("signIn")}
             </Card>
         );
     }
@@ -122,32 +123,32 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
     if (!canView) {
         return (
             <Card className="p-8 text-center text-muted-foreground">
-                Sección visible solo para admins/leads del equipo.
+                {t("adminOnly")}
             </Card>
         );
     }
 
     return (
         <div className="space-y-4">
-            <Tip id="calibration-intro-v1" title="¿Qué tan bueno es el modelo?">
-                Brier mide error cuadrático medio: lower = better, 0.25 = adivinanza, &lt;0.15 = excelente. El reliability diagram muestra si &quot;70% prob&quot; realmente acierta ~70% del tiempo. Necesita predicciones generadas (briefings) + matches jugados + ground-truth validation corriendo.
+            <Tip id="calibration-intro-v1" title={t("tipTitle")}>
+                {t("tipBody")}
             </Tip>
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                         <Target className="text-primary" size={22} />
-                        Calibración del modelo
+                        {t("title")}
                     </h2>
                     <p className="text-xs text-muted-foreground mt-1">
-                        Qué tan confiables son las predicciones del simulador y los scouts.
+                        {t("subtitle")}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <input
                         value={eventCode}
                         onChange={e => setEventCode(e.target.value.toUpperCase())}
-                        placeholder="Todos los eventos"
+                        placeholder={t("allEvents")}
                         className="px-3 py-1.5 bg-muted border border-border rounded-lg text-foreground text-xs font-mono uppercase w-40"
                     />
                     <button
@@ -157,7 +158,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground text-xs font-bold rounded-lg"
                     >
                         {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                        Actualizar
+                        {t("refresh")}
                     </button>
                 </div>
             </div>
@@ -178,28 +179,28 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
                         <>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <MetricCard
-                                    label="Sample size"
+                                    label={t("sampleSize")}
                                     value={String(snapshot.sampleSize)}
-                                    sub="predicciones"
+                                    sub={t("predictions")}
                                     icon={<TrendingUp size={14} />}
                                 />
                                 <MetricCard
                                     label="Brier score"
                                     value={snapshot.brier !== null ? snapshot.brier.toFixed(3) : "—"}
-                                    sub="lower = better (0=perfect, 0.25=guessing)"
+                                    sub={t("brierSub")}
                                     icon={<Target size={14} />}
                                     accent={brierAccent(snapshot.brier)}
                                 />
                                 <MetricCard
                                     label="Log loss"
                                     value={snapshot.logLoss !== null ? snapshot.logLoss.toFixed(3) : "—"}
-                                    sub="penaliza overconfidence"
+                                    sub={t("logLossSub")}
                                     icon={<Target size={14} />}
                                 />
                                 <MetricCard
                                     label="Accuracy"
                                     value={snapshot.accuracy !== null ? `${(snapshot.accuracy * 100).toFixed(0)}%` : "—"}
-                                    sub="aciertos (≥50% prob)"
+                                    sub={t("accuracySub")}
                                     icon={<Award size={14} />}
                                     accent={accuracyAccent(snapshot.accuracy)}
                                 />
@@ -217,11 +218,10 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
                     <div className="p-4 border-b border-border">
                         <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                             <Award className="text-warning" size={16} />
-                            Confiabilidad de scouts (org)
+                            {t("scoutReliability")}
                         </h3>
                         <p className="text-[10px] text-muted-foreground mt-1">
-                            Calculada por ground-truth validation contra scores oficiales.
-                            Actualizar corriendo el validador en sidebar.
+                            {t("scoutReliabilityHint")}
                         </p>
                     </div>
                     <ul className="divide-y divide-border">
@@ -229,7 +229,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
                             <li key={s.scoutId} className="flex items-center justify-between px-4 py-2 text-sm">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <span className="text-foreground truncate">{s.displayName}</span>
-                                    <span className="text-[10px] text-muted-foreground">{s.matchesScouted} obs</span>
+                                    <span className="text-[10px] text-muted-foreground">{t("obs", { count: s.matchesScouted })}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -309,15 +309,16 @@ function accuracyAccent(accuracy: number | null): "good" | "warning" | "bad" | "
 }
 
 function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
+    const t = useTranslations("CalibrationDashboard");
     const populatedBins = bins.filter(b => b.count > 0);
     if (populatedBins.length === 0) {
         return null;
     }
     return (
         <Card className="p-4 bg-muted/30 border-border">
-            <h3 className="text-sm font-bold text-foreground mb-1">Reliability diagram</h3>
+            <h3 className="text-sm font-bold text-foreground mb-1">{t("diagramTitle")}</h3>
             <p className="text-[10px] text-muted-foreground mb-3">
-                Cada barra = bucket de predicciones. La altura empírica debe acercarse a la línea diagonal &quot;perfecta&quot;.
+                {t("diagramHint")}
             </p>
             <div className="relative h-48 flex items-end gap-1 px-2 border-l border-b border-border">
                 {bins.map(b => {
@@ -327,7 +328,7 @@ function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
                     return (
                         <div key={b.binLow} className="flex-1 flex flex-col items-center gap-1 group relative h-full justify-end">
                             <div
-                                title={populated ? `${b.count} preds · pred ${(b.predicted * 100).toFixed(0)}% · real ${(b.empirical * 100).toFixed(0)}%` : "Sin datos"}
+                                title={populated ? t("binTitle", { count: b.count, predicted: (b.predicted * 100).toFixed(0), empirical: (b.empirical * 100).toFixed(0) }) : t("noData")}
                                 className={clsx(
                                     "w-full rounded-t transition-all relative",
                                     populated ? "bg-primary/40 hover:bg-primary/60" : "bg-muted",
@@ -351,10 +352,10 @@ function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
             </div>
             <div className="text-[10px] text-muted-foreground mt-2 flex items-center gap-3">
                 <span className="flex items-center gap-1">
-                    <span className="w-3 h-2 bg-primary/40 rounded-sm" /> Empírico
+                    <span className="w-3 h-2 bg-primary/40 rounded-sm" /> {t("empirical")}
                 </span>
                 <span className="flex items-center gap-1">
-                    <span className="w-3 h-0.5 bg-foreground" /> Predicho
+                    <span className="w-3 h-0.5 bg-foreground" /> {t("predicted")}
                 </span>
             </div>
         </Card>
@@ -362,22 +363,25 @@ function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
 }
 
 function EmptyState() {
+    const t = useTranslations("CalibrationDashboard");
     return (
         <Card className="p-8 text-center text-muted-foreground space-y-2">
-            <div className="text-sm font-bold text-foreground">Sin predicciones registradas todavía</div>
+            <div className="text-sm font-bold text-foreground">{t("emptyTitle")}</div>
             <p className="text-xs leading-relaxed max-w-md mx-auto">
-                Las métricas de calibración aparecen cuando:
+                {t("emptyIntro")}
             </p>
             <ol className="text-xs text-left max-w-md mx-auto space-y-1 list-decimal pl-6">
-                <li>Generas briefings de match (cada uno se loggea automáticamente)</li>
-                <li>Los matches se juegan y los scores oficiales aparecen en FTC API</li>
-                <li>Corres el validator de ground-truth desde el sidebar</li>
+                <li>{t("emptyStep1")}</li>
+                <li>{t("emptyStep2")}</li>
+                <li>{t("emptyStep3")}</li>
             </ol>
         </Card>
     );
 }
 
 function Explainer() {
+    const t = useTranslations("CalibrationDashboard");
+    const rich = { b: (chunks: React.ReactNode) => <strong className="text-foreground">{chunks}</strong> };
     const [open, setOpen] = useState(false);
     return (
         <Card className="p-3 bg-muted/30 border-border">
@@ -386,22 +390,22 @@ function Explainer() {
                 className="w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
             >
                 <HelpCircle size={12} />
-                ¿Qué significan estas métricas?
+                {t("explainerTitle")}
                 <span className="ml-auto text-[10px]">{open ? "▼" : "▶"}</span>
             </button>
             {open && (
                 <div className="mt-3 space-y-2 text-[11px] text-muted-foreground leading-relaxed">
                     <p>
-                        <strong className="text-foreground">Brier score</strong> = error cuadrático promedio entre probabilidad predicha y resultado (0/1). Un modelo que siempre predice 0.5 obtiene 0.25; un modelo perfecto obtiene 0. Statbotics reporta ~0.18 para FRC.
+                        {t.rich("explainBrier", rich)}
                     </p>
                     <p>
-                        <strong className="text-foreground">Log loss</strong> = penalización por confianza en respuestas equivocadas. Más sensible que Brier a &quot;100% seguro pero perdió&quot;. Menor = mejor.
+                        {t.rich("explainLogLoss", rich)}
                     </p>
                     <p>
-                        <strong className="text-foreground">Accuracy</strong> = % de matches donde la alianza con probabilidad ≥50% efectivamente ganó. Mide poder predictivo binario; ignora confianza.
+                        {t.rich("explainAccuracy", rich)}
                     </p>
                     <p>
-                        <strong className="text-foreground">Reliability diagram</strong> = si dices &quot;70% prob&quot;, deberías acertar ~70% de las veces. Barras altas en buckets bajos = subconfianza; barras bajas en buckets altos = sobreconfianza.
+                        {t.rich("explainDiagram", rich)}
                     </p>
                 </div>
             )}

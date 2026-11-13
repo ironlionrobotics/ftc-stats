@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/Card";
 import { Printer, FileText, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { guessActiveEventCode } from "@/lib/active-event";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 interface MatchBriefingCardProps {
     teams: AggregatedTeamStats[];
@@ -30,6 +30,7 @@ interface MatchBriefingCardProps {
  * once per match at most — perf isn't critical, dependency weight is.
  */
 export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
+    const tCard = useTranslations("MatchBriefingCard");
     const { user, orgId } = useAuth();
     const { season } = useProgram();
     const eventCode = guessActiveEventCode(teams) ?? "MXTOL";
@@ -102,10 +103,10 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                         <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                            <FileText className="text-primary" size={22} /> Match Briefing
+                            <FileText className="text-primary" size={22} /> {tCard("title")}
                         </h2>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Hoja imprimible para el drive coach. Selecciona match + 2 teams por alianza.
+                            {tCard("subtitle")}
                         </p>
                     </div>
                     <button
@@ -114,14 +115,14 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
                         disabled={!ready}
                         className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground font-bold rounded-lg text-sm"
                     >
-                        <Printer size={14} /> Imprimir briefing
+                        <Printer size={14} /> {tCard("print")}
                     </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1 block">
-                            Match #
+                            {tCard("matchNumber")}
                         </label>
                         <input
                             type="number"
@@ -132,7 +133,7 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
                         />
                     </div>
                     <AllianceTeamPicker
-                        label="Alianza Roja (2 teams)"
+                        label={tCard("redAllianceLabel")}
                         accent="red"
                         selected={redTeams}
                         teams={teams}
@@ -140,7 +141,7 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
                         onChange={setRedTeams}
                     />
                     <AllianceTeamPicker
-                        label="Alianza Azul (2 teams)"
+                        label={tCard("blueAllianceLabel")}
                         accent="blue"
                         selected={blueTeams}
                         teams={teams}
@@ -152,7 +153,7 @@ export default function MatchBriefingCard({ teams }: MatchBriefingCardProps) {
                 {!ready && (
                     <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-lg text-warning text-xs">
                         <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                        <span>Selecciona exactamente 2 teams por alianza para generar el briefing.</span>
+                        <span>{tCard("selectExactly")}</span>
                     </div>
                 )}
             </Card>
@@ -232,6 +233,8 @@ function AllianceTeamPicker({
 // ---------------------------------------------------------------------------
 
 function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
+    const tCard = useTranslations("MatchBriefingCard");
+    const format = useFormatter();
     const redWinPct = Math.round(briefing.winProbabilityRed * 100);
     const blueWinPct = 100 - redWinPct;
 
@@ -264,16 +267,16 @@ function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
             <header className="flex items-end justify-between border-b-2 border-black pb-2 mb-4">
                 <div>
                     <h1 className="text-3xl font-black tracking-tight">
-                        MATCH #{briefing.matchNumber}
+                        {tCard("matchHeading", { number: briefing.matchNumber })}
                     </h1>
                     <p className="text-xs font-mono text-gray-700">
-                        {briefing.eventCode} · Equipo #{briefing.orgId} ·{" "}
-                        {new Date(briefing.generatedAt).toLocaleString()}
+                        {briefing.eventCode} · {tCard("teamLine", { org: briefing.orgId })} ·{" "}
+                        {format.dateTime(new Date(briefing.generatedAt), { dateStyle: "medium", timeStyle: "short" })}
                     </p>
                 </div>
                 <div className="text-right">
                     <div className="text-[10px] uppercase tracking-widest text-gray-600 font-bold">
-                        Drive Coach Briefing
+                        {tCard("coachBriefing")}
                     </div>
                     <div className="text-[10px] text-gray-500">FTC Stats México</div>
                 </div>
@@ -282,15 +285,15 @@ function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
             {/* Win Probability bar */}
             <section className="mb-4">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-gray-600 mb-1">
-                    Probabilidad de victoria
+                    {tCard("winProbability")}
                 </div>
                 <div className="flex items-center text-xs font-bold">
-                    <span className="text-red-600">RED {redWinPct}%</span>
+                    <span className="text-red-600">{tCard("redPct", { pct: redWinPct })}</span>
                     <div className="flex-1 mx-2 h-3 bg-gray-200 rounded-full overflow-hidden flex">
                         <div className="h-full bg-red-500" style={{ width: `${redWinPct}%` }} />
                         <div className="h-full bg-blue-500" style={{ width: `${blueWinPct}%` }} />
                     </div>
-                    <span className="text-blue-600">BLUE {blueWinPct}%</span>
+                    <span className="text-blue-600">{tCard("bluePct", { pct: blueWinPct })}</span>
                 </div>
             </section>
 
@@ -312,7 +315,7 @@ function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
             {briefing.insights.length > 0 && (
                 <section className="mb-4">
                     <h2 className="text-[10px] uppercase tracking-widest font-bold text-gray-600 mb-1 border-b border-gray-300">
-                        Insights del modelo
+                        {tCard("insights")}
                     </h2>
                     <ul className="text-xs space-y-1 mt-2">
                         {briefing.insights.map((insight, i) => (
@@ -328,7 +331,7 @@ function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
             {/* Strategic focus */}
             <section className="mb-4">
                 <h2 className="text-[10px] uppercase tracking-widest font-bold text-gray-600 mb-1 border-b border-gray-300">
-                    Foco estratégico
+                    {tCard("focus")}
                 </h2>
                 <ul className="text-xs space-y-1 mt-2">
                     {briefing.strategicFocus.map((focus, i) => (
@@ -343,11 +346,11 @@ function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
             {/* Handwritten notes area */}
             <section>
                 <h2 className="text-[10px] uppercase tracking-widest font-bold text-gray-600 mb-1 border-b border-gray-300">
-                    Notas pre-match (escribir a mano)
+                    {tCard("notes")}
                 </h2>
                 <div className="grid grid-cols-2 gap-2 mt-2">
-                    <div className="h-16 border border-dashed border-gray-400 rounded p-1 text-[9px] text-gray-400">Plan A</div>
-                    <div className="h-16 border border-dashed border-gray-400 rounded p-1 text-[9px] text-gray-400">Plan B (si falla A)</div>
+                    <div className="h-16 border border-dashed border-gray-400 rounded p-1 text-[9px] text-gray-400">{tCard("planA")}</div>
+                    <div className="h-16 border border-dashed border-gray-400 rounded p-1 text-[9px] text-gray-400">{tCard("planB")}</div>
                 </div>
             </section>
         </article>
@@ -363,13 +366,14 @@ function AllianceColumn({
     teams: import("@/lib/briefings/briefing-data").BriefingTeamRow[];
     projectedScore: number;
 }) {
+    const tCard = useTranslations("MatchBriefingCard");
     const headerColor = color === "red" ? "text-red-600 border-red-600" : "text-blue-600 border-blue-600";
     const tProjections = useTranslations("Projections");
     return (
         <div>
             <div className={clsx("flex items-end justify-between border-b-2 pb-1 mb-2", headerColor)}>
                 <h3 className="text-sm font-black uppercase tracking-wider">
-                    {color === "red" ? "Alianza Roja" : "Alianza Azul"}
+                    {color === "red" ? tCard("allianceRed") : tCard("allianceBlue")}
                 </h3>
                 <div className="text-2xl font-black font-mono">{Math.round(projectedScore)}</div>
             </div>

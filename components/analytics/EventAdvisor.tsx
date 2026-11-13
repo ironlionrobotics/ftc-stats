@@ -16,6 +16,7 @@ import { useTranslations } from "next-intl";
  */
 export default function EventAdvisor() {
     const tSelector = useTranslations("EventSelector");
+    const t = useTranslations("EventAdvisor");
     const [profiles, setProfiles] = useState<EventProfile[] | null>(null);
     const [myOPR, setMyOPR] = useState<string>("");
     const [region, setRegion] = useState<string>("all");
@@ -60,10 +61,10 @@ export default function EventAdvisor() {
     }, [profiles, region, type, hasOPR, opr]);
 
     if (profiles === null) {
-        return <p className="text-muted-foreground text-sm animate-pulse py-8 text-center">Cargando perfiles históricos…</p>;
+        return <p className="text-muted-foreground text-sm animate-pulse py-8 text-center">{t("loadingProfiles")}</p>;
     }
     if (profiles.length === 0) {
-        return <p className="text-muted-foreground text-sm py-8 text-center">Sin dataset de perfiles (regenera con <code className="font-mono">scripts/oracle-backtest.mjs export-profiles</code>).</p>;
+        return <p className="text-muted-foreground text-sm py-8 text-center">{t.rich("noDataset", { code: (chunks) => <code className="font-mono">{chunks}</code> })}</p>;
     }
 
     return (
@@ -71,33 +72,33 @@ export default function EventAdvisor() {
             {/* Controls */}
             <div className="bg-card border border-border rounded-2xl p-4 md:p-5 flex flex-wrap items-end gap-4">
                 <label className="block">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Tu OPR proyectado</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("myOpr")}</span>
                     <input
                         type="number"
                         min={0}
-                        placeholder="ej. 80"
+                        placeholder={t("oprPlaceholder")}
                         value={myOPR}
                         onChange={e => setMyOPR(e.target.value)}
                         className="block mt-1 w-28 px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm text-foreground"
                     />
                 </label>
                 <label className="block">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Tipo</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("type")}</span>
                     <select value={type} onChange={e => setType(e.target.value)} className="block mt-1 px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground">
-                        <option value="all">Todos</option>
-                        {types.map(t => <option key={t} value={t}>{t}</option>)}
+                        <option value="all">{t("all")}</option>
+                        {types.map(ty => <option key={ty} value={ty}>{ty}</option>)}
                     </select>
                 </label>
                 <label className="block">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Región</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("region")}</span>
                     <select value={region} onChange={e => setRegion(e.target.value)} className="block mt-1 px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground">
-                        <option value="all">Todas</option>
+                        <option value="all">{t("allRegions")}</option>
                         {regions.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                 </label>
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 ml-auto max-w-xs leading-snug">
                     <Info size={13} className="shrink-0" />
-                    Estimaciones direccionales sobre el field histórico de cada evento — no garantías.
+                    {t("disclaimer")}
                 </p>
             </div>
 
@@ -106,12 +107,12 @@ export default function EventAdvisor() {
                 <table className="w-full min-w-[760px] text-sm">
                     <thead>
                         <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-widest">
-                            <th className="p-3 text-left font-bold">Evento</th>
-                            <th className="p-3 text-center font-bold">Equipos</th>
-                            <th className="p-3 text-center font-bold">OPR medio / top</th>
-                            <th className="p-3 text-center font-bold">Volatilidad (σ)</th>
-                            {hasOPR && <th className="p-3 text-center font-bold">Tu seed est.</th>}
-                            {hasOPR && <th className="p-3 text-center font-bold">Veredicto</th>}
+                            <th className="p-3 text-left font-bold">{t("colEvent")}</th>
+                            <th className="p-3 text-center font-bold">{t("colTeams")}</th>
+                            <th className="p-3 text-center font-bold">{t("colOpr")}</th>
+                            <th className="p-3 text-center font-bold">{t("colVolatility")}</th>
+                            {hasOPR && <th className="p-3 text-center font-bold">{t("colSeed")}</th>}
+                            {hasOPR && <th className="p-3 text-center font-bold">{t("colVerdict")}</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
@@ -143,7 +144,7 @@ export default function EventAdvisor() {
 
             <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                 <Compass size={13} />
-                Regla σ (validada en el backtest global, decisiones #57-#58): field <b>ordenado</b> (σ≤40) favorece a favoritos; field <b>caótico</b> (σ≥60) da vida a los retadores. Pasa el cursor sobre una fila para la nota estratégica.
+                {t.rich("sigmaRule", { b: (chunks) => <b>{chunks}</b> })}
             </p>
         </div>
     );
