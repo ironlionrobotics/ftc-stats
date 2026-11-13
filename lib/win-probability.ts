@@ -21,16 +21,22 @@
  *
  *   2. winProbabilityFromProjections(redScore, blueScore)
  *      Use when only point projections exist (no variance model). Logistic
- *      on the score difference normalized by the average score, slope k=1.5 —
- *      game-agnostic (works whether the meta is 60 or 400 points) and
- *      calibrated against FRC/FTC score-variance distributions per community
- *      models (Statbotics, Caleb Sykes' Elo work). See decisions.md #23.
+ *      on the score difference normalized by the average score, slope k=3.5 —
+ *      game-agnostic (works whether the meta is 60 or 400 points), fitted on
+ *      FTC playoff matches 2024–2026. See decisions.md #94 (supersedes #23).
  *
  * Both clamp to [0.01, 0.99]: never display false certainty.
  */
 
-/** Logistic slope for the projection-only entry point (decisions.md #23). */
-export const WIN_PROB_LOGISTIC_K = 1.5;
+/**
+ * Logistic slope for the projection-only entry point.
+ * Fitted on playoff matches (decision #94, 2026-11-13): best log-loss at
+ * k = 3.35 (2024, n=5,028), 3.50 (2025, n=5,772) and 3.80 (2026, n=160;
+ * bootstrap 90% CI 3.0–5.0). The previous k = 1.5 (decision #23, borrowed
+ * from community models) was under-confident in every season: Brier
+ * 0.175 → 0.156 on 2026 with k = 3.5.
+ */
+export const WIN_PROB_LOGISTIC_K = 3.5;
 
 const P_MIN = 0.01;
 const P_MAX = 0.99;
@@ -69,7 +75,7 @@ function normalCdf(x: number): number {
 
 /**
  * P(red wins) when only point projections are known (no variance model).
- * Score difference normalized by average score, then logistic with k=1.5.
+ * Score difference normalized by average score, then logistic with k=3.5.
  */
 export function winProbabilityFromProjections(
     redScore: number,

@@ -49,7 +49,7 @@ test.describe("Smoke", () => {
         await expect(page.locator("text=/Match Briefing/i")).toBeVisible();
         // Live ranking tab
         await page.getByRole("tab", { name: /live ranking/i }).click();
-        await expect(page.locator("text=/Proyección final/i")).toBeVisible();
+        await expect(page.locator("text=/Proyección final|Final ranking projection/i")).toBeVisible();
     });
 
     test("/analytics shows Data Lab + Calibración tabs", async ({ page }) => {

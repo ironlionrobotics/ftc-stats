@@ -937,3 +937,66 @@ Un modelo conjunto de 8 estados por robot no mejora (0.1772): el sesgo residual 
 
 - **Firebase Analytics** se inicializaba en cada visita sin consentimiento, y la mayoría de los usuarios son menores. Ahora solo carga si `localStorage["pride-analytics-consent"] === "granted"`; nada lo concede hasta que exista el aviso de consentimiento (plan, Etapa 4). Se importa de forma diferida, así que `firebase/analytics` sale del bundle.
 - **`scoutNameFromUser`** y la semilla del perfil caían al correo cuando faltaba el nombre, y ese valor se graba en cada entrada de scouting, visible para toda la organización. Ahora caen a "Scout".
+
+## #94 · Probabilidad de victoria: modelo normal confirmado en BIOBUZZ y k = 3.5 para la fórmula sin varianza (2026-11-13)
+
+**Backtest 2026** (`scripts/oracle-backtest.mjs run 2026`, 201 eventos, 22 con playoffs y 160 partidos): el modelo normal Φ(Δμ/σ), que usan el Oracle, el simulador y MatchList, acierta **75.6%**, con confianza media de 74.1% y Brier de 0.175. Está calibrado para BIOBUZZ; no se cambia.
+
+**Fórmula sin varianza** (`winProbabilityFromProjections`, usada por `predictMatch` en `lib/projections.ts`): logística sobre Δ/promedio. Ajustada por log-loss en partidos de playoff (`x = z/level` de `matches-<año>.jsonl`):
+
+| Temporada | n | Brier con k=1.5 | Mejor k | Brier con mejor k |
+|---|---|---|---|---|
+| 2024 | 5,028 | 0.179 | 3.35 | 0.163 |
+| 2025 | 5,772 | 0.183 | 3.50 | 0.165 |
+| 2026 | 160 | 0.175 | 3.80 (IC 90% 3.0–5.0) | 0.156 |
+
+**Decisión:** `WIN_PROB_LOGISTIC_K = 3.5`. Reemplaza el 1.5 de la decisión #23, que se había tomado de modelos de la comunidad y resultó poco confiado en las tres temporadas: subestimaba la ventaja del favorito.
+
+**`apiPriorCV` (0.20) no se recalibra:** necesita scouting real de 2026 y hoy hay 0 entradas. Revisar después de MXTLQ.
+
+**Pendiente lateral:** el `report` del backtest muestra NaN en 2024 y 2025 (formato de registro distinto en esos archivos); no afecta a 2026.
+
+## #95 · Proyección de ranking v2 y RP reales en la vista de evento (2026-11-13)
+
+**Bug de fondo:** el Ranking Score de FTC (`sortOrder1`) ya es el **promedio** de RP por partido, pero la proyección de Live Ranking lo trataba como total y lo extrapolaba (RS + RS/jugados × restantes). Eso inflaba a los equipos con menos partidos jugados. Además solo usaba un desempate, y lo dejaba fijo.
+
+**Proyección v2** (`lib/live-projection.ts`): 1,000 simulaciones Monte Carlo, con semilla fija, de los partidos de calificación que faltan:
+- **Fuerza de cada equipo:** OPR del evento sobre puntos sin penalizaciones (ridge).
+- **P(ganar):** Φ(Δμ/σ), con σ = √2·RMS de los residuos y un piso de 20% del puntaje medio cuando hay pocos datos.
+- **RP de bonificación:** la tasa observada de cada equipo, es decir su RS menos el RP por victorias y empates.
+- **RS final:** RP total entre los partidos que cuentan; las apariciones como *surrogate* no cuentan.
+- **Orden:** por RS y luego los desempates oficiales en el orden que da la API (`sortOrder2…5`), con sorteo al final.
+- **Salida:** rango mediano, rango p10–p90 y P(top 4).
+- **Validado contra datos reales:** con todos los partidos de AUBRQ1 jugados, reproduce exactamente el ranking oficial (test con fixture real). Fue así como se encontró el caso de los *surrogate*.
+
+**Vista de evento:**
+- La página del servidor trae `/scores` y pasa los RP de bonificación oficiales de cada alianza. El deslizador "Historia por ronda" reconstruye rondas pasadas con 3 RP por victoria (antes usaba 2, la regla de antes de DECODE) más esos RP de bonificación.
+- Para 2026 pasa también las probabilidades de RP de los modelos de conteo (#88), el mismo análisis que usa Data Lab, ya en caché. Antes esa vista dejaba los RP de 2026 vacíos.
+
+## #96 · SWARM calibrado con 201 eventos (2026-11-13)
+
+**Contexto:** la decisión #88 dejó a SWARM con un sesgo de unos −0.12: predecía de menos. Con 15 eventos no daba para corregirlo sin sobreajustar. Ahora hay 201 eventos 2026 con `/scores` (2,960 alianzas de prueba). Mismo método: entrenar con el 60% inicial de las calificaciones de cada evento y predecir el resto.
+
+**Decaimiento por recencia:** 1.0 → skill 0.133; **0.7 → 0.168**; 0.4 → 0.186; 0.25 → 0.185. Por sí solo, un decaimiento más agresivo ayuda poco y vuelve más ruidosa la tasa de cada robot.
+
+**Calibración Platt** p' = σ(a + b·logit p), validación cruzada de 2 mitades por evento:
+
+| Decaimiento | Brier sin calibrar | Brier calibrado | Skill calibrado | Media predicha vs observada |
+|---|---|---|---|---|
+| 0.7 | 0.177 / 0.173 | **0.161 / 0.158** | **0.23 / 0.26** | 0.68–0.69 vs 0.68–0.69 |
+| 0.4 | 0.173 / 0.169 | 0.164 / 0.162 | 0.21 / 0.24 | 0.68–0.70 vs 0.68–0.69 |
+
+Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.108/1.010.
+
+**Decisión:** decaimiento 0.7 sin cambio, más `SWARM_CALIBRATION = { a: 0.65, b: 1.05 }` en `biobuzzAllianceRp` (`lib/rp-counts.ts`, `calibrateSwarm`). Los extremos se respetan: p = 1 sigue en 1 y p = 0 sigue en 0. POLLINATOR no se toca: skill 0.27 / 0.21; queda una subestimación en el tramo alto, pero con n pequeño (74 y 4 alianzas).
+
+**Umbrales de RP de Regional, Campeonato y Premier:** siguen sin publicarse (TBA en el manual). El mecanismo de override por evento ya existe (`RP_THRESHOLD_OVERRIDES`, #87); se llena cuando se publiquen.
+
+**Ajustes a #95 tras la revisión independiente (mismo día, antes del deploy):**
+- **Faltas:** los puntos sin penalizaciones restaban las faltas al revés. Ahora es el final menos las faltas *recibidas* (`scoreRedFinal − scoreBlueFoul`, #48). El modelo de fuerza quedó extraído en `eventStrengthModel`. En datos reales de AUBRQ1 movía P(capitán) hasta 17 puntos.
+- **Lista de partidos vacía:** si `fetchMatches` falla de forma transitoria con rankings ya jugados, la proyección se reporta como "sin datos" en lugar de mostrar certeza (100% o 0%).
+- **Incertidumbre:** los RP de bonificación se muestrean como Binomial(3, tasa/3) y cada corrida perturba la fuerza de cada equipo con N(0, σ_alianza/√jugados). En eventos sintéticos, la cobertura del rango p10–p90 pasó de 62–76% a **75–83%** (objetivo 80%). P(capitán) ≥ 0.85 queda bien calibrada a 70% del evento (predice 0.94–0.95, se cumple 0.89–0.93), pero sigue algo confiada a 40% (predice 0.91–0.93, se cumple 0.72–0.87).
+- **Equipos sin partidos:** reciben la fuerza del "robot promedio" (el prior del ridge), no 0.
+- **Posición proyectada:** es la posición 1…N en el orden por rango medio simulado; antes era la mediana, que repetía posiciones.
+- **"Top 4" pasa a ser P(capitán)** con 4, 6 u 8 lugares según el tamaño del evento (`estimateAlliances`).
+- **Versiones:** caché del análisis `analytics_v4_` (SWARM cambió de significado) y registro de calibración `modelVersion "v4-k3.5"`, para no mezclar regímenes en la pestaña Calibración.

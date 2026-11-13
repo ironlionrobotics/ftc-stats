@@ -532,5 +532,25 @@
     "reject": "Rechazar",
     "approved": "Equipo {team} activado",
     "rejected": "Solicitud del equipo {team} rechazada"
+  },
+  "LiveRanking": {
+    "title": "Proyección final del ranking",
+    "subtitle": "Simula 1,000 veces los partidos de calificación que faltan con el calendario real, la fuerza de cada equipo en este evento y su incertidumbre. Ordena por Ranking Score (promedio de RP) y los desempates oficiales. \"Capitán\" es la probabilidad de terminar en los lugares de capitán de alianza.",
+    "noEvents": "Sin eventos",
+    "refresh": "Actualizar",
+    "played": "{played} / {total} partidos de calificación jugados",
+    "updatedAt": "Actualizado {time}",
+    "error": "No se pudo cargar la proyección. Intenta de nuevo en un momento.",
+    "insufficient": "Aún no hay partidos jugados en {event}. La proyección aparece cuando empiece la calificación.",
+    "col": {
+      "projected": "Proyectado",
+      "range": "Rango probable",
+      "current": "Actual",
+      "team": "Equipo",
+      "matches": "Jugados/Total",
+      "rsNow": "RS actual",
+      "rsFinal": "RS final",
+      "top4": "Capitán"
+    }
   }
 }

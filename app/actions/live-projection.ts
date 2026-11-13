@@ -5,6 +5,7 @@ import { isValidSeason, normalizeEventCode } from "@/lib/input-guards";
 import { getCurrentSeason } from "@/lib/constants";
 import { fetchRankings, fetchMatches } from "@/lib/ftc-api";
 import { projectFinalRankings, type LiveProjectionResult } from "@/lib/live-projection";
+import { seasonRulesFor } from "@/lib/games/season-rules";
 
 /**
  * Server action wrapper around `projectFinalRankings`. Pulls rankings and
@@ -30,7 +31,8 @@ export async function fetchLiveProjectionAction(input: {
             fetchRankings(season, eventCode),
             fetchMatches(season, eventCode),
         ]);
-        const result = projectFinalRankings(rankings, matches, eventCode);
+        const rules = seasonRulesFor(season);
+        const result = projectFinalRankings(rankings, matches, eventCode, { winRp: rules.winRp, tieRp: rules.tieRp });
         return { ok: true, result };
     } catch (e) {
         const message = e instanceof Error ? e.message : "Error desconocido";

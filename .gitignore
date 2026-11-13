@@ -58,3 +58,13 @@ data/oracle-backtest/
 data/growth-curves/
 # Draft science raw pulls (regenerable via scripts/draft-science.mjs).
 data/draft-science/
+
+# Agent worktrees (Claude Code isolation)
+.claude/worktrees/
+
+# Generated: next dev (Next 16.4+) rewrites this on every start; AGENTS.md is
+# reserved for human-maintained instructions in this repo.
+AGENTS.md
+
+# graphify knowledge graph (regenerate with `graphify update .`)
+graphify-out/
