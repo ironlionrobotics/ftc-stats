@@ -9,6 +9,7 @@ import { seasonRulesFor } from "@/lib/games/season-rules";
 import { seasonGameName } from "@/lib/games/season-names";
 import { pickRelevantEvent, summarizeAtEvent, daysUntil, type TodayAtEvent } from "@/lib/today-summary";
 import FollowTeamForm from "@/components/today/FollowTeamForm";
+import OpenLoansNotice from "@/components/today/OpenLoansNotice";
 
 /**
  * Hoy (plan "PRIDE abierta al público", Etapa 2, decision #98): the home of
@@ -46,6 +47,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
     return (
         <main className="container mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
+            <OpenLoansNotice />
             <header className="mb-6 border-b border-border pb-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{kicker}</p>
                 <h1 className="mt-1 flex flex-wrap items-baseline gap-x-3 text-4xl font-black md:text-5xl">
