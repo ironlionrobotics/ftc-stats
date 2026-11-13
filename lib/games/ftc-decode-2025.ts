@@ -6,10 +6,9 @@ import type { GameDefinition } from "@/types/game-definition";
  * This IS the production FTC match-scouting form — wired in via
  * `GameScoutingForm` since session 19 (decision #79). The retired
  * hand-written `FTC_DecodeForm` is dead reference code (nothing imports it).
- * When the 2026-2027 game launches in September, create a sibling file
- * (e.g. `ftc-galactic-2026.ts`) and swap which definition
- * `MatchScoutingForm` imports — no React changes needed. See
- * `docs/architecture/game-schema-migration.md`.
+ * Superseded for season >= 2026 by `ftc-biobuzz-2026.ts`; still served for
+ * season 2025 via `gameDefinitionFor()` (lib/games/registry.ts) so historical
+ * entries keep aggregating and scoring correctly.
  *
  * Field ids are preserved from the existing schema so federation, aggregation
  * and reporting code keep working without migration.
@@ -28,6 +27,9 @@ export const FTC_DECODE_2025: GameDefinition = {
     label: "FTC DECODE",
     program: "FTC",
     season: 2025,
+    // DECODE entries were persisted with gameSchemaVersion 1 (the constant was
+    // never bumped during the season). Kept as-is for provenance continuity.
+    schemaVersion: 1,
     sections: [
         {
             id: "auto",
@@ -136,4 +138,16 @@ export const FTC_DECODE_2025: GameDefinition = {
         autoParked: v.endgameBaseParking !== "None",
         autoPoints: 0,
     }),
+    derivedFields: { autoParked: "categorical", autoPoints: "numeric" },
+    // Coarse per-robot reconstruction. Byte-for-byte the formula previously
+    // duplicated in lib/projections.ts and lib/ground-truth-validation.ts
+    // (parity-tested in score-parity.test.ts). RP-only bonuses add no points.
+    score: (s) => {
+        const park = s.cat("endgameBaseParking");
+        return {
+            auto: s.num("autoPurpleArtifacts") * 3 + s.num("autoGreenArtifacts") * 3 + s.num("autoPoints"),
+            teleop: s.num("teleopPurpleArtifacts") * 2 + s.num("teleopGreenArtifacts") * 2 + s.num("patternsCompleted") * 10,
+            endgame: (park === "Full" ? 10 : park === "Partial" ? 5 : 0) + (s.flag("dualParking") ? 20 : 0),
+        };
+    },
 };

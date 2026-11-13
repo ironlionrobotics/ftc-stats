@@ -57,7 +57,7 @@ function cat<T extends string | boolean>(value: T): FieldConsensus {
 
 describe("computeTeamPointsFromConsensus — FTC", () => {
     it("returns 0 with empty fields", () => {
-        expect(computeTeamPointsFromConsensus({}, "FTC")).toBe(0);
+        expect(computeTeamPointsFromConsensus({}, "FTC", 2025)).toBe(0);
     });
 
     it("scores autonomous artifacts at 3 pts each", () => {
@@ -66,7 +66,7 @@ describe("computeTeamPointsFromConsensus — FTC", () => {
             autoGreenArtifacts: num(1),
         };
         // 2*3 + 1*3 = 9
-        expect(computeTeamPointsFromConsensus(fields, "FTC")).toBe(9);
+        expect(computeTeamPointsFromConsensus(fields, "FTC", 2025)).toBe(9);
     });
 
     it("scores teleop artifacts at 2 pts and patterns at 10 pts", () => {
@@ -76,21 +76,21 @@ describe("computeTeamPointsFromConsensus — FTC", () => {
             patternsCompleted: num(2),
         };
         // 5*2 + 3*2 + 2*10 = 36
-        expect(computeTeamPointsFromConsensus(fields, "FTC")).toBe(36);
+        expect(computeTeamPointsFromConsensus(fields, "FTC", 2025)).toBe(36);
     });
 
     it("adds endgame parking bonuses correctly", () => {
         const partial = computeTeamPointsFromConsensus(
             { endgameBaseParking: cat("Partial") },
-            "FTC",
+            "FTC", 2025,
         );
         const full = computeTeamPointsFromConsensus(
             { endgameBaseParking: cat("Full") },
-            "FTC",
+            "FTC", 2025,
         );
         const fullDual = computeTeamPointsFromConsensus(
             { endgameBaseParking: cat("Full"), dualParking: cat(true) },
-            "FTC",
+            "FTC", 2025,
         );
         expect(partial).toBe(5);
         expect(full).toBe(10);
@@ -112,7 +112,7 @@ describe("computeTeamPointsFromConsensus — FTC", () => {
         // tele: 20 + 16 + 10 = 46
         // end: 10
         // total: 73
-        expect(computeTeamPointsFromConsensus(fields, "FTC")).toBe(73);
+        expect(computeTeamPointsFromConsensus(fields, "FTC", 2025)).toBe(73);
     });
 
     it("treats missing/wrong-kind fields as 0", () => {
@@ -120,7 +120,7 @@ describe("computeTeamPointsFromConsensus — FTC", () => {
             // Intentionally wrong shape: autoPurpleArtifacts is categorical
             autoPurpleArtifacts: cat("Full"),
         };
-        expect(computeTeamPointsFromConsensus(fields, "FTC")).toBe(0);
+        expect(computeTeamPointsFromConsensus(fields, "FTC", 2025)).toBe(0);
     });
 });
 
@@ -128,30 +128,30 @@ describe("computeTeamPointsFromConsensus — FRC Reefscape", () => {
     it("scores coral by reef level (auto > teleop per level)", () => {
         const auto = computeTeamPointsFromConsensus(
             { autoCoralL4: num(1) },
-            "FRC",
+            "FRC", 2025,
         );
         const tele = computeTeamPointsFromConsensus(
             { teleopCoralL4: num(1) },
-            "FRC",
+            "FRC", 2025,
         );
         expect(auto).toBe(7);
         expect(tele).toBe(5);
         // Higher tiers are worth more
-        expect(computeTeamPointsFromConsensus({ teleopCoralL1: num(1) }, "FRC")).toBe(2);
-        expect(computeTeamPointsFromConsensus({ teleopCoralL3: num(1) }, "FRC")).toBe(4);
+        expect(computeTeamPointsFromConsensus({ teleopCoralL1: num(1) }, "FRC", 2025)).toBe(2);
+        expect(computeTeamPointsFromConsensus({ teleopCoralL3: num(1) }, "FRC", 2025)).toBe(4);
     });
 
     it("adds endgame climb bonuses", () => {
         expect(
-            computeTeamPointsFromConsensus({ endgameClimbState: cat("Deep") }, "FRC"),
+            computeTeamPointsFromConsensus({ endgameClimbState: cat("Deep") }, "FRC", 2025),
         ).toBe(12);
         expect(
-            computeTeamPointsFromConsensus({ endgameClimbState: cat("Shallow") }, "FRC"),
+            computeTeamPointsFromConsensus({ endgameClimbState: cat("Shallow") }, "FRC", 2025),
         ).toBe(6);
         expect(
             computeTeamPointsFromConsensus(
                 { endgameClimbState: cat("None"), endgameParked: cat(true) },
-                "FRC",
+                "FRC", 2025,
             ),
         ).toBe(2);
     });
@@ -164,7 +164,7 @@ describe("computeTeamPointsFromConsensus — FRC Reefscape", () => {
             teleopAlgaeProcessor: num(2), // 12
             endgameClimbState: cat("Shallow"), // 6
         };
-        expect(computeTeamPointsFromConsensus(fields, "FRC")).toBe(48);
+        expect(computeTeamPointsFromConsensus(fields, "FRC", 2025)).toBe(48);
     });
 });
 

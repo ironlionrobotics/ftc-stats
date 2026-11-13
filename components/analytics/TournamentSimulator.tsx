@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { TeamEvolution } from "@/app/actions/analytics";
 import type { FTCMatch } from "@/types/scouting";
 import { Alliance, PlayoffMatch } from "@/types/oracle";
-import { generateAlliances, alliancesFromOfficial, initializeBracket, updateBracket, runMonteCarloSimulation, SimulationResult, MAJOR_FOUL_POINTS, type MatchAdjustment } from "@/lib/alliance-utils";
+import { generateAlliances, alliancesFromOfficial, initializeBracket, updateBracket, runMonteCarloSimulation, SimulationResult, MAJOR_FOUL_POINTS, LEGACY_MAJOR_FOUL_POINTS, type MatchAdjustment } from "@/lib/alliance-utils";
 import { Play, RotateCcw, Trophy, Shield, Edit2, Save, FolderOpen, PieChart, Download } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
@@ -927,7 +927,7 @@ function MatchNode({ match, onMatchClick, onSelectMatch, allianceMap, adj }: Mat
                         <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isRedWinner ? "bg-danger" : "bg-muted-foreground")} />
                         <span className="truncate leading-tight">
                             <span className="font-black">{match.redAllianceId ? `A${match.redAllianceId}` : "TBD"}</span>
-                            {red && <span className="block font-mono text-[9px] opacity-90">{allianceTeamsLabel(red)}{(adj?.failedTeamRed != null || adj?.failRed) ? " ⚡" : ""}{((adj?.foulPointsRed ?? (adj?.foulsRed ?? 0) * MAJOR_FOUL_POINTS) > 0) ? ` ⚠${adj?.foulPointsRed ?? (adj?.foulsRed ?? 0) * MAJOR_FOUL_POINTS}` : ""}</span>}
+                            {red && <span className="block font-mono text-[9px] opacity-90">{allianceTeamsLabel(red)}{(adj?.failedTeamRed != null || adj?.failRed) ? " ⚡" : ""}{((adj?.foulPointsRed ?? (adj?.foulsRed ?? 0) * LEGACY_MAJOR_FOUL_POINTS) > 0) ? ` ⚠${adj?.foulPointsRed ?? (adj?.foulsRed ?? 0) * LEGACY_MAJOR_FOUL_POINTS}` : ""}</span>}
                         </span>
                     </div>
                     {rightCell("red")}
@@ -948,7 +948,7 @@ function MatchNode({ match, onMatchClick, onSelectMatch, allianceMap, adj }: Mat
                         <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isBlueWinner ? "bg-secondary" : "bg-muted-foreground")} />
                         <span className="truncate leading-tight">
                             <span className="font-black">{match.blueAllianceId ? `A${match.blueAllianceId}` : "TBD"}</span>
-                            {blue && <span className="block font-mono text-[9px] opacity-90">{allianceTeamsLabel(blue)}{(adj?.failedTeamBlue != null || adj?.failBlue) ? " ⚡" : ""}{((adj?.foulPointsBlue ?? (adj?.foulsBlue ?? 0) * MAJOR_FOUL_POINTS) > 0) ? ` ⚠${adj?.foulPointsBlue ?? (adj?.foulsBlue ?? 0) * MAJOR_FOUL_POINTS}` : ""}</span>}
+                            {blue && <span className="block font-mono text-[9px] opacity-90">{allianceTeamsLabel(blue)}{(adj?.failedTeamBlue != null || adj?.failBlue) ? " ⚡" : ""}{((adj?.foulPointsBlue ?? (adj?.foulsBlue ?? 0) * LEGACY_MAJOR_FOUL_POINTS) > 0) ? ` ⚠${adj?.foulPointsBlue ?? (adj?.foulsBlue ?? 0) * LEGACY_MAJOR_FOUL_POINTS}` : ""}</span>}
                         </span>
                     </div>
                     {rightCell("blue")}
@@ -1150,8 +1150,8 @@ function EstimateVsRealTable({ bracket, alliances, matchData }: {
                                     {[
                                         (adj.failedTeamRed != null || adj.failRed) && `⚡ falla ${adj.failedTeamRed ?? `A${m.redAllianceId}`}`,
                                         (adj.failedTeamBlue != null || adj.failBlue) && `⚡ falla ${adj.failedTeamBlue ?? `A${m.blueAllianceId}`}`,
-                                        ((adj.foulPointsRed ?? (adj.foulsRed ?? 0) * MAJOR_FOUL_POINTS) > 0) && `⚠ ${adj.foulPointsRed ?? (adj.foulsRed ?? 0) * MAJOR_FOUL_POINTS} pts foul A${m.redAllianceId}`,
-                                        ((adj.foulPointsBlue ?? (adj.foulsBlue ?? 0) * MAJOR_FOUL_POINTS) > 0) && `⚠ ${adj.foulPointsBlue ?? (adj.foulsBlue ?? 0) * MAJOR_FOUL_POINTS} pts foul A${m.blueAllianceId}`,
+                                        ((adj.foulPointsRed ?? (adj.foulsRed ?? 0) * LEGACY_MAJOR_FOUL_POINTS) > 0) && `⚠ ${adj.foulPointsRed ?? (adj.foulsRed ?? 0) * LEGACY_MAJOR_FOUL_POINTS} pts foul A${m.redAllianceId}`,
+                                        ((adj.foulPointsBlue ?? (adj.foulsBlue ?? 0) * LEGACY_MAJOR_FOUL_POINTS) > 0) && `⚠ ${adj.foulPointsBlue ?? (adj.foulsBlue ?? 0) * LEGACY_MAJOR_FOUL_POINTS} pts foul A${m.blueAllianceId}`,
                                     ].filter(Boolean).join(" · ") || "—"}
                                 </td>
                             </tr>

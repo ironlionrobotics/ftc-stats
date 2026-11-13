@@ -429,6 +429,63 @@
         }
       }
     },
+    "biobuzz": {
+      "sections": {
+        "auto": "Autonomous (30 s)",
+        "teleop": "Driver Controlled (TeleOp)",
+        "endgame": "Last Minute (FLOWER & Park)",
+        "notes": "Notes"
+      },
+      "fields": {
+        "autoLeave": "Leave",
+        "autoCellLaunches": "Launches into CELL (Auto)",
+        "autoCellMisses": "Missed launches (Auto)",
+        "cellLaunchesHelp": "Count elements this robot launched that stayed in its alliance's HIVE CELL.",
+        "autoHiveTips": "HIVE TIPs (Auto)",
+        "hiveTipsHelp": "Count a TIP only if THIS robot's launch flipped the CELL — the partner's scout counts theirs.",
+        "autoPark": "Parked in LOADING ZONE (end of Auto)",
+        "teleopCellLaunches": "Launches into CELL",
+        "teleopCellMisses": "Missed launches",
+        "teleopHiveTips": "HIVE TIPs",
+        "teleopGardenElements": "Elements into own GARDEN",
+        "driverSkill": "Driver Skill",
+        "driverSkillHelp": "How well did they drive the robot?",
+        "flowerElementsPlaced": "Elements placed in FLOWERS",
+        "flowerElementsPlacedHelp": "POLLEN/NECTAR this robot placed in any FLOWER during the last 60 s.",
+        "flowersClaimed": "FLOWERS claimed",
+        "flowersClaimedHelp": "FLOWERS where this robot placed the top-most alliance NECTAR (alliance owns the FLOWER).",
+        "bottomNectarBonuses": "Bottom NECTAR bonuses",
+        "bottomNectarBonusesHelp": "FLOWERS where this robot placed the alliance's lowest NECTAR (5 pts each).",
+        "teleopPark": "Parked in LOADING ZONE (end of match)",
+        "defense": "Defense played",
+        "robotIssue": "Robot issue",
+        "minorFouls": "Minor fouls",
+        "majorFouls": "Major fouls",
+        "notes": "Critical Match Notes",
+        "notesPlaceholder": "E.g.: tipped the HIVE twice, lost connection at 1:20, heavy defense on FLOWERS..."
+      },
+      "options": {
+        "defense": {
+          "None": "None",
+          "Some": "Some",
+          "Heavy": "Heavy"
+        },
+        "robotIssue": {
+          "None": "None",
+          "NoShow": "No show",
+          "Died": "Died / disabled",
+          "TippedOver": "Tipped over"
+        }
+      }
+    },
+    "rp": {
+      "movement": "Movement RP",
+      "goal": "Goal RP",
+      "pattern": "Pattern RP",
+      "swarm": "SWARM RP",
+      "pollinator1": "POLLINATOR 1 RP",
+      "pollinator2": "POLLINATOR 2 RP"
+    },
     "aria": {
       "decrement": "Decrease {label}",
       "increment": "Increase {label}",

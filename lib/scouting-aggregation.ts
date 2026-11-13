@@ -19,6 +19,8 @@
 
 import type { BaseMatchScouting, ScoutConfidence } from "@/types/scouting";
 import { scoutIdOf, scoutNameOf } from "@/types/scouting";
+import type { GameDefinition } from "@/types/game-definition";
+import { gameDefinitionFor } from "@/lib/games/registry";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -99,35 +101,43 @@ export interface MatchTeamAggregation {
 }
 
 // ---------------------------------------------------------------------------
-// Field maps per program/game. Each game's per-game data block lists every
-// field we know how to aggregate. Anything missing here is silently skipped.
-//
-// Bumped together with CURRENT_GAME_SCHEMA in types/scouting.ts when the game
-// shape changes.
+// Field maps per program/season. FTC maps are DERIVED from the season's
+// GameDefinition (lib/games/registry.ts) so a new season needs no edit here.
+// FRC still uses a literal map (hand-written form). Anything missing from a
+// map is silently skipped by aggregateMatchTeam.
 // ---------------------------------------------------------------------------
 
-export const FTC_INTODEEP_FIELDS: Record<string, FieldDescriptor> = {
-    autoParked: { kind: "categorical" },
-    autoLaunchLine: { kind: "categorical" },
-    autoPurpleArtifacts: { kind: "numeric" },
-    autoGreenArtifacts: { kind: "numeric" },
-    autoMotifStarted: { kind: "categorical" },
-    movementRP: { kind: "categorical" },
-    autoPoints: { kind: "numeric" },
-    teleopPurpleArtifacts: { kind: "numeric" },
-    teleopGreenArtifacts: { kind: "numeric" },
-    patternsCompleted: { kind: "numeric" },
-    gatesUsed: { kind: "categorical" },
-    driverSkill: { kind: "subjective" },
+/** Super-scouting fields shared by every game (scoutingMode: "super"). */
+const SUPER_SCOUTING_FIELDS: Record<string, FieldDescriptor> = {
     defenseRating: { kind: "subjective" },
     reliability: { kind: "subjective" },
     wouldPick: { kind: "categorical" },
-    endgameBaseParking: { kind: "categorical" },
-    dualParking: { kind: "categorical" },
-    motifCompleted: { kind: "categorical" },
-    goalRP: { kind: "categorical" },
-    patternRP: { kind: "categorical" },
 };
+
+/**
+ * Field map derived from a declarative definition:
+ *   counter → numeric · boolean/enum → categorical · stars → subjective ·
+ *   text/textarea → skipped (notes are aggregated separately).
+ * Plus the definition's `derivedFields` (toEntry outputs) and the shared
+ * super-scouting fields.
+ */
+export function fieldMapFromDefinition(def: GameDefinition): Record<string, FieldDescriptor> {
+    const out: Record<string, FieldDescriptor> = {};
+    for (const section of def.sections) {
+        for (const f of section.fields) {
+            switch (f.kind) {
+                case "counter": out[f.id] = { kind: "numeric" }; break;
+                case "boolean":
+                case "enum": out[f.id] = { kind: "categorical" }; break;
+                case "stars": out[f.id] = { kind: "subjective" }; break;
+                case "text":
+                case "textarea": break;
+            }
+        }
+    }
+    for (const [id, kind] of Object.entries(def.derivedFields ?? {})) out[id] = { kind };
+    return { ...out, ...SUPER_SCOUTING_FIELDS };
+}
 
 export const FRC_REEFSCAPE_FIELDS: Record<string, FieldDescriptor> = {
     autoLeave: { kind: "categorical" },
@@ -151,8 +161,10 @@ export const FRC_REEFSCAPE_FIELDS: Record<string, FieldDescriptor> = {
     endgameClimbState: { kind: "categorical" },
 };
 
-export function fieldsForProgram(program: "FTC" | "FRC"): Record<string, FieldDescriptor> {
-    return program === "FTC" ? FTC_INTODEEP_FIELDS : FRC_REEFSCAPE_FIELDS;
+/** Field map for one program + season. Route by season, never by gameSchemaVersion. */
+export function fieldsFor(program: "FTC" | "FRC", season: number): Record<string, FieldDescriptor> {
+    const def = gameDefinitionFor(program, season);
+    return def ? fieldMapFromDefinition(def) : FRC_REEFSCAPE_FIELDS;
 }
 
 // ---------------------------------------------------------------------------
@@ -379,7 +391,7 @@ export function aggregateMatchTeam(
 
     const first = entries[0];
     const program = first.program;
-    const descriptors = fieldsForProgram(program);
+    const descriptors = fieldsFor(program, first.season);
 
     // Super-scouting entries intentionally leave numeric/categorical counters
     // undefined so they don't pollute the objective consensus. We still keep

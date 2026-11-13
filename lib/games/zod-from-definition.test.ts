@@ -7,6 +7,7 @@ const SAMPLE: GameDefinition = {
     label: "Test Game",
     program: "FTC",
     season: 2025,
+    schemaVersion: 99,
     sections: [
         {
             id: "auto",

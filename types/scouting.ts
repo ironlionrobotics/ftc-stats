@@ -178,12 +178,17 @@ export type ScoutingMode = "match" | "super";
 
 // Bumped each season or when the per-game data shape changes incompatibly.
 // Readers can use this to migrate old documents on the fly or skip them.
-// Current values:
-//   1 = FTC Into The Deep (2024-2025)
+// Values written so far:
+//   1 = FTC Into The Deep (2024-2025) AND FTC DECODE (2025-2026) — the
+//       constant was never bumped for DECODE, so version 1 is ambiguous.
 //   2 = FRC Reefscape (2025)
-//   (DECODE 2025-2026 will bump to 3 when implemented)
+//   3 = FTC BIOBUZZ (2026-2027)
+// Because of that collision, readers route by `entry.season` (see
+// gameDefinitionFor in lib/games/registry.ts), never by this number. FTC
+// writers persist `definition.schemaVersion`; this constant is the value for
+// the CURRENT season and is still used by FRC + super-scouting.
 export const CURRENT_GAME_SCHEMA: Record<'FTC' | 'FRC', number> = {
-    FTC: 1,
+    FTC: 3,
     FRC: 2,
 };
 
@@ -234,7 +239,7 @@ export function scoutNameOf(entry: Pick<BaseMatchScouting, "scoutName" | "scoute
     return entry.scoutName ?? entry.scouterName;
 }
 
-// --- FTC: Into The Deep (2024-2025) ---
+// --- FTC: DECODE (2025-2026) ---
 // Numeric/categorical fields are required for objective ("match" mode) entries
 // but Super-scouting ("super" mode) entries leave them undefined so they don't
 // pollute the federated numeric consensus. The aggregator already skips
@@ -269,7 +274,45 @@ export interface FTCDecodeData {
     wouldPick?: boolean;    // "would your team pick this team in alliance selection?"
 }
 
-export interface FTCMatchScouting extends BaseMatchScouting, FTCDecodeData {
+// --- FTC: BIOBUZZ (2026-2027) ---
+// Field ids mirror lib/games/ftc-biobuzz-2026.ts. Optional for the same
+// super-scouting reason as DECODE.
+export interface FTCBiobuzzData {
+    // Auto
+    autoParked?: boolean;    // derived from autoPark (cross-season categorical)
+    autoLeave?: boolean;
+    autoCellLaunches?: number;
+    autoCellMisses?: number;
+    autoHiveTips?: number;
+    autoPark?: boolean;
+
+    // Teleop
+    teleopCellLaunches?: number;
+    teleopCellMisses?: number;
+    teleopHiveTips?: number;
+    teleopGardenElements?: number;
+    driverSkill?: number; // 1-5 — subjective
+
+    // Last 60 s
+    flowerElementsPlaced?: number;
+    flowersClaimed?: number;
+    bottomNectarBonuses?: number;
+    teleopPark?: boolean;
+    defense?: 'None' | 'Some' | 'Heavy';
+    robotIssue?: 'None' | 'NoShow' | 'Died' | 'TippedOver';
+    minorFouls?: number;
+    majorFouls?: number;
+
+    // Subjective (super-scouting)
+    defenseRating?: number;
+    reliability?: number;
+    wouldPick?: boolean;
+}
+
+// One FTC entry type spanning seasons: the per-game blocks are all-optional
+// and disjoint (except shared cross-season fields), so a flat intersection is
+// safe. Route by `season` to know which block is populated.
+export interface FTCMatchScouting extends BaseMatchScouting, FTCDecodeData, FTCBiobuzzData {
     program: 'FTC';
 }
 

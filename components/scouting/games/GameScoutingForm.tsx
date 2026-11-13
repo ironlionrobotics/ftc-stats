@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useForm, Controller, type Resolver, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AggregatedTeamStats, MatchScouting, CURRENT_GAME_SCHEMA } from "@/types/scouting";
+import { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
 import type { GameDefinition, GameField } from "@/types/game-definition";
 import { defaultsForDefinition } from "@/types/game-definition";
 import { zodSchemaFromDefinition } from "@/lib/games/zod-from-definition";
@@ -104,7 +104,7 @@ export default function GameScoutingForm({ definition, team, entries }: GameScou
             scouterId: scoutId,
             scouterName: scoutName,
             confidence: "high",
-            gameSchemaVersion: CURRENT_GAME_SCHEMA[definition.program],
+            gameSchemaVersion: definition.schemaVersion,
             matchNumber,
             ...buildEntryGameFields(definition, values),
             timestamp: null,

@@ -1,5 +1,7 @@
 import { AggregatedTeamStats, MatchScouting, PitScouting } from "@/types/scouting";
 import { winProbabilityFromProjections } from "@/lib/win-probability";
+import { gameDefinitionFor } from "@/lib/games/registry";
+import { inputsFromEntry } from "@/lib/games/score-inputs";
 
 /**
  * Model constants. The weights below are calibrated against the DECODE 2025-2026
@@ -117,20 +119,16 @@ export function calculateTeamProjection(
     const scoutedEnds: number[] = [];
 
     for (const item of scoutingEntries) {
-        const match = item as import("@/types/scouting").FTCMatchScouting;
         // Skip super-scouting entries: they only carry subjective fields and
         // would contribute zeros to the per-phase totals.
-        if ((match.scoutingMode ?? "match") === "super") continue;
-        const auto =
-            ((match.autoPurpleArtifacts ?? 0) * 3) +
-            ((match.autoGreenArtifacts ?? 0) * 3) +
-            (match.autoPoints ?? 0);
-        const tele =
-            ((match.teleopPurpleArtifacts ?? 0) * 2) +
-            ((match.teleopGreenArtifacts ?? 0) * 2) +
-            ((match.patternsCompleted ?? 0) * 10);
-        const parkingPoints = match.endgameBaseParking === 'Full' ? 10 : match.endgameBaseParking === 'Partial' ? 5 : 0;
-        const end = (match.dualParking ? 20 : 0) + parkingPoints;
+        if ((item.scoutingMode ?? "match") === "super") continue;
+        // Scoring rules travel with the season's game definition (single
+        // source of truth, shared with ground-truth validation).
+        const def = gameDefinitionFor(item.program, item.season);
+        const phases = def?.score?.(inputsFromEntry(item)) ?? { auto: 0, teleop: 0, endgame: 0 };
+        const auto = phases.auto;
+        const tele = phases.teleop;
+        const end = phases.endgame;
 
         scoutedAutos.push(auto);
         scoutedTeles.push(tele);

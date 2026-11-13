@@ -8,6 +8,9 @@ import {
     type CategoricalConsensus,
 } from "@/lib/scouting-aggregation";
 import type { MatchScouting, FTCMatch } from "@/types/scouting";
+import { gameDefinitionFor } from "@/lib/games/registry";
+import { inputsFromConsensus } from "@/lib/games/score-inputs";
+import { totalOf } from "@/types/game-definition";
 
 // EWMA learning rate for reliability updates. 0.2 means a single new error
 // observation moves the reliability score by at most 20%; the prior 4
@@ -58,17 +61,19 @@ function clamp01(x: number): number {
 // ---------------------------------------------------------------------------
 
 /**
- * Reconstructs the FTC DECODE point contribution of a single team from
- * the federated consensus over scout observations. Uses the official scoring
- * formula at a coarse level — the components we capture in scouting today
- * cover the bulk of the score but not RP-only bonuses (which don't add to the
- * scored total).
+ * Reconstructs one team's scouted point contribution from the federated
+ * consensus over scout observations. FTC uses the season's GameDefinition
+ * `score()` (lib/games/registry.ts) — the same function projections use on
+ * raw entries — so the scoring rules live in exactly one place. Coarse by
+ * design: alliance-level points no robot owns and RP-only bonuses are not
+ * reconstructed.
  *
  * Returns 0 if there's no consensus to work with.
  */
 export function computeTeamPointsFromConsensus(
     fields: Record<string, FieldConsensus>,
     program: "FTC" | "FRC",
+    season: number,
 ): number {
     const num = (name: string): number => {
         const c = fields[name];
@@ -80,18 +85,8 @@ export function computeTeamPointsFromConsensus(
     };
 
     if (program === "FTC") {
-        const auto =
-            num("autoPurpleArtifacts") * 3 +
-            num("autoGreenArtifacts") * 3 +
-            num("autoPoints");
-        const tele =
-            num("teleopPurpleArtifacts") * 2 +
-            num("teleopGreenArtifacts") * 2 +
-            num("patternsCompleted") * 10;
-        const parking = cat<string>("endgameBaseParking");
-        const parkingPts = parking === "Full" ? 10 : parking === "Partial" ? 5 : 0;
-        const dualBonus = cat<boolean>("dualParking") ? 20 : 0;
-        return auto + tele + parkingPts + dualBonus;
+        const def = gameDefinitionFor("FTC", season);
+        return def?.score ? totalOf(def.score(inputsFromConsensus(fields))) : 0;
     }
 
     // FRC Reefscape — Coral auto: L1=3, L2=4, L3=6, L4=7; teleop: L1=2, L2=3,
@@ -484,7 +479,7 @@ export function reconstructAllianceError(
         if (teamEntries.length === 0) continue;
         const agg = aggregateMatchTeam(teamEntries);
         if (!agg) continue;
-        reconstruction += computeTeamPointsFromConsensus(agg.fields, agg.program);
+        reconstruction += computeTeamPointsFromConsensus(agg.fields, agg.program, agg.season);
         teamsCovered++;
     }
     if (teamsCovered === 0 || officialScore <= 0) return null;

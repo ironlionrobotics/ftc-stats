@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useProgram } from "@/lib/stores/program-store";
 import { AggregatedTeamStats, MatchScouting } from "@/types/scouting";
 import GameScoutingForm from "./games/GameScoutingForm";
-import { FTC_DECODE_2025 } from "@/lib/games/ftc-decode-2025";
+import { gameDefinitionFor } from "@/lib/games/registry";
 import FRC_ReefscapeForm from "./games/FRC_ReefscapeForm";
 import QRExport from "./QRExport";
 import QRScanner from "./QRScanner";
@@ -20,7 +20,7 @@ interface MatchScoutingFormWrapperProps {
 }
 
 export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWrapperProps) {
-    const { program } = useProgram();
+    const { program, season } = useProgram();
     const confirm = useConfirm();
     const [pendingData, setPendingData] = useState<MatchScouting[]>([]);
     const [showScanner, setShowScanner] = useState(false);
@@ -93,10 +93,14 @@ export default function MatchScoutingForm({ team, entries }: MatchScoutingFormWr
     const programEntries = entries.filter(e => e.program === program);
 
     if (program === "FTC") {
-        // Declarative engine (DynamicGameForm ← FTC_DECODE_2025). The old
-        // hand-written FTC_DecodeForm stays in the tree as reference until this
-        // path is validated in a live event; see game-schema-migration.md.
-        FormComponent = <GameScoutingForm definition={FTC_DECODE_2025} team={team} entries={programEntries} />;
+        // Declarative engine: the season picks the game (BIOBUZZ for 2026+,
+        // DECODE for 2025) via lib/games/registry.ts. Only this season's
+        // entries are shown so DECODE and BIOBUZZ observations never mix.
+        const definition = gameDefinitionFor("FTC", season);
+        const seasonEntries = programEntries.filter(e => e.season === season);
+        if (definition) {
+            FormComponent = <GameScoutingForm key={definition.id} definition={definition} team={team} entries={seasonEntries} />;
+        }
     } else if (program === "FRC") {
         FormComponent = <FRC_ReefscapeForm team={team} entries={programEntries} onSaveSuccess={loadPending} />;
     }

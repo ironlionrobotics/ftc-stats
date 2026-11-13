@@ -6,6 +6,8 @@ import {
     PLAYOFF_SIGMA_INFLATION,
     type AllianceConsistency,
 } from "@/lib/win-probability";
+import { seasonRulesFor } from "@/lib/games/season-rules";
+import { SEASON } from "@/lib/constants";
 
 // --- Per-team sigma estimation ---
 
@@ -392,8 +394,15 @@ export function initializeBracket(type: 2 | 4 | 6 | 8): PlayoffMatch[] {
     return matches;
 }
 
-/** DECODE penalty values (verified against live API score breakdowns). */
-export const MAJOR_FOUL_POINTS = 15;
+/**
+ * Major-foul value for the CURRENT season (BIOBUZZ: 20, DECODE: 15). Per-season
+ * values live in lib/games/season-rules.ts — use seasonRulesFor(season).fouls
+ * when the season is known.
+ */
+export const MAJOR_FOUL_POINTS = seasonRulesFor(SEASON).fouls.major;
+
+/** Legacy `foulsRed/foulsBlue` counts were recorded under DECODE (× 15). */
+export const LEGACY_MAJOR_FOUL_POINTS = 15;
 
 /**
  * Per-match what-if/reality adjustments for the playoff bracket:
@@ -418,7 +427,7 @@ export interface MatchAdjustment {
     failRed?: boolean;
     failBlue?: boolean;
     /** Foul POINTS committed by that alliance (awarded to the opponent).
-     *  DECODE: minor = 5, major = 15 — but any point total is accepted,
+     *  BIOBUZZ: minor = 5, major = 20 (DECODE: 5 / 15) — any total is accepted,
      *  matching the official "Penalty Points Committed" stat. */
     foulPointsRed?: number;
     foulPointsBlue?: number;
@@ -448,8 +457,8 @@ function survivingOpr(a: Alliance, failedTeam?: number | null, legacyFail?: bool
 
 function committedFoulPoints(adj: MatchAdjustment | undefined, side: "red" | "blue"): number {
     if (!adj) return 0;
-    if (side === "red") return adj.foulPointsRed ?? (adj.foulsRed ?? 0) * MAJOR_FOUL_POINTS;
-    return adj.foulPointsBlue ?? (adj.foulsBlue ?? 0) * MAJOR_FOUL_POINTS;
+    if (side === "red") return adj.foulPointsRed ?? (adj.foulsRed ?? 0) * LEGACY_MAJOR_FOUL_POINTS;
+    return adj.foulPointsBlue ?? (adj.foulsBlue ?? 0) * LEGACY_MAJOR_FOUL_POINTS;
 }
 
 function adjustedPredictions(red: Alliance, blue: Alliance, adj?: MatchAdjustment): { r: number; b: number } {

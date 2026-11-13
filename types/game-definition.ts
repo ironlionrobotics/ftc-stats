@@ -3,11 +3,11 @@
  * without writing React: define sections + fields in TypeScript, generate
  * a Zod schema automatically, render via DynamicGameForm.
  *
- * Status: infrastructure ready, NOT wired to production forms. The current
- * `FTC_DecodeForm` and `FRC_ReefscapeForm` continue to be used until a
- * post-Premier QA pass validates the dynamic renderer produces identical
- * output. Switching is a one-import change in `MatchScoutingForm` once
- * ready. See `lib/games/ftc-decode-2025.ts` for a reference definition.
+ * Status: production for FTC (decision #79). `MatchScoutingForm` resolves the
+ * definition per season via `gameDefinitionFor()` (lib/games/registry.ts).
+ * FRC still uses the hand-written `FRC_ReefscapeForm`. A definition owns its
+ * fields, its derived entry fields (`toEntry`) AND its scoring (`score`), so
+ * a new season is one new file plus one registry line.
  */
 
 import type { OrgProgram } from "./orgs";
@@ -33,6 +33,59 @@ export interface GameDefinition {
      * its derivations travel with it instead of living inside a React form.
      */
     toEntry?: (values: Record<string, unknown>) => Record<string, unknown>;
+    /**
+     * Aggregation kind of every key `toEntry` adds, so the federated field map
+     * can be derived from the definition (lib/scouting-aggregation.ts
+     * fieldsFor). Declared fields need no entry here — their kind follows
+     * from the field kind.
+     */
+    derivedFields?: Record<string, "numeric" | "categorical">;
+    /**
+     * Value persisted as `gameSchemaVersion` on every entry this definition
+     * produces. Historical note: DECODE entries were written with 1 (the
+     * constant was never bumped), so readers discriminate by `entry.season`,
+     * not by this number — it is provenance, not a routing key.
+     */
+    schemaVersion: number;
+    /**
+     * Point contribution of ONE robot, reconstructed from its scouted fields.
+     * THE single source of truth for scouted-score math: projections (raw
+     * entries) and ground-truth validation (federated consensus) both call it
+     * through a `ScoreInputs` adapter (lib/games/score-inputs.ts), so a new
+     * season's scoring rules travel with its definition instead of being
+     * re-typed in every consumer.
+     *
+     * Alliance-level points that no single robot owns (e.g. BIOBUZZ elements
+     * left in the top CELL) are deliberately NOT included — they come from
+     * the official score breakdown.
+     */
+    score?: (s: ScoreInputs) => PhaseScore;
+}
+
+/** Points split by match phase. `endgame` is "late-match" for games without
+ *  a formal endgame period (BIOBUZZ: last 60 s — FLOWER + final park). */
+export interface PhaseScore {
+    auto: number;
+    teleop: number;
+    endgame: number;
+}
+
+/**
+ * Read-only view over one robot's observation, independent of whether it
+ * comes from a single raw entry or from a federated consensus.
+ *   num  → numeric value (0 when absent)
+ *   flag → boolean value (false when absent)
+ *   cat  → categorical value (undefined when absent)
+ */
+export interface ScoreInputs {
+    num(id: string): number;
+    flag(id: string): boolean;
+    cat(id: string): string | undefined;
+}
+
+/** Sum of the three phases — convenience for callers that need the total. */
+export function totalOf(p: PhaseScore): number {
+    return p.auto + p.teleop + p.endgame;
 }
 
 export interface GameSection {
