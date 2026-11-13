@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { redeemInviteAction } from "@/app/actions/redeem-invite";
 import { cancelMyTeamClaimAction, claimTeamAction, getMyTeamClaimAction, type MyClaim } from "@/app/actions/team-claims";
@@ -38,7 +39,11 @@ export default function OnboardingModal() {
     // redeemInviteAction) have no locale, so translation happens at render.
     const [error, setError] = useState<ErrorCode | null>(null);
 
-    const needsOnboarding = !!user && !userDocLoading && !!userDoc && !orgId;
+    const pathname = usePathname();
+    // The superadmin console works without a team (a superadmin may belong to
+    // none, and approving the first team claim must not require one).
+    const onAdminConsole = pathname?.startsWith("/admin") ?? false;
+    const needsOnboarding = !!user && !userDocLoading && !!userDoc && !orgId && !onAdminConsole;
 
     // Load the user's open (or last rejected) team claim, if any.
     useEffect(() => {
