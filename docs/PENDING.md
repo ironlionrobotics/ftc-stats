@@ -7,16 +7,16 @@
 
 Plan aprobado: `~/.claude/plans/replicated-cooking-elephant.md`. Orden acordado con Héctor: **1) calibración BIOBUZZ → 2) lógica de la estructura → 3) apertura no visual → 4) traducción → 5) estética al final.** Producción estable hasta MXTLQ (27-nov) salvo correcciones de bajo riesgo con OK.
 
-**Qué hay en producción (`main` 282b2e6):** BIOBUZZ (#86–#88), caché Firestore (#89), Etapa 0 de seguridad (#90 reclamo de equipo con aprobación, #91 entradas públicas + límite por visitante, #92 privacidad), IP del visitante con 2 saltos de confianza.
+**Qué hay en producción (`main` ff33abb, desplegado 13-nov):** BIOBUZZ (#86–#88), caché Firestore (#89), Etapa 0 de seguridad (#90–#92), IP del visitante con 2 saltos de confianza y **la calibración P1 (#94–#96)**. Respaldo diario de Firestore activo (14 días de retención). Pruebas de reglas: 11/11 contra las reglas de producción.
 
 **Ramas (ninguna desplegada):**
 | Rama | Contenido | Siguiente paso |
 |---|---|---|
-| `p1/biobuzz-calibration` (cc7b7e8) | k=3.5 (#94); proyección de ranking v2 Monte Carlo con faltas recibidas, incertidumbre, P(capitán) (#95); RP reales en vista de evento; SWARM calibrado con 201 eventos (#96). Revisión independiente hecha y atendida. | **OK de Héctor para desplegar antes de MXTLQ** |
+| `p1/biobuzz-calibration` | ✅ Mergeada a `main` y desplegada el 13-nov (verificado en producción: RP de 2026 visibles en la vista de evento). | — |
 | `p3/opening-basics` (1960ae2) | Cabeceras (CSP en modo reporte), 404/error/global-error, robots, borrado de cuenta (servidor), pruebas de reglas (#97) | Propuesto desplegar cabeceras + páginas de error junto con p1 |
 | `etapa1/foundations` | Integra p1 + p3 + tokens Transmisión + armazón de 5 destinos + i18n (~690 claves) + "Hoy" (#93, #98) + botón de borrar cuenta + sitemap | Después de MXTLQ, con Aprobación B (revisión en navegador + medición de rendimiento contra `docs/perf/`) |
 
-**OK pendientes de Héctor:** (1) deploy de p1 (+ parte de p3); (2) respaldos diarios de Firestore y alertas de caída/presupuesto en Google Cloud; (3) ✅ pruebas de reglas ejecutadas con Java 21 (11/11; `scripts/with-java21.sh` lo encuentra aunque el predeterminado sea 17); (4) aprobar en `/admin` su propia solicitud del equipo 30311 (`orgs/30311` no existe); (5) borrar secretos `UPSTASH_*`; (6) decidir si `AGENTS.md` (lo regenera `next dev`) va a `.gitignore`.
+**OK pendientes de Héctor:** (1) ✅ p1 desplegado; ¿desplegar también cabeceras + páginas de error de p3 antes de MXTLQ?; (2) ✅ respaldos diarios activos; alertas de caída/presupuesto sin OK todavía; (3) ✅ pruebas de reglas ejecutadas con Java 21 (11/11; `scripts/with-java21.sh` lo encuentra aunque el predeterminado sea 17); (4) aprobar en `/admin` su propia solicitud del equipo 30311 (`orgs/30311` no existe); (5) borrar secretos `UPSTASH_*`; (6) ✅ `AGENTS.md` y `graphify-out/` en `.gitignore`.
 
 **Siguiente trabajo lógico (punto 2, sobre `etapa1/foundations`):**
 - Quitar ~25 supuestos de un solo equipo: región MX por defecto (`lib/aggregation.ts`, `EventFilter`), `HERO_TEAM`/`REPORT_TEAMS` 30311, "Iron Lion Intelligence" en `/event/*/pro`, prompt del asistente, "FTC Stats México" en briefing y Discord.
