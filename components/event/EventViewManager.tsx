@@ -245,7 +245,8 @@ export default function EventViewManager({ matches, rankings, advancement, award
             let rpArtifacts = 0;
             let rpPattern = 0;
 
-            if (totalMatches > 0) {
+            // BIOBUZZ (2026+): no invented point thresholds; RP stays empty here.
+            if (season < 2026 && totalMatches > 0) {
                 let autoSuccess = 0;
                 let teleSuccess = 0;
                 let patternSuccess = 0;
@@ -274,7 +275,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
 
             // Fallback/Augment with Scouting if available (take the higher value to be generous/accurate)
             const teamScoutingMatches = scoutingData.filter(m => m.teamNumber === rank.teamNumber);
-            if (teamScoutingMatches.length > 0) {
+            if (season < 2026 && teamScoutingMatches.length > 0) {
                 const sTotal = teamScoutingMatches.length;
                 const sMov = teamScoutingMatches.filter(m => (m as FTCMatchScouting).movementRP).length / sTotal;
                 const sArt = teamScoutingMatches.filter(m => (m as FTCMatchScouting).goalRP).length / sTotal;
@@ -316,10 +317,11 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 netDiscipline: netDisc,
                 rpMovement,
                 rpArtifacts,
-                rpPattern
+                rpPattern,
+                ...(season < 2026 ? { rp: { movement: rpMovement, goal: rpArtifacts, pattern: rpPattern } } : {})
             } as TeamEvolution;
         });
-    }, [simulatedRankings, matches, selectedRound, matchesPerRound, scoutingData]);
+    }, [simulatedRankings, matches, selectedRound, matchesPerRound, scoutingData, season]);
 
     return (
         <div className="space-y-6">

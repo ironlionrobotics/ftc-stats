@@ -6,7 +6,9 @@ import { Card } from "@/components/ui/Card";
 import { Search, Plus, X, Trash2, Star, Zap, Sparkles, Bot } from "lucide-react";
 import { listenToMatchScouting } from "@/lib/scouting-service";
 import { useProgram } from "@/lib/stores/program-store";
-import { FTCMatchScouting } from "@/types/scouting";
+import { gameDefinitionFor } from "@/lib/games/registry";
+import { inputsFromEntry } from "@/lib/games/score-inputs";
+import { totalOf } from "@/types/game-definition";
 import clsx from "clsx";
 import { toast } from "sonner";
 import { guessActiveEventCode } from "@/lib/active-event";
@@ -19,7 +21,7 @@ interface AllianceSelectorProps {
 
 interface ScoutingSummary {
     avgSkill: number;
-    avgSamples: number;
+    avgPoints: number;
     count: number;
 }
 
@@ -47,14 +49,15 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
         if (teamEntries.length === 0) return null;
 
         const avgSkill = teamEntries.reduce((acc, e) => acc + (e.driverSkill ?? 3), 0) / teamEntries.length;
-        const avgSamples = teamEntries.reduce((acc, match) => {
-            const e = match as FTCMatchScouting;
-            return acc + ((e.teleopPurpleArtifacts || 0) + (e.teleopGreenArtifacts || 0)) + ((e.autoPurpleArtifacts || 0) + (e.autoGreenArtifacts || 0))
-        }, 0) / teamEntries.length;
+        const scored = teamEntries.filter(e => e.scoutingMode !== "super");
+        const avgPoints = scored.length === 0 ? 0 : scored.reduce((acc, e) => {
+            const pts = gameDefinitionFor(e.program ?? "FTC", e.season)?.score?.(inputsFromEntry(e));
+            return acc + (pts ? totalOf(pts) : 0);
+        }, 0) / scored.length;
 
         return {
             avgSkill,
-            avgSamples,
+            avgPoints,
             count: teamEntries.length
         };
     };
@@ -66,7 +69,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
 
         const summaryA = getScoutingSummary(a.teamNumber);
         const summaryB = getScoutingSummary(b.teamNumber);
-        return (summaryB?.avgSamples || 0) - (summaryA?.avgSamples || 0);
+        return (summaryB?.avgPoints || 0) - (summaryA?.avgPoints || 0);
     });
 
     const filteredTeams = sortedTeams.filter(t =>
@@ -132,7 +135,7 @@ export default function AllianceSelector({ teams }: AllianceSelectorProps) {
                                                 <span className="bg-secondary/10 text-secondary px-2 py-0.5 rounded font-bold">Auto: {team.averageAutoPoints.toFixed(1)}</span>
                                                 {scouting && (
                                                     <span className="bg-accent/10 text-accent px-2 py-0.5 rounded font-bold flex items-center gap-1 shadow-sm">
-                                                        <Zap size={10} /> Scouted: {scouting.avgSamples.toFixed(1)}
+                                                        <Zap size={10} /> Scouted: {scouting.avgPoints.toFixed(1)}
                                                     </span>
                                                 )}
                                             </div>

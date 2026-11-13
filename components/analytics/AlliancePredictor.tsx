@@ -6,6 +6,11 @@ import { TeamEvolution } from "@/app/actions/analytics";
 import { MatchScouting, FTCMatchScouting, FTCAllianceSelection, FTCMatch } from "@/types/scouting";
 import TournamentSimulator from "./TournamentSimulator";
 import LiveDraftBoard from "./LiveDraftBoard";
+import { useTranslations } from "next-intl";
+import { useProgram } from "@/lib/stores/program-store";
+import { seasonRulesFor, rpThresholdsFor } from "@/lib/games/season-rules";
+import { biobuzzAllianceRp } from "@/lib/rp-counts";
+import { classifyBiobuzzArchetype } from "@/lib/games/biobuzz-archetype";
 
 interface AlliancePredictorProps {
     teams: TeamEvolution[];
@@ -23,12 +28,21 @@ interface AlliancePredictorProps {
 interface ScoutedMetrics {
     driverSkill: number;
     reliability: number; // 0-1 based on observation count vs max
-    archetype: 'Miner' | 'Architect' | 'Balanced' | 'Unknown';
+    archetype: 'Miner' | 'Architect' | 'Tipper' | 'Gardener' | 'Florist' | 'Balanced' | 'Unknown';
     endgameSuccess: number; // 0-1
     notes: string[];
 }
 
+const RP_COLORS = ["text-success", "text-primary", "text-secondary"];
+const RP_BADGES = ["text-success bg-success/10", "text-primary bg-primary/10", "text-secondary bg-secondary/10"];
+
 export default function AlliancePredictor({ teams, scoutingData = [], initialTeam, onTeamSelect, officialAlliances, eventCode, playoffMatches }: AlliancePredictorProps) {
+    const { season } = useProgram();
+    const tGames = useTranslations("Games");
+    const rules = seasonRulesFor(season);
+    const isBiobuzz = season >= 2026;
+    const LEGACY_RP_SHORT: Record<string, string> = { movement: "MOV", goal: "ART", pattern: "PAT" };
+    const rpShort = (id: string) => LEGACY_RP_SHORT[id] ?? tGames(`rp.${id}`);
     const [unavailableTeams, setUnavailableTeams] = useState<number[]>([]);
     const [unavailableInput, setUnavailableInput] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -68,6 +82,19 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
         // Simple predictive calculation
         const avgSkill = teamMatches.reduce((acc, m) => acc + (m.driverSkill ?? 3), 0) / teamMatches.length;
 
+        if (isBiobuzz) {
+            return {
+                driverSkill: avgSkill,
+                reliability: Math.min(teamMatches.length / 3, 1),
+                archetype: classifyBiobuzzArchetype(teamMatches),
+                endgameSuccess: teamMatches.filter(m => {
+                    const e = m as unknown as Record<string, unknown>;
+                    return e.teleopPark === true || e.autoPark === true;
+                }).length / teamMatches.length,
+                notes: teamMatches.filter(m => m.notes).map(m => m.notes).slice(0, 3)
+            };
+        }
+
         const avgArtifacts = teamMatches.reduce((acc, match) => {
             const m = match as FTCMatchScouting;
             return acc + (m.teleopPurpleArtifacts || 0) + (m.teleopGreenArtifacts || 0);
@@ -87,7 +114,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
             endgameSuccess,
             notes: teamMatches.filter(m => m.notes).map(m => m.notes).slice(0, 3)
         };
-    }, [scoutingData, useScouting]);
+    }, [scoutingData, useScouting, isBiobuzz]);
 
     const targetStats = useMemo(() => {
         if (!selectedTeam) return null;
@@ -176,7 +203,16 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 }
 
                 // 4. Archetype Complement (Still Valid)
-                if (targetStats?.archetype === 'Miner' && scoutedMetrics.archetype === 'Architect') {
+                if (isBiobuzz) {
+                    const mine = targetStats?.archetype;
+                    const theirs = scoutedMetrics.archetype;
+                    const neutral = (a?: string) => !a || a === 'Balanced' || a === 'Unknown';
+                    if (mine && !neutral(mine) && !neutral(theirs) && mine !== theirs) {
+                        synergyScore += 15;
+                        synergyLabel = "Perfect Match";
+                        reasons.push(`Arquetipos complementarios (scouting): tú ${mine} + su ${theirs} (+15) — no compiten por los mismos recursos de cancha.`);
+                    }
+                } else if (targetStats?.archetype === 'Miner' && scoutedMetrics.archetype === 'Architect') {
                     synergyScore += 15;
                     synergyLabel = "Perfect Match";
                     reasons.push("Arquetipos complementarios (scouting): tú Miner + su Architect (+15) — no compiten por los mismos recursos de cancha.");
@@ -187,10 +223,34 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 }
 
                 // 5. RP Complementarity (The Money)
+                const targetIds = rules.rpTargets.map(t => t.id);
+                const eff: Record<string, number> = {};
+                if (isBiobuzz) {
+                    for (const id of targetIds) eff[id] = partner.rp?.[id] ?? 0;
+                    if (selectedTeam.rpInputs && partner.rpInputs) {
+                        const pair = biobuzzAllianceRp(selectedTeam.rpInputs, partner.rpInputs, rpThresholdsFor(season));
+                        for (const id of targetIds) eff[id] = pair[id] ?? eff[id];
+                        const solo = selectedTeam.rp?.pollinator1 ?? 0;
+                        if ((pair.pollinator1 ?? 0) > 0.5) {
+                            synergyScore += 25;
+                            synergyLabel = "Pollinator Duo";
+                            reasons.push(`POLLINATOR alcanzable juntos: ${Math.round(pair.pollinator1 * 100)}% (+25).`);
+                            if (solo < 0.3) {
+                                synergyScore += 20;
+                                reasons.push(`Te trae el POLLINATOR que no ganas solo: tú ${Math.round(solo * 100)}% vs pareja ${Math.round(pair.pollinator1 * 100)}% (+20).`);
+                            }
+                        }
+                        if ((pair.swarm ?? 0) > 0.85) {
+                            synergyScore += 10;
+                            reasons.push(`SWARM casi asegurado: ${Math.round(pair.swarm * 100)}% (+10).`);
+                        }
+                    }
+                }
+                if (!isBiobuzz) {
                 // --- FIX: Inject estimated RPs if 0 but OPR is high ---
-                let effMov = partner.rpMovement || 0;
-                let effArt = partner.rpArtifacts || 0;
-                let effPat = partner.rpPattern || 0;
+                let effMov = partner.rp?.movement ?? partner.rpMovement ?? 0;
+                let effArt = partner.rp?.goal ?? partner.rpArtifacts ?? 0;
+                let effPat = partner.rp?.pattern ?? partner.rpPattern ?? 0;
 
                 // If no data (0) but high OPR, give benefit of doubt (0.7)
                 if (effMov === 0 && (partner.autoOPR || 0) > 25) effMov = 0.7;
@@ -198,23 +258,25 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 if (effPat === 0 && projectedScore > 120) effPat = 0.6; // High score usually means some pattern success
 
                 // If I am bad at Patterns (< 0.4) and partner is GOD at Patterns (> 0.8), huge boost
-                if ((selectedTeam.rpPattern || 0) < 0.4 && effPat > 0.8) {
+                if ((selectedTeam.rp?.pattern ?? selectedTeam.rpPattern ?? 0) < 0.4 && effPat > 0.8) {
                     synergyScore += 25;
                     synergyLabel = "Pattern Specialist";
-                    reasons.push(`Cubre tu debilidad en Pattern RP: tú ${Math.round((selectedTeam.rpPattern || 0) * 100)}% vs su ${Math.round(effPat * 100)}% (+25) — el RP que no ganas solo, lo trae él.`);
+                    reasons.push(`Cubre tu debilidad en Pattern RP: tú ${Math.round((selectedTeam.rp?.pattern ?? selectedTeam.rpPattern ?? 0) * 100)}% vs su ${Math.round(effPat * 100)}% (+25) — el RP que no ganas solo, lo trae él.`);
                 }
                 // If I am bad at Artifacts (< 0.4) and partner is GOD at volume (> 0.8)
-                if ((selectedTeam.rpArtifacts || 0) < 0.4 && effArt > 0.8) {
+                if ((selectedTeam.rp?.goal ?? selectedTeam.rpArtifacts ?? 0) < 0.4 && effArt > 0.8) {
                     synergyScore += 20;
                     synergyLabel = "Volume Loader";
-                    reasons.push(`Cubre tu debilidad en Artifact RP: tú ${Math.round((selectedTeam.rpArtifacts || 0) * 100)}% vs su ${Math.round(effArt * 100)}% (+20) — volumen de ciclos que te falta.`);
+                    reasons.push(`Cubre tu debilidad en Artifact RP: tú ${Math.round((selectedTeam.rp?.goal ?? selectedTeam.rpArtifacts ?? 0) * 100)}% vs su ${Math.round(effArt * 100)}% (+20) — volumen de ciclos que te falta.`);
                 }
                 // If both are decent at Movement/Auto (> 0.6), we lock that RP down
-                if ((selectedTeam.rpMovement || 0) > 0.6 && effMov > 0.6) {
+                if ((selectedTeam.rp?.movement ?? selectedTeam.rpMovement ?? 0) > 0.6 && effMov > 0.6) {
                     synergyScore += 10;
                     // Dont override "Perfect Match" unless it was default
                     if (synergyLabel === "Balanced") synergyLabel = "Auto RP Lock";
-                    reasons.push(`Movement RP casi asegurado: ambos >60% (tú ${Math.round((selectedTeam.rpMovement || 0) * 100)}%, él ${Math.round(effMov * 100)}%) (+10).`);
+                    reasons.push(`Movement RP casi asegurado: ambos >60% (tú ${Math.round((selectedTeam.rp?.movement ?? selectedTeam.rpMovement ?? 0) * 100)}%, él ${Math.round(effMov * 100)}%) (+10).`);
+                }
+                    eff.movement = effMov; eff.goal = effArt; eff.pattern = effPat;
                 }
                 if (scoutedMetrics.driverSkill >= 4) {
                     reasons.push(`Scouting: driver ${scoutedMetrics.driverSkill.toFixed(1)}/5 — pilotaje de élite confirmado en cancha.`);
@@ -224,7 +286,7 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                 // OPR (Performance) 70% (increased from 50%), Scouting/RP 20%, Synergy 10%
                 // Raw power matters more in high scoring games.
                 const oprFactor = (projectedScore / 100) * 100 * 0.7;
-                const rpFactor = (effPat + effArt + effMov) * 33 * 0.15; // Mean RP prob using EFFECTIVE values
+                const rpFactor = targetIds.reduce((acc, id) => acc + (eff[id] || 0), 0) * 33 * 0.15; // Mean RP prob using EFFECTIVE values
                 const scoutingFactor = (scoutedMetrics.driverSkill * 20 * 0.15) + rpFactor;
 
                 const finalScore = oprFactor + scoutingFactor + synergyScore;
@@ -238,15 +300,11 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                     isRisky,
                     autoSynergy,
                     reasons,
-                    effectiveRP: {
-                        movement: effMov,
-                        artifacts: effArt,
-                        pattern: effPat
-                    }
+                    effectiveRP: eff
                 };
             })
             .sort((a, b) => b.combinedScore - a.combinedScore);
-    }, [teams, selectedTeam, unavailableTeams, targetStats, calculateScoutingMetrics]);
+    }, [teams, selectedTeam, unavailableTeams, targetStats, calculateScoutingMetrics, isBiobuzz, rules, season]);
 
     const topRecommendations = (allScoredTeams || []).slice(0, 6);
     const otherTeams = (allScoredTeams || []).slice(6);
@@ -542,24 +600,14 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
 
                                                         {/* RP Probability Breakdown (FIXED: Use effective RPs) */}
                                                         <div className="mt-3 flex gap-2">
-                                                            <div className="flex-1 bg-muted border border-border rounded-lg p-2 text-center">
-                                                                <div className="text-[6px] font-bold text-muted-foreground uppercase tracking-wider mb-1">MOV RP</div>
-                                                                <div className={clsx("text-xs font-black", (rec.effectiveRP.movement || 0) > 0.7 ? "text-success" : "text-foreground")}>
-                                                                    {Math.round((rec.effectiveRP.movement || 0) * 100)}%
+                                                            {rules.rpTargets.map((t, ti) => (
+                                                                <div key={t.id} className="flex-1 bg-muted border border-border rounded-lg p-2 text-center">
+                                                                    <div className="text-[6px] font-bold text-muted-foreground uppercase tracking-wider mb-1">{rpShort(t.id)}</div>
+                                                                    <div className={clsx("text-xs font-black", (rec.effectiveRP[t.id] || 0) > 0.7 ? RP_COLORS[ti % RP_COLORS.length] : "text-foreground")}>
+                                                                        {Math.round((rec.effectiveRP[t.id] || 0) * 100)}%
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className="flex-1 bg-muted border border-border rounded-lg p-2 text-center">
-                                                                <div className="text-[6px] font-bold text-muted-foreground uppercase tracking-wider mb-1">ART RP</div>
-                                                                <div className={clsx("text-xs font-black", (rec.effectiveRP.artifacts || 0) > 0.7 ? "text-primary" : "text-foreground")}>
-                                                                    {Math.round((rec.effectiveRP.artifacts || 0) * 100)}%
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex-1 bg-muted border border-border rounded-lg p-2 text-center">
-                                                                <div className="text-[6px] font-bold text-muted-foreground uppercase tracking-wider mb-1">PAT RP</div>
-                                                                <div className={clsx("text-xs font-black", (rec.effectiveRP.pattern || 0) > 0.7 ? "text-secondary" : "text-foreground")}>
-                                                                    {Math.round((rec.effectiveRP.pattern || 0) * 100)}%
-                                                                </div>
-                                                            </div>
+                                                            ))}
                                                         </div>
 
                                                         {/* Why this suggestion — reasons emitted by the scoring factors
@@ -633,9 +681,9 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                                                                         </span>
                                                                         {/* Mini RP Indicators for List */}
                                                                         <div className="flex gap-1 ml-2">
-                                                                            {(rec.effectiveRP.movement || 0) > 0.6 && <span className="text-[9px] font-black text-success bg-success/10 px-1 rounded">MOV</span>}
-                                                                            {(rec.effectiveRP.artifacts || 0) > 0.6 && <span className="text-[9px] font-black text-primary bg-primary/10 px-1 rounded">ART</span>}
-                                                                            {(rec.effectiveRP.pattern || 0) > 0.6 && <span className="text-[9px] font-black text-secondary bg-secondary/10 px-1 rounded">PAT</span>}
+                                                                            {rules.rpTargets.map((t, ti) => (rec.effectiveRP[t.id] || 0) > 0.6 && (
+                                                                                <span key={t.id} className={clsx("text-[9px] font-black px-1 rounded", RP_BADGES[ti % RP_BADGES.length])}>{rpShort(t.id)}</span>
+                                                                            ))}
                                                                         </div>
                                                                     </div>
                                                                 </div>

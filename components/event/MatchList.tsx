@@ -1,5 +1,7 @@
 "use client";
 
+import { gameDefinitionFor } from "@/lib/games/registry";
+import { inputsFromEntry } from "@/lib/games/score-inputs";
 import { useState, useMemo, useCallback } from "react";
 import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting, FTCHybridScheduleMatch, FTCAward, FTCAllianceSelection } from "@/types/scouting";
 import { winProbabilityFromNormalModel } from "@/lib/win-probability";
@@ -260,7 +262,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                                 <div className="flex items-center gap-3 text-muted-foreground text-sm font-medium">
                                     <span className="flex items-center gap-1.5"><Trophy size={14} className="text-primary" /> {stats.count} Matches analizados</span>
                                     <span className="w-1 h-1 rounded-full bg-border" />
-                                    <span>Sistema Decode 2025</span>
+                                    <span>Temporada FTC</span>
                                 </div>
                                 {(allianceRole || teamAwards.length > 0) && (
                                     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -807,16 +809,17 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
                                         <div className="text-right">
                                             {scoutingData.map((sdItem, i) => {
                                                 const sd = sdItem as FTCMatchScouting;
-                                                const autoTotal = (sd.autoPurpleArtifacts ?? 0) + (sd.autoGreenArtifacts ?? 0);
-                                                const teleTotal = (sd.teleopPurpleArtifacts ?? 0) + (sd.teleopGreenArtifacts ?? 0);
-                                                const parking = sd.endgameBaseParking ?? 'None';
+                                                const pts = gameDefinitionFor(sd.program ?? "FTC", sd.season)?.score?.(inputsFromEntry(sd));
+                                                const autoTotal = pts?.auto ?? 0;
+                                                const teleTotal = pts?.teleop ?? 0;
+                                                const endTotal = pts?.endgame ?? 0;
                                                 return (
                                                     <div key={i} className="flex justify-between items-center text-xs py-1 px-2 border-b border-primary/10">
                                                         <span className="text-muted-foreground truncate max-w-[100px]">{sd.scoutName ?? sd.scouterName}</span>
                                                         <div className="flex gap-2 text-foreground font-mono">
                                                             <span className={autoTotal > 0 ? "text-success" : ""}>A:{autoTotal}</span>
                                                             <span>T:{teleTotal}</span>
-                                                            <span className={parking !== 'None' ? "text-primary" : ""}>E:{parking.substring(0, 1)}</span>
+                                                            <span className={endTotal > 0 ? "text-primary" : ""}>E:{endTotal}</span>
                                                         </div>
                                                     </div>
                                                 );
