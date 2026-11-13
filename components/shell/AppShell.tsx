@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import { Search, Moon, Sun, LogIn, LogOut, X, Star, User as UserIcon } from "lucide-react";
@@ -43,6 +43,20 @@ export default function AppShell({ followedTeam }: { followedTeam: number | null
     const [panelOpen, setPanelOpen] = useState(false);
     const { userDoc } = useAuth();
     const team = followedTeam ?? (userDoc?.orgId ? Number(userDoc.orgId) : null);
+    const router = useRouter();
+
+    // A signed-in member with no followed team follows their own team, so the
+    // server-rendered "Hoy" (which only sees the cookie) shows it.
+    const orgTeam = userDoc?.orgId ? Number(userDoc.orgId) : null;
+    useEffect(() => {
+        if (followedTeam !== null || orgTeam === null || !Number.isInteger(orgTeam)) return;
+        let cancelled = false;
+        (async () => {
+            const res = await setFollowedTeamAction(orgTeam);
+            if (!cancelled && res.ok) router.refresh();
+        })();
+        return () => { cancelled = true; };
+    }, [followedTeam, orgTeam, router]);
 
     return (
         <>

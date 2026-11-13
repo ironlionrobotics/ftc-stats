@@ -1397,5 +1397,51 @@
     "errorBody": "No se pudo cargar esta página. La fuente de datos puede estar lenta o caída; intenta de nuevo en un momento.",
     "errorRef": "Referencia: {ref}",
     "retry": "Reintentar"
+  },
+  "EventsPage": {
+    "season": "Temporada {season} · {game}",
+    "title": "Eventos",
+    "subtitle": "Eventos de la temporada, clasificación y avance",
+    "teams": "Equipos",
+    "advanced": "Avanzaron",
+    "footer": "© {year} PRIDE. No afiliado con FIRST®."
+  },
+  "TodayPage": {
+    "kicker": "Temporada {season} · {game}",
+    "welcomeTitle": "Sigue a tu equipo",
+    "welcomeBody": "Escribe el número de tu equipo y PRIDE se vuelve la página de tu equipo: próximo partido y su probabilidad, ranking y dónde probablemente terminas, y tus opciones en la selección de alianzas. No necesitas cuenta.",
+    "orBrowse": "O <events>explora todos los eventos</events>.",
+    "follow": {
+      "label": "Número de equipo",
+      "placeholder": "ej. 30311",
+      "submit": "Seguir",
+      "invalid": "Escribe un número de equipo válido (1–99999)."
+    },
+    "phase": {
+      "live": "compitiendo ahora",
+      "upcoming": "{days, plural, =0 {empieza hoy} one {empieza en # día} other {empieza en # días}}",
+      "past": "último evento"
+    },
+    "noEvents": "Este equipo aún no tiene eventos registrados en la temporada {season}.",
+    "seasonResults": "Esta temporada",
+    "noResultsYet": "Aún no hay resultados esta temporada.",
+    "resultLine": "#{rank} · {w}–{l}–{t}",
+    "nextMatch": "Próximo partido",
+    "qualsProgress": "{played} / {total} partidos de calificación jugados",
+    "yourAlliance": "Tu alianza",
+    "opponents": "Rivales",
+    "winChance": "de probabilidad de ganar (forma en el evento)",
+    "noNextMatch": "No hay partidos próximos en el calendario.",
+    "rank": "Ranking",
+    "ofTeams": "de {n} equipos",
+    "rs": "Ranking score",
+    "projected": "Final proyectado",
+    "range": "probable #{lo}–#{hi}",
+    "qualsDone": "calificación terminada",
+    "allianceOdds": "Opciones de alianza",
+    "wouldCaptain": "en ruta a capitán",
+    "pickOdds": "probabilidad de ser elegido ({alliances} alianzas)",
+    "footnote": "Calculado con datos oficiales de FIRST. Las proyecciones son probabilidades, no promesas.",
+    "noSchedule": "El calendario de partidos aún no se publica."
   }
 }

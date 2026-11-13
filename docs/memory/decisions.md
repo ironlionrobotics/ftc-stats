@@ -1019,3 +1019,15 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 - **Posición proyectada:** es la posición 1…N en el orden por rango medio simulado; antes era la mediana, que repetía posiciones.
 - **"Top 4" pasa a ser P(capitán)** con 4, 6 u 8 lugares según el tamaño del evento (`estimateAlliances`).
 - **Versiones:** caché del análisis `analytics_v4_` (SWARM cambió de significado) y registro de calibración `modelVersion "v4-k3.5"`, para no mezclar regímenes en la pestaña Calibración.
+
+## #98 · "Hoy" como portada: el equipo que sigues, sin cuenta (2026-11-13)
+
+**Decisión:** `/` deja de ser la tabla de la temporada, que se mueve a `/events`, y pasa a ser "Hoy" para el equipo seguido (cookie `pride_team`). Se arma en el servidor con datos públicos de FIRST:
+- **Estado `live`:** próximo partido (`pickNextMatch`) con P(ganar) por el modelo normal sobre la fuerza del evento (`eventStrengthModel`, #95); ranking actual y proyectado con rango probable; opciones de selección (`draftOdds` con la posición proyectada y el percentil de OPR del evento). Si el calendario aún no se publica, lo dice.
+- **Estados `upcoming` y `past`:** cuenta regresiva o último evento, más los resultados de la temporada (`fetchTeamRankingsInSeason`).
+- **Sin equipo:** formulario para seguir uno.
+- **Ventana `live`:** desde 14 h antes del primer día hasta 36 h después del último, para cubrir cualquier zona horaria.
+
+**Lógica pura en `lib/today-summary.ts`**, probada con datos reales de AUBRQ1 cortados a mitad del evento. Quien inicia sesión sigue automáticamente a su equipo, porque "Hoy" se renderiza en el servidor y solo ve la cookie.
+
+**Pendiente:** la cobertura de scouting del equipo (que mostraba el `TodayPanel` anterior) necesita datos privados de la organización. Volverá como isla de cliente para miembros. `sitemap.ts` lista `/`, `/events`, `/teams` y `/oracle`.

@@ -1397,5 +1397,51 @@
     "errorBody": "This page couldn't load. The data source may be slow or down — try again in a moment.",
     "errorRef": "Reference: {ref}",
     "retry": "Try again"
+  },
+  "EventsPage": {
+    "season": "Season {season} · {game}",
+    "title": "Events",
+    "subtitle": "Season events, standings and advancement",
+    "teams": "Teams",
+    "advanced": "Advanced",
+    "footer": "© {year} PRIDE. Not affiliated with FIRST®."
+  },
+  "TodayPage": {
+    "kicker": "Season {season} · {game}",
+    "welcomeTitle": "Follow your team",
+    "welcomeBody": "Type your team number and PRIDE becomes your team's home: next match and its odds, ranking and where you're likely to finish, and your chances in alliance selection. No account needed.",
+    "orBrowse": "Or <events>browse every event</events>.",
+    "follow": {
+      "label": "Team number",
+      "placeholder": "e.g. 30311",
+      "submit": "Follow",
+      "invalid": "Enter a valid team number (1–99999)."
+    },
+    "phase": {
+      "live": "competing now",
+      "upcoming": "{days, plural, =0 {starts today} one {starts in # day} other {starts in # days}}",
+      "past": "last event"
+    },
+    "noEvents": "No events registered for this team in season {season} yet.",
+    "seasonResults": "This season",
+    "noResultsYet": "No results yet this season.",
+    "resultLine": "#{rank} · {w}–{l}–{t}",
+    "nextMatch": "Next match",
+    "qualsProgress": "{played} / {total} quals played",
+    "yourAlliance": "Your alliance",
+    "opponents": "Opponents",
+    "winChance": "chance to win (event form)",
+    "noNextMatch": "No upcoming match on the schedule.",
+    "rank": "Rank",
+    "ofTeams": "of {n} teams",
+    "rs": "Ranking score",
+    "projected": "Projected finish",
+    "range": "likely #{lo}–#{hi}",
+    "qualsDone": "quals finished",
+    "allianceOdds": "Alliance odds",
+    "wouldCaptain": "on track to captain",
+    "pickOdds": "chance to be picked ({alliances} alliances)",
+    "footnote": "Computed from official FIRST data. Projections are probabilities, not promises.",
+    "noSchedule": "The match schedule hasn't been published yet."
   }
 }

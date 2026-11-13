@@ -1,146 +1,188 @@
-import { getAggregatedStats } from "@/lib/aggregation";
-import { fetchEvents } from "@/lib/ftc-api";
-import { getCurrentSeason } from "@/lib/constants";
-import { seasonGameName } from "@/lib/games/season-names";
-import { parseSeason, parseRegion, parseIsoDate, normalizeEventCode } from "@/lib/input-guards";
-import StatsTable from "@/components/StatsTable";
+import Link from "next/link";
 import { cookies } from "next/headers";
-import type { AggregatedTeamStats, FTCEvent } from "@/types/scouting";
+import { getFormatter, getTranslations } from "next-intl/server";
+import { fetchTeam, fetchTeamEvents, fetchRankings, fetchMatches, fetchHybridSchedule, fetchTeamRankingsInSeason } from "@/lib/ftc-api";
+import { getCurrentSeason } from "@/lib/constants";
+import { parseSeason } from "@/lib/input-guards";
+import { FOLLOW_TEAM_COOKIE, parseFollowedTeam } from "@/lib/follow-team";
+import { seasonRulesFor } from "@/lib/games/season-rules";
+import { seasonGameName } from "@/lib/games/season-names";
+import { pickRelevantEvent, summarizeAtEvent, daysUntil, type TodayAtEvent } from "@/lib/today-summary";
+import FollowTeamForm from "@/components/today/FollowTeamForm";
 
-import EventFilter from "@/components/EventFilter";
-import EventList from "@/components/EventList";
-import { CacheWriter, OfflineFallback } from "@/components/HydrateAndCache";
-import TodayPanelLoader from "@/components/home/TodayPanelLoader";
+/**
+ * Hoy (plan "PRIDE abierta al público", Etapa 2, decision #98): the home of
+ * the team the visitor follows (pride_team cookie) — next match with odds,
+ * ranking and projection, alliance-selection odds — from public FIRST data,
+ * no account needed. Without a followed team it asks for one.
+ */
+export default async function TodayPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+    const t = await getTranslations("TodayPage");
+    const format = await getFormatter();
+    const store = await cookies();
+    const params = await searchParams;
+    const current = getCurrentSeason();
+    const season = parseSeason(params?.season, current) ?? parseSeason(store.get("ftc_season")?.value, current) ?? current;
+    const team = parseFollowedTeam(store.get(FOLLOW_TEAM_COOKIE)?.value);
+    const kicker = t("kicker", { season, game: seasonGameName(season) ?? "" });
 
-// Matches EventFilter's "Select All Visible" ceiling (MAX_VISIBLE_EVENTS).
-const MAX_URL_EVENTS = 150;
+    if (team === null) {
+        return (
+            <main className="container mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-16">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{kicker}</p>
+                <h1 className="mt-2 text-4xl font-black md:text-5xl">{t("welcomeTitle")}</h1>
+                <p className="mt-3 max-w-prose text-muted-foreground">{t("welcomeBody")}</p>
+                <div className="mt-6"><FollowTeamForm /></div>
+                <p className="mt-8 text-sm text-muted-foreground">
+                    {t.rich("orBrowse", { events: chunks => <Link href="/events" className="underline hover:text-foreground">{chunks}</Link> })}
+                </p>
+            </main>
+        );
+    }
 
-interface PageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+    const { info, pick, atEvent, seasonResults, now } = await loadToday(team, season);
+
+    const pct = (p: number) => format.number(p, { style: "percent", maximumFractionDigits: 0 });
+
+    return (
+        <main className="container mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
+            <header className="mb-6 border-b border-border pb-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{kicker}</p>
+                <h1 className="mt-1 flex flex-wrap items-baseline gap-x-3 text-4xl font-black md:text-5xl">
+                    <span className="font-mono tabular-nums">{team}</span>
+                    {info?.nameShort && <span className="text-2xl font-bold text-muted-foreground md:text-3xl">{info.nameShort}</span>}
+                </h1>
+                {pick && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        <Link href={`/event/${pick.event.code}?season=${season}`} className="font-semibold text-foreground underline-offset-4 hover:underline">{pick.event.name}</Link>
+                        {" · "}
+                        {t(`phase.${pick.phase}`, { days: daysUntil(pick.event, now) })}
+                    </p>
+                )}
+            </header>
+
+            {!pick && <p className="text-muted-foreground">{t("noEvents", { season })}</p>}
+
+            {atEvent && <LiveSection team={team} s={atEvent} t={t} pct={pct} format={format} />}
+
+            {pick && pick.phase !== "live" && (
+                <section>
+                    <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("seasonResults")}</h2>
+                    {seasonResults.length === 0 ? (
+                        <p className="text-muted-foreground">{t("noResultsYet")}</p>
+                    ) : (
+                        <ul className="divide-y divide-border border-y border-border">
+                            {[...seasonResults].reverse().map(r => (
+                                <li key={r.eventCode} className="flex items-center justify-between gap-4 py-3">
+                                    <Link href={`/event/${r.eventCode}?season=${season}`} className="min-w-0 truncate font-semibold hover:underline">{r.eventName}</Link>
+                                    <span className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
+                                        {t("resultLine", { rank: r.rank, w: r.wins, l: r.losses, t: r.ties })}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            )}
+
+            <p className="mt-10 text-xs text-muted-foreground">{t("footnote")}</p>
+        </main>
+    );
 }
 
-export default async function Home({ searchParams }: PageProps) {
-  const resolvedParams = await searchParams;
-  const cookieStore = await cookies();
+/** Fetches and assembles everything "Hoy" shows for `team` (server-side). */
+async function loadToday(team: number, season: number) {
+    const [info, events] = await Promise.all([fetchTeam(season, team), fetchTeamEvents(season, team)]);
+    const now = Date.now();
+    const pick = pickRelevantEvent(events, now);
 
-  // URL params are untrusted (decision #91): every distinct value would cost
-  // a FIRST API fan-out and a cache entry, so only well-formed values pass.
-  const current = getCurrentSeason();
-  const season = parseSeason(resolvedParams?.season, current)
-    ?? parseSeason(cookieStore.get("ftc_season")?.value, current)
-    ?? current;
+    let atEvent: TodayAtEvent | null = null;
+    if (pick?.phase === "live") {
+        const [rankings, matches, schedule] = await Promise.all([
+            fetchRankings(season, pick.event.code),
+            fetchMatches(season, pick.event.code),
+            fetchHybridSchedule(season, pick.event.code),
+        ]);
+        const rules = seasonRulesFor(season);
+        atEvent = summarizeAtEvent(team, rankings, matches, schedule, pick.event.code, { winRp: rules.winRp, tieRp: rules.tieRp });
+    }
+    // Season results for the "upcoming" and "between events" states.
+    const seasonResults = pick && pick.phase !== "live" ? await fetchTeamRankingsInSeason(season, team) : [];
+    return { info, pick, atEvent, seasonResults, now };
+}
 
-  const eventCodes = typeof resolvedParams?.events === 'string'
-    ? resolvedParams.events.split(',').slice(0, MAX_URL_EVENTS).map(normalizeEventCode).filter((c): c is string => c !== null)
-    : undefined;
+type T = Awaited<ReturnType<typeof getTranslations<"TodayPage">>>;
+type F = Awaited<ReturnType<typeof getFormatter>>;
 
-  // FIRST type names include spaces/hyphens ("Super Qualifier", "Off-season").
-  const eventType = parseRegion(resolvedParams?.eventType);
+function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
+    return (
+        <div className="rounded-[4px] border border-border bg-card p-4">
+            <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
+            <div className="mt-1 font-mono text-3xl font-black tabular-nums">{value}</div>
+            {note && <div className="mt-0.5 text-xs text-muted-foreground">{note}</div>}
+        </div>
+    );
+}
 
-  const filters = {
-    region: parseRegion(resolvedParams?.region),
-    eventType,
-    dateStart: parseIsoDate(resolvedParams?.dateStart),
-    dateEnd: parseIsoDate(resolvedParams?.dateEnd),
-    eventCodes: eventCodes?.length ? eventCodes : undefined,
-  };
-
-  // Defensive: if origin (Firestore, FTC API, server cache) is unreachable, fall
-  // back to empty arrays. HydrateAndCache below will swap in IndexedDB-cached
-  // data on the client when available.
-  let allSeasonEvents: FTCEvent[] = [];
-  let teamStats: AggregatedTeamStats[] = [];
-  let filteredEvents: (FTCEvent & { abbr?: string })[] = [];
-  try {
-    allSeasonEvents = await fetchEvents(season);
-    const aggregated = await getAggregatedStats(season, filters);
-    teamStats = aggregated.teamStats;
-    filteredEvents = aggregated.events;
-  } catch (e) {
-    console.warn("[home] origin fetch failed, will rely on client cache:", e instanceof Error ? e.message : e);
-  }
-
-  const cacheKey = `home:${season}:${JSON.stringify(filters)}`;
-
-  const gameName = seasonGameName(season) || "Season Stats";
-
-  return (
-    <main className="min-h-screen bg-background relative">
-      {/* Blueprint grid fading from the top — the page's single texture. */}
-      <div className="absolute inset-x-0 top-0 h-[420px] bg-grid pointer-events-none opacity-60" aria-hidden />
-
-      <div className="container mx-auto px-4 md:px-8 py-8 md:py-12 relative z-10">
-        <header className="mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-border pb-6">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
-                <span className="text-primary">●</span> Temporada {season} · {gameName}
-              </p>
-              <h1 className="text-4xl md:text-5xl font-bold font-display tracking-tight text-foreground">
-                FTC <span className="text-primary">México</span>
-              </h1>
-              <p className="text-base md:text-lg text-muted-foreground mt-2">
-                Estadísticas y proyecciones de avance
-              </p>
-            </div>
-            <div className="flex gap-8 w-full md:w-auto">
-              <div className="md:text-right">
-                <span className="block font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-1">Equipos</span>
-                <span className="text-3xl font-bold text-foreground font-display">{teamStats.length}</span>
-              </div>
-              <div className="md:text-right border-l border-border pl-8">
-                <span className="block font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-1">Avanzaron</span>
-                <span className="text-3xl font-bold text-secondary font-display">
-                  {teamStats.filter(s => s.hasAdvanced).length}
-                </span>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* "Today" — renders only for a signed-in user whose org is competing
-            at an event happening right now. Null in every other case, so the
-            public home page is unchanged. The loader is a thin gate; the panel
-            itself is a next/dynamic chunk fetched only when the gate opens.
-            `teamStats` is the same array StatsTable already gets: no extra
-            payload. */}
-        <TodayPanelLoader season={season} teams={teamStats} />
-
-        <section className="mb-8">
-          <EventFilter
-            currentSeason={season}
-            allEvents={allSeasonEvents.map((e) => ({
-              code: e.code,
-              name: e.name,
-              dateStart: e.dateStart,
-              stateProv: e.stateProv,
-              country: e.country,
-              typeName: e.typeName,
-            }))}
-            latestAvailableSeason={getCurrentSeason()}
-          />
-        </section>
-
-        {teamStats.length > 0 || filteredEvents.length > 0 ? (
-          <>
-            {/* Fresh from origin — render normally + side-effect cache for next offline visit. */}
-            <CacheWriter cacheKey={cacheKey} payload={{ teamStats, filteredEvents }} />
-            <section className="mb-8">
-              <EventList events={filteredEvents} season={season} />
+function LiveSection({ team, s, t, pct, format }: { team: number; s: TodayAtEvent; t: T; pct: (p: number) => string; format: F }) {
+    const next = s.nextMatch;
+    const startTime = next?.startTime && Number.isFinite(Date.parse(next.startTime))
+        ? format.dateTime(new Date(next.startTime), { hour: "numeric", minute: "2-digit" })
+        : null;
+    return (
+        <div className="space-y-6">
+            <section aria-labelledby="next-heading" className="rounded-[4px] border border-border bg-card p-4 md:p-5">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 id="next-heading" className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("nextMatch")}</h2>
+                    <span className="text-xs text-muted-foreground">{t("qualsProgress", { played: s.qualsPlayed, total: s.qualsTotal })}</span>
+                </div>
+                {next ? (
+                    <>
+                        <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+                            <span className="font-mono text-3xl font-black">{next.description}</span>
+                            {startTime && <span className="text-sm text-muted-foreground">{startTime}</span>}
+                        </div>
+                        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+                            <AllianceBox color={next.alliance} teams={[team, ...next.partners.map(p => p.teamNumber)]} label={t("yourAlliance")} />
+                            <span className="self-center text-xs text-muted-foreground">vs</span>
+                            <AllianceBox color={next.alliance === "Red" ? "Blue" : "Red"} teams={next.opponents.map(p => p.teamNumber)} label={t("opponents")} />
+                        </div>
+                        {next.winProbability !== null && (
+                            <p className="mt-3 text-sm">
+                                <span className="font-mono text-xl font-black tabular-nums">{pct(next.winProbability)}</span>{" "}
+                                <span className="text-muted-foreground">{t("winChance")}</span>
+                            </p>
+                        )}
+                    </>
+                ) : (
+                    <p className="mt-2 text-muted-foreground">{s.qualsTotal === 0 ? t("noSchedule") : t("noNextMatch")}</p>
+                )}
             </section>
-            <section className="mb-12">
-              <StatsTable data={teamStats} />
-            </section>
-          </>
-        ) : (
-          // Server fetch returned empty (offline / origin error). Client reads from cache.
-          <OfflineFallback cacheKey={cacheKey} render="home-stats" rendererMeta={{ season }} />
-        )}
 
-        <footer className="text-center text-muted-foreground text-sm py-8">
-          <p>© {new Date().getFullYear()} FTC México Stats. No afiliado oficialmente con FIRST.</p>
-        </footer>
-      </div>
-    </main>
-  );
+            {s.ranking && (
+                <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <Stat label={t("rank")} value={`#${s.ranking.currentRank}`} note={t("ofTeams", { n: s.ranking.teamCount })} />
+                    <Stat label={t("rs")} value={s.ranking.rs.toFixed(2)} note={`${s.ranking.record.wins}–${s.ranking.record.losses}–${s.ranking.record.ties}`} />
+                    {s.ranking.projected
+                        ? <Stat label={t("projected")} value={`#${s.ranking.projected.rank}`} note={t("range", { lo: s.ranking.projected.range[0], hi: s.ranking.projected.range[1] })} />
+                        : <Stat label={t("projected")} value="—" note={t("qualsDone")} />}
+                    {s.allianceOdds
+                        ? <Stat label={t("allianceOdds")} value={pct(s.allianceOdds.probability)} note={s.allianceOdds.wouldCaptain ? t("wouldCaptain") : t("pickOdds", { alliances: s.allianceOdds.alliances })} />
+                        : <Stat label={t("allianceOdds")} value="—" />}
+                </section>
+            )}
+        </div>
+    );
+}
+
+function AllianceBox({ color, teams, label }: { color: "Red" | "Blue"; teams: number[]; label: string }) {
+    return (
+        <div
+            className="rounded-[3px] px-3 py-2 text-white"
+            style={{ background: color === "Red" ? "var(--color-alliance-red)" : "var(--color-alliance-blue)" }}
+        >
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] opacity-80">{label}</div>
+            <div className="font-mono text-lg font-black tabular-nums">{teams.join(" · ") || "—"}</div>
+        </div>
+    );
 }
