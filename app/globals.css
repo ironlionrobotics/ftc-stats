@@ -1,72 +1,80 @@
 @import "tailwindcss";
 
 /* ============================================================================
- * FTC Stats — "Modern technical" design tokens (decision: Linear/Vercel/
- * Statbotics lineage; violet primary + cyan data accent, no neon).
+ * PRIDE design tokens — Direction "Transmisión" (decision #93, 2026-11-13).
+ *
+ * Broadcast-scoreboard language: everything is black/white/grey; the ONLY
+ * colors are the alliance red and blue (plus success/warning for status).
+ * `primary` is now the neutral high-contrast ink (white on dark, black on
+ * light) — emphasis comes from weight and size, not from a bright accent.
+ * Token NAMES are unchanged, so every existing component adopts the new
+ * direction without edits; new code should prefer `alliance-red/blue`.
  *
  * Every component color MUST come from these semantic tokens so the light and
  * dark themes both work. Never hardcode slate/white/black in components.
+ * Superseded: "Nightshift" chartreuse/cobalt (2026-07-28).
  * ==========================================================================*/
-
-/* ----------------------------------------------------------------------------
- * Direction C · "Nightshift" (decision 2026-07-28, Héctor). Dark-first
- * instrumentation palette: chartreuse signal + cobalt data accent on near-black.
- * `.dark` is the primary experience; `:root` (light) is the secondary "at-the-
- * desk" mode where chartreuse is deepened to #5E8A00 so it still passes contrast
- * on a light ground (raw #C4F135 fails WCAG on white). Token NAMES are unchanged
- * from the previous violet/cyan system, so no component needed rewriting.
- * ------------------------------------------------------------------------- */
 :root {
-  /* Light — secondary mode. */
-  --color-background: #f5f6f2;
-  --color-foreground: #0e1116;
+  /* Light */
+  --color-background: #f2f3f5;
+  --color-foreground: #0c0e12;
   --color-card: #ffffff;
-  --color-card-foreground: #0e1116;
-  --color-muted: #eceee9;
-  --color-muted-foreground: #616772;
-  --color-border: #dce0e6;
+  --color-card-foreground: #0c0e12;
+  --color-muted: #e8eaee;
+  --color-muted-foreground: #5d6370;
+  --color-border: #d5d9e0;
 
-  --color-primary: #5e8a00;          /* deepened chartreuse — legible on white */
+  --color-primary: #0c0e12;          /* ink — the high-contrast "accent" */
   --color-primary-foreground: #ffffff;
-  --color-secondary: #3049d6;        /* cobalt — data highlights */
+  --color-secondary: #2457d6;        /* data accent = alliance blue */
   --color-secondary-foreground: #ffffff;
-  --color-accent: #3049d6;
+  --color-accent: #2457d6;
   --color-accent-foreground: #ffffff;
 
-  --color-success: #1f8a4c;
+  --color-alliance-red: #d6303a;
+  --color-alliance-blue: #2457d6;
+
+  --color-success: #13804a;
   --color-warning: #a5680a;
-  --color-danger: #d6203f;
+  --color-danger: #d6303a;
 }
 
 .dark {
-  /* Dark — primary "Nightshift" mode. Near-black with cool cast; surfaces step
-     up in three levels (background → card → muted) with hairline borders. */
-  --color-background: #08090c;
-  --color-foreground: #e7eaf0;
-  --color-card: #101319;
-  --color-card-foreground: #e7eaf0;
-  --color-muted: #171b22;
-  --color-muted-foreground: #7d8494;
-  --color-border: #1e2430;
+  /* Dark — primary mode. Near-black, three surface steps, hairline borders. */
+  --color-background: #07080a;
+  --color-foreground: #f3f4f6;
+  --color-card: #101217;
+  --color-card-foreground: #f3f4f6;
+  --color-muted: #181b22;
+  --color-muted-foreground: #8b92a1;
+  --color-border: #222731;
 
-  --color-primary: #c4f135;          /* chartreuse — signature signal */
-  --color-primary-foreground: #08090c;
-  --color-secondary: #5a76ff;        /* cobalt */
+  --color-primary: #f3f4f6;          /* ink */
+  --color-primary-foreground: #07080a;
+  --color-secondary: #4d7dff;        /* alliance blue */
   --color-secondary-foreground: #ffffff;
-  --color-accent: #5a76ff;
+  --color-accent: #4d7dff;
   --color-accent-foreground: #ffffff;
 
-  --color-success: #3fde7b;
+  --color-alliance-red: #ff4d57;
+  --color-alliance-blue: #4d7dff;
+
+  --color-success: #3ccf7e;
   --color-warning: #f0b429;
-  --color-danger: #ff3b5c;
+  --color-danger: #ff4d57;
 }
 
+/* Height of the mobile bottom tab bar (components/shell/AppShell.tsx), so
+   floating UI (install prompt, sync status, assistant) sits above it. */
+:root { --tabbar-h: calc(56px + env(safe-area-inset-bottom)); }
+@media (min-width: 768px) { :root { --tabbar-h: 0px; } }
+
 @theme {
-  /* Direction C typography: Space Grotesk (display + body, "instrument panel"
-     voice) + JetBrains Mono for tabular data. */
-  --font-sans: var(--font-space), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-space), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  /* System fonts only (decision #93): zero font bytes downloaded. Numbers use
+     a condensed, scoreboard-style stack where the OS has one. */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-display: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: "DIN Alternate", Bahnschrift, "Roboto Condensed", "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
 
   --color-primary: var(--color-primary);
   --color-primary-foreground: var(--color-primary-foreground);
@@ -74,6 +82,8 @@
   --color-secondary-foreground: var(--color-secondary-foreground);
   --color-accent: var(--color-accent);
   --color-accent-foreground: var(--color-accent-foreground);
+  --color-alliance-red: var(--color-alliance-red);
+  --color-alliance-blue: var(--color-alliance-blue);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-danger: var(--color-danger);

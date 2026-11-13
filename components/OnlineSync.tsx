@@ -326,7 +326,7 @@ export default function OnlineSync() {
                     className={clsx(
                         // Clears the stuck pill (bottom-16/20 + its ~33px height)
                         // with breathing room instead of sitting flush on it.
-                        "fixed bottom-28 right-4 md:bottom-32 md:right-6 z-50",
+                        "fixed bottom-[calc(var(--tabbar-h)+7rem)] right-4 md:bottom-32 md:right-6 z-50",
                         "w-[90vw] max-w-sm max-h-[70vh] overflow-y-auto",
                         "bg-card border border-border rounded-xl shadow-sm p-4 space-y-3",
                     )}
@@ -401,7 +401,7 @@ export default function OnlineSync() {
                     type="button"
                     onClick={() => setShowStuckPanel(v => !v)}
                     className={clsx(
-                        "fixed bottom-16 right-4 md:bottom-20 md:right-6 z-40",
+                        "fixed bottom-[calc(var(--tabbar-h)+4rem)] right-4 md:bottom-20 md:right-6 z-40",
                         "flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold shadow-sm border transition-all",
                         "bg-danger/15 border-danger/40 text-danger hover:bg-danger/25",
                     )}
@@ -417,7 +417,7 @@ export default function OnlineSync() {
                 onClick={() => online && drain()}
                 disabled={syncing || !online}
                 className={clsx(
-                    "fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40",
+                    "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 md:bottom-6 md:right-6 z-40",
                     "flex items-center gap-2 px-3 py-2 rounded-full text-xs font-bold shadow-sm border transition-all",
                     online
                         ? lastError

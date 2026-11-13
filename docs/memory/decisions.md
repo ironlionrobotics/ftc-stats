@@ -937,3 +937,15 @@ Un modelo conjunto de 8 estados por robot no mejora (0.1772): el sesgo residual 
 
 - **Firebase Analytics** se inicializaba en cada visita sin consentimiento, y la mayoría de los usuarios son menores. Ahora solo carga si `localStorage["pride-analytics-consent"] === "granted"`; nada lo concede hasta que exista el aviso de consentimiento (plan, Etapa 4). Se importa de forma diferida, así que `firebase/analytics` sale del bundle.
 - **`scoutNameFromUser`** y la semilla del perfil caían al correo cuando faltaba el nombre, y ese valor se graba en cada entrada de scouting, visible para toda la organización. Ahora caen a "Scout".
+
+## #93 · Dirección visual "Transmisión" y armazón por destinos (2026-11-13)
+
+**Decisión de Héctor:** de las tres direcciones (`docs/design/direcciones-2026-11.html`) se trabaja con **C · Transmisión**: lenguaje de marcador deportivo, todo en blanco, negro y gris, y el rojo y azul de alianza como únicos colores. "Sigue sin gustarme del todo": es la base de trabajo y se afina en sesiones dedicadas de diseño.
+
+**Implementación (Etapa 1):**
+- **Tokens** (`app/globals.css`): `primary` pasa a ser la tinta neutra de alto contraste (blanco en oscuro, negro en claro); `secondary`/`accent` es el azul de alianza; nuevos `alliance-red` y `alliance-blue`. Los nombres de token no cambian, así que todas las pantallas actuales adoptan la dirección sin editarse.
+- **Solo fuentes del sistema:** se eliminaron Space Grotesk y JetBrains Mono (`next/font`). Los números usan una pila condensada (DIN Alternate / Bahnschrift / Roboto Condensed).
+- **Armazón** (`components/shell/`): 5 destinos (Hoy, Eventos, Equipos, Scouting, Estrategia). Barra inferior en celular y riel en escritorio. "Más" agrupa Data Lab, Precisión del modelo y Trading Card. El panel de cuenta reúne el equipo seguido, tema, idioma, sesión, paneles de admin del equipo y la atribución a FIRST. Reemplaza a `components/Sidebar.tsx`.
+- **Seguir un equipo sin cuenta:** cookie `pride_team` (solo el número de equipo), escrita por `setFollowedTeamAction` y leída en el layout.
+- **Rutas nuevas:** `/events` (por ahora comparte implementación con `/`) y `/teams` (tabla de la temporada). La Etapa 2 convierte `/` en "Hoy".
+- **Medición** (`docs/perf/etapa1-local-2026-11-13.md`): JS −11% a −23% y KB totales −27% a −38% por ruta; TBT por debajo de 200 ms en todas salvo `/scouting` (377 → 214 ms).

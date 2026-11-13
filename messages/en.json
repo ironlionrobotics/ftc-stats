@@ -532,5 +532,51 @@
     "reject": "Reject",
     "approved": "Team {team} activated",
     "rejected": "Request for team {team} rejected"
+  },
+  "Shell": {
+    "nav": {
+      "today": "Today",
+      "events": "Events",
+      "teams": "Teams",
+      "scouting": "Scouting",
+      "strategy": "Strategy"
+    },
+    "more": {
+      "title": "More",
+      "dataLab": "Data Lab",
+      "oracle": "Model accuracy",
+      "card": "Trading Card"
+    },
+    "aria": {
+      "primary": "Main navigation",
+      "more": "More tools"
+    },
+    "search": {
+      "placeholder": "Team number"
+    },
+    "account": {
+      "menu": "Account and settings",
+      "close": "Close",
+      "signIn": "Sign in",
+      "signedIn": "Signed in",
+      "signInGoogle": "Sign in with Google",
+      "signOut": "Sign out",
+      "team": "Team {team}"
+    },
+    "follow": {
+      "label": "Team you follow",
+      "help": "Personalizes Today and the event views. No account needed.",
+      "placeholder": "e.g. 30311",
+      "set": "Follow",
+      "clear": "Stop"
+    },
+    "theme": {
+      "light": "Light",
+      "dark": "Dark"
+    }
+  },
+  "TeamsPage": {
+    "title": "Teams",
+    "subtitle": "Season {season} · search a team or browse the season table."
   }
 }

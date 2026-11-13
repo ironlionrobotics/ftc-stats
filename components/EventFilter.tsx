@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useProgramStore } from "@/lib/stores/program-store";
 
 // Slim projection of FTCEvent with only the fields this filter renders.
@@ -29,6 +29,7 @@ interface EventFilterProps {
 
 export default function EventFilter({ currentSeason, allEvents, latestAvailableSeason }: EventFilterProps) {
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
 
     // Mode: 'criteria' (Region/Type/Date) or 'selection' (Specific Events)
@@ -102,7 +103,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
         // Keep the client store in sync so scouting/strategy tabs open in this
         // session read the same season the server pages render with.
         useProgramStore.setState({ season });
-        router.push(`/?${params.toString()}`);
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     const toggleEventSelection = (code: string) => {

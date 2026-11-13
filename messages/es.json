@@ -532,5 +532,51 @@
     "reject": "Rechazar",
     "approved": "Equipo {team} activado",
     "rejected": "Solicitud del equipo {team} rechazada"
+  },
+  "Shell": {
+    "nav": {
+      "today": "Hoy",
+      "events": "Eventos",
+      "teams": "Equipos",
+      "scouting": "Scouting",
+      "strategy": "Estrategia"
+    },
+    "more": {
+      "title": "Más",
+      "dataLab": "Data Lab",
+      "oracle": "Precisión del modelo",
+      "card": "Trading Card"
+    },
+    "aria": {
+      "primary": "Navegación principal",
+      "more": "Más herramientas"
+    },
+    "search": {
+      "placeholder": "Número de equipo"
+    },
+    "account": {
+      "menu": "Cuenta y ajustes",
+      "close": "Cerrar",
+      "signIn": "Iniciar sesión",
+      "signedIn": "Sesión iniciada",
+      "signInGoogle": "Entrar con Google",
+      "signOut": "Cerrar sesión",
+      "team": "Equipo {team}"
+    },
+    "follow": {
+      "label": "Equipo que sigues",
+      "help": "Personaliza Hoy y las vistas de evento. No necesitas cuenta.",
+      "placeholder": "ej. 30311",
+      "set": "Seguir",
+      "clear": "Dejar"
+    },
+    "theme": {
+      "light": "Claro",
+      "dark": "Oscuro"
+    }
+  },
+  "TeamsPage": {
+    "title": "Equipos",
+    "subtitle": "Temporada {season} · busca un equipo o explora la tabla de la temporada."
   }
 }

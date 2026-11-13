@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import AppShell from "@/components/shell/AppShell";
+import { cookies } from "next/headers";
+import { FOLLOW_TEAM_COOKIE, parseFollowedTeam } from "@/lib/follow-team";
 import { AuthProvider } from "@/context/AuthContext";
 import { getAppConfig } from "@/lib/app-config";
 import ThemeSync from "@/components/ThemeSync";
@@ -15,18 +16,7 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 
-// Direction C "Nightshift" typography. Space Grotesk carries both display and
-// body with an "instrument panel" voice; JetBrains Mono handles tabular data.
-// Both are variable fonts, so no explicit weight list is needed.
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space",
-  subsets: ["latin"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
-});
+// Typography: system font stacks only (decision #93) — see app/globals.css.
 
 export const metadata: Metadata = {
   title: "PRIDE — FTC Analytics por Iron Lion Robotics",
@@ -66,13 +56,13 @@ export const metadata: Metadata = {
 import type { Viewport } from "next";
 
 export const viewport: Viewport = {
-  themeColor: "#08090c",
+  themeColor: "#07080a",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
 };
 
-// Dark-first (Direction C): apply the theme class before first paint so a
+// Dark-first: apply the theme class before first paint so a
 // dark-default app never flashes white. Reads the persisted Zustand theme
 // ("ftc-theme" in localStorage); defaults to dark unless the user explicitly
 // chose light. Runs synchronously in <head>, ahead of the React hydration
@@ -92,6 +82,8 @@ export default async function RootLayout({
   const appConfig = await getAppConfig();
   // Active locale (cookie/Accept-Language) for <html lang> and the intl provider.
   const locale = await getLocale();
+  // Team the visitor follows without an account (pride_team cookie).
+  const followedTeam = parseFollowedTeam((await cookies()).get(FOLLOW_TEAM_COOKIE)?.value);
   return (
     // suppressHydrationWarning: the themeInitScript below sets the `dark` class
     // on <html> before hydration, which intentionally differs from the server
@@ -101,15 +93,15 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
+        className="antialiased bg-background text-foreground"
       >
         <ThemeSync />
         <NextIntlClientProvider>
           <QueryProvider>
             <AuthProvider>
               <ConfirmProvider>
-                <Sidebar />
-                <div className="md:ml-60 min-h-screen transition-all duration-300 pb-20 md:pb-0">
+                <AppShell followedTeam={followedTeam} />
+                <div className="md:ml-56 min-h-screen pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
                   {children}
                 </div>
                 <DeferredGlobals aiAssistant={appConfig.features.aiAssistant} />

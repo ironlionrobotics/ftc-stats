@@ -140,7 +140,7 @@ export default function AssistantChat() {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
+        <div className="fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 md:bottom-6 md:right-6 z-50 flex flex-col items-end pointer-events-none">
             {/* Chat Window Container */}
             <div className={`pointer-events-auto transition-all duration-300 ease-out transform origin-bottom-right mb-4 ${isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-90 opacity-0 translate-y-10 pointer-events-none h-0'}`}>
                 <div className="w-[350px] md:w-[380px] bg-card border border-border rounded-3xl shadow-sm flex flex-col overflow-hidden max-h-[600px]">

@@ -67,7 +67,7 @@ export default function PWAInstallPrompt() {
 
     return (
         <div
-            className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 max-w-sm bg-card border border-primary/30 rounded-xl shadow-sm p-3 flex items-start gap-3 animate-in slide-in-from-bottom-2 fade-in-0"
+            className="fixed bottom-[calc(var(--tabbar-h)+1rem)] left-4 md:bottom-6 md:left-[calc(14rem+1.5rem)] z-40 max-w-sm bg-card border border-primary/30 rounded-xl shadow-sm p-3 flex items-start gap-3 animate-in slide-in-from-bottom-2 fade-in-0"
             role="region"
             aria-label="Instalar la app"
         >

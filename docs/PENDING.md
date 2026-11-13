@@ -11,7 +11,14 @@ Plan completo: estructura nueva (Hoy · Eventos · Equipos · Scouting · Estrat
 - ✅ Línea base de rendimiento móvil: `docs/perf/baseline-2026-11-13.md` (script `scripts/perf-baseline.mjs`). Punto débil: 460–680 KB de JS por ruta y TBT de 200–380 ms.
 - ✅ Cierres de seguridad: reclamo de equipo con aprobación (#90), entradas públicas validadas y límite por visitante (#91), analítica con consentimiento y sin correos como nombre (#92). **Falta el OK de deploy**, que incluye reglas de Firestore.
 - ✅ Tres direcciones visuales: `docs/design/direcciones-2026-11.html` (abrir en el navegador). **Falta: Héctor elige dirección y confirma el mapa de estructura (Aprobación A).**
-- Después del deploy: aprobar en `/admin` la solicitud del equipo 30311 (hoy no existe `orgs/30311`) y verificar en logs el formato de `X-Forwarded-For` (#91).
+- ✅ Etapa 0 desplegada (13-nov). Pendiente de Héctor: aprobar en `/admin` la solicitud del equipo 30311 (hoy no existe `orgs/30311`) y verificar en logs el formato de `X-Forwarded-For` (#91).
+
+**Etapa 1 (rama `etapa1/foundations`, sin deploy hasta después de MXTLQ):**
+- ✅ Dirección **Transmisión** elegida como base (#93), tokens aplicados y fuentes del sistema.
+- ✅ Armazón nuevo (5 destinos, barra inferior en celular y riel en escritorio, panel de cuenta), seguir un equipo sin cuenta, `/events` y `/teams`.
+- ✅ Lint en 0 (16 hallazgos de react-hooks 7.1.1 resueltos sin cambio de comportamiento).
+- ✅ Medición local: JS −11% a −23%, KB −27% a −38% por ruta.
+- Pendiente: Aprobación B (revisión en navegador + OK de deploy). Las redirecciones de URLs viejas llegan con la Etapa 2, cuando las rutas se muevan de verdad.
 
 ## ▶️ RETOMAR AQUÍ (cierre sesión 21, 13 nov · temporada BIOBUZZ)
 
