@@ -992,7 +992,7 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 
 **Umbrales de RP de Regional, Campeonato y Premier:** siguen sin publicarse (TBA en el manual). El mecanismo de override por evento ya existe (`RP_THRESHOLD_OVERRIDES`, #87); se llena cuando se publiquen.
 
-**Ajustes tras la revisión independiente (mismo día, antes del deploy):**
+**Ajustes a #95 tras la revisión independiente (mismo día, antes del deploy):**
 - **Faltas:** los puntos sin penalizaciones restaban las faltas al revés. Ahora es el final menos las faltas *recibidas* (`scoreRedFinal − scoreBlueFoul`, #48). El modelo de fuerza quedó extraído en `eventStrengthModel`. En datos reales de AUBRQ1 movía P(capitán) hasta 17 puntos.
 - **Lista de partidos vacía:** si `fetchMatches` falla de forma transitoria con rankings ya jugados, la proyección se reporta como "sin datos" en lugar de mostrar certeza (100% o 0%).
 - **Incertidumbre:** los RP de bonificación se muestrean como Binomial(3, tasa/3) y cada corrida perturba la fuerza de cada equipo con N(0, σ_alianza/√jugados). En eventos sintéticos, la cobertura del rango p10–p90 pasó de 62–76% a **75–83%** (objetivo 80%). P(capitán) ≥ 0.85 queda bien calibrada a 70% del evento (predice 0.94–0.95, se cumple 0.89–0.93), pero sigue algo confiada a 40% (predice 0.91–0.93, se cumple 0.72–0.87).
