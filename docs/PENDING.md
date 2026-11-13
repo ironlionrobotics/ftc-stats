@@ -20,14 +20,21 @@ Plan aprobado (13-nov): `~/.claude/plans/replicated-cooking-elephant.md`. Hécto
 - **#104:** `/lending` con inventario, solicitudes y préstamos; recordatorio en "Hoy".
 - **#105:** `/workshop` con reloj oficial, marcador, historial y avance.
 - **Estrategia:** usa el evento elegido en `/scouting`.
-- **Pruebas:** 532 unitarias y 20/20 de reglas en el emulador; build OK.
+- **Trading Card v2 (#106/#107):**
+  - fotos, clips y YouTube con foto de perfil, solo para equipos aprobados;
+  - preguntas generales más las de la temporada por categoría;
+  - `/card/[team]` para ver otras tarjetas;
+  - moderación de reportes en `/admin`.
+- **Bucket de Storage:** creado el 13-nov.
+- **Pruebas:** 544 unitarias; reglas 30/30 con los emuladores de Firestore y Storage.
 
 **Antes del deploy (orden):**
 1. **Revisión independiente:** aplicar los hallazgos.
 2. **Revisión en navegador:** celular y escritorio, claro y oscuro, con dos cuentas de equipos distintos.
 3. **Rendimiento:** comparar contra `docs/perf/`.
 4. **OK de Héctor para el deploy:**
-   - primero `firebase deploy --only firestore:rules,firestore:indexes`;
+   - primero `firebase deploy --only firestore:rules,firestore:indexes,storage` (la primera vez pide el permiso IAM de las reglas cruzadas);
+   - luego CORS del bucket (`gcloud storage buckets update gs://ironlion-scouting.firebasestorage.app --cors-file=…`) para el dominio de producción y localhost;
    - después App Hosting.
 5. **Prueba real con 2 equipos:**
    - pool: llegar a 5 capturas desbloquea;

@@ -96,6 +96,7 @@ Game schemas are declarative and **routed by season** (`lib/games/registry.ts` â
 - **Pit lending** (`lib/lending.ts`, `/lending`): inventory, presence and requests are client-written within the own team; `loans` only via `app/actions/lending.ts`, readable by the two parties.
 - **Workshop** (`/workshop`, `lib/match-clock.ts`): official match timing in `SeasonRules.matchTiming`; runs saved to Dexie v3 first, then `practice_runs` (own-org, never shared).
 - Team-scoped server actions resolve the caller with `callerWithTeam()` and rate-limit with `allowUser()` (`lib/server-caller.ts`).
+- **Trading Card v2** (#106/#107): general questions (`lib/team-profile/general-questions.ts`) + season `selfReport`; robot media in Storage (`storage.rules`, `lib/team-media*.ts`) visible only to approved teams â€” read with `getBlob`, never `getDownloadURL`; `/card/[team]` viewer; reports moderated in `/admin`. `npm run test:rules` runs Firestore + Storage emulators.
 
 ### Strategy page (6 tabs)
 

@@ -1158,3 +1158,43 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 - **Aislamiento:** nunca entra al pool ni a la validación.
 
 **Alcance:** un robot por práctica. El marcador de alianza con dos robots queda pendiente.
+
+## #106 · Fotos, clips y videos del robot en la Trading Card (2026-11-13)
+
+**Pedido de Héctor:** subir fotos y videos del robot, no solo poner una URL, y elegir la foto de perfil.
+
+**Decisiones de Héctor:**
+- clips cortos subidos (≤60 s, ≤50 MB, máximo 3) más enlaces de YouTube;
+- solo el admin o el lead suben, borran y eligen la foto de perfil;
+- confirmación de "sin rostros identificables o con permiso" (FIRST YPP), y los medios solo los ven los equipos aprobados.
+
+**Implementación:**
+- **Bucket:** `ironlion-scouting.firebasestorage.app` (us-central1, creado el 13-nov con la API de Cloud Storage for Firebase).
+- **Archivos:** `team_media/{season}/{team}/{mediaId}/{original|thumb}`. Los metadatos van en `team_media/{id}` y la foto de perfil en `team_profiles.profileMediaId`.
+- **Fotos:** se recodifican en el navegador con canvas (≤1600 px en WebP o JPEG, miniatura de 400 px), lo que **borra el EXIF y el GPS**. Máximo 12 por equipo.
+- **Clips:** la duración se lee de los metadatos y el póster se toma de un cuadro.
+- **YouTube:** se inserta con `youtube-nocookie.com`.
+- **Nunca públicos:**
+  - `storage.rules` consulta `users/{uid}` (regla cruzada) para exigir equipo aprobado al leer, y admin o lead del equipo de la ruta al escribir o borrar;
+  - los archivos se leen con `getBlob()`; nunca con `getDownloadURL`, porque su enlace con token lo abre cualquiera;
+  - requiere CORS en el bucket para los dominios de la app.
+- **Moderación:** cualquier equipo reporta (`media_reports`, solo escritura). El superadmin retira o descarta desde `/admin`. Retirar borra los archivos y los metadatos, y limpia la foto de perfil si era esa.
+- **Costo estimado:** menos de 10 GB para ~40 equipos MX (centavos al mes); las descargas dependen del uso.
+
+## #107 · Preguntas de la Trading Card: generales y por temporada (2026-11-13)
+
+**Hallazgo (investigación de ~9 formularios y apps reales):** la tarjeta vieja (`canClimb`, `scoresNear/Far`, `groundIntake/sourceIntake`) copiaba el esquema de WikiScout, que viene de FRC, y preguntaba "climbing" en BIOBUZZ.
+
+**Preguntas generales**, válidas en cualquier temporada (`lib/team-profile/general-questions.ts`):
+- **Robot:** tracción, peso y expansión de más de 18 in, sistema de construcción.
+- **Software:** lenguaje, localización, framework de trayectorias, cámara.
+- **Juego:** rutinas de autónomo, rol (se omite si la temporada define el suyo), tiempo de ciclo, defensa, experiencia de los drivers.
+- **Notas:** fortalezas y límites, cambios desde el último evento.
+
+Se renderizan con el mismo motor que el scouting (`DynamicGameForm`). Los datos del equipo (año rookie, ciudad, premios) vienen de FIRST y nunca se preguntan. Tampoco se piden nombres de personas.
+
+**Por temporada:** `selfReport` se organiza en las categorías que se repiten cada año: movimiento y tarea del auto, dónde y con qué anota, de dónde toma piezas, clasificación por color, logro final (con la confiabilidad del parqueo) y rol de la temporada. `verifyWith` marca las respuestas que se pueden contrastar con datos oficiales por robot.
+
+**Pendiente:** mostrar "dice X · medido Y" cuando exista el dato oficial por robot (`teleopRobotNPark`; la correspondencia de estación está [NV]).
+
+**Vista para otros equipos:** `/card/[team]`, solo para equipos aprobados, con enlaces desde Pool y desde el tablero de reparto.
