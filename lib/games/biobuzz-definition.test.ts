@@ -171,3 +171,34 @@ describe("i18n: every definition label key exists in en and es", () => {
         }
     });
 });
+
+describe("DECODE score() parity", () => {
+    // Verbatim copy of the formula formerly duplicated in lib/projections.ts
+    // and lib/ground-truth-validation.ts.
+    function legacy(m: Record<string, unknown>) {
+        const n = (k: string) => (m[k] as number | undefined) ?? 0;
+        const auto = n("autoPurpleArtifacts") * 3 + n("autoGreenArtifacts") * 3 + n("autoPoints");
+        const teleop = n("teleopPurpleArtifacts") * 2 + n("teleopGreenArtifacts") * 2 + n("patternsCompleted") * 10;
+        const park = m.endgameBaseParking === "Full" ? 10 : m.endgameBaseParking === "Partial" ? 5 : 0;
+        return { auto, teleop, endgame: (m.dualParking ? 20 : 0) + park };
+    }
+
+    it("matches the legacy formula on 2000 pseudo-random entries", () => {
+        let seed = 42;
+        const rnd = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+        const maybe = (v: unknown) => (rnd() < 0.2 ? undefined : v);
+        for (let i = 0; i < 2000; i++) {
+            const m = {
+                autoPurpleArtifacts: maybe(Math.floor(rnd() * 10)),
+                autoGreenArtifacts: maybe(Math.floor(rnd() * 10)),
+                autoPoints: maybe(rnd() < 0.5 ? 0 : Math.floor(rnd() * 5)),
+                teleopPurpleArtifacts: maybe(Math.floor(rnd() * 40)),
+                teleopGreenArtifacts: maybe(Math.floor(rnd() * 40)),
+                patternsCompleted: maybe(Math.floor(rnd() * 5)),
+                endgameBaseParking: maybe(["None", "Partial", "Full"][Math.floor(rnd() * 3)]),
+                dualParking: maybe(rnd() < 0.5),
+            };
+            expect(scoreOf(FTC_DECODE_2025, m)).toEqual(legacy(m));
+        }
+    });
+});

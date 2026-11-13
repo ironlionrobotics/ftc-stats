@@ -141,7 +141,7 @@ export const FTC_DECODE_2025: GameDefinition = {
     derivedFields: { autoParked: "categorical", autoPoints: "numeric" },
     // Coarse per-robot reconstruction. Byte-for-byte the formula previously
     // duplicated in lib/projections.ts and lib/ground-truth-validation.ts
-    // (parity-tested in score-parity.test.ts). RP-only bonuses add no points.
+    // (parity-tested in biobuzz-definition.test.ts, "DECODE score() parity"). RP-only bonuses add no points.
     score: (s) => {
         const park = s.cat("endgameBaseParking");
         return {

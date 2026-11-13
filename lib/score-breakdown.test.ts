@@ -8,6 +8,7 @@ import {
     robotSlotsFor,
     biobuzzRobotOutcomes,
     biobuzzTips,
+    scoutableAllianceScore,
 } from "./score-breakdown";
 
 // Fixtures are real FIRST API responses (trimmed), fetched 2026-11-13.
@@ -90,5 +91,20 @@ describe("BIOBUZZ alliance helpers", () => {
             const pts = (b.autoLeavePoints ?? 0) + (b.autoParkPoints ?? 0) + (b.teleopParkPoints ?? 0);
             expect(b.swarmRP).toBe(pts >= 16);
         }
+    });
+});
+
+describe("scoutableAllianceScore (ground-truth target)", () => {
+    it("2026: auto + teleop minus 2 pts per element left in the top CELL", () => {
+        const b = { autoPoints: 8, teleopPoints: 31, teleopHivePollenNectar: 3 };
+        expect(scoutableAllianceScore(2026, b, 60, 15)).toBe(33);
+    });
+    it("2025: auto + teleop, ignoring a bogus preFoulTotal", () => {
+        const blue = flattenMatchScores(scores2025).find(e => e.alliance === "Blue")!.scoreBreakdown;
+        expect(blue.preFoulTotal).toBe(0);
+        expect(scoutableAllianceScore(2025, blue, 57, 5)).toBe(52);
+    });
+    it("no breakdown: final minus foul points received", () => {
+        expect(scoutableAllianceScore(2026, undefined, 60, 15)).toBe(45);
     });
 });

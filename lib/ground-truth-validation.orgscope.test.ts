@@ -10,7 +10,8 @@ const { fetchMatchesMock, getAdminDbMock } = vi.hoisted(() => ({
     fetchMatchesMock: vi.fn(),
     getAdminDbMock: vi.fn(),
 }));
-vi.mock("@/lib/ftc-api", () => ({ fetchMatches: fetchMatchesMock }));
+// No official breakdowns → the ground-truth target falls back to final − foul received.
+vi.mock("@/lib/ftc-api", () => ({ fetchMatches: fetchMatchesMock, fetchMatchScores: async () => [] }));
 vi.mock("@/lib/firebase-admin", () => ({ getAdminDb: getAdminDbMock }));
 
 import { runGroundTruthValidation } from "./ground-truth-validation";

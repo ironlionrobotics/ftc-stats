@@ -342,3 +342,20 @@ describe("computeAllianceSignals", () => {
         expect(computeAllianceSignals([], allianceTeams, OFFICIAL)).toBeNull();
     });
 });
+
+describe("computeTeamPointsFromConsensus — BIOBUZZ 2026", () => {
+    it("scores through the season's definition (Table 10-2)", () => {
+        const fields = {
+            autoLeave: cat(true),
+            autoPark: cat(true),
+            autoHiveTips: num(1),
+            teleopHiveTips: num(2),
+            teleopGardenElements: num(3),
+            teleopPark: cat(true),
+            // DECODE fields present on a 2026 consensus must be ignored.
+            teleopPurpleArtifacts: num(50),
+        };
+        // auto 3+5+20 = 28 · teleop 40+3 = 43 · end 5 → 76
+        expect(computeTeamPointsFromConsensus(fields, "FTC", 2026)).toBe(76);
+    });
+});

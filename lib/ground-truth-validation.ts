@@ -1,6 +1,8 @@
 import "server-only";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { fetchMatches } from "@/lib/ftc-api";
+import { fetchMatches, fetchMatchScores } from "@/lib/ftc-api";
+import { scoutableAllianceScore } from "@/lib/score-breakdown";
+import { levelsMatch } from "@/lib/scoring-utils";
 import {
     aggregateMatchTeam,
     type FieldConsensus,
@@ -301,8 +303,19 @@ export async function runGroundTruthValidation(
     const entries = allEntries.filter(e => !alreadyCounted.has(e.id));
     const entriesAlreadyCounted = allEntries.length - entries.length;
 
-    // 2. Pull official matches.
-    const matches = await fetchMatches(season, eventCode);
+    // 2. Pull official matches + per-alliance breakdowns. The ground-truth
+    // target is the SCOUTABLE part of each alliance score (no fouls received,
+    // no alliance-level BIOBUZZ CELL leftovers) — see scoutableAllianceScore.
+    const [matches, scores] = await Promise.all([
+        fetchMatches(season, eventCode),
+        fetchMatchScores(season, eventCode),
+    ]);
+    const breakdownOf = (matchNumber: number, level: string, alliance: "red" | "blue") =>
+        scores.find(s =>
+            s.matchNumber === matchNumber &&
+            levelsMatch(level, s.matchLevel) &&
+            s.alliance.toLowerCase() === alliance,
+        )?.scoreBreakdown;
 
     // 3. Per match × alliance, compute per-scout own-entry accuracy signals.
     const obs: AllianceScoutSignal[] = [];
@@ -333,8 +346,14 @@ export async function runGroundTruthValidation(
         let matchHadCoverage = false;
 
         const alliances: Array<[number[], number]> = [
-            [redTeams, match.scoreRedFinal],
-            [blueTeams, match.scoreBlueFinal],
+            [redTeams, scoutableAllianceScore(
+                season, breakdownOf(match.matchNumber, match.tournamentLevel, "red"),
+                match.scoreRedFinal ?? 0, match.scoreBlueFoul ?? 0,
+            )],
+            [blueTeams, scoutableAllianceScore(
+                season, breakdownOf(match.matchNumber, match.tournamentLevel, "blue"),
+                match.scoreBlueFinal ?? 0, match.scoreRedFoul ?? 0,
+            )],
         ];
 
         for (const [allianceTeams, officialScore] of alliances) {

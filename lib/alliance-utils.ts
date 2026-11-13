@@ -412,8 +412,8 @@ export const LEGACY_MAJOR_FOUL_POINTS = 15;
  *  - failRed/failBlue: robot-failure incident — the alliance is projected at
  *    its best SINGLE robot instead of the pair (a dead robot can't be
  *    forecast; this reproduces it after the fact).
- *  - foulsRed/foulsBlue: MAJOR fouls committed by that alliance; each awards
- *    15 pts to the opponent (the Lower-Final-flip scenario).
+ *  - foulsRed/foulsBlue: legacy MAJOR-foul COUNTS recorded under DECODE;
+ *    each awards LEGACY_MAJOR_FOUL_POINTS (15) to the opponent.
  */
 export interface MatchAdjustment {
     realRed?: number | null;

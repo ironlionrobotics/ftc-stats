@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AggregatedTeamStats, MatchScouting, CURRENT_GAME_SCHEMA, FTCMatchScouting } from "@/types/scouting";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
+import { gameDefinitionFor } from "@/lib/games/registry";
 import { DEFAULT_ORG_ID, scoutIdFromUser, scoutNameFromUser } from "@/lib/orgs";
 import { useSaveMatchScouting, type MatchScoutingSaveResult } from "@/lib/hooks/use-scouting-mutations";
 import { superScoutingFormSchema, type SuperScoutingFormValues } from "@/lib/schemas/scouting";
@@ -96,7 +97,8 @@ export default function SuperScoutingForm({ team, entries }: SuperScoutingFormPr
             scouterId: scoutId,
             scouterName: scoutName,
             confidence: "high",
-            gameSchemaVersion: CURRENT_GAME_SCHEMA.FTC,
+            // Provenance per the ACTIVE season's game (a 2025 super-scout is not v3).
+            gameSchemaVersion: gameDefinitionFor("FTC", season)?.schemaVersion ?? CURRENT_GAME_SCHEMA.FTC,
             scoutingMode: "super",
             driverSkill: values.driverSkill,
             defenseRating: values.defenseRating,

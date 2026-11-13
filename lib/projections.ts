@@ -124,7 +124,7 @@ export function calculateTeamProjection(
         if ((item.scoutingMode ?? "match") === "super") continue;
         // Scoring rules travel with the season's game definition (single
         // source of truth, shared with ground-truth validation).
-        const def = gameDefinitionFor(item.program, item.season);
+        const def = gameDefinitionFor(item.program ?? "FTC", item.season);
         const phases = def?.score?.(inputsFromEntry(item)) ?? { auto: 0, teleop: 0, endgame: 0 };
         const auto = phases.auto;
         const tele = phases.teleop;

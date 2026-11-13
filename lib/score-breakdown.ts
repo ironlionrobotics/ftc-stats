@@ -195,3 +195,27 @@ export function biobuzzRobotOutcomes(b: AllianceScoreBreakdown, slot: 1 | 2): {
 export function biobuzzTips(b: AllianceScoreBreakdown): number {
     return n(b.autoHiveTips) + n(b.teleopHiveTips);
 }
+
+/**
+ * The part of an alliance's official score that robot-level scouting can
+ * actually reconstruct — the ground-truth target for scout reliability.
+ *
+ * Excludes foul points RECEIVED (no robot "scores" them) and, for BIOBUZZ,
+ * elements left in the top CELL at match end (2 pts each, alliance-level,
+ * never scouted per robot). Uses autoPoints + teleopPoints rather than
+ * preFoulTotal: DECODE payloads were seen with preFoulTotal 0 on a scored
+ * match (FPEMX Q1 Blue).
+ *
+ * Without a breakdown, falls back to final − foul received.
+ */
+export function scoutableAllianceScore(
+    season: number,
+    b: AllianceScoreBreakdown | undefined,
+    final: number,
+    foulReceived: number,
+): number {
+    if (!b || Object.keys(b).length === 0) return Math.max(0, final - foulReceived);
+    const base = n(b.autoPoints) + n(b.teleopPoints);
+    if (season >= 2026) return Math.max(0, base - 2 * n(b.teleopHivePollenNectar));
+    return base;
+}

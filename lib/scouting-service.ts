@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { PitScouting, MatchScouting, PublicPitSummary, CURRENT_GAME_SCHEMA } from "@/types/scouting";
 import { DEFAULT_ORG_ID, pitRecordId } from "@/lib/constants";
+import { gameDefinitionFor } from "@/lib/games/registry";
 
 // Default cap for match-scouting listeners. At ~80 matches × 6 robots × 3 scouts
 // × 4 orgs federated, an event can produce ~5760 entries — way more than any
@@ -151,7 +152,7 @@ export async function saveMatchScouting(data: MatchScouting, docId?: string) {
         // the scout actively flags lower confidence.
         confidence: data.confidence ?? "high",
         // Provenance
-        gameSchemaVersion: data.gameSchemaVersion ?? CURRENT_GAME_SCHEMA[data.program],
+        gameSchemaVersion: data.gameSchemaVersion ?? gameDefinitionFor(data.program, data.season)?.schemaVersion ?? CURRENT_GAME_SCHEMA[data.program],
         appVersion: data.appVersion ?? APP_VERSION,
         // Server timestamp overrides any client-supplied one
         timestamp: Timestamp.now(),
