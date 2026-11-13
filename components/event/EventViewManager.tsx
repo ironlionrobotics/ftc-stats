@@ -6,7 +6,9 @@ import RankingTable from "./RankingTable";
 import ParticipantList from "./ParticipantList";
 import AlliancePredictor from "../analytics/AlliancePredictor";
 import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, AdvancementPoints, FTCMatchScouting, FTCHybridScheduleMatch, FTCAllianceSelection } from "@/types/scouting";
-import { TeamEvolution } from "@/app/actions/analytics";
+import type { TeamEvolution } from "@/app/actions/analytics";
+import type { BiobuzzRpInputs } from "@/lib/rp-counts";
+import { seasonRulesFor } from "@/lib/games/season-rules";
 import { Trophy, LayoutList, History, Sparkles, Medal, Target, Zap as LucideZap } from "lucide-react";
 // lib/scouting-service is imported dynamically in the effect below: it reaches
 // the Firebase client SDK, and this is the public event page — the one people
@@ -24,6 +26,12 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
+/** Server-computed RP probabilities for one team (BIOBUZZ count models). */
+export interface EventTeamRp {
+    rp?: Record<string, number>;
+    rpInputs?: BiobuzzRpInputs;
+}
+
 interface EventViewManagerProps {
     matches: FTCMatch[];
     rankings: TeamRanking[];
@@ -35,9 +43,13 @@ interface EventViewManagerProps {
     selectedAlliances?: FTCAllianceSelection[];
     eventCode: string;
     season: number;
+    /** Official bonus RPs per qual alliance, keyed "<matchNumber>-Red|Blue". */
+    matchBonusRp?: Record<string, number>;
+    /** BIOBUZZ RP probabilities per team, computed on the server. */
+    teamRp?: Record<number, EventTeamRp>;
 }
 
-export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, schedule, selectedAlliances, eventCode, season }: EventViewManagerProps) {
+export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, schedule, selectedAlliances, eventCode, season, matchBonusRp, teamRp }: EventViewManagerProps) {
     const [activeTab, setActiveTab] = useState<"matches" | "rankings" | "oracle" | "teams" | "advancement" | "awards">("teams");
     const [scoutingData, setScoutingData] = useState<MatchScouting[]>([]);
     const [filterTeam, setFilterTeam] = useState<number | null>(null);
@@ -111,14 +123,18 @@ export default function EventViewManager({ matches, rankings, advancement, award
             });
         });
 
+        // Win/tie RP of the season (3/1 in DECODE and BIOBUZZ) plus the
+        // official bonus RPs of each alliance — RS is their average.
+        const { winRp, tieRp } = seasonRulesFor(season);
         validMatches.forEach(m => {
             const processTeam = (teamNumber: number, alliance: 'Red' | 'Blue', myScore: number, oppScore: number, myAuto: number, myFoulGiven: number) => {
                 const s = stats.get(teamNumber);
                 if (!s) return;
                 s.matchesPlayed++;
-                if (myScore > oppScore) { s.rp += 2; s.wins++; }
+                if (myScore > oppScore) { s.rp += winRp; s.wins++; }
                 else if (myScore < oppScore) { s.losses++; }
-                else { s.rp += 1; s.ties++; }
+                else { s.rp += tieRp; s.ties++; }
+                s.rp += matchBonusRp?.[`${m.matchNumber}-${alliance}`] ?? 0;
                 const np = myScore - myFoulGiven;
                 s.tbp1 += np;
                 s.tbp2 += myAuto;
@@ -158,7 +174,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
 
         calculated.forEach((item, index) => { item.rank = index + 1; });
         return calculated;
-    }, [matches, rankings, selectedRound, totalRounds, matchesPerRound]);
+    }, [matches, rankings, selectedRound, totalRounds, matchesPerRound, season, matchBonusRp]);
 
     // MAP TO TEAM EVOLUTION FOR ORACLE
     const oracleTeams = useMemo(() => {
@@ -245,7 +261,8 @@ export default function EventViewManager({ matches, rankings, advancement, award
             let rpArtifacts = 0;
             let rpPattern = 0;
 
-            // BIOBUZZ (2026+): no invented point thresholds; RP stays empty here.
+            // BIOBUZZ (2026+): probabilities come from the server's count
+            // models (teamRp); no invented point thresholds here.
             if (season < 2026 && totalMatches > 0) {
                 let autoSuccess = 0;
                 let teleSuccess = 0;
@@ -318,10 +335,12 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 rpMovement,
                 rpArtifacts,
                 rpPattern,
-                ...(season < 2026 ? { rp: { movement: rpMovement, goal: rpArtifacts, pattern: rpPattern } } : {})
+                ...(season < 2026
+                    ? { rp: { movement: rpMovement, goal: rpArtifacts, pattern: rpPattern } }
+                    : { rp: teamRp?.[rank.teamNumber]?.rp, rpInputs: teamRp?.[rank.teamNumber]?.rpInputs })
             } as TeamEvolution;
         });
-    }, [simulatedRankings, matches, selectedRound, matchesPerRound, scoutingData, season]);
+    }, [simulatedRankings, matches, selectedRound, matchesPerRound, scoutingData, season, teamRp]);
 
     return (
         <div className="space-y-6">

@@ -12,10 +12,15 @@ describe("winProbabilityFromProjections (logistic, projection-only)", () => {
         expect(winProbabilityFromProjections(100, 100)).toBeCloseTo(0.5, 10);
     });
 
-    it("matches the calibrated k=1.5 logistic (parity with predictMatch)", () => {
-        // diff 100, avg 100 → 1/(1+e^{-1.5}) ≈ 0.8176 — the same value the
+    it("matches the calibrated k=3.5 logistic (parity with predictMatch)", () => {
+        // diff 100, avg 100 → 1/(1+e^{-3.5}) ≈ 0.9707 — the same value the
         // projections.test.ts suite pins for predictMatch.
-        expect(winProbabilityFromProjections(150, 50)).toBeCloseTo(0.8176, 3);
+        expect(winProbabilityFromProjections(150, 50)).toBeCloseTo(0.9707, 3);
+    });
+
+    it("a 20% edge in projected points is ~67%, not a coin flip (decision #94)", () => {
+        // diff 20 over avg 100 → x = 0.2 → 1/(1+e^{-0.7}) ≈ 0.668.
+        expect(winProbabilityFromProjections(110, 90)).toBeCloseTo(0.668, 2);
     });
 
     it("is symmetric: P(a,b) + P(b,a) = 1", () => {

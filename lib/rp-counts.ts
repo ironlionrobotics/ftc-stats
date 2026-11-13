@@ -95,7 +95,8 @@ export function pSwarm(
  * last fifth of quals across 15 events, 2026-11-13) as teams tune auto and
  * park. Backtest (train first 60% of quals, predict the rest, 348
  * alliances): Brier 0.1769 → 0.1688 (skill vs base rate 0.12 → 0.16).
- * A residual under-prediction (~0.12) remains — recalibrate with more data.
+ * Re-checked on 201 events: 0.7 stays; the residual under-prediction is
+ * corrected by SWARM_CALIBRATION below (decision #96).
  */
 export const SWARM_RECENCY_DECAY = 0.7;
 
@@ -135,6 +136,23 @@ export interface BiobuzzRpInputs {
     matches: number;
 }
 
+/**
+ * Platt calibration of the SWARM probability (decision #96):
+ * p' = σ(a + b · logit p). The independent-Bernoulli model under-predicts
+ * SWARM (teams improve within an event, and LEAVE/PARK are not independent).
+ * Fitted on 2,960 test alliances from 201 events (2026-11-13), 2-fold by
+ * event: a = 0.637 / 0.654, b = 1.108 / 1.010 → Brier 0.177/0.173 → 0.161/0.158,
+ * mean prediction 0.68–0.69 vs observed 0.68–0.69 (was ~0.57).
+ */
+export const SWARM_CALIBRATION = { a: 0.65, b: 1.05 };
+
+export function calibrateSwarm(p: number, c = SWARM_CALIBRATION): number {
+    if (p >= 1 - 1e-12) return 1;   // certain (both robots always score) stays certain
+    if (p <= 1e-12) return 0;       // impossible (e.g. a robot that never moves) stays impossible
+    const z = Math.log(p / (1 - p));
+    return 1 / (1 + Math.exp(-(c.a + c.b * z)));
+}
+
 /** RP probabilities for a concrete alliance of two teams. */
 export function biobuzzAllianceRp(
     a: BiobuzzRpInputs,
@@ -144,7 +162,7 @@ export function biobuzzAllianceRp(
 ): Record<string, number> {
     const mu = Math.max(0, a.tipsOpr) + Math.max(0, b.tipsOpr);
     return {
-        swarm: pSwarm(a.rates, b.rates, thresholds.swarm ?? 16),
+        swarm: calibrateSwarm(pSwarm(a.rates, b.rates, thresholds.swarm ?? 16)),
         pollinator1: pAtLeastNegBin(thresholds.pollinator1 ?? 4, mu, dispersion),
         pollinator2: pAtLeastNegBin(thresholds.pollinator2 ?? 7, mu, dispersion),
     };

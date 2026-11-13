@@ -1,4 +1,8 @@
-import { fetchMatches, fetchRankings, fetchEvents, fetchAdvancement, fetchEventAwards, fetchAdvancementPoints, fetchHybridSchedule, fetchAlliances } from "@/lib/ftc-api";
+import { fetchMatches, fetchRankings, fetchEvents, fetchAdvancement, fetchEventAwards, fetchAdvancementPoints, fetchHybridSchedule, fetchAlliances, fetchMatchScores } from "@/lib/ftc-api";
+import { analyzeMultipleEvents } from "@/app/actions/analytics";
+import { allianceRpObs } from "@/lib/rp-inference";
+import { parseSeason } from "@/lib/input-guards";
+import type { EventTeamRp } from "@/components/event/EventViewManager";
 import { getCurrentSeason, CHAMPIONSHIP_EVENTS_2025, PREMIER_EVENTS_2025 } from "@/lib/constants";
 import Link from "next/link";
 import EventViewManager from "@/components/event/EventViewManager";
@@ -21,9 +25,9 @@ export default async function EventPage(props: EventPageProps) {
     // user's cookie, then getCurrentSeason() (which knows about the FTC
     // Sept-Aug calendar). Hardcoded 2024 was the previous fallback and caused
     // "Event Not Found" once getCurrentSeason rolled to 2025.
-    const explicitSeason = searchParams?.season ? Number(searchParams.season) : undefined;
-    const cookieSeason = Number(cookieStore.get("ftc_season")?.value);
-    const primarySeason = explicitSeason || cookieSeason || getCurrentSeason();
+    const explicitSeason = parseSeason(searchParams?.season, getCurrentSeason());
+    const cookieSeason = parseSeason(cookieStore.get("ftc_season")?.value, getCurrentSeason());
+    const primarySeason = explicitSeason ?? cookieSeason ?? getCurrentSeason();
 
     // Try the primary season first; if the event isn't there, fall back to
     // the adjacent seasons (last + next) so users following old links / cookies
@@ -95,15 +99,40 @@ export default async function EventPage(props: EventPageProps) {
         );
     }
 
-    const [matches, rankings, advancement, awards, advancementPoints, schedule, alliances] = await Promise.all([
+    const [matches, rankings, advancement, awards, advancementPoints, schedule, alliances, scores] = await Promise.all([
         fetchMatches(season, event.code),
         fetchRankings(season, event.code),
         fetchAdvancement(season, event.code),
         fetchEventAwards(season, event.code),
         fetchAdvancementPoints(season, event.code),
         fetchHybridSchedule(season, event.code),
-        fetchAlliances(season, event.code)
+        fetchAlliances(season, event.code),
+        fetchMatchScores(season, event.code),
     ]);
+
+    // Official bonus RPs per qual alliance ("<match>-Red" → count), so the
+    // round-history slider rebuilds past rankings with the real RP rules.
+    const matchBonusRp: Record<string, number> = {};
+    const qualByNumber = new Map(matches.filter(m => m.tournamentLevel === "QUALIFICATION").map(m => [m.matchNumber, m]));
+    for (const s of scores) {
+        if (!/qual/i.test(s.matchLevel)) continue;
+        const m = qualByNumber.get(s.matchNumber);
+        if (!m) continue;
+        const obs = allianceRpObs(season, s.scoreBreakdown, m, s.alliance === "Red" ? "Red" : "Blue");
+        if (obs) matchBonusRp[`${s.matchNumber}-${s.alliance}`] = Object.values(obs.rp).filter(Boolean).length;
+    }
+
+    // BIOBUZZ RP probabilities per team (count models, decision #88) — the
+    // same analysis Data Lab runs, cached server-side.
+    let teamRp: Record<number, EventTeamRp> | undefined;
+    if (season >= 2026) {
+        try {
+            const analysis = await analyzeMultipleEvents(season, [event.code]);
+            teamRp = Object.fromEntries(analysis.teamEvolution.map(t => [t.teamNumber, { rp: t.rp, rpInputs: t.rpInputs }]));
+        } catch (e) {
+            console.warn("[event] RP analysis unavailable:", e instanceof Error ? e.message : e);
+        }
+    }
 
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 md:py-12">
@@ -182,6 +211,8 @@ export default async function EventPage(props: EventPageProps) {
                 selectedAlliances={alliances}
                 eventCode={event.code}
                 season={season}
+                matchBonusRp={matchBonusRp}
+                teamRp={teamRp}
             />
         </div>
     );

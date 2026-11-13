@@ -58,3 +58,6 @@ data/oracle-backtest/
 data/growth-curves/
 # Draft science raw pulls (regenerable via scripts/draft-science.mjs).
 data/draft-science/
+
+# Agent worktrees (Claude Code isolation)
+.claude/worktrees/

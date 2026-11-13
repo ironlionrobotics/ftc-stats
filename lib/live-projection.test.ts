@@ -77,7 +77,7 @@ describe("projectFinalRankings", () => {
         expect(result.teamProjections).toHaveLength(0);
     });
 
-    it("linearly extrapolates a single team's RP", () => {
+    it("treats the Ranking Score as an average, not a running total (v1 bug)", () => {
         const matches = [
             match({ matchNumber: 1, redTeams: [30311], blueTeams: [99], played: true }),
             match({ matchNumber: 2, redTeams: [30311], blueTeams: [99], played: true }),
@@ -86,8 +86,8 @@ describe("projectFinalRankings", () => {
         ];
         const result = projectFinalRankings(
             [
-                ranking({ rank: 1, teamNumber: 30311, sortOrder1: 6, matchesPlayed: 2 }),
-                ranking({ rank: 2, teamNumber: 99, sortOrder1: 0, matchesPlayed: 2 }),
+                ranking({ rank: 1, teamNumber: 30311, sortOrder1: 3, matchesPlayed: 2, wins: 2 }),
+                ranking({ rank: 2, teamNumber: 99, sortOrder1: 0, matchesPlayed: 2, losses: 2 }),
             ],
             matches,
             "MXTOL",
@@ -97,21 +97,20 @@ describe("projectFinalRankings", () => {
         expect(top.matchesScheduled).toBe(4);
         expect(top.matchesRemaining).toBe(2);
         expect(top.avgRPperMatch).toBe(3);
-        // projectedFinal = 6 + 3*2 = 12
-        expect(top.projectedFinalRP).toBe(12);
+        expect(top.currentRP).toBe(6);
+        // Winning out keeps the average at 3 — v1 projected "12" as if RS were a total.
+        expect(top.projectedFinalRS).toBeGreaterThan(2.5);
+        expect(top.projectedFinalRS).toBeLessThanOrEqual(3 + 1e-9);
+        expect(top.projectedFinalRank).toBe(1);
     });
 
-    it("reorders rankings when projection inverts current standings", () => {
-        // Team A: 3 quals played (RP=9 → 3/match), 1 remaining → projected = 9 + 3 = 12
-        // Team B: 1 qual played (RP=4 → 4/match), 3 remaining → projected = 4 + 12 = 16
-        // B overtakes A.
+    it("does not inflate teams that have played fewer matches", () => {
+        // A: 3/3 wins, B: 1/1 win — same RS 3. v1 extrapolated B to 16 vs A 12.
         const matches = [
-            // Team A plays in matches 1-4 (4 total)
             match({ matchNumber: 1, redTeams: [1], blueTeams: [99], played: true }),
             match({ matchNumber: 2, redTeams: [1], blueTeams: [99], played: true }),
             match({ matchNumber: 3, redTeams: [1], blueTeams: [99], played: true }),
             match({ matchNumber: 4, redTeams: [1], blueTeams: [99], played: false }),
-            // Team B plays in matches 5-8 (4 total)
             match({ matchNumber: 5, redTeams: [2], blueTeams: [99], played: true }),
             match({ matchNumber: 6, redTeams: [2], blueTeams: [99], played: false }),
             match({ matchNumber: 7, redTeams: [2], blueTeams: [99], played: false }),
@@ -119,20 +118,39 @@ describe("projectFinalRankings", () => {
         ];
         const result = projectFinalRankings(
             [
-                ranking({ rank: 1, teamNumber: 1, sortOrder1: 9, matchesPlayed: 3 }),
-                ranking({ rank: 2, teamNumber: 2, sortOrder1: 4, matchesPlayed: 1 }),
+                ranking({ rank: 1, teamNumber: 1, sortOrder1: 3, matchesPlayed: 3, wins: 3 }),
+                ranking({ rank: 2, teamNumber: 2, sortOrder1: 3, matchesPlayed: 1, wins: 1 }),
+                ranking({ rank: 3, teamNumber: 99, sortOrder1: 0, matchesPlayed: 4, losses: 4 }),
             ],
             matches,
             "MXTOL",
         );
-        const a = result.teamProjections.find(p => p.teamNumber === 1)!;
+        for (const p of result.teamProjections) expect(p.projectedFinalRS).toBeLessThanOrEqual(3 + 1e-9);
         const b = result.teamProjections.find(p => p.teamNumber === 2)!;
-        expect(b.projectedFinalRP).toBeGreaterThan(a.projectedFinalRP);
-        expect(b.projectedFinalRank).toBe(1);
-        expect(a.projectedFinalRank).toBe(2);
-        // rankDelta: A was 1, projected 2 → -1 (dropped). B was 2, projected 1 → +1 (climbed).
-        expect(a.rankDelta).toBe(-1);
-        expect(b.rankDelta).toBe(1);
+        expect(b.projectedFinalRP).toBeLessThanOrEqual(12 + 1e-9);
+    });
+
+    it("is deterministic and reports a coherent rank distribution", () => {
+        const teams = [1, 2, 3, 4, 5, 6];
+        const matches = [
+            match({ matchNumber: 1, redTeams: [1, 2], blueTeams: [3, 4], played: true }),
+            match({ matchNumber: 2, redTeams: [5, 6], blueTeams: [1, 3], played: true }),
+            match({ matchNumber: 3, redTeams: [2, 4], blueTeams: [5, 6], played: true }),
+            match({ matchNumber: 4, redTeams: [1, 5], blueTeams: [2, 6], played: false }),
+            match({ matchNumber: 5, redTeams: [3, 6], blueTeams: [4, 5], played: false }),
+        ];
+        const rankings = teams.map((t, i) => ranking({ rank: i + 1, teamNumber: t, sortOrder1: 3 - i * 0.5, sortOrder2: 50 - i, matchesPlayed: 2, wins: Math.max(0, 2 - Math.floor(i / 2)) }));
+        const a = projectFinalRankings(rankings, matches, "X");
+        const b = projectFinalRankings(rankings, matches, "X");
+        expect(a).toEqual(b);
+        for (const p of a.teamProjections) {
+            expect(p.pTop4).toBeGreaterThanOrEqual(0);
+            expect(p.pTop4).toBeLessThanOrEqual(1);
+            expect(p.rankRange[0]).toBeLessThanOrEqual(p.projectedFinalRank);
+            expect(p.projectedFinalRank).toBeLessThanOrEqual(p.rankRange[1]);
+        }
+        // Top-4 probabilities sum to 4 (exactly four teams are top 4 in each run).
+        expect(a.teamProjections.reduce((s, p) => s + p.pTop4, 0)).toBeCloseTo(4, 6);
     });
 
     it("uses TBP1 to break ties on projected RP", () => {
@@ -148,7 +166,7 @@ describe("projectFinalRankings", () => {
             matches,
             "MXTOL",
         );
-        // Both project to same final RP (no remaining matches). TBP1 wins.
+        // Same RS and no remaining matches: the second sort order (TB2) decides.
         const t1 = result.teamProjections.find(p => p.teamNumber === 1)!;
         const t2 = result.teamProjections.find(p => p.teamNumber === 2)!;
         expect(t2.projectedFinalRank).toBe(1);
@@ -189,5 +207,21 @@ describe("projectFinalRankings", () => {
         );
         expect(result.qualMatchesTotal).toBe(3);
         expect(result.qualMatchesPlayed).toBe(1);
+    });
+});
+
+describe("projectFinalRankings on real data (AUBRQ1 2026)", () => {
+    // Real FIRST API responses fetched 2026-11-13. With every qual played the
+    // projection must reproduce the official ranking exactly: RS as an
+    // average, surrogate appearances excluded, and the official tiebreakers.
+    it("reproduces the official final ranking when quals are complete", async () => {
+        const rankings = (await import("@/lib/__fixtures__/rankings-2026-AUBRQ1.json")).default.rankings as unknown as TeamRanking[];
+        const matches = ((await import("@/lib/__fixtures__/matches-2026-AUBRQ1-qual-full.json")).default.matches as unknown as FTCMatch[])
+            .map(m => ({ ...m, tournamentLevel: "QUALIFICATION" }) as FTCMatch);
+        const res = projectFinalRankings(rankings, matches, "AUBRQ1");
+        for (const p of res.teamProjections) {
+            expect(p.projectedFinalRank).toBe(p.currentRank);
+            expect(p.matchesRemaining).toBe(0);
+        }
     });
 });

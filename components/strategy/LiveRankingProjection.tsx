@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { useProgram } from "@/lib/stores/program-store";
 import { fetchLiveProjectionAction } from "@/app/actions/live-projection";
@@ -19,8 +20,9 @@ interface LiveRankingProjectionProps {
  * Live ranking projection for an event in progress.
  *
  * The strategy lead picks an event (defaults to whatever the teams list
- * suggests as primary) and gets a re-ranked table showing where each team
- * is projected to land if performance holds. Teams in the user's org are
+ * suggests as primary) and gets a re-ranked table: the median simulated final
+ * rank, its 10–90% range, and the chance of finishing top 4 (lib/live-projection.ts,
+ * Monte Carlo of the remaining schedule, decision #95). Teams in the user's org are
  * highlighted so they're easy to spot in big events.
  *
  * Refresh button is manual — re-pulls rankings and matches via the cached
@@ -30,6 +32,8 @@ interface LiveRankingProjectionProps {
 export default function LiveRankingProjection({ teams }: LiveRankingProjectionProps) {
     const { orgId } = useAuth();
     const { season } = useProgram();
+    const t = useTranslations("LiveRanking");
+    const format = useFormatter();
 
     // Unique event codes from the loaded teams, with the event currently in
     // progress (or most recent) first so the strategy lead lands on the event
@@ -52,7 +56,7 @@ export default function LiveRankingProjection({ teams }: LiveRankingProjectionPr
     const [eventCode, setEventCode] = useState<string>(eventCodes[0] ?? "");
     const [result, setResult] = useState<LiveProjectionResult | null>(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState(false);
     const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
     const orgTeamNumber = orgId ? Number(orgId) : null;
@@ -68,11 +72,12 @@ export default function LiveRankingProjection({ teams }: LiveRankingProjectionPr
     const refresh = async () => {
         if (!eventCode) return;
         setLoading(true);
-        setError(null);
+        setError(false);
         try {
             const res = await fetchLiveProjectionAction({ season, eventCode });
             if (!res.ok) {
-                setError(res.error);
+                console.warn("[live-ranking]", res.error);
+                setError(true);
                 setResult(null);
             } else {
                 setResult(res.result);
@@ -98,11 +103,9 @@ export default function LiveRankingProjection({ teams }: LiveRankingProjectionPr
                     <div>
                         <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                             <Trophy className="text-warning" size={22} />
-                            Proyección final de rankings
+                            {t("title")}
                         </h2>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Extrapolación lineal del rendimiento actual al fin de qualifying.
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">{t("subtitle")}</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <select
@@ -111,7 +114,7 @@ export default function LiveRankingProjection({ teams }: LiveRankingProjectionPr
                             className="px-3 py-1.5 bg-card border border-border rounded-lg text-foreground text-xs font-mono"
                         >
                             {eventCodes.length === 0 && (
-                                <option value="">Sin eventos</option>
+                                <option value="">{t("noEvents")}</option>
                             )}
                             {eventCodes.map(code => (
                                 <option key={code} value={code}>{code}</option>
@@ -124,18 +127,16 @@ export default function LiveRankingProjection({ teams }: LiveRankingProjectionPr
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground text-xs font-bold rounded-lg"
                         >
                             {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                            Actualizar
+                            {t("refresh")}
                         </button>
                     </div>
                 </div>
 
                 {result && !result.insufficientData && (
                     <div className="mt-3 text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
-                        <span>
-                            <strong className="text-foreground">{result.qualMatchesPlayed}</strong> / {result.qualMatchesTotal} matches jugados
-                        </span>
+                        <span>{t("played", { played: result.qualMatchesPlayed, total: result.qualMatchesTotal })}</span>
                         {lastRefresh && (
-                            <span>· Actualizado {lastRefresh.toLocaleTimeString()}</span>
+                            <span>· {t("updatedAt", { time: format.dateTime(lastRefresh, { timeStyle: "short" }) })}</span>
                         )}
                     </div>
                 )}
@@ -144,14 +145,13 @@ export default function LiveRankingProjection({ teams }: LiveRankingProjectionPr
             {error && (
                 <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-xs">
                     <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                    <span>{error}</span>
+                    <span>{t("error")}</span>
                 </div>
             )}
 
             {result?.insufficientData && (
                 <Card className="p-8 text-center text-muted-foreground">
-                    Sin matches jugados aún en {result.eventCode}. La proyección
-                    aparece una vez que comienza el qualifying.
+                    {t("insufficient", { event: result.eventCode })}
                 </Card>
             )}
 
@@ -161,14 +161,15 @@ export default function LiveRankingProjection({ teams }: LiveRankingProjectionPr
                         <table className="w-full text-xs">
                             <thead className="bg-muted text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                                 <tr>
-                                    <Th>Proyectado</Th>
-                                    <Th>Actual</Th>
+                                    <Th>{t("col.projected")}</Th>
+                                    <Th>{t("col.range")}</Th>
+                                    <Th>{t("col.current")}</Th>
                                     <Th>Δ</Th>
-                                    <Th align="left">Equipo</Th>
-                                    <Th>MP/Sched</Th>
-                                    <Th>RP actual</Th>
-                                    <Th>RP/match</Th>
-                                    <Th>Proyectado RP</Th>
+                                    <Th align="left">{t("col.team")}</Th>
+                                    <Th>{t("col.matches")}</Th>
+                                    <Th>{t("col.rsNow")}</Th>
+                                    <Th>{t("col.rsFinal")}</Th>
+                                    <Th>{t("col.top4")}</Th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -208,6 +209,9 @@ function Row({ projection: p, highlighted }: { projection: RankingProjection; hi
                 {p.projectedFinalRank}
             </td>
             <td className="px-3 py-2 text-right font-mono text-muted-foreground">
+                {p.rankRange[0] === p.rankRange[1] ? p.rankRange[0] : `${p.rankRange[0]}–${p.rankRange[1]}`}
+            </td>
+            <td className="px-3 py-2 text-right font-mono text-muted-foreground">
                 {p.currentRank}
             </td>
             <td className="px-3 py-2 text-right">
@@ -224,13 +228,13 @@ function Row({ projection: p, highlighted }: { projection: RankingProjection; hi
                 {p.matchesPlayed}/{p.matchesScheduled}
             </td>
             <td className="px-3 py-2 text-right font-mono text-foreground">
-                {p.currentRP.toFixed(0)}
-            </td>
-            <td className="px-3 py-2 text-right font-mono text-foreground">
                 {p.avgRPperMatch.toFixed(2)}
             </td>
             <td className="px-3 py-2 text-right font-mono font-bold text-primary">
-                {p.projectedFinalRP.toFixed(1)}
+                {p.projectedFinalRS.toFixed(2)}
+            </td>
+            <td className="px-3 py-2 text-right font-mono text-foreground">
+                {Math.round(p.pTop4 * 100)}%
             </td>
         </tr>
     );

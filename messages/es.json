@@ -1358,5 +1358,25 @@
     "sortOpr": "Orden: Est. OPR",
     "sortMax": "Orden: Puntaje máx.",
     "sortConsistency": "Orden: Mayor consistencia"
+  },
+  "LiveRanking": {
+    "title": "Proyección final del ranking",
+    "subtitle": "Simula 1,000 veces los partidos de calificación que faltan con el calendario real y la fuerza de cada equipo en este evento. Ordena por Ranking Score (promedio de RP) y los desempates oficiales.",
+    "noEvents": "Sin eventos",
+    "refresh": "Actualizar",
+    "played": "{played} / {total} partidos de calificación jugados",
+    "updatedAt": "Actualizado {time}",
+    "error": "No se pudo cargar la proyección. Intenta de nuevo en un momento.",
+    "insufficient": "Aún no hay partidos jugados en {event}. La proyección aparece cuando empiece la calificación.",
+    "col": {
+      "projected": "Proyectado",
+      "range": "Rango probable",
+      "current": "Actual",
+      "team": "Equipo",
+      "matches": "Jugados/Total",
+      "rsNow": "RS actual",
+      "rsFinal": "RS final",
+      "top4": "Top 4"
+    }
   }
 }

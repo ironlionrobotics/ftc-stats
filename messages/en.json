@@ -1358,5 +1358,25 @@
     "sortOpr": "Sort: Est. OPR",
     "sortMax": "Sort: Max Score",
     "sortConsistency": "Sort: High Consistency"
+  },
+  "LiveRanking": {
+    "title": "Final ranking projection",
+    "subtitle": "Simulates the remaining quals 1,000 times with the real schedule and each team's strength at this event. Ranks by Ranking Score (average RP) and the official tiebreakers.",
+    "noEvents": "No events",
+    "refresh": "Refresh",
+    "played": "{played} / {total} quals played",
+    "updatedAt": "Updated {time}",
+    "error": "Couldn't load the projection. Try again in a moment.",
+    "insufficient": "No quals played yet at {event}. The projection appears once qualifying starts.",
+    "col": {
+      "projected": "Projected",
+      "range": "Likely range",
+      "current": "Now",
+      "team": "Team",
+      "matches": "Played/Total",
+      "rsNow": "RS now",
+      "rsFinal": "Final RS",
+      "top4": "Top 4"
+    }
   }
 }
