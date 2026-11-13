@@ -88,7 +88,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Runtime config (superadmin console). Redis-cached; degrades to defaults.
+  // Runtime config (superadmin console). Server-cached (memory → Firestore); degrades to defaults.
   const appConfig = await getAppConfig();
   // Active locale (cookie/Accept-Language) for <html lang> and the intl provider.
   const locale = await getLocale();

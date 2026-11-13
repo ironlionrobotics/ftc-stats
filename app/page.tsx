@@ -34,7 +34,7 @@ export default async function Home({ searchParams }: PageProps) {
     eventCodes: eventCodes,
   };
 
-  // Defensive: if origin (Firestore, FTC API, Redis) is unreachable, fall
+  // Defensive: if origin (Firestore, FTC API, server cache) is unreachable, fall
   // back to empty arrays. HydrateAndCache below will swap in IndexedDB-cached
   // data on the client when available.
   let allSeasonEvents: FTCEvent[] = [];

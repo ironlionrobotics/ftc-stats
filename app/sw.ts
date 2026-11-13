@@ -16,7 +16,7 @@ import { Serwist } from "serwist";
 //   - Firestore traffic — Firebase SDK manages its own offline persistence
 //     and our scouting writes go through it directly, not via fetch.
 //   - FTC API calls — those are server-only (Server Components hit the API
-//     directly with Redis cache).
+//     directly with the server cache).
 //
 // Background-sync of pending scouting entries is handled at the React layer
 // by components/OnlineSync.tsx (Dexie → Firestore via online event listener),

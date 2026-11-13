@@ -14,10 +14,6 @@ env:
     secret: FTC_API_USERNAME
   - variable: FTC_API_KEY
     secret: FTC_API_KEY
-  - variable: UPSTASH_REDIS_REST_URL
-    secret: UPSTASH_REDIS_REST_URL
-  - variable: UPSTASH_REDIS_REST_TOKEN
-    secret: UPSTASH_REDIS_REST_TOKEN
   - variable: GOOGLE_GENERATIVE_AI_API_KEY
     secret: GOOGLE_GENERATIVE_AI_API_KEY
   # Superadmin allow-list (comma-separated emails). Not a secret — it's the

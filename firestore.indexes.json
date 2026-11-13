@@ -107,5 +107,9 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    { "collectionGroup": "server_cache", "fieldPath": "expiresAt", "ttl": true, "indexes": [] },
+    { "collectionGroup": "server_cache", "fieldPath": "v", "indexes": [] },
+    { "collectionGroup": "server_counters", "fieldPath": "expiresAt", "ttl": true, "indexes": [] }
+  ]
 }

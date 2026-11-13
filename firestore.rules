@@ -231,9 +231,18 @@ service cloud.firestore {
             allow update, delete: if false;
         }
 
-        // Legacy Firestore-based api_cache. We migrated to Upstash Redis;
-        // these rules block further reads/writes so the collection gets retired.
+        // Legacy Web-SDK api_cache (retired May 2026, decision #20). Closed.
         match /api_cache/{key} {
+            allow read, write: if false;
+        }
+
+        // Server cache + rate-limit counters (decision #89, replaced Upstash).
+        // Admin SDK only (bypasses rules); clients never read or write them —
+        // cached payloads include whole-event data and rate-limit state.
+        match /server_cache/{key} {
+            allow read, write: if false;
+        }
+        match /server_counters/{key} {
             allow read, write: if false;
         }
 

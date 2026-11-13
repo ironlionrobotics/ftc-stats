@@ -2,7 +2,7 @@ import "server-only";
 import { flattenMatchScores, type AllianceScoreBreakdown, type MatchScoreEntry } from "@/lib/score-breakdown";
 import { cache } from "react";
 import { TeamRanking, AdvancementResponse, AdvancementPoints, FTCMatch, FTCAward, FTCEvent } from "@/types/scouting";
-import { getRedis } from "@/lib/redis";
+import { serverCache } from "@/lib/server-cache";
 import { singleFlight } from "@/lib/single-flight";
 
 const BASE_URL = "https://ftc-api.firstinspires.org/v2.0";
@@ -82,47 +82,24 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3, ba
     }
 }
 
-// Reads cached payload from Upstash Redis. The TTL parameter is kept in the
-// signature for backward compatibility but Redis manages expiration natively
-// via SET ... EX, so we no longer need to compare timestamps client-side.
-// Returns null on cache miss, cache disabled, or read error.
+// Reads a cached payload from the shared server cache (memory → Firestore,
+// lib/server-cache.ts). The TTL parameter is kept for call-site compatibility;
+// expiry is fixed at write time. Returns null on miss, expiry, or any cache
+// failure — a broken cache never fails the request (decision #89).
 export async function getCachedData<T>(key: string, ttlSeconds: number): Promise<T | null> {
-    void ttlSeconds; // retained for call-site compatibility; Redis enforces TTL natively
-    const redis = getRedis();
-    if (!redis) return null;
-
-    try {
-        const cached = await redis.get<T>(CACHE_PREFIX + key);
-        return cached ?? null;
-    } catch (e) {
-        console.warn(
-            `[cache] read error for ${key}:`,
-            e instanceof Error ? e.message : e,
-        );
-        return null;
-    }
+    void ttlSeconds;
+    return serverCache.get<T>(CACHE_PREFIX + key);
 }
 
-// Writes payload to Upstash Redis with an explicit TTL so expired entries are
-// reclaimed automatically. Callers MUST pass a sensible ttlSeconds — defaults
-// to 5 minutes if omitted to avoid permanently stale data.
+// Writes a payload with an explicit TTL. Callers MUST pass a sensible
+// ttlSeconds — defaults to 5 minutes to avoid permanently stale data.
 export async function setCachedData<T>(key: string, payload: T, ttlSeconds: number = 300) {
-    const redis = getRedis();
-    if (!redis) return;
-
-    try {
-        await redis.set(CACHE_PREFIX + key, payload, { ex: ttlSeconds });
-    } catch (e) {
-        console.warn(
-            `[cache] write error for ${key}:`,
-            e instanceof Error ? e.message : e,
-        );
-    }
+    await serverCache.set(CACHE_PREFIX + key, payload, ttlSeconds);
 }
 
 // Read-through cache with single-flight stampede protection.
 //
-// Fast path (warm Redis entry): one cache read, return — the single-flight Map
+// Fast path (warm cache entry): one cache read, return — the single-flight Map
 // is never touched, so cache hits pay zero coordination overhead.
 //
 // Cold path (miss): concurrent callers for the same key share ONE `work()`
@@ -505,7 +482,7 @@ export async function fetchTeam(season: number, teamNumber: number): Promise<FTC
             // Only cache real data. `readThrough` treats a falsy cached value
             // as a miss (`if (cached) return cached;`), so writing `null` here
             // would be a pure no-op write — zero cache benefit, one wasted
-            // Redis round-trip on every lookup. It also deliberately avoids
+            // cache round-trip on every lookup. It also deliberately avoids
             // negative-caching: a team that registers mid-season becomes
             // visible immediately instead of waiting out a 24h TTL.
             if (team) {

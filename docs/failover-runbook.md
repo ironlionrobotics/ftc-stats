@@ -81,7 +81,7 @@ If venue has zero internet for hours and you need to consolidate scouting from m
 
 **Fix:**
 - If FTC API is down: nothing to do. Wait. Match data refreshes every 60s during active events.
-- If Upstash cache is down: app falls back to direct fetch (slower). Verify env var `UPSTASH_REDIS_REST_URL` is set.
+- If the server cache is failing: logs show `[cache] remote … failed … skipping remote for a while` (once per 30 s per instance); the app keeps working from memory + direct fetch. Emergency kill switch: env `SERVER_CACHE=off` + rollout.
 
 ### §3.2 Wrong team appears in alliance / picklist
 
@@ -114,7 +114,7 @@ If venue has zero internet for hours and you need to consolidate scouting from m
 |---|---|
 | FTC-events API down | Wait. No fix possible. |
 | Firestore down | Firebase Status page (status.firebase.google.com) — usually <30min |
-| Upstash down | Cache degrades to nothing; app still works but slow |
+| Server cache (Firestore) failing | Breaker skips it for 30 s at a time; app works from memory + direct fetch, slower |
 | App code bug discovered mid-event | Hotfix branch `hotfix/premier`, deploy via Firebase App Hosting |
 
 ---
@@ -127,7 +127,7 @@ If venue has zero internet for hours and you need to consolidate scouting from m
 - [ ] Visit `/analytics` → Calibration tab loads (should show metrics if firebase-admin is set)
 - [ ] Run `npm run build` locally; should pass
 - [ ] Verify Firestore rules in Firebase Console match local file
-- [ ] Verify Upstash dashboard shows cache reads (otherwise cache is disabled)
+- [ ] Verify Firestore `server_cache` has fresh docs (Console) and logs show no `[cache] remote … failed`
 - [ ] Verify Sentry dashboard shows the app is reporting (production-only)
 - [ ] Print this runbook + paper backup sheets
 - [ ] Have at least 1 phone hotspot available per 2 scouts as Wi-Fi backup

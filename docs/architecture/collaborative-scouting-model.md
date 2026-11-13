@@ -303,7 +303,7 @@ service cloud.firestore {
 
         // api_cache: only server (admin SDK bypasses rules anyway)
         match /api_cache/{key} {
-            allow read, write: if false;  // legacy collection; migrating to Upstash
+            allow read, write: if false;  // legacy collection (retired; server cache now in server_cache, decision #89)
         }
     }
 }

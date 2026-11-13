@@ -34,7 +34,7 @@
       "missingEventCode": "Missing eventCode"
     },
     "rpModel": {
-      "notConfigured": "Redis is not configured — models can't be cached"
+      "notConfigured": "Server cache unavailable — models can't be saved"
     },
     "discord": {
       "notConfigured": "This team doesn't have a Discord webhook configured",

@@ -13,14 +13,14 @@ import { toast } from "sonner";
  * Admin/lead panel for triggering per-RP logistic-regression training.
  * Pulls the season's Mexican match history + official /scores breakdowns
  * (cached), trains one model per logistic RP target (DECODE: movement, goal,
- * pattern), caches in Redis 30d. BIOBUZZ (2026+) uses count models and needs
+ * pattern), caches in the server cache 30d. BIOBUZZ (2026+) uses count models and needs
  * no training — the action reports `countModel` and the panel says so.
  *
  * Cost-aware: the operation is heavy enough (~10-30 cached event fetches +
  * 2 training passes) that we don't auto-run it. Strategy lead runs manually,
  * ideally weekly during season and again before each validation event.
  *
- * Sin Redis configurado: el server action retorna error claro y este componente
+ * Sin caché del servidor: el server action retorna error claro y este componente
  * lo surface. No bloquea la app — el resto sigue usando heurística empírica.
  */
 export default function RpModelTrainer() {

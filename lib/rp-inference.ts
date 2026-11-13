@@ -4,7 +4,7 @@
  * Two model families, chosen per season by seasonRulesFor(season).rpTargets:
  *  - "logistic" (DECODE 2025): logistic regression over an alliance's
  *    (auto, tele, end) profile, trained by app/actions/train-rp-models.ts and
- *    cached in Redis; falls back to the team's empirical RP rate.
+ *    cached in the server cache; falls back to the team's empirical RP rate.
  *  - count models (BIOBUZZ 2026): lib/rp-counts.ts — no training needed.
  *
  * LABELS come from the official /scores breakdown (movementRP / goalRP /
@@ -232,7 +232,7 @@ export function inferTeamRpProbability(
 }
 
 /**
- * Stable cache key for storing trained model weights in Redis.
+ * Stable cache key for storing trained model weights in the server cache.
  * Format: `rp-model:{season}:{target}:vN`. Bump the version suffix whenever
  * the feature order OR semantics change — stale models trained under the old
  * decomposition must not be served against new inference vectors.
