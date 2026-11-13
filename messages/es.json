@@ -552,5 +552,8 @@
       "rsFinal": "RS final",
       "top4": "Capitán"
     }
+  },
+  "Sidebar": {
+    "teamTools": "Herramientas del equipo"
   }
 }

@@ -552,5 +552,8 @@
       "rsFinal": "Final RS",
       "top4": "Captain"
     }
+  },
+  "Sidebar": {
+    "teamTools": "Team tools"
   }
 }

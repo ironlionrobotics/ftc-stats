@@ -41,6 +41,7 @@ export default function Sidebar() {
     const { theme, toggleTheme } = useTheme();
     const tCard = useTranslations("TradingCard");
     const tAttr = useTranslations("Attribution");
+    const tSide = useTranslations("Sidebar");
 
     const mounted = useHydrated();
     const [isOpen, setIsOpen] = useState(false);
@@ -197,10 +198,22 @@ export default function Sidebar() {
                                             )}
                                         </div>
                                     </div>
-                                    <InviteGenerator />
-                                    <GroundTruthValidator />
-                                    <RpModelTrainer />
-                                    <DiscordSettings />
+                                    {/* Team-admin tools, folded by default so the sidebar stays usable
+                                        (they each self-gate on role). */}
+                                    {(userDoc?.role === "admin" || userDoc?.role === "lead") && (
+                                        <details className="group rounded-xl border border-border bg-muted/40">
+                                            <summary className="cursor-pointer list-none px-3 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground flex items-center justify-between">
+                                                {tSide("teamTools")}
+                                                <span className="transition-transform group-open:rotate-90">›</span>
+                                            </summary>
+                                            <div className="space-y-3 px-1 pb-2">
+                                                <InviteGenerator />
+                                                <GroundTruthValidator />
+                                                <RpModelTrainer />
+                                                <DiscordSettings />
+                                            </div>
+                                        </details>
+                                    )}
                                     <button
                                         onClick={() => logout()}
                                         className="w-full px-4 py-2 rounded-xl bg-muted hover:bg-danger/10 text-muted-foreground hover:text-danger text-xs font-bold transition-all border border-transparent hover:border-danger/20"
