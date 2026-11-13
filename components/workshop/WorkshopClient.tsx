@@ -73,10 +73,10 @@ function Workshop({ season, orgId, uid, def }: { season: number; orgId: string; 
 
     const refreshLocal = useCallback(async () => {
         try {
-            await drainPracticeQueue(orgId);
-            setLocalRuns(await pendingPracticeRuns(orgId));
+            await drainPracticeQueue(orgId, uid);
+            setLocalRuns(await pendingPracticeRuns(orgId, uid));
         } catch { /* IndexedDB unavailable */ }
-    }, [orgId]);
+    }, [orgId, uid]);
 
     useEffect(() => listenPracticeRuns(orgId, season, setCloudRuns), [orgId, season]);
     useEffect(() => {

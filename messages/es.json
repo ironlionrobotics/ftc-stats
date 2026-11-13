@@ -73,7 +73,6 @@
       "notFound": "Ese préstamo o solicitud ya no existe.",
       "notAllowed": "Solo los equipos involucrados pueden hacer eso.",
       "badState": "Ese paso ya no aplica: actualiza la página.",
-      "notAtEvent": "Primero registra tu llegada al evento.",
       "itemRequired": "Escribe qué necesitas o prestas."
     }
   },
@@ -1621,10 +1620,12 @@
       "lent": "Prestado",
       "return_marked": "Marcado como devuelto: falta que lo confirme quien prestó",
       "returned": "Devuelto",
-      "given": "Regalado"
+      "given": "Regalado",
+      "disputed": "En disputa: el otro equipo dice que no ocurrió"
     },
     "confirmReturned": "Ya regresó",
-    "markReturned": "Ya lo devolví"
+    "markReturned": "Ya lo devolví",
+    "dispute": "No ocurrió"
   },
   "Workshop": {
     "title": "Taller",

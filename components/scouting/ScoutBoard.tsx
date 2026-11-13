@@ -40,8 +40,10 @@ export default function ScoutBoard({
         if (!user) return;
         let cancelled = false;
         (async () => {
-            const r = await myScoutIdentityAction({ idToken: await user.getIdToken(), season, eventCode });
-            if (!cancelled && r.ok) setMe({ alias: r.alias, scout: r.scout });
+            try {
+                const r = await myScoutIdentityAction({ idToken: await user.getIdToken(), season, eventCode });
+                if (!cancelled && r.ok) setMe({ alias: r.alias, scout: r.scout });
+            } catch { /* board still works read-only */ }
         })();
         return () => { cancelled = true; };
     }, [user, season, eventCode]);
@@ -55,12 +57,17 @@ export default function ScoutBoard({
         if (!user) return;
         const key = `${matchNumber}_${teamNumber ?? "x"}`;
         setBusy(key);
-        const idToken = await user.getIdToken();
-        const r = teamNumber === null
-            ? await releaseRobotAction({ idToken, season, eventCode, matchNumber })
-            : await claimRobotAction({ idToken, season, eventCode, matchNumber, teamNumber });
-        setBusy(null);
-        if (!r.ok) toast.error(tErr(r.code));
+        try {
+            const idToken = await user.getIdToken();
+            const r = teamNumber === null
+                ? await releaseRobotAction({ idToken, season, eventCode, matchNumber })
+                : await claimRobotAction({ idToken, season, eventCode, matchNumber, teamNumber });
+            if (!r.ok) toast.error(tErr(r.code));
+        } catch {
+            toast.error(tErr("generic"));
+        } finally {
+            setBusy(null);
+        }
     };
 
     if (!user) return <p className="p-6 text-muted-foreground">{t("signIn")}</p>;

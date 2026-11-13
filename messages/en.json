@@ -73,7 +73,6 @@
       "notFound": "That loan or request no longer exists.",
       "notAllowed": "Only the teams involved can do that.",
       "badState": "That step doesn't apply anymore — refresh.",
-      "notAtEvent": "Check in to the event first.",
       "itemRequired": "Write what you need or lend."
     }
   },
@@ -1621,10 +1620,12 @@
       "lent": "Out",
       "return_marked": "Marked returned — waiting for the lender",
       "returned": "Returned",
-      "given": "Given"
+      "given": "Given",
+      "disputed": "Disputed — the other team says it didn't happen"
     },
     "confirmReturned": "It came back",
-    "markReturned": "I returned it"
+    "markReturned": "I returned it",
+    "dispute": "Didn't happen"
   },
   "Workshop": {
     "title": "Workshop",

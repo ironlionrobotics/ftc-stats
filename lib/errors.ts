@@ -65,7 +65,6 @@ export type ErrorCode =
     | "lending.notFound"
     | "lending.notAllowed"
     | "lending.badState"
-    | "lending.notAtEvent"
     | "lending.itemRequired";
 
 /**

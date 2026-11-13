@@ -70,6 +70,7 @@ export async function recordLoanAction(input: {
             status: input.giveaway ? "given" : "lent",
             parties: [lenderOrg, borrowerOrg].filter((o): o is string => !!o),
             lentAtMs: Date.now(),
+            createdByOrg: me.orgId,
         };
 
         const db = getAdminDb();
@@ -127,6 +128,38 @@ export async function markLoanReturnedAction(input: { idToken: string; loanId: s
         });
     } catch (e) {
         console.error("[lending] mark returned failed:", e);
+        return { ok: false, code: "admin.firestoreUnavailable" };
+    }
+}
+
+/**
+ * The other team didn't take part in a loan someone recorded against it:
+ * it can dispute it, which closes it for both sides (no lingering reminder)
+ * while keeping the record. Only the party that did NOT create it, only
+ * while it's still "lent".
+ */
+export async function disputeLoanAction(input: { idToken: string; loanId: string }): Promise<Result> {
+    if (typeof input.loanId !== "string" || !/^[A-Za-z0-9]{1,40}$/.test(input.loanId)) return { ok: false, code: "lending.notFound" };
+    const who = await callerWithTeam(input.idToken);
+    if (!who.ok) return who;
+    const me = who.caller;
+    if (!(await allowUser("lending", me.uid, 30))) return { ok: false, code: "rateLimited" };
+    const db = getAdminDb();
+    const ref = db.collection("loans").doc(input.loanId);
+    try {
+        return await db.runTransaction(async tx => {
+            const snap = await tx.get(ref);
+            if (!snap.exists) return { ok: false as const, code: "lending.notFound" as ErrorCode };
+            const loan = snap.data() as Loan;
+            if (!loan.parties.includes(me.orgId) || loan.createdByOrg === me.orgId) {
+                return { ok: false as const, code: "lending.notAllowed" as ErrorCode };
+            }
+            if (loan.status !== "lent") return { ok: false as const, code: "lending.badState" as ErrorCode };
+            tx.update(ref, { status: "disputed", disputedAtMs: Date.now() });
+            return { ok: true as const };
+        });
+    } catch (e) {
+        console.error("[lending] dispute failed:", e);
         return { ok: false, code: "admin.firestoreUnavailable" };
     }
 }

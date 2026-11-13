@@ -10,9 +10,16 @@ import { gameDefinitionFor } from "@/lib/games/registry";
 import {
     buildEventPool,
     contributionCount,
+    validateEntry,
+    isPlausible,
+    poolReadFields,
     POOL_UNLOCK_MIN_ENTRIES,
+    type EventFrame,
     type PoolTeamSummary,
 } from "@/lib/scouting-pool";
+import { fetchEventTeams, fetchHybridSchedule } from "@/lib/ftc-api";
+import { scheduledQuals } from "@/lib/scout-claims";
+import type { GameDefinition } from "@/types/game-definition";
 import type { ErrorCode } from "@/lib/errors";
 import type { BaseMatchScouting } from "@/types/scouting";
 
@@ -53,40 +60,64 @@ interface EventSnapshot {
 }
 
 const SNAPSHOT_TTL_S = 60;
-const MAX_ENTRIES = 5000;
+const MAX_ENTRIES = 20000;
 
-/** Raw entries + scout reliabilities + aliases of an event, cached 60 s across callers. */
-async function eventSnapshot(season: number, eventCode: string): Promise<EventSnapshot> {
-    const key = `pool_v1_${season}_${eventCode}`;
+/**
+ * Validated, sanitized captures + scout reliabilities + aliases of an event,
+ * cached 60 s across callers. Only what passes `validateEntry` (well-formed
+ * against the season's definition), comes from an existing team, and fits
+ * FIRST's roster/schedule (`isPlausible`) is kept — and only shareable
+ * fields are read at all (Admin `select`), so notes and names never even
+ * reach this cache.
+ */
+async function eventSnapshot(season: number, eventCode: string, def: GameDefinition): Promise<EventSnapshot> {
+    const key = `pool_v2_${season}_${eventCode}`;
     const cached = await serverCache.get<EventSnapshot>(key);
     if (cached) return cached;
 
     const db = getAdminDb();
-    const snap = await db.collection("match_scouting")
-        .where("season", "==", season)
-        .where("eventCode", "==", eventCode)
-        .limit(MAX_ENTRIES)
-        .get();
-    // Firestore Timestamps are reduced to plain seconds so the snapshot can be cached as JSON.
-    const entries = snap.docs.map(d => {
-        const data = d.data() as BaseMatchScouting & { timestamp?: { seconds?: number; _seconds?: number } | null };
-        const seconds = data.timestamp?.seconds ?? data.timestamp?._seconds ?? 0;
-        return { ...data, id: d.id, timestamp: { seconds, nanoseconds: 0 } } as BaseMatchScouting;
-    });
+    const [snap, roster, schedule] = await Promise.all([
+        db.collection("match_scouting")
+            .where("season", "==", season)
+            .where("eventCode", "==", eventCode)
+            .select(...poolReadFields(def))
+            .limit(MAX_ENTRIES)
+            .get(),
+        fetchEventTeams(season, eventCode),
+        fetchHybridSchedule(season, eventCode),
+    ]);
 
-    const scoutIds = [...new Set(entries.map(e => e.scoutId ?? e.scouterId).filter(Boolean))];
+    const frame: EventFrame = { teams: new Set(roster.map(t => t.teamNumber)), quals: new Map() };
+    for (const m of scheduledQuals(schedule, true)) {
+        const robots = new Set([...m.red, ...m.blue]);
+        frame.quals.set(m.matchNumber, robots);
+        for (const t of robots) frame.teams.add(t);
+    }
+
+    const valid = snap.docs
+        .map(d => validateEntry(d.data(), def, d.id))
+        .filter((e): e is BaseMatchScouting => e !== null && isPlausible(e, frame));
+
+    // Only approved teams contribute (an orgId must be a real orgs/{id}).
+    const orgIds = [...new Set(valid.map(e => e.orgId as string))];
+    const realOrgs = new Set<string>();
+    if (orgIds.length > 0) {
+        const docs = await db.getAll(...orgIds.map(id => db.collection("orgs").doc(id)));
+        for (const d of docs) if (d.exists) realOrgs.add(d.id);
+    }
+    const entries = valid.filter(e => realOrgs.has(e.orgId as string));
+
+    const scoutIds = [...new Set(entries.map(e => e.scoutId).filter((x): x is string => !!x))];
     const reliabilities: Record<string, number> = {};
     if (scoutIds.length > 0) {
         const docs = await db.getAll(...scoutIds.map(id => db.collection("users").doc(id)));
         for (const d of docs) {
             const r = d.exists ? (d.data() as { reliability?: number }).reliability : undefined;
-            if (typeof r === "number" && Number.isFinite(r)) reliabilities[d.id] = r;
+            if (typeof r === "number" && Number.isFinite(r) && r >= 0) reliabilities[d.id] = r;
         }
     }
 
-    const orgIds = [...new Set(entries.map(e => e.orgId).filter((o): o is string => !!o))];
-    const aliases = await ensureAliases(season, eventCode, orgIds);
-
+    const aliases = await ensureAliases(season, eventCode, [...realOrgs]);
     const out = { entries, reliabilities, aliases };
     await serverCache.set(key, out, SNAPSHOT_TTL_S);
     return out;
@@ -116,7 +147,7 @@ export async function getEventPoolAction(input: {
     if (!def) return { ok: false, code: "generic" };
 
     try {
-        const snap = await eventSnapshot(season, eventCode);
+        const snap = await eventSnapshot(season, eventCode, def);
         const myCount = contributionCount(snap.entries, caller.orgId);
         if (myCount < POOL_UNLOCK_MIN_ENTRIES) {
             return { ok: true, locked: true, myCount, needed: POOL_UNLOCK_MIN_ENTRIES };

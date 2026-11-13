@@ -26,39 +26,44 @@ export function newPracticeId(): string {
     return `pr_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
-/** Saves locally, then tries the server. Returns where it ended up. */
-export async function savePracticeRun(run: PracticeRun): Promise<"cloud" | "local"> {
-    await savePracticeToLocal(run);
+const isOffline = () => typeof navigator !== "undefined" && navigator.onLine === false;
+
+/**
+ * Only a real rejection (e.g. permission denied) counts toward the retry
+ * budget; being offline or timing out on venue Wi-Fi never does, or a few
+ * saves without signal would park the run forever (#105 review).
+ */
+async function pushRun(id: string, run: PracticeRun): Promise<boolean> {
+    if (isOffline()) return false;
     try {
-        await withTimeout(setDoc(doc(db, COLLECTION, run.id), run), 8000);
-        await markPracticeSynced(run.id);
-        return "cloud";
+        await withTimeout(setDoc(doc(db, COLLECTION, id), run), 8000);
+        await markPracticeSynced(id);
+        return true;
     } catch (e) {
-        await recordPracticeSyncFailure(run.id, e instanceof Error ? e.message : String(e));
-        return "local";
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg !== "timeout" && !isOffline()) await recordPracticeSyncFailure(id, msg);
+        return false;
     }
 }
 
-/** Pushes queued runs of this team; returns how many are still pending. */
-export async function drainPracticeQueue(orgId: string): Promise<number> {
-    const rows = await getPendingPracticeRows(orgId);
+/** Saves locally, then tries the server. Returns where it ended up. */
+export async function savePracticeRun(run: PracticeRun): Promise<"cloud" | "local"> {
+    await savePracticeToLocal(run);
+    return (await pushRun(run.id, run)) ? "cloud" : "local";
+}
+
+/** Pushes this user's queued runs; returns how many are still pending. */
+export async function drainPracticeQueue(orgId: string, uid: string): Promise<number> {
     let pending = 0;
-    for (const row of rows) {
-        if (row.syncAttempts >= MAX_ATTEMPTS) { pending++; continue; }
-        try {
-            await withTimeout(setDoc(doc(db, COLLECTION, row.id), row.data), 8000);
-            await markPracticeSynced(row.id);
-        } catch (e) {
-            await recordPracticeSyncFailure(row.id, e instanceof Error ? e.message : String(e));
-            pending++;
-        }
+    for (const row of await getPendingPracticeRows(orgId, uid)) {
+        if (row.syncAttempts >= MAX_ATTEMPTS || !(await pushRun(row.id, row.data))) pending++;
     }
     return pending;
 }
 
 /** Queued-but-unsynced runs, shown in the history until they reach the server. */
-export async function pendingPracticeRuns(orgId: string): Promise<PracticeRun[]> {
-    return (await getPendingPracticeRows(orgId)).map(r => r.data);
+export async function pendingPracticeRuns(orgId: string, uid: string): Promise<PracticeRun[]> {
+    return (await getPendingPracticeRows(orgId, uid)).map(r => r.data);
 }
 
 export function listenPracticeRuns(orgId: string, season: number, cb: (runs: PracticeRun[]) => void): Unsubscribe {

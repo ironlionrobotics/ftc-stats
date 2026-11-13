@@ -33,14 +33,18 @@ export default function PoolPanel({ season, eventCode, teamNumber }: { season: n
         if (!user) return;
         let cancelled = false;
         (async () => {
-            const idToken = await user.getIdToken();
-            const [pool, prof] = await Promise.all([
-                getEventPoolAction({ idToken, season, eventCode, teamNumber }),
-                getTeamProfile(season, teamNumber).catch(() => null),
-            ]);
-            if (cancelled) return;
-            setResult(pool);
-            setProfile(prof);
+            try {
+                const idToken = await user.getIdToken();
+                const [pool, prof] = await Promise.all([
+                    getEventPoolAction({ idToken, season, eventCode, teamNumber }),
+                    getTeamProfile(season, teamNumber).catch(() => null),
+                ]);
+                if (cancelled) return;
+                setResult(pool);
+                setProfile(prof);
+            } catch {
+                if (!cancelled) setResult({ ok: false, code: "generic" });
+            }
         })();
         return () => { cancelled = true; };
     }, [user, season, eventCode, teamNumber, reloadKey]);

@@ -16,6 +16,8 @@ describe("pit lending (#104)", () => {
         expect(isOpenLoan({ status: "return_marked" })).toBe(true);
         expect(isOpenLoan({ status: "returned" })).toBe(false);
         expect(isOpenLoan({ status: "given" })).toBe(false);
+        expect(isOpenLoan({ status: "disputed" })).toBe(false);
+        expect(nextLoanStatus("disputed", "lender")).toBeNull();
     });
 
     it("search ignores case and accents, all words must match", () => {

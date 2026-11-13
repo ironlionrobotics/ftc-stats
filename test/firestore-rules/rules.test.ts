@@ -206,3 +206,28 @@ describe("pit lending (#104)", () => {
         await assertFails(setDoc(doc(as("a1"), "loans/l2"), { parties: ["111"], status: "lent" }));
     });
 });
+
+describe("review hardening (#102 review)", () => {
+    it("a user without a team cannot write org-scoped docs with orgId null", async () => {
+        await seedTeams();
+        const n = as("n1");
+        await assertFails(setDoc(doc(n, "match_scouting/x1"), { scoutId: "n1", orgId: null, season: 2026, eventCode: "MXTLQ", teamNumber: 5, matchNumber: 1 }));
+        await assertFails(setDoc(doc(n, "practice_runs/x2"), { orgId: null, createdBy: "n1", season: 2026 }));
+        await assertFails(setDoc(doc(n, "lend_requests/x3"), { orgId: null, teamNumber: 1, season: 2026, eventCode: "MXTLQ", pit: "", item: "x", note: "", status: "open" }));
+        await seed("match_scouting/legacyNull", { orgId: null, scoutId: "z", season: 2026, eventCode: "MXTLQ" });
+        await assertFails(getDoc(doc(n, "match_scouting/legacyNull")));
+    });
+    it("a team cannot pose as another team number", async () => {
+        await seedTeams();
+        const a = as("a1");
+        await assertFails(setDoc(doc(a, "event_presence/2026_MXTLQ_111"), { season: 2026, eventCode: "MXTLQ", orgId: "111", teamNumber: 999, teamName: "x", pit: "1" }));
+        await assertFails(setDoc(doc(a, "lend_requests/s1"), { season: 2026, eventCode: "MXTLQ", orgId: "111", teamNumber: 999, pit: "", item: "x", note: "", status: "open" }));
+        await assertFails(setDoc(doc(a, "org_inventory/111_s"), { orgId: "111", teamNumber: 999, name: "x", category: "part", qty: 1, lendable: true, giveaway: false }));
+    });
+    it("a team cannot overwrite another team's card", async () => {
+        await seedTeams();
+        await seed("team_profiles/2026_111", { teamNumber: 111, season: 2026 });
+        await assertFails(setDoc(doc(as("b1"), "team_profiles/2026_111"), { teamNumber: 222, season: 2026 }, { merge: true }));
+        await assertSucceeds(setDoc(doc(as("b1"), "team_profiles/2026_222"), { teamNumber: 222, season: 2026 }, { merge: true }));
+    });
+});

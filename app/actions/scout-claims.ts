@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { callerWithTeam, allowUser } from "@/lib/server-caller";
 import { ensureAliases } from "@/lib/pool-aliases";
-import { fetchHybridSchedule } from "@/lib/ftc-api";
+import { fetchEvents, fetchHybridSchedule } from "@/lib/ftc-api";
 import { normalizeEventCode, parseSeason, isValidTeamNumber } from "@/lib/input-guards";
 import { getCurrentSeason } from "@/lib/constants";
 import { applyClaim, releaseScout, claimDocId, scheduledQuals, type ClaimDoc } from "@/lib/scout-claims";
@@ -39,6 +39,9 @@ export async function myScoutIdentityAction(input: { idToken: string; season: nu
     if (typeof target === "string") return { ok: false, code: target };
     const who = await callerWithTeam(input.idToken);
     if (!who.ok) return who;
+    if (!(await allowUser("claims", who.caller.uid, 60))) return { ok: false, code: "rateLimited" };
+    // Only real events get an alias table (no pool_aliases docs for invented codes).
+    if (!(await fetchEvents(target.season)).some(e => e.code === target.eventCode)) return { ok: false, code: "validation.eventCode" };
     try {
         const aliases = await ensureAliases(target.season, target.eventCode, [who.caller.orgId]);
         return { ok: true, alias: aliases[who.caller.orgId], scout: scoutHash(who.caller.uid, target.season, target.eventCode) };

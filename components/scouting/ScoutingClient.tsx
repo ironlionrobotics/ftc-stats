@@ -287,7 +287,7 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
                                 {program === "FTC" && (
                                     <TabsContent value="pool" className="m-0 h-full">
                                         {eventCode ? (
-                                            <PoolPanel season={season} eventCode={eventCode} teamNumber={selectedTeam.teamNumber} />
+                                            <PoolPanel key={selectedTeam.teamNumber} season={season} eventCode={eventCode} teamNumber={selectedTeam.teamNumber} />
                                         ) : <p className="p-6 text-muted-foreground">{tEvent("needEvent")}</p>}
                                     </TabsContent>
                                 )}

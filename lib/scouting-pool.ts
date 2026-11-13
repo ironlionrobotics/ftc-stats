@@ -1,7 +1,9 @@
 import type { BaseMatchScouting } from "@/types/scouting";
 import type { GameDefinition, PhaseScore } from "@/types/game-definition";
 import { aggregateMatchTeam, type FieldConsensus } from "@/lib/scouting-aggregation";
-import { contextOf, isOfficialContext } from "@/lib/scouting-context";
+import { contextOf, isOfficialContext, SCOUTING_CONTEXTS } from "@/lib/scouting-context";
+
+const SCOUTING_CONTEXT_SET = new Set<string>(SCOUTING_CONTEXTS);
 
 /**
  * Federated scouting pool (Fase 2, decision #102) — pure part.
@@ -32,8 +34,92 @@ export function isObjectiveEntry(e: Pick<BaseMatchScouting, "scoutingMode">): bo
     return (e.scoutingMode ?? "match") !== "super";
 }
 
+/**
+ * Validated objective captures of an org, one per (context, match, robot) —
+ * duplicates and practice-field repeats of the same capture don't pad the
+ * count. Pass entries already through `validateEntry` + `isPlausible`.
+ */
 export function contributionCount(entries: BaseMatchScouting[], orgId: string): number {
-    return entries.filter(e => e.orgId === orgId && isObjectiveEntry(e)).length;
+    const keys = new Set<string>();
+    for (const e of entries) {
+        if (e.orgId !== orgId || !isObjectiveEntry(e)) continue;
+        const ctx = contextOf(e);
+        keys.add(ctx === "PRACTICE_FIELD" ? `PF_${e.id ?? keys.size}` : `${ctx}_${e.matchNumber}_${e.teamNumber}`);
+    }
+    return keys.size;
+}
+
+const CONFIDENCES = new Set(["high", "medium", "low"]);
+
+/** Fields the server reads from match_scouting for the pool (Admin `select`). */
+export function poolReadFields(def: GameDefinition): string[] {
+    return [
+        "teamNumber", "eventCode", "matchNumber", "season", "program", "tournamentLevel", "orgId",
+        "scoutId", "scouterId", "confidence", "scoutingMode", "timestamp",
+        ...shareableFieldIds(def),
+    ];
+}
+
+/**
+ * Hostile-input gate (#102 review): a capture enters the pool only if every
+ * shared value is what the season's definition allows — integer counters in
+ * range, real booleans, enum values from the options, a known confidence.
+ * Anything else drops the whole capture (it would skew means, give NaN
+ * weights, or carry free text to other teams). Returns a sanitized copy.
+ */
+export function validateEntry(raw: Record<string, unknown>, def: GameDefinition, id?: string): BaseMatchScouting | null {
+    const team = raw.teamNumber, match = raw.matchNumber;
+    if (typeof team !== "number" || !Number.isInteger(team) || team < 1 || team > 99_999) return null;
+    if (typeof match !== "number" || !Number.isInteger(match) || match < 0 || match > 999) return null;
+    if (raw.season !== def.season || typeof raw.orgId !== "string" || raw.orgId === "") return null;
+    if (raw.tournamentLevel !== undefined && raw.tournamentLevel !== null && !SCOUTING_CONTEXT_SET.has(String(raw.tournamentLevel))) return null;
+    const ctx = contextOf(raw as { tournamentLevel?: string });
+    if (ctx !== "PRACTICE_FIELD" && match < 1) return null;
+    if (raw.confidence !== undefined && !CONFIDENCES.has(String(raw.confidence))) return null;
+    if (raw.scoutingMode !== undefined && raw.scoutingMode !== "match" && raw.scoutingMode !== "super") return null;
+
+    for (const f of def.sections.flatMap(sec => sec.fields)) {
+        if (!(f.id in raw) || raw[f.id] === undefined || raw[f.id] === null) continue;
+        const v = raw[f.id];
+        if (f.kind === "counter") {
+            if (typeof v !== "number" || !Number.isInteger(v) || v < (f.min ?? 0) || v > (f.max ?? 999)) return null;
+        } else if (f.kind === "boolean") {
+            if (typeof v !== "boolean") return null;
+        } else if (f.kind === "enum") {
+            if (typeof v !== "string" || !f.options.some(o => o.value === v)) return null;
+        }
+    }
+    const scout = typeof raw.scoutId === "string" ? raw.scoutId : typeof raw.scouterId === "string" ? raw.scouterId : "";
+    const ts = raw.timestamp as { seconds?: number; _seconds?: number } | null | undefined;
+    const entry = sanitizeEntry({
+        ...(raw as unknown as BaseMatchScouting),
+        id,
+        scoutId: scout,
+        scouterId: scout,
+        confidence: (raw.confidence as BaseMatchScouting["confidence"]) ?? "high",
+        timestamp: { seconds: Number(ts?.seconds ?? ts?._seconds ?? 0) || 0, nanoseconds: 0 },
+    }, shareableFieldIds(def));
+    return { ...entry, id, scoutingMode: raw.scoutingMode === "super" ? "super" : "match" };
+}
+
+export interface EventFrame {
+    /** Teams registered or scheduled at the event; empty = not published yet. */
+    teams: Set<number>;
+    /** Qualification match number → robots on the field; empty = no schedule yet. */
+    quals: Map<number, Set<number>>;
+}
+
+/**
+ * Whether a capture fits the event as FIRST publishes it: the robot is at the
+ * event and, for qualification matches, actually played that match. Before
+ * FIRST publishes roster/schedule every well-formed capture passes.
+ */
+export function isPlausible(e: BaseMatchScouting, frame: EventFrame): boolean {
+    if (frame.teams.size > 0 && !frame.teams.has(e.teamNumber)) return false;
+    if (contextOf(e) === "QUALIFICATION" && frame.quals.size > 0) {
+        return frame.quals.get(e.matchNumber)?.has(e.teamNumber) ?? false;
+    }
+    return true;
 }
 
 /**
@@ -82,6 +168,7 @@ export interface PoolTeamSummary {
 export function sanitizeEntry(e: BaseMatchScouting, fieldIds: string[]): BaseMatchScouting {
     const raw = e as unknown as Record<string, unknown>;
     const out: Record<string, unknown> = {
+        id: e.id,
         teamNumber: e.teamNumber,
         eventCode: e.eventCode,
         matchNumber: e.matchNumber,

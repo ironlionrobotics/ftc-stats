@@ -38,8 +38,17 @@ service cloud.firestore {
             return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
         }
 
+        // Member of an approved team. Users start with orgId null; only the
+        // server sets it (team claim approval or invite redemption).
+        function hasTeam() {
+            return isAuthed() && myUserDoc().get('orgId', null) is string;
+        }
+
+        // The caller's team, or a sentinel that matches no document. Returning
+        // null for team-less users made `resource.data.orgId == myOrgId()`
+        // true for any document written with orgId null (#102 review).
         function myOrgId() {
-            return myUserDoc().orgId;
+            return hasTeam() ? myUserDoc().orgId : '__no_team__';
         }
 
         function myRole() {
@@ -197,9 +206,12 @@ service cloud.firestore {
         match /team_profiles/{profileId} {
             // Readable by members of an approved team only (#101): a self-report
             // is for the teams in the network, not for any Google account.
-            allow read: if isAuthed() && myOrgId() != null;
-            allow write: if isAuthed()
-                && string(request.resource.data.teamNumber) == myOrgId();
+            allow read: if hasTeam();
+            // Own card only, under its own deterministic id (a merge write to
+            // another team's id must not pass on a matching body alone).
+            allow write: if hasTeam()
+                && string(request.resource.data.teamNumber) == myOrgId()
+                && profileId == string(request.resource.data.season) + '_' + myOrgId();
         }
 
         // Picklists: one document per (org, event), real-time-synced for
@@ -279,12 +291,13 @@ service cloud.firestore {
         // only lendable items (queries must filter lendable == true). Writes
         // only to your own team's items, with bounded fields.
         match /org_inventory/{itemId} {
-            allow read: if isAuthed() && myOrgId() != null
+            allow read: if hasTeam()
                 && (resource.data.lendable == true || resource.data.orgId == myOrgId());
             allow create, update: if isAuthed()
                 && request.resource.data.orgId == myOrgId()
                 && (resource == null || resource.data.orgId == myOrgId())
                 && itemId.matches('^' + myOrgId() + '_.+')
+                && string(request.resource.data.teamNumber) == myOrgId()
                 && request.resource.data.name is string
                 && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
                 && request.resource.data.category in ['part', 'tool', 'consumable']
@@ -298,10 +311,11 @@ service cloud.firestore {
         // "We're at MXTLQ, pit 12": readable by approved teams, written by
         // the team itself under its own deterministic id.
         match /event_presence/{presenceId} {
-            allow read: if isAuthed() && myOrgId() != null;
+            allow read: if hasTeam();
             allow create, update: if isAuthed()
                 && request.resource.data.orgId == myOrgId()
                 && presenceId == string(request.resource.data.season) + '_' + request.resource.data.eventCode + '_' + myOrgId()
+                && string(request.resource.data.teamNumber) == myOrgId()
                 && request.resource.data.pit is string && request.resource.data.pit.size() <= 10
                 && request.resource.data.teamName is string && request.resource.data.teamName.size() <= 80;
             allow delete: if isAuthed() && resource.data.orgId == myOrgId();
@@ -310,10 +324,11 @@ service cloud.firestore {
         // "Anyone have X?": readable by approved teams; a team creates its own
         // open requests and may later only change their status.
         match /lend_requests/{requestId} {
-            allow read: if isAuthed() && myOrgId() != null;
+            allow read: if hasTeam();
             allow create: if isAuthed()
                 && request.resource.data.orgId == myOrgId()
                 && request.resource.data.status == 'open'
+                && string(request.resource.data.teamNumber) == myOrgId()
                 && request.resource.data.item is string
                 && request.resource.data.item.size() > 0 && request.resource.data.item.size() <= 60
                 && request.resource.data.note is string && request.resource.data.note.size() <= 200;
@@ -327,7 +342,7 @@ service cloud.firestore {
         // Loans: only the two teams involved read them; every transition goes
         // through app/actions/lending.ts so neither side can rewrite history.
         match /loans/{loanId} {
-            allow read: if isAuthed() && myOrgId() != null && myOrgId() in resource.data.parties;
+            allow read: if hasTeam() && myOrgId() in resource.data.parties;
             allow write: if false;
         }
 
@@ -335,7 +350,7 @@ service cloud.firestore {
         // covers which robot; only the server writes (claims carry the team
         // alias and an opaque scout hash derived from the verified token).
         match /scout_claims/{doc} {
-            allow read: if isAuthed() && myOrgId() != null;
+            allow read: if hasTeam();
             allow write: if false;
         }
 

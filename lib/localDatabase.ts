@@ -480,8 +480,10 @@ export async function savePracticeToLocal(run: PracticeRun): Promise<void> {
     await db().pendingPractice.put({ id: run.id, orgId: run.orgId, data: run, createdAt: Date.now(), syncedAt: 0, syncAttempts: 0 });
 }
 
-export async function getPendingPracticeRows(orgId: string): Promise<PendingPracticeRow[]> {
-    return (await db().pendingPractice.where("syncedAt").equals(0).toArray()).filter(r => r.orgId === orgId);
+/** Pending runs written by THIS user (another user of the device can't write them: createdBy rule). */
+export async function getPendingPracticeRows(orgId: string, uid: string): Promise<PendingPracticeRow[]> {
+    return (await db().pendingPractice.where("syncedAt").equals(0).toArray())
+        .filter(r => r.orgId === orgId && r.data.createdBy === uid);
 }
 
 export async function markPracticeSynced(id: string): Promise<void> {

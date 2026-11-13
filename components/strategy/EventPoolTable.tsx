@@ -22,8 +22,12 @@ export default function EventPoolTable({ season, eventCode }: { season: number; 
         if (!user) return;
         let cancelled = false;
         (async () => {
-            const r = await getEventPoolAction({ idToken: await user.getIdToken(), season, eventCode });
-            if (!cancelled) setResult(r);
+            try {
+                const r = await getEventPoolAction({ idToken: await user.getIdToken(), season, eventCode });
+                if (!cancelled) setResult(r);
+            } catch {
+                if (!cancelled) setResult({ ok: false, code: "generic" });
+            }
         })();
         return () => { cancelled = true; };
     }, [user, season, eventCode]);

@@ -21,7 +21,7 @@ import {
     listenPresence, checkIn, listenRequests, createRequest, setRequestStatus, listenMyLoans,
     type WithId,
 } from "@/lib/lending-service";
-import { recordLoanAction, markLoanReturnedAction } from "@/app/actions/lending";
+import { recordLoanAction, markLoanReturnedAction, disputeLoanAction } from "@/app/actions/lending";
 
 interface EventOption { code: string; name: string; dateStart: string }
 
@@ -326,8 +326,14 @@ function LoansTab({ season, eventCode, orgId, loans, draft, onDone }: {
         const team = Number(otherTeam);
         if (!user || !isValidTeamNumber(team) || !cleanText(item, LIMITS.name)) { toast.error(tErr("lending.itemRequired")); return; }
         setBusy(true);
-        const r = await recordLoanAction({ idToken: await user.getIdToken(), season, eventCode, as, otherTeam: team, item, qty, giveaway, requestId: draft?.requestId });
-        setBusy(false);
+        let r: Awaited<ReturnType<typeof recordLoanAction>>;
+        try {
+            r = await recordLoanAction({ idToken: await user.getIdToken(), season, eventCode, as, otherTeam: team, item, qty, giveaway, requestId: draft?.requestId });
+        } catch {
+            r = { ok: false, code: "generic" };
+        } finally {
+            setBusy(false);
+        }
         if (!r.ok) { toast.error(tErr(r.code)); return; }
         toast.success(t("loanRecorded"));
         setOtherTeam(""); setItem(""); setQty(1); setGiveaway(false);
@@ -335,8 +341,21 @@ function LoansTab({ season, eventCode, orgId, loans, draft, onDone }: {
     };
     const markReturned = async (id: string) => {
         if (!user) return;
-        const r = await markLoanReturnedAction({ idToken: await user.getIdToken(), loanId: id });
-        if (!r.ok) toast.error(tErr(r.code));
+        try {
+            const r = await markLoanReturnedAction({ idToken: await user.getIdToken(), loanId: id });
+            if (!r.ok) toast.error(tErr(r.code));
+        } catch {
+            toast.error(tErr("generic"));
+        }
+    };
+    const dispute = async (id: string) => {
+        if (!user) return;
+        try {
+            const r = await disputeLoanAction({ idToken: await user.getIdToken(), loanId: id });
+            if (!r.ok) toast.error(tErr(r.code));
+        } catch {
+            toast.error(tErr("generic"));
+        }
     };
 
     const sorted = [...loans].sort((a, b) => Number(isOpenLoan(b)) - Number(isOpenLoan(a)) || b.lentAtMs - a.lentAtMs);
@@ -381,11 +400,18 @@ function LoansTab({ season, eventCode, orgId, loans, draft, onDone }: {
                                     </div>
                                     <div className="text-xs font-semibold">{t(`status.${l.status}`)}</div>
                                 </div>
-                                {canAct && (
-                                    <button type="button" onClick={() => markReturned(l.id)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-border px-3 text-sm">
-                                        <Check size={14} /> {t(iAmLender ? "confirmReturned" : "markReturned")}
-                                    </button>
-                                )}
+                                <div className="flex flex-wrap gap-1">
+                                    {canAct && (
+                                        <button type="button" onClick={() => markReturned(l.id)} className="inline-flex min-h-[40px] items-center gap-1 rounded-lg border border-border px-3 text-sm">
+                                            <Check size={14} /> {t(iAmLender ? "confirmReturned" : "markReturned")}
+                                        </button>
+                                    )}
+                                    {l.status === "lent" && l.createdByOrg !== orgId && l.parties.length > 1 && (
+                                        <button type="button" onClick={() => dispute(l.id)} className="min-h-[40px] rounded-lg border border-border px-3 text-sm text-muted-foreground">
+                                            {t("dispute")}
+                                        </button>
+                                    )}
+                                </div>
                             </li>
                         );
                     })}

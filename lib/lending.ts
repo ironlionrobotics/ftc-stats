@@ -51,7 +51,8 @@ export interface LendRequest {
     createdAt?: { seconds: number } | null;
 }
 
-export type LoanStatus = "lent" | "return_marked" | "returned" | "given";
+/** "disputed": the other team says it never happened (it didn't consent to the record). */
+export type LoanStatus = "lent" | "return_marked" | "returned" | "given" | "disputed";
 
 export interface Loan {
     season: number;
@@ -68,6 +69,8 @@ export interface Loan {
     /** Orgs allowed to read it (rules: myOrgId in parties). */
     parties: string[];
     lentAtMs: number;
+    /** Team that recorded it; the OTHER party may dispute it. */
+    createdByOrg: string;
     returnMarkedAtMs?: number;
     returnedAtMs?: number;
     requestId?: string;
