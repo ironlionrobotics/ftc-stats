@@ -25,6 +25,9 @@ const getFirebaseConfig = () => {
         }
     }
 
+    // Loud on purpose: a silent placeholder hid for months that production
+    // browsers had no Firebase config (decision #99).
+    console.error("[firebase] No web config: set NEXT_PUBLIC_FIREBASE_* at BUILD time (apphosting.yaml / .env.local).");
     return {
         apiKey: "missing-api-key",
         authDomain: "missing-auth-domain",

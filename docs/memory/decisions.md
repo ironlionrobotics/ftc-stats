@@ -1031,3 +1031,12 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 **Lógica pura en `lib/today-summary.ts`**, probada con datos reales de AUBRQ1 cortados a mitad del evento. Quien inicia sesión sigue automáticamente a su equipo, porque "Hoy" se renderiza en el servidor y solo ve la cookie.
 
 **Pendiente:** la cobertura de scouting del equipo (que mostraba el `TodayPanel` anterior) necesita datos privados de la organización. Volverá como isla de cliente para miembros. `sitemap.ts` lista `/`, `/events`, `/teams` y `/oracle`.
+## #99 · La configuración de Firebase nunca llegó al navegador en producción (2026-11-13)
+
+**Hallazgo** (al intentar el primer login en producción): el popup de Google abría `missing-auth-domain/__/auth/handler?apiKey=missing-api-key`. `lib/firebase.ts` toma la configuración de `NEXT_PUBLIC_FIREBASE_*` y, si no hay, de `FIREBASE_WEBAPP_CONFIG`. Next.js solo incorpora al código del navegador las variables `NEXT_PUBLIC_*` presentes al construir. App Hosting no las tenía, y `FIREBASE_WEBAPP_CONFIG` no existe en el navegador, así que caía a valores de relleno (verificado en el fragmento servido `8229-…js`).
+
+**Consecuencia:** desde el deploy a App Hosting (julio), en producción **nada de Firebase en el navegador funcionaba**: login, escrituras de scouting, picklists e invitaciones. Explica los 0 documentos de scouting en Firestore y que los únicos logins registrados (feb y may) fueran de desarrollo local. Además faltaba el dominio de App Hosting en los dominios autorizados de Auth (Héctor lo agregó el mismo día).
+
+**Decisión:** declarar las siete `NEXT_PUBLIC_FIREBASE_*` en `apphosting.yaml` con `availability: [BUILD, RUNTIME]`. Son valores públicos por diseño, de la app web "Iron Lion Scouting". Si la configuración vuelve a faltar, `lib/firebase.ts` lo reporta con `console.error` en lugar de seguir en silencio.
+
+**Lección:** la verificación posterior a un deploy debe incluir un login real, o al menos revisar que el fragmento de `lib/firebase.ts` traiga el `authDomain` real. Un 200 en las rutas no prueba que el cliente de Firebase funcione.
