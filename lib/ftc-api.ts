@@ -125,6 +125,18 @@ async function readThrough<T>(
     });
 }
 
+/**
+ * Next.js Data Cache only for slow-changing data (decision #112). Live data
+ * is cached ONCE, in our server cache: Next's fetch cache is
+ * stale-while-revalidate, so the first request after expiry got the PREVIOUS
+ * response and our cache then kept that stale copy for another TTL — the lag
+ * compounded with every sparse visit (USMIRHQ 14-nov: the "Following" card
+ * showed quals 39/45 while FIRST had published 45/45).
+ */
+function dataCache(ttl: number): RequestInit {
+    return ttl <= 600 ? { cache: "no-store" } : { next: { revalidate: ttl } };
+}
+
 // Helper to determine cache TTL based on event status.
 // Wrapped with React.cache so that within a single SSR request, multiple
 // fetchRankings/fetchMatches/etc. calls for the same (season, eventCode) reuse
@@ -182,7 +194,7 @@ export async function fetchRankings(season: number, eventCode: string): Promise<
         try {
             const response = await fetchWithRetry(`${BASE_URL}/${season}/rankings/${eventCode}`, {
                 headers: AUTH_HEADER,
-                next: { revalidate: ttl < 60 ? 60 : ttl }, // NextJS revalidate
+                ...dataCache(ttl),
             });
 
             if (!response.ok) {
@@ -211,7 +223,7 @@ export async function fetchAdvancement(season: number, eventCode: string): Promi
         try {
             const response = await fetchWithRetry(`${BASE_URL}/${season}/advancement/${eventCode}`, {
                 headers: AUTH_HEADER,
-                next: { revalidate: ttl < 60 ? 60 : ttl },
+                ...dataCache(ttl),
             }, 1);
 
             if (!response.ok) {
@@ -239,7 +251,7 @@ export async function fetchAdvancementPoints(season: number, eventCode: string):
         try {
             const response = await fetchWithRetry(`${BASE_URL}/${season}/advancement/${eventCode}/points`, {
                 headers: AUTH_HEADER,
-                next: { revalidate: ttl < 60 ? 60 : ttl },
+                ...dataCache(ttl),
             }, 1);
 
             if (!response.ok) {
@@ -293,8 +305,8 @@ export async function fetchMatches(season: number, eventCode: string): Promise<F
                 });
             };
             const [qualResult, playoffResult] = await Promise.all([
-                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Quals")),
-                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Playoffs"))
+                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, ...dataCache(ttl) }).then(handleLevel("Quals")),
+                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, ...dataCache(ttl) }).then(handleLevel("Playoffs"))
             ]);
 
             const qualMatches = qualResult.matches || [];
@@ -357,8 +369,8 @@ export async function fetchHybridSchedule(
                 });
             };
             const [qualResult, playoffResult] = await Promise.all([
-                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Qual")),
-                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Playoff")),
+                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, ...dataCache(ttl) }).then(handleLevel("Qual")),
+                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, ...dataCache(ttl) }).then(handleLevel("Playoff")),
             ]);
 
             const all = [...(qualResult.schedule || []), ...(playoffResult.schedule || [])];
@@ -385,7 +397,7 @@ export async function fetchAlliances(
         try {
             const response = await fetchWithRetry(`${BASE_URL}/${season}/alliances/${eventCode}`, {
                 headers: AUTH_HEADER,
-                next: { revalidate: ttl < 60 ? 60 : ttl },
+                ...dataCache(ttl),
             });
             if (!response.ok) {
                 if (response.status !== 404) {
@@ -439,8 +451,8 @@ export async function fetchMatchScores(season: number, eventCode: string): Promi
                 }
             };
             const [qualScores, playoffScores] = await Promise.all([
-                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Qual")),
-                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, next: { revalidate: ttl < 60 ? 60 : ttl } }).then(handleLevel("Playoff"))
+                fetchWithRetry(qualUrl, { headers: AUTH_HEADER, ...dataCache(ttl) }).then(handleLevel("Qual")),
+                fetchWithRetry(playoffUrl, { headers: AUTH_HEADER, ...dataCache(ttl) }).then(handleLevel("Playoff"))
             ]);
 
             const allScores = [...qualScores, ...playoffScores];
@@ -518,7 +530,7 @@ export async function fetchEventTeams(season: number, eventCode: string): Promis
         try {
             const response = await fetchWithRetry(`${BASE_URL}/${season}/teams?eventCode=${encodeURIComponent(eventCode)}`, {
                 headers: AUTH_HEADER,
-                next: { revalidate: ttl < 60 ? 60 : ttl },
+                ...dataCache(ttl),
             });
             if (!response.ok) {
                 if (response.status !== 404) console.error(`Status: ${response.status} for event teams ${eventCode} (${season})`);
@@ -657,7 +669,7 @@ export async function fetchEventAwards(season: number, eventCode: string): Promi
         try {
             const response = await fetchWithRetry(`${BASE_URL}/${season}/awards/${eventCode}`, {
                 headers: AUTH_HEADER,
-                next: { revalidate: ttl < 60 ? 60 : ttl },
+                ...dataCache(ttl),
             });
 
             if (!response.ok) return [];
@@ -679,7 +691,7 @@ export async function fetchEventAwardsForTeam(season: number, eventCode: string,
         try {
             const response = await fetchWithRetry(`${BASE_URL}/${season}/awards/${eventCode}/${teamNumber}`, {
                 headers: AUTH_HEADER,
-                next: { revalidate: ttl < 60 ? 60 : ttl },
+                ...dataCache(ttl),
             });
 
             if (!response.ok) return [];

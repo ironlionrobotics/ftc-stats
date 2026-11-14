@@ -1275,3 +1275,17 @@ Se renderizan con el mismo motor que el scouting (`DynamicGameForm`). Los datos 
 - Se queda un poco corto arriba, pero no se ajusta con un solo día; se vuelve a revisar con más eventos.
 
 **Q36 de USMIRHQ (la consulta de Héctor):** antes del partido PRIDE daba 53 % a la roja, es decir, "Parejo". Ganó la roja por 13.
+
+## #112 · Datos en vivo: una sola capa de caché (2026-11-14)
+
+**Hallazgo (USMIRHQ):** FIRST ya tenía las 45 qualys publicadas y la tarjeta de "Siguiendo" mostraba 39/45. Los fetchers usaban dos cachés a la vez:
+- nuestro `serverCache`, con TTL de 60 s en vivo;
+- el Data Cache de Next (`next: { revalidate: 60 }`).
+
+El de Next es stale-while-revalidate: la primera petición después de que expira recibe la respuesta **anterior** y la refresca en segundo plano. Luego nuestro caché guardaba esa copia vieja otros 60 s, así que el retraso crecía con cada visita espaciada.
+
+**Decisión:** `dataCache(ttl)` en `lib/ftc-api.ts`.
+- Con TTL ≤ 10 min → `cache: "no-store"`, y la única caché es la nuestra, que sí controla la expiración.
+- Con TTL más largo (eventos de la temporada, equipo) se queda `revalidate`, que es inofensivo a esa escala.
+
+Esto también importa para los avisos push (#110): el cron lee con los mismos fetchers.
