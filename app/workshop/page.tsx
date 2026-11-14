@@ -4,6 +4,7 @@ import { Timer } from "lucide-react";
 import { getCurrentSeason } from "@/lib/constants";
 import { parseSeason } from "@/lib/input-guards";
 import WorkshopClient from "@/components/workshop/WorkshopClient";
+import PastSeasonBanner from "@/components/shell/PastSeasonBanner";
 
 /** Workshop (#105): private practice with a match clock, scoring and progress. */
 export default async function WorkshopPage() {
@@ -17,6 +18,7 @@ export default async function WorkshopPage() {
                 <h1 className="flex items-center gap-3 text-3xl font-black tracking-tight"><Timer className="text-primary" /> {t("title")}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
             </header>
+            <PastSeasonBanner season={season} current={current} />
             <WorkshopClient season={season} />
         </div>
     );

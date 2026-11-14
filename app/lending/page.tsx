@@ -6,6 +6,7 @@ import { getCurrentSeason } from "@/lib/constants";
 import { normalizeEventCode, parseSeason } from "@/lib/input-guards";
 import { scoutingEventOptions, pickScoutingEvent, SCOUTING_EVENT_COOKIE } from "@/lib/scouting-event";
 import LendingClient from "@/components/lending/LendingClient";
+import PastSeasonBanner from "@/components/shell/PastSeasonBanner";
 
 /**
  * Pit lending (#104): who has the part or tool you need at this event, and
@@ -28,6 +29,7 @@ export default async function LendingPage({ searchParams }: { searchParams: Prom
                 <h1 className="flex items-center gap-3 text-3xl font-black tracking-tight"><Wrench className="text-primary" /> {t("title")}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
             </header>
+            <PastSeasonBanner season={season} current={current} />
             <LendingClient
                 key={selected?.code ?? "none"}
                 season={season}

@@ -34,7 +34,12 @@ function initAdminApp(): App {
 
     // Falls back to ADC (Firebase App Hosting, GCP) or
     // GOOGLE_APPLICATION_CREDENTIALS file path.
-    return initializeApp({ credential: applicationDefault() });
+    // User ADC (local dev: `gcloud auth application-default login`) carries no
+    // project, and verifyIdToken() then fails with "Unable to detect a Project
+    // Id" — every authenticated server action answered auth.invalidToken in
+    // local dev (14-nov walkthrough). App Hosting sets GOOGLE_CLOUD_PROJECT.
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || undefined;
+    return initializeApp({ credential: applicationDefault(), ...(projectId ? { projectId } : {}) });
 }
 
 let _app: App | undefined;

@@ -7,6 +7,7 @@ import { scoutingEventOptions, pickScoutingEvent, SCOUTING_EVENT_COOKIE } from "
 import ScoutingClient from "@/components/scouting/ScoutingClient";
 import { cookies } from "next/headers";
 import type { ScoutTeam } from "@/types/scouting";
+import PastSeasonBanner from "@/components/shell/PastSeasonBanner";
 
 /**
  * Scouting is per EVENT: the page picks one (`?event=`, else the scout's last
@@ -31,6 +32,8 @@ export default async function ScoutingPage({ searchParams }: { searchParams: Pro
     const { options, selected, teams, rosterSource, schedule } = await loadScoutingRoster(season, requested);
 
     return (
+        <>
+        <PastSeasonBanner season={season} current={current} />
         <ScoutingClient
             // Remount per event: added teams, selection and live entries belong to one event.
             key={selected?.code ?? "none"}
@@ -40,6 +43,7 @@ export default async function ScoutingPage({ searchParams }: { searchParams: Pro
             rosterSource={rosterSource}
             schedule={schedule}
         />
+        </>
     );
 }
 

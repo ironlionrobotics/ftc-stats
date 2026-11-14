@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations, useFormatter } from "next-intl";
+import { useTranslations, useFormatter, useNow } from "next-intl";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { doc, getDoc } from "firebase/firestore";
@@ -193,6 +193,7 @@ function RequestsTab({ season, eventCode, orgId, me, requests, mine, onLend }: {
 }) {
     const t = useTranslations("Lending");
     const format = useFormatter();
+    const now = useNow({ updateInterval: 60_000 }); // explicit reference (no ENVIRONMENT_FALLBACK); capped below so a fresh item never reads "in N seconds"
     const [item, setItem] = useState("");
     const [note, setNote] = useState("");
     const open = requests.filter(r => r.status === "open").sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
@@ -232,7 +233,7 @@ function RequestsTab({ season, eventCode, orgId, me, requests, mine, onLend }: {
                                     {r.note && <div className="text-sm text-muted-foreground">{r.note}</div>}
                                     <div className="text-xs text-muted-foreground">
                                         {t("teamPit", { team: r.teamNumber, name: "", pit: r.pit || "—" })}
-                                        {r.createdAt?.seconds ? ` · ${format.relativeTime(new Date(r.createdAt.seconds * 1000))}` : ""}
+                                        {r.createdAt?.seconds ? ` · ${format.relativeTime(r.createdAt.seconds * 1000, Math.max(now.getTime(), r.createdAt.seconds * 1000))}` : ""}
                                         {haveIt && <span className="ml-2 font-semibold text-success">{t("youHaveIt")}</span>}
                                     </div>
                                 </div>
@@ -314,6 +315,7 @@ function LoansTab({ season, eventCode, orgId, loans, draft, onDone }: {
     const t = useTranslations("Lending");
     const tErr = useTranslations("Errors");
     const format = useFormatter();
+    const now = useNow({ updateInterval: 60_000 }); // explicit reference (no ENVIRONMENT_FALLBACK); capped below so a fresh item never reads "in N seconds"
     const { user } = useAuth();
     const [as, setAs] = useState<"lender" | "borrower">(draft?.as ?? "lender");
     const [otherTeam, setOtherTeam] = useState(draft?.otherTeam ?? "");
@@ -396,7 +398,7 @@ function LoansTab({ season, eventCode, orgId, loans, draft, onDone }: {
                                 <div className="min-w-0">
                                     <div className="font-semibold">{l.item} <span className="text-xs text-muted-foreground">×{l.qty}</span></div>
                                     <div className="text-xs text-muted-foreground">
-                                        {t(iAmLender ? "lentTo" : "borrowedFrom", { team: other })} · {l.eventCode} · {format.relativeTime(new Date(l.lentAtMs))}
+                                        {t(iAmLender ? "lentTo" : "borrowedFrom", { team: other })} · {l.eventCode} · {format.relativeTime(l.lentAtMs, Math.max(now.getTime(), l.lentAtMs))}
                                     </div>
                                     <div className="text-xs font-semibold">{t(`status.${l.status}`)}</div>
                                 </div>

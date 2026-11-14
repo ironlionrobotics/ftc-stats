@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { IdCard } from "lucide-react";
@@ -6,15 +5,23 @@ import { getCurrentSeason } from "@/lib/constants";
 import { parseSeason, isValidTeamNumber } from "@/lib/input-guards";
 import CardView from "@/components/card/CardView";
 
-/** Another team's Trading Card (#106/#107) — approved teams only (checked client-side by rules). */
-export default async function TeamCardPage({ params }: { params: Promise<{ team: string }> }) {
+/**
+ * Another team's Trading Card (#106/#107) — approved teams only (checked client-side by rules).
+ * The card describes the CURRENT robot, which the editor always saves under the current
+ * season; the stats-browsing cookie (ftc_season) must not apply here, or a viewer who
+ * browsed last season sees an empty card. An explicit ?season= still opens an older one.
+ */
+export default async function TeamCardPage({ params, searchParams }: {
+    params: Promise<{ team: string }>;
+    searchParams: Promise<{ season?: string }>;
+}) {
     const { team } = await params;
+    const { season: seasonParam } = await searchParams;
     const teamNumber = Number(team);
     if (!isValidTeamNumber(teamNumber)) notFound();
     const t = await getTranslations("CardView");
-    const store = await cookies();
     const current = getCurrentSeason();
-    const season = parseSeason(store.get("ftc_season")?.value, current) ?? current;
+    const season = parseSeason(seasonParam, current) ?? current;
     return (
         <div className="container mx-auto max-w-6xl px-4 py-8">
             <header className="mb-6">

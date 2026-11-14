@@ -5,6 +5,7 @@ import StrategyClient from "@/components/strategy/StrategyClient";
 import { getCurrentSeason } from "@/lib/constants";
 import { normalizeEventCode, parseSeason } from "@/lib/input-guards";
 import { scoutingEventOptions, pickScoutingEvent, SCOUTING_EVENT_COOKIE } from "@/lib/scouting-event";
+import PastSeasonBanner from "@/components/shell/PastSeasonBanner";
 
 /** Strategy works on the event chosen on /scouting (shared cookie, #100). */
 export default async function StrategyPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -19,6 +20,8 @@ export default async function StrategyPage({ searchParams }: { searchParams: Pro
     const selected = choose(options, requested);
 
     return (
+        <>
+        <PastSeasonBanner season={season} current={current} />
         <StrategyClient
             key={selected?.code ?? "none"}
             teams={teamStats}
@@ -26,6 +29,7 @@ export default async function StrategyPage({ searchParams }: { searchParams: Pro
             eventCode={selected?.code ?? null}
             events={options.map(e => ({ code: e.code, name: e.name, dateStart: e.dateStart }))}
         />
+        </>
     );
 }
 

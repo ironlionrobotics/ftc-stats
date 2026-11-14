@@ -725,6 +725,10 @@
       "confirmLabel": "Type DELETE to confirm",
       "submit": "Delete permanently",
       "cancel": "Cancel"
+    },
+    "pastSeason": {
+      "text": "You're viewing the {season} season, not the current one ({current}). Events, scouting, lending and practice here belong to that season.",
+      "action": "Go to {current}"
     }
   },
   "TeamsPage": {
@@ -1764,7 +1768,7 @@
     "robotVersion": "Robot version",
     "robotVersionPh": "e.g. v2 new intake",
     "drivers": "Drivers",
-    "driversPh": "e.g. Ana+Leo",
+    "driversPh": "e.g. pair A (no names)",
     "location": "Where",
     "locations": {
       "workshop": "Workshop",

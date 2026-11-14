@@ -725,6 +725,10 @@
       "confirmLabel": "Escribe DELETE para confirmar",
       "submit": "Eliminar definitivamente",
       "cancel": "Cancelar"
+    },
+    "pastSeason": {
+      "text": "Estás viendo la temporada {season}, no la actual ({current}). Los eventos, el scouting, los préstamos y las prácticas de aquí son de esa temporada.",
+      "action": "Ir a {current}"
     }
   },
   "TeamsPage": {
@@ -1764,7 +1768,7 @@
     "robotVersion": "Versión del robot",
     "robotVersionPh": "ej. v2 intake nuevo",
     "drivers": "Drivers",
-    "driversPh": "ej. Ana+Leo",
+    "driversPh": "ej. pareja A (sin nombres)",
     "location": "Dónde",
     "locations": {
       "workshop": "Taller",
