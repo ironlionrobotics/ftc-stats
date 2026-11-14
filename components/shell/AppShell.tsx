@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import { Search, Moon, Sun, LogIn, LogOut, X, Star, User as UserIcon } from "lucide-react";
@@ -12,6 +12,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/lib/stores/theme-store";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import { setFollowedTeamAction } from "@/app/actions/follow-team";
+import { replaceFollowsAction } from "@/app/actions/following";
+import { mergeFollows, normalizeFollows, sameFollows, type Follows } from "@/lib/follows";
+import { mirrorFollows } from "@/lib/follows-sync";
 import { deleteMyAccountAction } from "@/app/actions/delete-account";
 import { PRIMARY_NAV, SECONDARY_NAV, isActive, type NavItem } from "./nav";
 
@@ -37,11 +40,11 @@ function useHydrated(): boolean {
  *    team-admin panels, and FIRST attribution.
  * `followedTeam` comes from the `pride_team` cookie (read in the root layout).
  */
-export default function AppShell({ followedTeam }: { followedTeam: number | null }) {
+export default function AppShell({ followedTeam, follows }: { followedTeam: number | null; follows: Follows }) {
     const pathname = usePathname();
     const t = useTranslations("Shell");
     const [panelOpen, setPanelOpen] = useState(false);
-    const { userDoc } = useAuth();
+    const { user, userDoc } = useAuth();
     const team = followedTeam ?? (userDoc?.orgId ? Number(userDoc.orgId) : null);
     const router = useRouter();
 
@@ -57,6 +60,20 @@ export default function AppShell({ followedTeam }: { followedTeam: number | null
         })();
         return () => { cancelled = true; };
     }, [followedTeam, orgTeam, router]);
+
+    // Signing in merges this device's follows with the account's (decision #110),
+    // once per user: the cookie feeds the server pages, the doc travels between devices.
+    const mergedFor = useRef<string | null>(null);
+    useEffect(() => {
+        if (!user || !userDoc || mergedFor.current === user.uid) return;
+        mergedFor.current = user.uid;
+        const fromDoc = normalizeFollows(userDoc.follows);
+        const merged = mergeFollows(follows, fromDoc);
+        if (!sameFollows(merged, fromDoc)) void mirrorFollows(user.uid, merged);
+        if (!sameFollows(merged, follows)) {
+            void replaceFollowsAction(merged).then(() => router.refresh());
+        }
+    }, [user, userDoc, follows, router]);
 
     return (
         <>

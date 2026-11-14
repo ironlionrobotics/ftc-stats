@@ -10,6 +10,14 @@ import { seasonGameName } from "@/lib/games/season-names";
 import { pickRelevantEvent, summarizeAtEvent, daysUntil, type TodayAtEvent } from "@/lib/today-summary";
 import FollowTeamForm from "@/components/today/FollowTeamForm";
 import OpenLoansNotice from "@/components/today/OpenLoansNotice";
+import { Suspense } from "react";
+import { fetchEvents } from "@/lib/ftc-api";
+import { FOLLOWS_COOKIE, parseFollows, serializeFollows, type Follows } from "@/lib/follows";
+import { liveAndUpcoming, type EventRegion } from "@/lib/event-windows";
+import { loadFollowingSnapshot } from "@/lib/following-snapshot";
+import FollowingPanel from "@/components/home/FollowingPanel";
+import EventsToday from "@/components/home/EventsToday";
+import FollowTeamInline from "@/components/home/FollowTeamInline";
 
 /**
  * Hoy (plan "PRIDE abierta al público", Etapa 2, decision #98): the home of
@@ -26,6 +34,15 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     const season = parseSeason(params?.season, current) ?? parseSeason(store.get("ftc_season")?.value, current) ?? current;
     const team = parseFollowedTeam(store.get(FOLLOW_TEAM_COOKIE)?.value);
     const kicker = t("kicker", { season, game: seasonGameName(season) ?? "" });
+    // Followed events/teams + today's events (decision #110): always the CURRENT season.
+    const follows = parseFollows(store.get(FOLLOWS_COOKIE)?.value);
+    const region: EventRegion = params?.region === "all" ? "all" : "MX";
+    const query = typeof params?.q === "string" ? params.q.slice(0, 40) : "";
+    const followSections = (
+        <Suspense fallback={null}>
+            <FollowSections follows={follows} region={region} query={query} season={current} />
+        </Suspense>
+    );
 
     if (team === null) {
         return (
@@ -37,6 +54,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                 <p className="mt-8 text-sm text-muted-foreground">
                     {t.rich("orBrowse", { events: chunks => <Link href="/events" className="underline hover:text-foreground">{chunks}</Link> })}
                 </p>
+                {followSections}
             </main>
         );
     }
@@ -87,9 +105,30 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                 </section>
             )}
 
+            {followSections}
+
             <p className="mt-10 text-xs text-muted-foreground">{t("footnote")}</p>
         </main>
     );
+}
+
+/** "Siguiendo" + today's events (decision #110), streamed after the main card. */
+async function FollowSections({ follows, region, query, season }: { follows: Follows; region: EventRegion; query: string; season: number }) {
+    const [events, snapshot] = await Promise.all([fetchEvents(season), loadFollowingSnapshot(follows, season)]);
+    const items = listEvents(events, region, query, follows.events);
+    const hasFollows = snapshot.events.length + snapshot.teams.length > 0;
+    return (
+        <>
+            {/* Remount when the list changes: a followed/unfollowed item must show at once. */}
+            {hasFollows && <FollowingPanel key={serializeFollows(follows)} initial={snapshot} season={season} />}
+            <div className="mt-4"><FollowTeamInline /></div>
+            <EventsToday items={items} followed={follows.events} region={region} query={query} season={season} />
+        </>
+    );
+}
+
+function listEvents(events: Awaited<ReturnType<typeof fetchEvents>>, region: EventRegion, query: string, always: string[]) {
+    return liveAndUpcoming(events, Date.now(), { region, query, always, limit: region === "all" ? 60 : 30 });
 }
 
 /** Fetches and assembles everything "Hoy" shows for `team` (server-side). */

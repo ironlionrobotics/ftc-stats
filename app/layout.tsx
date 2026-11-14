@@ -3,6 +3,7 @@ import "./globals.css";
 import AppShell from "@/components/shell/AppShell";
 import { cookies } from "next/headers";
 import { FOLLOW_TEAM_COOKIE, parseFollowedTeam } from "@/lib/follow-team";
+import { FOLLOWS_COOKIE, parseFollows } from "@/lib/follows";
 import { AuthProvider } from "@/context/AuthContext";
 import { getAppConfig } from "@/lib/app-config";
 import ThemeSync from "@/components/ThemeSync";
@@ -86,7 +87,10 @@ export default async function RootLayout({
   // Active locale (cookie/Accept-Language) for <html lang> and the intl provider.
   const locale = await getLocale();
   // Team the visitor follows without an account (pride_team cookie).
-  const followedTeam = parseFollowedTeam((await cookies()).get(FOLLOW_TEAM_COOKIE)?.value);
+  const cookieStore = await cookies();
+  const followedTeam = parseFollowedTeam(cookieStore.get(FOLLOW_TEAM_COOKIE)?.value);
+  // Followed events/teams (decision #110), merged with the account's list on sign-in.
+  const follows = parseFollows(cookieStore.get(FOLLOWS_COOKIE)?.value);
   return (
     // suppressHydrationWarning: the themeInitScript below sets the `dark` class
     // on <html> before hydration, which intentionally differs from the server
@@ -103,7 +107,7 @@ export default async function RootLayout({
           <QueryProvider>
             <AuthProvider>
               <ConfirmProvider>
-                <AppShell followedTeam={followedTeam} />
+                <AppShell followedTeam={followedTeam} follows={follows} />
                 <div className="md:ml-56 min-h-screen pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
                   {children}
                 </div>

@@ -20,7 +20,7 @@ import { estimateAlliances } from "@/lib/event-selector";
 const DAY = 24 * 60 * 60 * 1000;
 
 /** dateStart/dateEnd are date-only strings parsed as UTC midnight. */
-function eventWindow(e: Pick<FTCEvent, "dateStart" | "dateEnd">): { start: number; end: number } {
+export function eventWindow(e: Pick<FTCEvent, "dateStart" | "dateEnd">): { start: number; end: number } {
     const start = Date.parse(e.dateStart);
     const end = Date.parse(e.dateEnd || e.dateStart);
     // Whole last day in every venue timezone (UTC−12 … UTC+14) counts as live.

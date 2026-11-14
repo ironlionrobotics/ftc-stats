@@ -42,6 +42,8 @@ export interface AppUser {
     reliability: number;            // 0–1, updated by ground-truth validation (Sprint 1.7)
     matchesScouted: number;
     createdAt: FirestoreTimestamp;
+    /** Followed events/teams mirrored from the device cookie (decision #110). */
+    follows?: { events: string[]; teams: number[] };
 }
 
 /**
