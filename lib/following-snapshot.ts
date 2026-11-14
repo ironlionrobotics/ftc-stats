@@ -100,7 +100,7 @@ export async function loadFollowingSnapshot(follows: Follows, season: number, no
             const blue = last.teams.filter(t => t.station.startsWith("Blue")).map(t => t.teamNumber);
             const rs = last.scoreRedFinal ?? 0, bs = last.scoreBlueFinal ?? 0;
             const onRed = red.includes(n);
-            card.lastMatch = { description: shortMatchLabel(last.description, last.tournamentLevel, last.matchNumber), red, blue, redScore: rs, blueScore: bs, won: rs === bs ? null : onRed ? rs > bs : bs > rs };
+            card.lastMatch = { description: shortMatchLabel(last.description, last.tournamentLevel, last.matchNumber, last.series), red, blue, redScore: rs, blueScore: bs, won: rs === bs ? null : onRed ? rs > bs : bs > rs };
         }
         const r = d.rankings.find(x => x.teamNumber === n);
         if (r) card.rank = { rank: r.rank, of: d.rankings.length, wins: r.wins ?? 0, losses: r.losses ?? 0, ties: r.ties ?? 0 };

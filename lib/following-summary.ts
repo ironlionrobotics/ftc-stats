@@ -39,13 +39,22 @@ export interface EventLive {
     top: Array<{ rank: number; teamNumber: number; teamName: string; rs: number; wins: number; losses: number; ties: number }>;
 }
 
-/** Compact match label for cards: "Qualification 35" → "Q35", "Semifinal 2" → "SF2", "Final 1" → "F1". */
-export function shortMatchLabel(description: string, level: string, matchNumber: number): string {
+/**
+ * Compact match label for cards: "Qualification 35" → "Q35"; FTC playoffs are
+ * double elimination where every match has matchNumber 1 and `series`
+ * numbers them ("Upper Bracket Round 1 Match 1" → "M1", "Final Bracket …" → "Final").
+ */
+export function shortMatchLabel(description: string, level: string, matchNumber: number, series?: number): string {
     if (level === "QUALIFICATION") return `Q${matchNumber}`;
     const d = description.trim();
-    const rules: Array<[RegExp, string]> = [[/^semi-?finals?\s*/i, "SF"], [/^finals?\s*/i, "F"], [/^playoffs?\s*/i, "P"], [/^match\s*/i, "M"], [/^qualification\s*/i, "Q"]];
-    for (const [re, abbr] of rules) if (re.test(d)) return abbr + d.replace(re, "").replace(/\s+/g, "");
-    return d.length > 8 ? `P${matchNumber}` : d;
+    if (/^final/i.test(d)) return "Final";
+    const n = /match\s*(\d+)/i.exec(d)?.[1] ?? (series ? String(series) : null);
+    return n ? `M${n}` : d.slice(0, 8);
+}
+
+/** Stable identity of a scheduled match (playoffs repeat matchNumber 1; `series` tells them apart). */
+export function matchKey(m: { tournamentLevel: string; series?: number; matchNumber: number }): string {
+    return `${m.tournamentLevel === "QUALIFICATION" ? "Q" : "P"}:${m.series ?? 0}:${m.matchNumber}`;
 }
 
 const played = (m: FTCHybridScheduleMatch) => m.scoreRedFinal != null || m.scoreBlueFinal != null;
@@ -61,9 +70,11 @@ function ordered(schedule: FTCHybridScheduleMatch[]): FTCHybridScheduleMatch[] {
     const lvl = (m: FTCHybridScheduleMatch) => (m.tournamentLevel === "QUALIFICATION" ? 0 : 1);
     return schedule
         .map((m, i) => ({ m, i }))
-        .sort((a, b) => lvl(a.m) - lvl(b.m) || timeOf(a.m, a.i) - timeOf(b.m, b.i) || a.m.matchNumber - b.m.matchNumber)
+        .sort((a, b) => lvl(a.m) - lvl(b.m) || timeOf(a.m, a.i) - timeOf(b.m, b.i) || (a.m.series ?? 0) - (b.m.series ?? 0) || a.m.matchNumber - b.m.matchNumber)
         .map(x => x.m);
 }
+
+export { ordered as playOrder };
 
 export function summarizeEvent(
     rankings: TeamRanking[],
@@ -87,7 +98,7 @@ export function summarizeEvent(
                 ? model.pRed(red, blue)
                 : playoffWinProbability(mu(red), mu(blue), model.sigmaDiff);
         }
-        return { description: shortMatchLabel(m.description, m.tournamentLevel, m.matchNumber), level: m.tournamentLevel, matchNumber: m.matchNumber, startTime: m.startTime ?? null, red, blue, pRed };
+        return { description: shortMatchLabel(m.description, m.tournamentLevel, m.matchNumber, m.series), level: m.tournamentLevel, matchNumber: m.matchNumber, startTime: m.startTime ?? null, red, blue, pRed };
     });
 
     const last = [...seq].reverse().find(played) ?? null;
@@ -97,7 +108,7 @@ export function summarizeEvent(
         playoffsPlayed: playoffs.filter(played).length,
         playoffsTotal: playoffs.length,
         nextMatches: next,
-        lastMatch: last ? { description: shortMatchLabel(last.description, last.tournamentLevel, last.matchNumber), red: side(last, "Red"), blue: side(last, "Blue"), redScore: last.scoreRedFinal ?? 0, blueScore: last.scoreBlueFinal ?? 0 } : null,
+        lastMatch: last ? { description: shortMatchLabel(last.description, last.tournamentLevel, last.matchNumber, last.series), red: side(last, "Red"), blue: side(last, "Blue"), redScore: last.scoreRedFinal ?? 0, blueScore: last.scoreBlueFinal ?? 0 } : null,
         top: [...rankings].sort((a, b) => a.rank - b.rank).slice(0, 4).map(r => ({
             rank: r.rank, teamNumber: r.teamNumber, teamName: r.teamName, rs: r.sortOrder1 ?? 0, wins: r.wins ?? 0, losses: r.losses ?? 0, ties: r.ties ?? 0,
         })),

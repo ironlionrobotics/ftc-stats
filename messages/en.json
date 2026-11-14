@@ -1899,5 +1899,42 @@
     "searchPh": "Name or code",
     "none": "No events live or in the next 7 days with that filter.",
     "noneMx": "No events in Mexico today or in the next 7 days. Try “All regions”."
+  },
+  "Notify": {
+    "soon": {
+      "title": "{team} plays in ~{ahead, plural, one {# match} other {# matches}} ({label})",
+      "body": "With {partners} vs {opponents} · {pct} to win · {event}",
+      "bodyNoOdds": "With {partners} vs {opponents} · {event}"
+    },
+    "result": {
+      "won": "{team} won {label}: {own}–{opp}",
+      "lost": "{team} lost {label}: {own}–{opp}",
+      "tie": "{team} tied {label}: {own}–{opp}",
+      "rank": "Now #{rank} · {event}"
+    },
+    "playoff": {
+      "title": "{event}: {label}",
+      "body": "Red {red} {rs} – {bs} Blue {blue}"
+    },
+    "alliances": {
+      "title": "Alliances set at {event}",
+      "captain": "{team} captains Alliance {n}",
+      "picked": "{team} is on Alliance {n}"
+    },
+    "champion": {
+      "title": "{event}: we have champions!",
+      "mine": "{team} won {event}!",
+      "bodyAlliance": "Alliance {n}: {teams}"
+    },
+    "pride": {
+      "loanTitle": "Loan recorded: {item}",
+      "loanBody": "{lender} lent you {qty} · {event}. If that's wrong, dispute it in Pit lending.",
+      "returnTitle": "Marked as returned: {item}",
+      "returnBody": "{borrower} says it's back · confirm in Pit lending",
+      "requestTitle": "{team} (pit {pit}) needs: {item}",
+      "requestBody": "Have it? Answer in Pit lending · {event}",
+      "claimTitle": "Your assigned robot plays in ~{ahead, plural, one {# match} other {# matches}}",
+      "claimBody": "{team} in {label} · {event}"
+    }
   }
 }

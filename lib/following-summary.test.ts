@@ -3,7 +3,8 @@ import { summarizeEvent } from "./following-summary";
 import type { FTCHybridScheduleMatch, FTCMatch, TeamRanking } from "@/types/scouting";
 
 const sched = (n: number, red: number[], blue: number[], score?: [number, number], level = "QUALIFICATION"): FTCHybridScheduleMatch => ({
-    description: `${level === "QUALIFICATION" ? "Qualification" : "Semifinal"} ${n}`, matchNumber: n, tournamentLevel: level,
+    description: level === "QUALIFICATION" ? `Qualification ${n}` : `Upper Bracket  Round 1 Match ${n}`,
+    matchNumber: level === "QUALIFICATION" ? n : 1, series: level === "QUALIFICATION" ? 0 : n, tournamentLevel: level,
     startTime: `2026-11-14T${String(9 + n).padStart(2, "0")}:00:00`,
     scoreRedFinal: score ? score[0] : null, scoreBlueFinal: score ? score[1] : null,
     teams: [...red.map((t, i) => ({ teamNumber: t, station: `Red${i + 1}` })), ...blue.map((t, i) => ({ teamNumber: t, station: `Blue${i + 1}` }))],
@@ -34,16 +35,17 @@ describe("summarizeEvent (#110)", () => {
     it("shortens FIRST match names for cards", async () => {
         const { shortMatchLabel } = await import("./following-summary");
         expect(shortMatchLabel("Qualification 35", "QUALIFICATION", 35)).toBe("Q35");
-        expect(shortMatchLabel("Semifinal 2", "PLAYOFF", 2)).toBe("SF2");
-        expect(shortMatchLabel("Final 1", "PLAYOFF", 1)).toBe("F1");
-        expect(shortMatchLabel("Match 7", "PLAYOFF", 7)).toBe("M7");
+        // FTC double elimination (real FPEMX names): matchNumber is always 1, series numbers them.
+        expect(shortMatchLabel("Upper Bracket  Round 1 Match 1", "PLAYOFF", 1, 1)).toBe("M1");
+        expect(shortMatchLabel("Lower Bracket  Round 5 Match 9", "PLAYOFF", 1, 9)).toBe("M9");
+        expect(shortMatchLabel("Final Bracket  Round 6 Match 10", "PLAYOFF", 1, 10)).toBe("Final");
     });
 
     it("lists the next matches in play order with odds that favor team 1", () => {
-        expect(s.nextMatches.map(m => m.description)).toEqual(["Q4", "Q5", "SF1"]);
+        expect(s.nextMatches.map(m => m.description)).toEqual(["Q4", "Q5", "M1"]);
         expect(s.nextMatches[0].pRed!).toBeLessThan(0.5);   // team 1 is blue in Q4
         expect(s.nextMatches[1].pRed!).toBeLessThan(0.5);   // and in Q5
-        expect(s.nextMatches[2].pRed!).toBeGreaterThan(0.5); // red in SF1
+        expect(s.nextMatches[2].pRed!).toBeGreaterThan(0.5); // red in playoff M1
     });
 
     it("returns the top of the ranking", () => {

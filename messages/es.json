@@ -1899,5 +1899,42 @@
     "searchPh": "Nombre o código",
     "none": "No hay eventos en curso ni en los próximos 7 días con ese filtro.",
     "noneMx": "No hay eventos en México hoy ni en los próximos 7 días. Prueba con «Todas las regiones»."
+  },
+  "Notify": {
+    "soon": {
+      "title": "{team} juega en ~{ahead, plural, one {# partido} other {# partidos}} ({label})",
+      "body": "Con {partners} vs {opponents} · {pct} de ganar · {event}",
+      "bodyNoOdds": "Con {partners} vs {opponents} · {event}"
+    },
+    "result": {
+      "won": "{team} ganó {label}: {own}–{opp}",
+      "lost": "{team} perdió {label}: {own}–{opp}",
+      "tie": "{team} empató {label}: {own}–{opp}",
+      "rank": "Va #{rank} · {event}"
+    },
+    "playoff": {
+      "title": "{event}: {label}",
+      "body": "Rojo {red} {rs} – {bs} Azul {blue}"
+    },
+    "alliances": {
+      "title": "Alianzas listas en {event}",
+      "captain": "{team} es capitán de la Alianza {n}",
+      "picked": "{team} va en la Alianza {n}"
+    },
+    "champion": {
+      "title": "{event}: ¡tenemos campeones!",
+      "mine": "¡{team} es campeón de {event}!",
+      "bodyAlliance": "Alianza {n}: {teams}"
+    },
+    "pride": {
+      "loanTitle": "Préstamo registrado: {item}",
+      "loanBody": "{lender} les prestó {qty} · {event}. Si no fue así, puedes disputarlo en Préstamos.",
+      "returnTitle": "Marcaron como devuelto: {item}",
+      "returnBody": "{borrower} dice que ya lo regresó · confírmalo en Préstamos",
+      "requestTitle": "{team} (pit {pit}) busca: {item}",
+      "requestBody": "¿Lo tienen? Respóndanle en Préstamos · {event}",
+      "claimTitle": "Tu robot asignado juega en ~{ahead, plural, one {# partido} other {# partidos}}",
+      "claimBody": "{team} en {label} · {event}"
+    }
   }
 }
