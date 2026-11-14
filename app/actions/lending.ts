@@ -6,6 +6,7 @@ import { normalizeEventCode, parseSeason, isValidTeamNumber } from "@/lib/input-
 import { getCurrentSeason } from "@/lib/constants";
 import { cleanText, nextLoanStatus, LIMITS, type Loan } from "@/lib/lending";
 import type { ErrorCode } from "@/lib/errors";
+import { notifyOrg } from "@/lib/notify/run";
 
 /**
  * Loans between teams at an event (decision #104). The loans collection is
@@ -88,6 +89,12 @@ export async function recordLoanAction(input: {
             tx.set(ref, loan);
             if (reqRef) tx.update(reqRef, { status: "resolved", updatedAt: new Date() });
         });
+        // Tell the other party's signed-in devices (#110): they can dispute it if it didn't happen.
+        await notifyOrg(input.as === "lender" ? borrowerOrg : lenderOrg, t => ({
+            title: t("pride.loanTitle", { item }),
+            body: t("pride.loanBody", { lender: loan.lenderTeam, borrower: loan.borrowerTeam, qty, event: eventCode }),
+            url: `/lending?event=${eventCode}`, tag: `loan:${ref.id}`,
+        }));
         return { ok: true, loanId: ref.id };
     } catch (e) {
         console.error("[lending] record failed:", e);
@@ -106,7 +113,8 @@ export async function markLoanReturnedAction(input: { idToken: string; loanId: s
     const db = getAdminDb();
     const ref = db.collection("loans").doc(input.loanId);
     try {
-        return await db.runTransaction(async tx => {
+        let marked: Loan | null = null;
+        const res = await db.runTransaction(async tx => {
             const snap = await tx.get(ref);
             if (!snap.exists) return { ok: false as const, code: "lending.notFound" as ErrorCode };
             const loan = snap.data() as Loan;
@@ -124,8 +132,19 @@ export async function markLoanReturnedAction(input: { idToken: string; loanId: s
                 ...(next === "return_marked" ? { returnMarkedAtMs: now } : {}),
                 ...(next === "returned" ? { returnedAtMs: now } : {}),
             });
+            marked = next === "return_marked" ? loan : null;
             return { ok: true as const, status: next };
         });
+        // The borrower says it's back → the lender confirms (#110).
+        const m = marked as Loan | null;
+        if (m) {
+            await notifyOrg(m.lenderOrg || null, t => ({
+                title: t("pride.returnTitle", { item: m.item }),
+                body: t("pride.returnBody", { borrower: m.borrowerTeam }),
+                url: `/lending?event=${m.eventCode}`, tag: `loan:${input.loanId}`,
+            }));
+        }
+        return res;
     } catch (e) {
         console.error("[lending] mark returned failed:", e);
         return { ok: false, code: "admin.firestoreUnavailable" };

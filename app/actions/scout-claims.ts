@@ -1,6 +1,5 @@
 "use server";
 
-import { createHash } from "node:crypto";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { callerWithTeam, allowUser } from "@/lib/server-caller";
 import { ensureAliases } from "@/lib/pool-aliases";
@@ -9,6 +8,7 @@ import { normalizeEventCode, parseSeason, isValidTeamNumber } from "@/lib/input-
 import { getCurrentSeason } from "@/lib/constants";
 import { applyClaim, releaseScout, claimDocId, scheduledQuals, type ClaimDoc } from "@/lib/scout-claims";
 import type { ErrorCode } from "@/lib/errors";
+import { scoutHash } from "@/lib/scout-hash";
 
 /**
  * Scout assignment board (decision #103). Claims live in scout_claims, which
@@ -20,9 +20,6 @@ import type { ErrorCode } from "@/lib/errors";
 type Result<T = object> = ({ ok: true } & T) | { ok: false; code: ErrorCode };
 
 /** Opaque per-event scout id: lets a scout recognize its own claims without exposing its uid. */
-function scoutHash(uid: string, season: number, eventCode: string): string {
-    return createHash("sha256").update(`${uid}:${season}:${eventCode}`).digest("base64url").slice(0, 16);
-}
 
 function parseTarget(input: { season: number; eventCode: string; matchNumber: number }): { season: number; eventCode: string; matchNumber: number } | ErrorCode {
     const season = parseSeason(input.season, getCurrentSeason());

@@ -1928,7 +1928,7 @@
     },
     "pride": {
       "loanTitle": "Préstamo registrado: {item}",
-      "loanBody": "{lender} les prestó {qty} · {event}. Si no fue así, puedes disputarlo en Préstamos.",
+      "loanBody": "{lender} → {borrower} · {qty} · {event}. Si no fue así, puedes disputarlo en Préstamos.",
       "returnTitle": "Marcaron como devuelto: {item}",
       "returnBody": "{borrower} dice que ya lo regresó · confírmalo en Préstamos",
       "requestTitle": "{team} (pit {pit}) busca: {item}",

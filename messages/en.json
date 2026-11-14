@@ -1928,7 +1928,7 @@
     },
     "pride": {
       "loanTitle": "Loan recorded: {item}",
-      "loanBody": "{lender} lent you {qty} · {event}. If that's wrong, dispute it in Pit lending.",
+      "loanBody": "{lender} → {borrower} · {qty} · {event}. If that's wrong, dispute it in Pit lending.",
       "returnTitle": "Marked as returned: {item}",
       "returnBody": "{borrower} says it's back · confirm in Pit lending",
       "requestTitle": "{team} (pit {pit}) needs: {item}",
