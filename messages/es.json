@@ -1981,7 +1981,9 @@
     "hits": "aciertos ({pct})",
     "tossups": "{n, plural, one {# partido parejo} other {# partidos parejos}} sin favorito",
     "brier": "Brier {brier} (moneda al aire: 0.250; menos es mejor)",
-    "explain": "A quién le daba el gane PRIDE ANTES de cada partido, solo con los partidos anteriores, contra quién ganó."
+    "explain": "A quién le daba el gane PRIDE ANTES de cada partido, solo con los partidos anteriores, contra quién ganó.",
+    "projected": "pronóstico {red}–{blue}",
+    "barHint": "Probabilidad de ganar y puntos proyectados (sin penalizaciones) ANTES del partido."
   },
   "LiveScoreboard": {
     "title": "Hoy, en vivo",

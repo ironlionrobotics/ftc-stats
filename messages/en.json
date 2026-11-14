@@ -1981,7 +1981,9 @@
     "hits": "right ({pct})",
     "tossups": "{n, plural, one {# toss-up} other {# toss-ups}} with no favorite",
     "brier": "Brier {brier} (coin flip: 0.250; lower is better)",
-    "explain": "Who PRIDE picked BEFORE each match, using only earlier matches, against who won."
+    "explain": "Who PRIDE picked BEFORE each match, using only earlier matches, against who won.",
+    "projected": "forecast {red}–{blue}",
+    "barHint": "Win probability and projected points (no penalties) BEFORE the match."
   },
   "LiveScoreboard": {
     "title": "Today, live",

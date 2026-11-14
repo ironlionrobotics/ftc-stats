@@ -8,7 +8,7 @@ import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting, F
 import { winProbabilityFromNormalModel, playoffWinProbability } from "@/lib/win-probability";
 import { eventStrengthModel } from "@/lib/live-projection";
 import { predictionLedger, scorecard, type LedgerRow } from "@/lib/prediction-ledger";
-import PredictionCell, { LedgerSummary } from "@/components/event/PredictionLedger";
+import PredictionCell, { LedgerSummary, PredictionBar } from "@/components/event/PredictionLedger";
 import clsx from "clsx";
 import { Trophy, Zap, Star, Info, Target, MousePointer2, AlertTriangle, Clock, ChevronDown, Award, Users } from "lucide-react";
 
@@ -695,6 +695,7 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                                     <span className={clsx("text-xl", blueWin ? "font-black" : "font-bold")}>{match.scoreBlueFinal}</span>
                                 </div>
                             </div>
+                            <PredictionBar row={prediction} />
 
                         </div>
                     ) : (

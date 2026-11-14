@@ -21,6 +21,9 @@ export interface LedgerRow {
     blue: number[];
     /** P(red wins) before the match; null when the model had < 2 quals. */
     pRed: number | null;
+    /** Projected non-penalty points of each alliance before the match (null without a model). */
+    muRed: number | null;
+    muBlue: number | null;
     /** Favorite before the match; null = no forecast or a true toss-up (|p − ½| < TOSSUP). */
     predicted: Side | null;
     winner: Side | "Tie";
@@ -57,25 +60,33 @@ export function predictionLedger(matches: FTCMatch[]): LedgerRow[] {
     const quals = matches.filter(m => m.tournamentLevel === "QUALIFICATION" && isPlayed(m)).sort((a, b) => a.matchNumber - b.matchNumber);
     const playoffs = matches.filter(m => m.tournamentLevel === "PLAYOFF" && isPlayed(m)).sort(order);
     const rows: LedgerRow[] = [];
-    const push = (m: FTCMatch, pRed: number | null) => {
+    const push = (m: FTCMatch, pRed: number | null, mu: [number, number] | null) => {
         const rs = m.scoreRedFinal ?? 0, bs = m.scoreBlueFinal ?? 0;
         const winner: Side | "Tie" = rs === bs ? "Tie" : rs > bs ? "Red" : "Blue";
         const predicted: Side | null = pRed === null || Math.abs(pRed - 0.5) < TOSSUP ? null : pRed > 0.5 ? "Red" : "Blue";
         rows.push({
             level: m.tournamentLevel, matchNumber: m.matchNumber, series: m.series ?? 0,
             red: sideOf(m, "Red"), blue: sideOf(m, "Blue"), pRed, predicted, winner,
+            muRed: mu ? mu[0] : null, muBlue: mu ? mu[1] : null,
             correct: predicted === null || winner === "Tie" ? null : predicted === winner,
             redScore: rs, blueScore: bs,
         });
     };
     quals.forEach((m, k) => {
         const before = quals.slice(0, k);
-        push(m, before.length >= 2 ? eventStrengthModel(before).pRed(sideOf(m, "Red"), sideOf(m, "Blue")) : null);
+        if (before.length < 2) { push(m, null, null); return; }
+        const model = eventStrengthModel(before);
+        const red = sideOf(m, "Red"), blue = sideOf(m, "Blue");
+        const mu = (a: number[]) => a.reduce((s, t) => s + model.strength(t), 0);
+        push(m, model.pRed(red, blue), [mu(red), mu(blue)]);
     });
     if (playoffs.length) {
         const model = quals.length >= 2 ? eventStrengthModel(quals) : null;
         const mu = (a: number[]) => a.reduce((s, t) => s + (model?.strength(t) ?? 0), 0);
-        for (const m of playoffs) push(m, model ? playoffWinProbability(mu(sideOf(m, "Red")), mu(sideOf(m, "Blue")), model.sigmaDiff) : null);
+        for (const m of playoffs) {
+            const red = sideOf(m, "Red"), blue = sideOf(m, "Blue");
+            push(m, model ? playoffWinProbability(mu(red), mu(blue), model.sigmaDiff) : null, model ? [mu(red), mu(blue)] : null);
+        }
     }
     return rows;
 }

@@ -50,6 +50,28 @@ export default function PredictionCell({ row }: { row?: LedgerRow }) {
     );
 }
 
+/** Pre-match red/blue split with projected points, under the final score (#111). */
+export function PredictionBar({ row }: { row?: LedgerRow }) {
+    const t = useTranslations("PredictionLedger");
+    if (!row || row.pRed === null) return null;
+    const r = Math.round(row.pRed * 100), b = 100 - r;
+    return (
+        <div className="mx-auto w-full max-w-[180px]" title={t("barHint")}>
+            <div className="flex justify-between font-mono text-[11px] font-bold tabular-nums">
+                <span style={{ color: "var(--color-alliance-red)" }}>{r}%</span>
+                {row.muRed !== null && row.muBlue !== null && (
+                    <span className="font-medium text-muted-foreground">{t("projected", { red: Math.round(row.muRed), blue: Math.round(row.muBlue) })}</span>
+                )}
+                <span style={{ color: "var(--color-alliance-blue)" }}>{b}%</span>
+            </div>
+            <div className="mt-0.5 flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div style={{ width: `${r}%`, background: "var(--color-alliance-red)" }} />
+                <div style={{ width: `${b}%`, background: "var(--color-alliance-blue)" }} />
+            </div>
+        </div>
+    );
+}
+
 export function LedgerSummary({ card, team }: { card: Scorecard; team: number | null }) {
     const t = useTranslations("PredictionLedger");
     const tossups = card.n - card.calls;
