@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-/** Re-renders the server page every `everyMs` while the tab is visible (live scoreboard, #111). */
+/** Re-renders the server page every `everyMs` while the tab is visible (live scoreboard #111, live event page #112). */
 export default function AutoRefresh({ everyMs }: { everyMs: number }) {
     const router = useRouter();
     useEffect(() => {

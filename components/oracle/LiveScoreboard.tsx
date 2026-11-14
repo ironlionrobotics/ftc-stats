@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { getCurrentSeason } from "@/lib/constants";
 import { loadLiveScoreboard } from "@/lib/live-scorecard";
 import type { Scorecard } from "@/lib/prediction-ledger";
-import AutoRefresh from "@/components/oracle/AutoRefresh";
+import AutoRefresh from "@/components/AutoRefresh";
 
 /**
  * "Hoy, en vivo" on /oracle (decision #111): PRIDE's pre-match forecasts vs

@@ -9,6 +9,8 @@ import EventViewManager from "@/components/event/EventViewManager";
 import EventStats from "@/components/event/EventStats";
 import { CacheWriter, OfflineFallback } from "@/components/HydrateAndCache";
 import { cookies } from "next/headers";
+import AutoRefresh from "@/components/AutoRefresh";
+import { eventWindow } from "@/lib/today-summary";
 
 interface EventPageProps {
     params: Promise<{ eventCode: string }>;
@@ -136,6 +138,8 @@ export default async function EventPage(props: EventPageProps) {
 
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 md:py-12">
+            {/* Live event: refresh results/upcoming every minute while visible (#112). */}
+            {isLiveNow(event) && <AutoRefresh everyMs={60_000} />}
             <header className="mb-8 border-b border-border pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-[11px] uppercase">
@@ -216,4 +220,11 @@ export default async function EventPage(props: EventPageProps) {
             />
         </div>
     );
+}
+
+/** Module scope: Date.now() is impure (React Compiler purity) — same live window as "Hoy". */
+function isLiveNow(e: { dateStart: string; dateEnd?: string }): boolean {
+    const w = eventWindow(e);
+    const now = Date.now();
+    return now >= w.start && now <= w.end;
 }
