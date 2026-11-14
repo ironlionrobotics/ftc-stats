@@ -13,13 +13,13 @@ export function zodSchemaFromDefinition(def: GameDefinition): z.ZodObject<Record
     const shape: Record<string, ZodTypeAny> = {};
     for (const section of def.sections) {
         for (const field of section.fields) {
-            shape[field.id] = zodForField(field);
+            shape[field.id] = zodForField(field, def.questionnaire === true);
         }
     }
     return z.object(shape);
 }
 
-function zodForField(field: GameField): ZodTypeAny {
+function zodForField(field: GameField, questionnaire: boolean): ZodTypeAny {
     switch (field.kind) {
         case "counter": {
             const min = field.min ?? 0;
@@ -37,7 +37,9 @@ function zodForField(field: GameField): ZodTypeAny {
             if (values.length === 0) {
                 throw new Error(`Enum field ${field.id} has no options`);
             }
-            return z.enum(values as [string, ...string[]]).default(values[0]);
+            const e = z.enum(values as [string, ...string[]]);
+            // Questionnaire: "" = not answered (never a made-up first option).
+            return questionnaire ? z.union([e, z.literal("")]).default("") : e.default(values[0]);
         }
         case "text":
         case "textarea":

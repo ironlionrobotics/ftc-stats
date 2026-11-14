@@ -26,7 +26,15 @@ Plan aprobado (13-nov): `~/.claude/plans/replicated-cooking-elephant.md`. Hécto
   - `/card/[team]` para ver otras tarjetas;
   - moderación de reportes en `/admin`.
 - **Bucket de Storage:** creado el 13-nov.
-- **Pruebas:** 544 unitarias; reglas 30/30 con los emuladores de Firestore y Storage.
+- **Recorrido en navegador con horno3 (14-nov, datos de prueba borrados):** medios, `/card/30311`, pool, préstamos y Taller funcionan. Arreglos (a9e00b8): temporada de `/card/[team]`, aviso de temporada pasada, auth del Admin SDK en local, tiempos relativos en préstamos y placeholder sin nombres.
+- **#108:** Pit de BIOBUZZ = preguntas de la Trading Card (generales + temporada); modo cuestionario (sin respuestas inventadas); el botón Editar del Pit ya no envía el formulario.
+- **Pendientes del recorrido:**
+  - el evento por defecto es MXMOQ (mismo día que MXTLQ; gana por orden alfabético): elegir MXTLQ o compartir `/scouting?event=MXTLQ`;
+  - los equipos agregados a mano se pierden al recargar mientras FIRST no publica la lista;
+  - el botón para elegir la foto de perfil solo aparece en el visor;
+  - el reparto de scouts solo se puede probar cuando salga el calendario de qualys;
+  - falta una prueba con un segundo equipo aprobado.
+- **Pruebas:** 551 unitarias; reglas 30/30 con los emuladores de Firestore y Storage.
 
 **Antes del deploy (orden):**
 1. **Revisión independiente:** aplicar los hallazgos.

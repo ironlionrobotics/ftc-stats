@@ -42,7 +42,11 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 );
 
 /**
- * Pit scouting form (RHF + Zod).
+ * LEGACY pit scouting form (RHF + Zod) — only for seasons without
+ * self-report questions (DECODE 2025 history). Seasons that define them use
+ * PitQuestionnaire (#108), which asks the Trading Card questions instead of
+ * these hand-written DECODE fields. BIOBUZZ fields stay in the schema/type
+ * only so older docs still load.
  *
  * Keeps the same edit/view-toggle UX as the original — scouts see read-only
  * data by default and click "Editar" to switch into edit mode. Submit goes
@@ -149,8 +153,10 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                     </span>
                 </div>
 
+                {/* Distinct keys: a reused <button> whose type flips to "submit" mid-click submits right after "Edit". */}
                 {isEditing ? (
                     <button
+                        key="save"
                         type="submit"
                         disabled={isSubmitting}
                         className="min-h-[44px] px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg bg-success hover:bg-success/90 active:scale-[0.98] text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/40"
@@ -160,6 +166,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                     </button>
                 ) : (
                     <button
+                        key="edit"
                         type="button"
                         onClick={() => setIsEditing(true)}
                         className="px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -198,24 +205,6 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                             <BooleanField control={control} name="canDualPark" label={t("canDualPark")} disabled={!isEditing} />
                         </div>
                         <TextField control={control} name="sensors" label={t("sensors")} placeholder={t("sensorsPh")} disabled={!isEditing} />
-                    </div>
-                </section>
-
-                <section>
-                    <SectionTitle>{t("secBiobuzz")}</SectionTitle>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div className="space-y-4 bg-muted p-4 rounded-xl border border-border">
-                            <BooleanField control={control} name="canTipHive" label={t("canTipHive")} disabled={!isEditing} />
-                            <BooleanField control={control} name="scoresPollen" label={t("scoresPollen")} disabled={!isEditing} />
-                            <BooleanField control={control} name="scoresNectar" label={t("scoresNectar")} disabled={!isEditing} />
-                            <BooleanField control={control} name="scoresFlower" label={t("scoresFlower")} disabled={!isEditing} />
-                            <BooleanField control={control} name="scoresGarden" label={t("scoresGarden")} disabled={!isEditing} />
-                        </div>
-                        <div className="space-y-4">
-                            <NumberField control={control} name="maxCapacity" label={t("maxCapacity")} disabled={!isEditing} error={zodMsg(errors.maxCapacity?.message)} />
-                            <SelectField control={control} name="launchRange" label={t("launchRange")} optionLabels={optionLabels} options={['Close', 'Mid', 'Far']} disabled={!isEditing} />
-                            <NumberField control={control} name="autoTipsClaimed" label={t("autoTips")} disabled={!isEditing} error={zodMsg(errors.autoTipsClaimed?.message)} />
-                        </div>
                     </div>
                 </section>
 

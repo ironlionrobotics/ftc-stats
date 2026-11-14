@@ -7,6 +7,9 @@ import type { ScoutTeam, PitScouting, MatchScouting } from "@/types/scouting";
 import { SCOUTING_EVENT_COOKIE } from "@/lib/scouting-event";
 import TeamList from "@/components/scouting/TeamList";
 import ScoutingForm from "@/components/scouting/ScoutingForm";
+import PitQuestionnaire from "@/components/scouting/PitQuestionnaire";
+import { gameDefinitionFor } from "@/lib/games/registry";
+import { selfReportDefinition } from "@/types/game-definition";
 import MatchScoutingForm from "@/components/scouting/MatchScoutingForm";
 import SuperScoutingForm from "@/components/scouting/SuperScoutingForm";
 import PoolPanel from "@/components/scouting/PoolPanel";
@@ -45,6 +48,10 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
     const t = useTranslations("ScoutingClient");
     const { user, orgId } = useAuth();
     const { season, program } = useProgram();
+    // Pit form by season (#108): seasons with self-report questions get the
+    // card-aligned interview; older ones (DECODE history) keep the legacy form.
+    const seasonDef = useMemo(() => gameDefinitionFor("FTC", season), [season]);
+    const pitQuestions = useMemo(() => selfReportDefinition(seasonDef), [seasonDef]);
     const tEvent = useTranslations("ScoutingEvent");
     const router = useRouter();
     // Teams typed in by number when FIRST hasn't published the event roster.
@@ -258,12 +265,24 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
                             <div className="flex-1 overflow-y-auto custom-scrollbar">
                                 {program === 'FTC' && (
                                     <TabsContent value="pit" className="m-0 h-full">
-                                        <ScoutingForm
-                                            key={`pit-${selectedTeam.teamNumber}`}
-                                            team={selectedTeam}
-                                            initialData={pitData || undefined}
-                                            onSave={handleSavePitData}
-                                        />
+                                        {seasonDef && pitQuestions ? (
+                                            <PitQuestionnaire
+                                                key={`pit-${selectedTeam.teamNumber}`}
+                                                team={selectedTeam}
+                                                season={season}
+                                                seasonDef={seasonDef}
+                                                selfReport={pitQuestions}
+                                                initialData={pitData || undefined}
+                                                onSave={handleSavePitData}
+                                            />
+                                        ) : (
+                                            <ScoutingForm
+                                                key={`pit-${selectedTeam.teamNumber}`}
+                                                team={selectedTeam}
+                                                initialData={pitData || undefined}
+                                                onSave={handleSavePitData}
+                                            />
+                                        )}
                                     </TabsContent>
                                 )}
                                 <TabsContent value="match" className="m-0 h-full">

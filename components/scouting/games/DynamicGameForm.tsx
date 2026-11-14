@@ -56,6 +56,7 @@ export default function DynamicGameForm({ definition, control, disabled }: Dynam
                     section={section}
                     control={control}
                     disabled={disabled}
+                    clearable={definition.questionnaire === true}
                 />
             ))}
         </div>
@@ -74,10 +75,12 @@ function SectionCard({
     section,
     control,
     disabled,
+    clearable,
 }: {
     section: GameSection;
     control: Control<Record<string, unknown>>;
     disabled?: boolean;
+    clearable?: boolean;
 }) {
     const accent = section.accent ? ACCENT_STYLES[section.accent] : "text-foreground";
     const gameLabel = useGameLabel();
@@ -93,6 +96,7 @@ function SectionCard({
                         field={field}
                         control={control}
                         disabled={disabled}
+                        clearable={clearable}
                     />
                 ))}
             </div>
@@ -104,10 +108,12 @@ function FieldRenderer({
     field,
     control,
     disabled,
+    clearable,
 }: {
     field: GameField;
     control: Control<Record<string, unknown>>;
     disabled?: boolean;
+    clearable?: boolean;
 }) {
     switch (field.kind) {
         case "counter":
@@ -117,7 +123,7 @@ function FieldRenderer({
         case "stars":
             return <StarsFieldRender field={field} control={control} disabled={disabled} />;
         case "enum":
-            return <EnumFieldRender field={field} control={control} disabled={disabled} />;
+            return <EnumFieldRender field={field} control={control} disabled={disabled} clearable={clearable} />;
         case "text":
         case "textarea":
             return <TextFieldRender field={field} control={control} disabled={disabled} />;
@@ -267,10 +273,13 @@ function EnumFieldRender({
     field,
     control,
     disabled,
+    clearable,
 }: {
     field: import("@/types/game-definition").EnumField;
     control: Control<Record<string, unknown>>;
     disabled?: boolean;
+    /** Questionnaire: tapping the selected option again clears it (unanswered). */
+    clearable?: boolean;
 }) {
     const { field: rhf } = useController({ control, name: field.id as never });
     const gameLabel = useGameLabel();
@@ -282,7 +291,8 @@ function EnumFieldRender({
                     <button
                         key={option.value}
                         type="button"
-                        onClick={() => rhf.onChange(option.value)}
+                        onClick={() => rhf.onChange(clearable && rhf.value === option.value ? "" : option.value)}
+                        aria-pressed={rhf.value === option.value}
                         disabled={disabled}
                         className={clsx(
                             "min-h-[44px] py-2 px-2 text-xs font-bold rounded border transition-all disabled:opacity-50",

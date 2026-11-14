@@ -1209,3 +1209,18 @@ Se renderizan con el mismo motor que el scouting (`DynamicGameForm`). Los datos 
 **Pendiente:** mostrar "dice X · medido Y" cuando exista el dato oficial por robot (`teleopRobotNPark`; la correspondencia de estación está [NV]).
 
 **Vista para otros equipos:** `/card/[team]`, solo para equipos aprobados, con enlaces desde Pool y desde el tablero de reparto.
+
+## #108 · Pit de BIOBUZZ = las preguntas de la Trading Card; modo cuestionario (2026-11-14)
+
+**Hallazgo (recorrido en navegador del 14-nov):** el formulario de Pit decía "Temporada 2026: BIOBUZZ" pero seguía mostrando campos de DECODE (Artifacts & Patterns, Dual Parking, rampa) junto a una sección BIOBUZZ pegada a mano. Es el mismo problema que el "climbing" de la tarjeta vieja.
+
+**Decisión:** en las temporadas que definen `selfReport`, el Pit es una **entrevista con las mismas preguntas que la Trading Card**: las generales (#107) más las de la temporada (#101). `components/scouting/PitQuestionnaire.tsx` las renderiza con `DynamicGameForm` y las guarda en `pit_scouting` con la misma forma que `team_profiles` (`general`/`generalVersion`, `answers`/`answersDefinitionId`).
+- **Por qué:** lo que un equipo dice en su tarjeta, lo que nuestro scout escuchó en su pit y lo que mide el pool quedan comparables campo por campo, con los mismos ids. Una temporada nueva ya no requiere tocar el Pit: basta con su `selfReport`.
+- **Lo que se conserva:** nombre del robot, notas privadas y resumen público opcional, sin cambios en reglas ni en el pool.
+- **Temporadas sin `selfReport`** (historia de DECODE 2025) siguen con el formulario viejo (`ScoutingForm.tsx`), ya sin la sección BIOBUZZ. Los campos viejos se quedan en el tipo para poder leer documentos anteriores.
+
+**Modo cuestionario** (`GameDefinition.questionnaire`): una pregunta de opciones puede quedar **sin responder** (`""`) en lugar de tomar su primera opción. Tocar otra vez la opción elegida la quita. Lo usan la tarjeta y el Pit (`generalQuestions()` y `selfReportDefinition()` lo activan); el scouting de partidos conserva sus valores por defecto.
+- **Hallazgo que lo motivó:** una tarjeta publicada sin tocar decía "Mecanum · goBILDA · POLLEN…", afirmaciones que nadie hizo.
+- **Limitación:** los contadores siguen en 0 y los booleanos en "no", así que no se distingue "0" de "no sé". Las vistas ya ocultan el 0 y el "no".
+
+**Arreglo de paso:** los botones Editar y Guardar ocupaban el mismo lugar, así que React reutilizaba el `<button>` y le cambiaba el `type` a submit a mitad del clic. El navegador enviaba el formulario justo después de "Editar" y salía del modo edición. Ahora llevan `key` distintas (Pit nuevo y viejo).

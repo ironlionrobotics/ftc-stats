@@ -94,5 +94,6 @@ export function generalQuestions(season: GameDefinition | null | undefined): Gam
         season: season?.season ?? 0,
         schemaVersion: GENERAL_QUESTIONS_VERSION,
         sections,
+        questionnaire: true,
     };
 }

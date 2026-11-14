@@ -1182,11 +1182,11 @@
     "privateNotes": "Private notes",
     "onlyMyTeam": "Only my team",
     "privateNotesHint": "These notes are <b>internal to your team</b>. Other teams will NEVER see this field. Useful for noting strategic weaknesses, defense plans, speculation.",
-    "privateNotesPh": "e.g. 'Their intake jams with green artifacts', 'Inexperienced driver coach'...",
+    "privateNotesPh": "e.g. 'Their intake jams often', 'Inexperienced drive coach'...",
     "publicSummary": "Public summary",
     "visibleOthers": "Visible to other teams",
     "publicSummaryHint": "<b>Opt-in</b> summary that other teams at shared events will be able to see. Leave it empty to share nothing.",
-    "publicSummaryPh": "e.g. 'Robot with mecanum drive, friction intake, goal launcher. Full climb.'",
+    "publicSummaryPh": "e.g. 'Mecanum drive, ground intake, consistent auto.'",
     "lastShared": "Last shared:",
     "lastUpdatedBy": "Last updated by {name}",
     "opt_Mecanno": "Mecanum",
@@ -1205,7 +1205,12 @@
     "opt_Rampa Directa": "Direct Ramp",
     "opt_Close": "Close",
     "opt_Mid": "Mid",
-    "opt_Far": "Far"
+    "opt_Far": "Far",
+    "sameAsCard": "These are the same questions as their Trading Card, so you can compare what you hear in the pit with what the team publishes and what the pool measures. If you don't know an answer, leave it unselected (tap an option again to clear it).",
+    "secGeneral": "Robot and team",
+    "secSeason": "This season ({game})",
+    "seasonHint": "The team's typical match: how much it says it scores and how.",
+    "invalid": "Check the values: one is out of range."
   },
   "ScoutingSuper": {
     "signIn": "You must sign in",

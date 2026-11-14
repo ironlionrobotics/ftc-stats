@@ -1182,11 +1182,11 @@
     "privateNotes": "Notas privadas",
     "onlyMyTeam": "Solo mi equipo",
     "privateNotesHint": "Estas notas son <b>internas de tu equipo</b>. Otros equipos NUNCA verán este campo. Útil para anotar debilidades estratégicas, planes de defensa, especulaciones.",
-    "privateNotesPh": "Ej: 'Su intake se atora con artifacts verdes', 'Driver coach poco experimentado'...",
+    "privateNotesPh": "Ej: 'Su intake se atora seguido', 'Driver coach poco experimentado'...",
     "publicSummary": "Resumen público",
     "visibleOthers": "Visible a otros equipos",
     "publicSummaryHint": "Resumen <b>opt-in</b> que otros equipos en eventos compartidos podrán ver. Déjalo vacío para no compartir nada.",
-    "publicSummaryPh": "Ej: 'Robot con tracción mecanno, intake de fricción, lanzador para meta. Climb tipo Full.'",
+    "publicSummaryPh": "Ej: 'Tracción mecanum, toma piezas del piso, autónomo consistente.'",
     "lastShared": "Compartido por última vez:",
     "lastUpdatedBy": "Última actualización por {name}",
     "opt_Mecanno": "Mecanno",
@@ -1205,7 +1205,12 @@
     "opt_Rampa Directa": "Rampa Directa",
     "opt_Close": "Cerca",
     "opt_Mid": "Media",
-    "opt_Far": "Lejos"
+    "opt_Far": "Lejos",
+    "sameAsCard": "Son las mismas preguntas de su Trading Card: así comparas lo que te dicen en el pit con lo que el equipo publica y con lo que mide el pool. Si no sabes una respuesta, déjala sin marcar (toca de nuevo una opción para quitarla).",
+    "secGeneral": "Robot y equipo",
+    "secSeason": "Esta temporada ({game})",
+    "seasonHint": "Partido típico según el equipo: cuánto dice que anota y cómo.",
+    "invalid": "Revisa los valores: alguno está fuera de rango."
   },
   "ScoutingSuper": {
     "signIn": "Debes iniciar sesión",

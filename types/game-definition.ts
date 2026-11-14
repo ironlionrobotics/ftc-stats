@@ -67,12 +67,19 @@ export interface GameDefinition {
      * by field with what other teams observed in the shared pool.
      */
     selfReport?: GameSection[];
+    /**
+     * Questionnaire mode (Trading Card, pit interview): an enum field may stay
+     * UNANSWERED ("") instead of defaulting to its first option. Without it,
+     * an untouched card published "Mecanum · goBILDA · POLLEN" as claims nobody
+     * made (14-nov walkthrough). Match scouting keeps first-option defaults.
+     */
+    questionnaire?: boolean;
 }
 
 /** The self-report questions as a renderable definition, or null if the season has none. */
 export function selfReportDefinition(def: GameDefinition | null | undefined): GameDefinition | null {
     if (!def?.selfReport?.length) return null;
-    return { ...def, sections: def.selfReport };
+    return { ...def, sections: def.selfReport, questionnaire: true };
 }
 
 /** Points split by match phase. `endgame` is "late-match" for games without
@@ -174,7 +181,7 @@ export function fieldMapOf(def: GameDefinition): Record<string, GameField> {
 }
 
 /** Default value for a field — what RHF should initialize with. */
-export function defaultValueFor(field: GameField): unknown {
+export function defaultValueFor(field: GameField, questionnaire = false): unknown {
     switch (field.kind) {
         case "counter":
             return field.min ?? 0;
@@ -183,7 +190,7 @@ export function defaultValueFor(field: GameField): unknown {
         case "stars":
             return Math.ceil((field.max ?? 5) / 2);  // mid-rating
         case "enum":
-            return field.options[0]?.value ?? "";
+            return questionnaire ? "" : field.options[0]?.value ?? "";
         case "text":
         case "textarea":
             return "";
@@ -195,7 +202,7 @@ export function defaultsForDefinition(def: GameDefinition): Record<string, unkno
     const out: Record<string, unknown> = {};
     for (const section of def.sections) {
         for (const field of section.fields) {
-            out[field.id] = defaultValueFor(field);
+            out[field.id] = defaultValueFor(field, def.questionnaire);
         }
     }
     return out;

@@ -155,6 +155,15 @@ export interface PitScouting {
     autoTipsClaimed?: number; // integer 0-4
     photoUrl?: string;
 
+    // Card-aligned pit interview (#108, seasons with self-report questions):
+    // the same questions and storage shape as team_profiles, so what we heard
+    // in a team's pit compares field by field with its own Trading Card.
+    // "" = not answered (questionnaire mode).
+    general?: Record<string, number | boolean | string>;
+    generalVersion?: number;
+    answers?: Record<string, number | boolean | string>;
+    answersDefinitionId?: string;
+
     // Strategic / internal notes — ONLY visible to the owning org. Never shared.
     notes?: string;
 

@@ -100,3 +100,22 @@ describe("zodSchemaFromDefinition", () => {
         ).toThrow();
     });
 });
+
+describe("questionnaire mode (#108)", () => {
+    const Q: GameDefinition = { ...SAMPLE, questionnaire: true };
+
+    it("enums default to unanswered instead of the first option", async () => {
+        const { defaultsForDefinition } = await import("@/types/game-definition");
+        expect(defaultsForDefinition(Q).climb).toBe("");
+        expect(defaultsForDefinition(SAMPLE).climb).toBe("None"); // match scouting unchanged
+        expect(zodSchemaFromDefinition(Q).parse({}).climb).toBe("");
+    });
+
+    it("accepts \"\" and real options, rejects unknown values", () => {
+        const schema = zodSchemaFromDefinition(Q);
+        expect(schema.safeParse({ climb: "" }).success).toBe(true);
+        expect(schema.safeParse({ climb: "None" }).success).toBe(true);
+        expect(schema.safeParse({ climb: "Moon" }).success).toBe(false);
+        expect(zodSchemaFromDefinition(SAMPLE).safeParse({ climb: "" }).success).toBe(false);
+    });
+});

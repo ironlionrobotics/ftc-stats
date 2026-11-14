@@ -9,7 +9,7 @@ import { seasonRulesFor, rpThresholdsFor, RP_THRESHOLD_OVERRIDES } from "./seaso
 import { zodSchemaFromDefinition } from "./zod-from-definition";
 import { buildEntryGameFields } from "./build-entry";
 import { inputsFromEntry, inputsFromConsensus } from "./score-inputs";
-import { totalOf, selfReportDefinition, type GameDefinition } from "@/types/game-definition";
+import { totalOf, selfReportDefinition, defaultsForDefinition, type GameDefinition } from "@/types/game-definition";
 import { generalQuestions } from "@/lib/team-profile/general-questions";
 import { fieldMapFromDefinition, fieldsFor, type FieldConsensus } from "@/lib/scouting-aggregation";
 
@@ -252,3 +252,20 @@ describe("general Trading Card questions (#107)", () => {
         expect(season.filter(id => general.has(id))).toEqual([]);
     });
 });
+
+describe("card and pit questions are questionnaires (#108)", () => {
+    it("self-report and general questions never invent an answer", () => {
+        for (const def of [selfReportDefinition(FTC_BIOBUZZ_2026)!, generalQuestions(FTC_BIOBUZZ_2026)]) {
+            expect(def.questionnaire).toBe(true);
+            const defaults = defaultsForDefinition(def);
+            for (const f of def.sections.flatMap(s => s.fields)) {
+                if (f.kind === "enum") expect(defaults[f.id]).toBe("");
+            }
+        }
+    });
+
+    it("match scouting keeps first-option defaults", () => {
+        expect(FTC_BIOBUZZ_2026.questionnaire).toBeUndefined();
+    });
+});
+
