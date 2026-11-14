@@ -1224,3 +1224,18 @@ Se renderizan con el mismo motor que el scouting (`DynamicGameForm`). Los datos 
 - **Limitación:** los contadores siguen en 0 y los booleanos en "no", así que no se distingue "0" de "no sé". Las vistas ya ocultan el 0 y el "no".
 
 **Arreglo de paso:** los botones Editar y Guardar ocupaban el mismo lugar, así que React reutilizaba el `<button>` y le cambiaba el `type` a submit a mitad del clic. El navegador enviaba el formulario justo después de "Editar" y salía del modo edición. Ahora llevan `key` distintas (Pit nuevo y viejo).
+
+## #109 · Probabilidad del próximo partido en vivo: incertidumbre de pocos partidos (2026-11-14)
+
+**Hallazgo (Rochester Qualifier USMIRHQ, en vivo, 14-nov):** el pronóstico de qualys que muestra "Hoy" (`eventStrengthModel`, OPR del evento solo con los partidos ya jugados) acertó 62 % pero falló con 95 % en Q21 y Q31. Su log loss (0.713) era peor que el de una moneda (0.693). La razón: con 2 o 3 partidos por robot el OPR es muy ruidoso, y σ solo medía el ruido de los marcadores, no esa incertidumbre.
+
+**Backtest** (`scripts/live-quals-backtest.ts`, corre el código real de `lib/` con `scripts/run-ts.cjs`): 202 eventos BIOBUZZ terminados en FTCScout. Se ajusta en 101 eventos y se reporta en los otros 101 (1,584 partidos).
+- **Modelo:** σ_eff = σ_diff · √(1 + A / n̄), con n̄ = promedio de qualys ya jugadas por los robots del partido. El mejor valor es **A = 4**; la cresta λ = 1 se queda igual.
+- **Global:** el acierto queda en 71.1 % (no cambia quién es favorito). Brier 0.192 → 0.185 y log loss 0.578 → 0.544.
+- **Calibración:** en la franja "90–100 %", el real pasó de 88 % a 96 % (pronóstico 95 %). En "80–90 %", de 74 % a 85 %.
+- **Con n̄ < 2:** log loss 0.715 → 0.641; antes era peor que una moneda.
+- **USMIRHQ (32 partidos):** log loss 0.713 → 0.652 y Brier 0.240 → 0.229.
+
+**Solo cambia `pRed`**, que usa "Hoy" para el próximo partido. La proyección del ranking (Monte Carlo) ya muestrea su propia incertidumbre y no se toca.
+
+**Otras apps:** depthftc es la única encontrada con pronóstico por partido y fórmula pública: suma de NP OPR, logística con escala max(14, 0.28 × fuerza media) y sin métricas publicadas. En su modo justo (Pre-Event, OPR del evento anterior) acertó 40 % en USMIRHQ (log loss 1.02): solo 11 de 36 equipos tenían un evento previo, y su escala es demasiado agresiva. Su modo por defecto (Season Best) usa el mismo evento, así que no es comparable.

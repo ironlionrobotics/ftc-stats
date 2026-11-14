@@ -127,7 +127,10 @@ export interface StrengthModel {
     strength: (team: number) => number;
     /** σ of the score difference between two alliances. */
     sigmaDiff: number;
-    /** P(red alliance beats blue) under the normal model. */
+    /**
+     * P(red alliance beats blue) under the normal model, with σ widened for
+     * how little the robots have played (LIVE_QUAL_UNCERTAINTY, decision #109).
+     */
     pRed: (red: number[], blue: number[]) => number;
     /** Teams with an OPR estimate (played at least one counted match). */
     teams: number[];
@@ -141,6 +144,17 @@ export interface StrengthModel {
  * 20% of the mean score (few matches overfit to ~0 residual). Shared by the
  * ranking projection and "Today"'s next-match odds.
  */
+/**
+ * Parameter uncertainty of an early-event OPR (decision #109): the next-match
+ * σ is σ_diff · √(1 + A / n̄), n̄ = mean quals already played by the robots in
+ * the match. Fitted on 101 finished BIOBUZZ events, held out on 101 others
+ * (scripts/live-quals-backtest.ts): log loss 0.578 → 0.544, and the "90–100%"
+ * bucket went from 88% real wins to 96%. With <2 matches per robot the raw
+ * model was worse than a coin flip (0.715 vs 0.693) — the 95% misses seen live
+ * at USMIRHQ. Ranking Monte Carlo keeps its own strength sampling.
+ */
+export const LIVE_QUAL_UNCERTAINTY = 4;
+
 export function eventStrengthModel(playedQuals: FTCMatch[]): StrengthModel {
     const rows = playedQuals.flatMap(m => (["Red", "Blue"] as const).map(color => ({
         teams: allianceOf(m, color),
@@ -156,10 +170,17 @@ export function eventStrengthModel(playedQuals: FTCMatch[]): StrengthModel {
     const meanScore = rows.length ? rows.reduce((s, r) => s + r.value, 0) / rows.length : 0;
     const sigmaDiff = Math.SQRT2 * Math.max(rms, 0.2 * meanScore, 1);
     const mu = (a: number[]) => a.reduce((s, t) => s + strength(t), 0);
+    const played = new Map<number, number>();
+    for (const r of rows) for (const t of r.teams) played.set(t, (played.get(t) ?? 0) + 1);
+    // Each played qual adds one Red row and one Blue row, so a robot's count is its matches played.
+    const sigmaFor = (robots: number[]) => {
+        const nbar = robots.length ? robots.reduce((s, t) => s + (played.get(t) ?? 0), 0) / robots.length : 0;
+        return sigmaDiff * Math.sqrt(1 + LIVE_QUAL_UNCERTAINTY / Math.max(nbar, 0.5));
+    };
     return {
         strength,
         sigmaDiff,
-        pRed: (red, blue) => winProbabilityFromNormalModel(mu(red), mu(blue), sigmaDiff),
+        pRed: (red, blue) => winProbabilityFromNormalModel(mu(red), mu(blue), sigmaFor([...red, ...blue])),
         teams: [...opr.keys()],
         sigmaAlliance: sigmaDiff / Math.SQRT2,
     };

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { projectFinalRankings, eventStrengthModel } from "./live-projection";
+import { winProbabilityFromNormalModel } from "./win-probability";
 import type { TeamRanking, FTCMatch } from "@/types/scouting";
 
 function ranking(overrides: Partial<TeamRanking> & Pick<TeamRanking, "rank" | "teamNumber">): TeamRanking {
@@ -239,6 +240,20 @@ describe("eventStrengthModel", () => {
         // np (70) must be what is learned, not 100.
         expect(model.strength(1)).toBeLessThan(75);
         expect(model.pRed([1], [2])).toBeGreaterThan(0.5);
+    });
+
+    it("is less sure early in the event, never flips the favorite (decision #109)", () => {
+        const m = (n: number) => ({ ...match({ matchNumber: n, redTeams: [1], blueTeams: [2], played: true }), scoreRedFinal: 80, scoreBlueFinal: 40, scoreRedFoul: 0, scoreBlueFoul: 0 }) as FTCMatch;
+        const few = eventStrengthModel([m(1), m(2)]);
+        const many = eventStrengthModel(Array.from({ length: 10 }, (_, i) => m(i + 1)));
+        // Un-inflated normal model on the same strengths and σ.
+        const raw = (mdl: typeof few) => winProbabilityFromNormalModel(mdl.strength(1), mdl.strength(2), mdl.sigmaDiff);
+        expect(few.pRed([1], [2])).toBeGreaterThan(0.5);
+        // The inflation shrinks toward 50% more with 2 matches played than with 10.
+        expect(few.pRed([1], [2]) - 0.5).toBeLessThan(raw(few) - 0.5);
+        const shrinkFew = (few.pRed([1], [2]) - 0.5) / (raw(few) - 0.5);
+        const shrinkMany = (many.pRed([1], [2]) - 0.5) / (raw(many) - 0.5);
+        expect(shrinkFew).toBeLessThan(shrinkMany);
     });
 });
 
