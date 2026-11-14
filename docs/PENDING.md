@@ -44,7 +44,8 @@ Plan aprobado (13-nov): `~/.claude/plans/replicated-cooking-elephant.md`. Hécto
 
 **Pendientes heredados:**
 - Captura de scouting de prueba y canje de invitación en producción. Héctor lo hace y yo verifico en Firestore; la captura de prueba en MXTLQ se borra después.
-- OK para alertas de caída y presupuesto.
+- ✅ Presupuesto de GCP con alerta: 100 USD/mes (lo creó Héctor el 13-nov). Siguen pendientes las alertas de caída.
+- ✅ 13-nov: reglas de Firestore y Storage desplegadas en producción, rol `firebaserules.firestoreServiceAgent` otorgado al agente de Storage y CORS del bucket aplicado (`storage-cors.json`).
 - Desactivar el login con email y contraseña.
 - Borrar los secretos `UPSTASH_*`.
 

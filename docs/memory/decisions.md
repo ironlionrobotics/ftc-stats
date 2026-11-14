@@ -1189,7 +1189,7 @@ Coeficientes estables entre mitades (decaimiento 0.7): a = 0.637/0.654, b = 1.10
 - **Moderación:** solo borra dentro de la carpeta del elemento.
 
 **Riesgo residual:**
-- Los topes por equipo (12 fotos, 3 clips) solo se aplican en el cliente. Un admin o lead podría saltarlos con el SDK. Mitigación: alerta de presupuesto en GCP (pendiente de OK de Héctor).
+- Los topes por equipo (12 fotos, 3 clips) solo se aplican en el cliente. Un admin o lead podría saltarlos con el SDK. Mitigación: alerta de presupuesto en GCP, 100 USD/mes (creada por Héctor el 13-nov).
 - **Verificar después del deploy:** el permiso IAM de las reglas cruzadas Storage→Firestore, el CORS del bucket y que la cuenta de servicio de App Hosting pueda borrar objetos.
 
 ## #107 · Preguntas de la Trading Card: generales y por temporada (2026-11-13)
