@@ -4,6 +4,7 @@ import {
     playoffWinProbability,
     consistencyMarginAdjustment,
     PLAYOFF_SIGMA_INFLATION,
+    PLAYOFF_FORM_K,
     type AllianceConsistency,
 } from "@/lib/win-probability";
 import { seasonRulesFor } from "@/lib/games/season-rules";
@@ -431,6 +432,9 @@ export interface MatchAdjustment {
      *  matching the official "Penalty Points Committed" stat. */
     foulPointsRed?: number;
     foulPointsBlue?: number;
+    /** Alliance disqualified in this match: its real score (0) doesn't count as playoff form (#113). */
+    dqRed?: boolean;
+    dqBlue?: boolean;
     /** @deprecated legacy major-foul count (× 15 pts). */
     foulsRed?: number;
     foulsBlue?: number;
@@ -469,12 +473,57 @@ function adjustedPredictions(red: Alliance, blue: Alliance, adj?: MatchAdjustmen
     return { r, b };
 }
 
-function hasAdjustment(adj?: MatchAdjustment): boolean {
-    return !!adj && (
-        adj.failedTeamRed != null || adj.failedTeamBlue != null ||
-        !!adj.failRed || !!adj.failBlue ||
-        committedFoulPoints(adj, "red") > 0 || committedFoulPoints(adj, "blue") > 0
-    );
+/**
+ * Playoff form (decision #113): what an alliance has ACTUALLY scored in this
+ * playoff, versus what its quals strength projected. Each played match adds
+ * one residual (real score − projection for that match, so a recorded robot
+ * failure or foul points are already part of the expectation); the next
+ * forecast moves by the residual mean shrunk toward 0:
+ *     offset = Σ residuals / (PLAYOFF_FORM_K + n)
+ * One great or awful match moves the forecast a little; a trend moves it a
+ * lot. K lives in lib/win-probability.ts (shared with the prediction ledger).
+ */
+export { PLAYOFF_FORM_K };
+
+export interface AllianceForm {
+    /** Playoff matches with a real score. */
+    n: number;
+    /** Σ (real − projected) points. */
+    sum: number;
+    /** Points added to the alliance's projection for its next match. */
+    offset: number;
+}
+
+const formOffset = (f?: { n: number; sum: number }) => (f && f.n > 0 ? f.sum / (PLAYOFF_FORM_K + f.n) : 0);
+
+function realWinnerOf(m: PlayoffMatch, adj?: MatchAdjustment): number | null {
+    if (!adj || adj.realRed == null || adj.realBlue == null || adj.realRed === adj.realBlue) return null;
+    if (!m.redAllianceId || !m.blueAllianceId) return null;
+    return adj.realRed > adj.realBlue ? m.redAllianceId : m.blueAllianceId;
+}
+
+function addForm(form: Map<number, { n: number; sum: number }>, m: PlayoffMatch, adj: MatchAdjustment | undefined, r: number, b: number) {
+    if (!adj || adj.realRed == null || adj.realBlue == null || !m.redAllianceId || !m.blueAllianceId) return;
+    for (const [id, real, pred, dq] of [[m.redAllianceId, adj.realRed, r, adj.dqRed], [m.blueAllianceId, adj.realBlue, b, adj.dqBlue]] as const) {
+        if (dq) continue; // a DQ's 0 is a penalty, not form
+        const f = form.get(id) ?? { n: 0, sum: 0 };
+        f.n++; f.sum += real - pred;
+        form.set(id, f);
+    }
+}
+
+/** Form of every alliance after all the real results recorded in `bracket` (pass the updateBracket output). */
+export function playoffForm(bracket: PlayoffMatch[], alliances: Alliance[], adjustments?: Record<string, MatchAdjustment>): Map<number, AllianceForm> {
+    const byId = new Map(alliances.map(a => [a.id, a]));
+    const form = new Map<number, { n: number; sum: number }>();
+    for (const m of bracket) {
+        const red = m.redAllianceId ? byId.get(m.redAllianceId) : undefined;
+        const blue = m.blueAllianceId ? byId.get(m.blueAllianceId) : undefined;
+        if (!red || !blue) continue;
+        const { r, b } = adjustedPredictions(red, blue, adjustments?.[m.id]);
+        addForm(form, m, adjustments?.[m.id], r, b);
+    }
+    return new Map([...form].map(([id, f]) => [id, { ...f, offset: formOffset(f) }]));
 }
 
 export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], adjustments?: Record<string, MatchAdjustment>): PlayoffMatch[] {
@@ -489,10 +538,8 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], ad
     const getWinner = (m: PlayoffMatch): number | null => {
         // A recorded REAL result is ground truth — it beats probability AND
         // manual overrides.
-        const adj = adjustments?.[m.id];
-        if (adj && adj.realRed != null && adj.realBlue != null && adj.realRed !== adj.realBlue && m.redAllianceId && m.blueAllianceId) {
-            return adj.realRed > adj.realBlue ? m.redAllianceId : m.blueAllianceId;
-        }
+        const real = realWinnerOf(m, adjustments?.[m.id]);
+        if (real) return real;
         if (m.overriddenWinnerId) return m.overriddenWinnerId;
         // Default to higher probability
         if (!m.redAllianceId || !m.blueAllianceId) return null;
@@ -508,7 +555,8 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], ad
 
     // Special logic for Best of 3 (Type 2)
     if (bracketType === 2) {
-        // Calculate Win Prob for M1
+        // Matches are in play order: each forecast learns from the results before it.
+        const form = new Map<number, { n: number; sum: number }>();
         ['M1', 'M2', 'M3'].forEach(id => {
             const m = matchMap.get(id);
             if (!m) return;
@@ -518,14 +566,13 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], ad
             if (red && blue) {
                 const adj = adjustments?.[id];
                 const { r, b } = adjustedPredictions(red, blue, adj);
-                m.redScorePrediction = r;
-                m.blueScorePrediction = b;
-                m.winProbabilityRed = hasAdjustment(adj)
-                    ? playoffWinProbability(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]), consistencyOf(red, blue))
-                    : calculateWinProbability(red, blue);
+                m.redScorePrediction = r + formOffset(form.get(1));
+                m.blueScorePrediction = b + formOffset(form.get(2));
+                m.winProbabilityRed = calculateWinProbability(red, blue, m.redScorePrediction, m.blueScorePrediction);
                 m.redAllianceId = 1;
                 m.blueAllianceId = 2;
                 m.winnerId = getWinner(m);
+                addForm(form, m, adj, r, b);
             }
         });
 
@@ -549,6 +596,9 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], ad
     // We iterate multiple times to ensure flow (simple approach for DAG)
     // 3 passes should be enough for 8-alliance depth
     for (let i = 0; i < 4; i++) {
+        // Bracket ids are in play order (M1, M2, …), so each forecast only
+        // learns from the results recorded before it (#113).
+        const form = new Map<number, { n: number; sum: number }>();
         updatedMatches.forEach(match => {
             // Calculate Probabilities if both alliances valid
             if (match.redAllianceId && match.blueAllianceId) {
@@ -557,11 +607,10 @@ export function updateBracket(matches: PlayoffMatch[], alliances: Alliance[], ad
                 if (red && blue) {
                     const adj = adjustments?.[match.id];
                     const { r, b } = adjustedPredictions(red, blue, adj);
-                    match.winProbabilityRed = hasAdjustment(adj)
-                        ? playoffWinProbability(r, b, combineSigmas([red.totalSigma || SIGMA_FALLBACK, blue.totalSigma || SIGMA_FALLBACK]), consistencyOf(red, blue))
-                        : calculateWinProbability(red, blue);
-                    match.redScorePrediction = r;
-                    match.blueScorePrediction = b;
+                    match.redScorePrediction = r + formOffset(form.get(red.id));
+                    match.blueScorePrediction = b + formOffset(form.get(blue.id));
+                    match.winProbabilityRed = calculateWinProbability(red, blue, match.redScorePrediction, match.blueScorePrediction);
+                    addForm(form, match, adj, r, b);
                 }
             } else {
                 match.winProbabilityRed = 0.5; // Unknown
@@ -650,14 +699,14 @@ function setSlotInNextMatch(nextMatch: PlayoffMatch, teamId: number, sourceMatch
  * season's score level and inconsistent with both projections.ts and the
  * simulator in this very file.)
  */
-function calculateWinProbability(red: Alliance, blue: Alliance): number {
+function calculateWinProbability(red: Alliance, blue: Alliance, redMean = red.totalOPR, blueMean = blue.totalOPR): number {
     const sigmaDiff = combineSigmas([
         red.totalSigma || SIGMA_FALLBACK,
         blue.totalSigma || SIGMA_FALLBACK,
     ]);
     // Playoff context: elimination-calibrated noise (see PLAYOFF_SIGMA_INFLATION)
     // plus the volatility effect (CONSISTENCY_MARGIN_WEIGHT).
-    return playoffWinProbability(red.totalOPR, blue.totalOPR, sigmaDiff, consistencyOf(red, blue));
+    return playoffWinProbability(redMean, blueMean, sigmaDiff, consistencyOf(red, blue));
 }
 
 
@@ -680,92 +729,93 @@ export interface SimulationResult {
     finalsProbability: number; // 0-1
 }
 
-export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 | 8, iterations: number = 2000): SimulationResult[] {
+export interface MonteCarloOptions {
+    /** Reality layer: matches with a real score are FIXED (never re-simulated); incidents shape the rest. */
+    adjustments?: Record<string, MatchAdjustment>;
+    /** Manual "what if X wins" overrides: fixed like real results. */
+    overrides?: Record<string, number>;
+    /** Uniform [0, 1) source. Seed it (seededRandom) to make the result a pure function of its inputs. */
+    random?: () => number;
+}
+
+/**
+ * Championship odds from the CURRENT state of the playoff: what already
+ * happened (real results, forced winners) is fixed, every remaining match is
+ * sampled, and each alliance plays at its quals strength plus its playoff form
+ * (#113). Before any result it's the classic pre-playoff simulation.
+ */
+export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 | 8, iterations: number = 2000, opts: MonteCarloOptions = {}): SimulationResult[] {
+    const { adjustments, overrides, random = Math.random } = opts;
     const championCounts: Record<number, number> = {};
     const finalsCounts: Record<number, number> = {};
+    alliances.forEach(a => { championCounts[a.id] = 0; finalsCounts[a.id] = 0; });
+    const allianceMap = new Map(alliances.map(a => [a.id, a]));
 
-    alliances.forEach(a => {
-        championCounts[a.id] = 0;
-        finalsCounts[a.id] = 0;
-    });
+    // Form after every recorded result (the deterministic bracket resolves who played whom).
+    const form = adjustments && Object.keys(adjustments).length
+        ? playoffForm(updateBracket(initializeBracket(type).map(m => ({ ...m, overriddenWinnerId: overrides?.[m.id] ?? null })), alliances, adjustments), alliances, adjustments)
+        : new Map<number, AllianceForm>();
+    const offset = (id: number) => form.get(id)?.offset ?? 0;
 
     for (let i = 0; i < iterations; i++) {
         const bracket = initializeBracket(type);
-        const allianceMap = new Map(alliances.map(a => [a.id, a]));
         const matchMap = new Map(bracket.map(m => [m.id, m]));
 
-        // Resolve bracket
-        // Iterative propagation until all matches resolved
-        // Since it's a DAG, we can just iterate enough times or topologically.
-        // Simple iteration 5 times is safe.
+        // Ids are in play order and every slot is filled by an earlier match,
+        // so one ordered pass resolves the whole bracket.
         for (let pass = 0; pass < 6; pass++) {
             bracket.forEach(match => {
                 if (match.winnerId) return; // Already resolved
+                if (!match.redAllianceId || !match.blueAllianceId) return;
+                const red = allianceMap.get(match.redAllianceId)!;
+                const blue = allianceMap.get(match.blueAllianceId)!;
+                const adj = adjustments?.[match.id];
+                const forced = overrides?.[match.id];
 
-                if (match.redAllianceId && match.blueAllianceId) {
-                    const red = allianceMap.get(match.redAllianceId)!;
-                    const blue = allianceMap.get(match.blueAllianceId)!;
-
-                    // Simulate Match — per-alliance sigma derived from team variance.
-                    // Playoff-calibrated noise so MC and analytic bracket agree
-                    // (see PLAYOFF_SIGMA_INFLATION in lib/win-probability.ts).
-                    // Same volatility shift the analytic path applies, so the
-                    // sampler and the closed form stay two views of one model.
+                const real = realWinnerOf(match, adj);
+                if (real) {
+                    match.winnerId = real;
+                } else if (forced === match.redAllianceId || forced === match.blueAllianceId) {
+                    match.winnerId = forced;
+                } else {
+                    // Same normals the analytic bracket integrates: playoff-calibrated
+                    // noise (PLAYOFF_SIGMA_INFLATION) + the volatility shift.
+                    const { r, b } = adjustedPredictions(red, blue, adj);
                     const consAdj = consistencyMarginAdjustment(consistencyOf(red, blue));
-                    const redScore = getSimulatedScore(red.totalOPR + consAdj, (red.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION);
-                    const blueScore = getSimulatedScore(blue.totalOPR, (blue.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION);
-
+                    const redScore = getSimulatedScore(r + offset(red.id) + consAdj, (red.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION, random);
+                    const blueScore = getSimulatedScore(b + offset(blue.id), (blue.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION, random);
                     match.winnerId = redScore > blueScore ? match.redAllianceId : match.blueAllianceId;
+                }
 
-                    // Propagate
-                    if (match.winnerId && match.nextMatchWinner) {
-                        const nextM = matchMap.get(match.nextMatchWinner);
-                        if (nextM) setSlotInNextMatch(nextM, match.winnerId, match.id, type);
-                    }
-                    if (match.nextMatchLoser) { // Loser drops
-                        const loserId = match.winnerId === match.redAllianceId ? match.blueAllianceId : match.redAllianceId;
-                        const nextM = matchMap.get(match.nextMatchLoser);
-                        if (nextM) setSlotInNextMatch(nextM, loserId!, match.id, type);
-                    }
+                if (match.nextMatchWinner) {
+                    const nextM = matchMap.get(match.nextMatchWinner);
+                    if (nextM) setSlotInNextMatch(nextM, match.winnerId!, match.id, type);
+                }
+                if (match.nextMatchLoser) { // Loser drops
+                    const loserId = match.winnerId === match.redAllianceId ? match.blueAllianceId : match.redAllianceId;
+                    const nextM = matchMap.get(match.nextMatchLoser);
+                    if (nextM) setSlotInNextMatch(nextM, loserId!, match.id, type);
                 }
             });
         }
 
-        // Record Stats
-        // Champion is winner of last match
-        // For type 2 (Best of 3), M2 or M3 determines the winner, but our `initializeBracket` creates 3 matches.
-        // In this simple boolean simulation, if M1 and M2 same winner, series over. If split, M3 winner is champion.
-        // Or simpler: count match wins.
-        const finalMatchId = type === 2 ? 'M2' : type === 4 ? 'M6' : type === 6 ? 'M10' : 'M14';
-
         if (type === 2) {
-            const m1 = matchMap.get('M1');
-            const m2 = matchMap.get('M2');
-            const m3 = matchMap.get('M3');
-
-            // Count wins
+            // Best of 3: first to 2 wins (M3 only counts when the series is split).
             const wins: Record<number, number> = {};
-            [m1, m2, m3].forEach(m => {
-                if (m?.winnerId) wins[m.winnerId] = (wins[m.winnerId] || 0) + 1;
-            });
-
-            // Find who has 2 wins
-            const champ = Object.keys(wins).find(id => wins[Number(id)] >= 2);
-            if (champ) {
-                championCounts[Number(champ)]++;
-                // Finalists are always 1 and 2
-                finalsCounts[1]++;
-                finalsCounts[2]++;
+            for (const id of ["M1", "M2", "M3"]) {
+                const w = matchMap.get(id)?.winnerId;
+                if (w) wins[w] = (wins[w] || 0) + 1;
+                const champ = Object.keys(wins).find(k => wins[Number(k)] >= 2);
+                if (champ) { championCounts[Number(champ)]++; break; }
             }
-            continue; // Skip standard logic for type 2
+            finalsCounts[1]++;
+            finalsCounts[2]++;
+            continue;
         }
 
+        const finalMatchId = type === 4 ? 'M6' : type === 6 ? 'M10' : 'M14';
         const finalMatch = matchMap.get(finalMatchId);
-        if (finalMatch?.winnerId) {
-            championCounts[finalMatch.winnerId]++;
-        }
-
-        // Finalists (participants of last match)
+        if (finalMatch?.winnerId) championCounts[finalMatch.winnerId]++;
         if (finalMatch?.redAllianceId) finalsCounts[finalMatch.redAllianceId]++;
         if (finalMatch?.blueAllianceId) finalsCounts[finalMatch.blueAllianceId]++;
     }
@@ -777,17 +827,29 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 |
     })).sort((a, b) => b.championProbability - a.championProbability);
 }
 
+/** Deterministic uniform [0, 1) generator (mulberry32) — same seed, same simulation. */
+export function seededRandom(seed: number): () => number {
+    let a = seed >>> 0;
+    return () => {
+        a = (a + 0x6D2B79F5) >>> 0;
+        let t = a;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
 // Box-Muller transform: returns a sample from N(mean, sigma²). Falls back to
 // σ=30 when sigma is missing or zero (e.g. empty alliances during manual setup
 // before any team is picked). Per-alliance sigma comes from combineSigmas of
 // per-team variance (see computeTeamSigma).
-function getSimulatedScore(mean: number, sigma: number = 30) {
+function getSimulatedScore(mean: number, sigma: number = 30, random: () => number = Math.random) {
     if (!sigma || sigma <= 0) sigma = 30;
     // 1 − random() ∈ (0, 1]: Math.random() can return exactly 0, and
     // log(0) = −Infinity would corrupt the sample (and that iteration's
     // comparison). log(1) = 0 is harmless (z = 0).
-    const u1 = 1 - Math.random();
-    const u2 = Math.random();
+    const u1 = 1 - random();
+    const u2 = random();
     const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
     return mean + z * sigma;
 }

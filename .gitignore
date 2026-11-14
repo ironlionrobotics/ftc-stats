@@ -59,6 +59,7 @@ data/growth-curves/
 # Draft science raw pulls (regenerable via scripts/draft-science.mjs).
 data/draft-science/
 data/live-quals-backtest/
+data/playoff-backtest/
 
 # Agent worktrees (Claude Code isolation)
 .claude/worktrees/

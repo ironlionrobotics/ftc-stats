@@ -126,6 +126,15 @@ export function winProbabilityFromNormalModel(
 export const PLAYOFF_SIGMA_INFLATION = 2.4;
 
 /**
+ * Playoff form shrinkage (decision #113), in matches: once an alliance has
+ * played playoff matches, its next forecast moves by
+ *     Σ (real − projected) / (PLAYOFF_FORM_K + n).
+ * Fitted on held-out playoff matches by scripts/playoff-update-backtest.ts:
+ * K≈2 is the optimum in 2024, 2025 and 2026 alike (flat between 2 and 3).
+ */
+export const PLAYOFF_FORM_K = 2;
+
+/**
  * Volatility bonus, in points of score margin per point of per-team σ.
  *
  * The same fit carries a consistency term: with consDiff defined as

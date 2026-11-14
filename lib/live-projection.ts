@@ -114,9 +114,13 @@ function quantile(sorted: number[], q: number): number {
 const allianceOf = (m: FTCMatch, color: "Red" | "Blue") =>
     m.teams.filter(t => t.station.startsWith(color) && t.onField !== false).map(t => t.teamNumber);
 
+/** A disqualified alliance's score (0) is a penalty, not a measure of how it played (#113). */
+export const sideDisqualified = (m: FTCMatch, color: "Red" | "Blue") =>
+    m.teams.some(t => t.station.startsWith(color) && t.dq === true);
+
 /** Non-penalty score of an alliance: its final minus the foul points it
  *  RECEIVED, which the API reports on the opponent's field (decision #48). */
-function npScore(m: FTCMatch, color: "Red" | "Blue"): number {
+export function npScore(m: FTCMatch, color: "Red" | "Blue"): number {
     return color === "Red"
         ? (m.scoreRedFinal ?? 0) - (m.scoreBlueFoul ?? 0)
         : (m.scoreBlueFinal ?? 0) - (m.scoreRedFoul ?? 0);
@@ -156,10 +160,12 @@ export interface StrengthModel {
 export const LIVE_QUAL_UNCERTAINTY = 4;
 
 export function eventStrengthModel(playedQuals: FTCMatch[]): StrengthModel {
-    const rows = playedQuals.flatMap(m => (["Red", "Blue"] as const).map(color => ({
-        teams: allianceOf(m, color),
-        value: npScore(m, color),
-    }))).filter(r => r.teams.length > 0);
+    const rows = playedQuals.flatMap(m => (["Red", "Blue"] as const)
+        .filter(color => !sideDisqualified(m, color))
+        .map(color => ({
+            teams: allianceOf(m, color),
+            value: npScore(m, color),
+        }))).filter(r => r.teams.length > 0);
     const opr = componentOpr(rows, { lambda: 1 });
     // Teams with no counted match yet: the "average robot" prior, not 0.
     const meanSize = rows.length ? rows.reduce((s, r) => s + r.teams.length, 0) / rows.length : 2;

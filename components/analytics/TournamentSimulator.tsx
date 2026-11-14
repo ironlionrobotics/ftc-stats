@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { TeamEvolution } from "@/app/actions/analytics";
 import type { FTCMatch } from "@/types/scouting";
 import { Alliance, PlayoffMatch } from "@/types/oracle";
-import { generateAlliances, alliancesFromOfficial, initializeBracket, updateBracket, runMonteCarloSimulation, SimulationResult, MAJOR_FOUL_POINTS, LEGACY_MAJOR_FOUL_POINTS, type MatchAdjustment } from "@/lib/alliance-utils";
+import { generateAlliances, alliancesFromOfficial, initializeBracket, updateBracket, runMonteCarloSimulation, playoffForm, seededRandom, MAJOR_FOUL_POINTS, LEGACY_MAJOR_FOUL_POINTS, type MatchAdjustment } from "@/lib/alliance-utils";
 import { Play, RotateCcw, Trophy, Shield, Edit2, Save, FolderOpen, PieChart, Download } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
@@ -30,7 +30,6 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
     // fouls). Persisted with scenarios for estimate-vs-real comparison.
     const [matchData, setMatchData] = useState<Record<string, MatchAdjustment>>({});
     const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
-    const [simResults, setSimResults] = useState<SimulationResult[] | null>(null);
     // Seed scenarios from localStorage via a lazy initializer instead of a
     // mount effect. This component only mounts on a client click (the Tournament
     // toggle, default mode is "analysis"), so it never server-renders — the
@@ -61,10 +60,19 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
         return updateBracket(matches, alliances, matchData);
     }, [alliances, overrides, allianceCount, matchData]);
 
-    const handleRunMonteCarlo = () => {
-        const results = runMonteCarloSimulation(alliances, allianceCount);
-        setSimResults(results);
-    };
+    // Championship odds from the CURRENT state (#113): real results and forced
+    // winners are fixed, only what's left is simulated, each alliance at its
+    // quals strength + playoff form. Seeded → a pure function of the inputs,
+    // so it recomputes itself whenever a result is imported or a winner forced.
+    const simResults = useMemo(() => {
+        if (step !== 'bracket' || alliances.length < 2) return null;
+        return runMonteCarloSimulation(alliances, allianceCount, 2000, { adjustments: matchData, overrides, random: seededRandom(2026) });
+    }, [step, alliances, allianceCount, matchData, overrides]);
+    const form = useMemo(() => playoffForm(bracket, alliances, matchData), [bracket, alliances, matchData]);
+    const playedCount = useMemo(
+        () => Object.values(matchData).filter(a => a.realRed != null && a.realBlue != null).length,
+        [matchData],
+    );
 
     const handleSaveScenario = () => {
         const name = prompt("Enter scenario name (e.g., 'Upset in Semis'):");
@@ -100,7 +108,6 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
         setMatchData(s.matchData ?? {});
         setSelectedMatchId(null);
         setStep('bracket');
-        setSimResults(null);
     };
 
     const handleDeleteScenario = async (index: number) => {
@@ -244,6 +251,8 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
             for (const pm of playoffMatches) {
                 const redTeams = pm.teams.filter(t => t.station.startsWith("Red")).map(t => t.teamNumber);
                 const blueTeams = pm.teams.filter(t => t.station.startsWith("Blue")).map(t => t.teamNumber);
+                const redDq = pm.teams.some(t => t.station.startsWith("Red") && t.dq === true);
+                const blueDq = pm.teams.some(t => t.station.startsWith("Blue") && t.dq === true);
                 const redAl = alliances.find(a => redTeams.some(n => rosterOf(a).has(n)));
                 const blueAl = alliances.find(a => blueTeams.some(n => rosterOf(a).has(n)));
                 if (!redAl || !blueAl) continue;
@@ -264,6 +273,8 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                     // against the official score display).
                     foulPointsRed: sameOrientation ? pm.scoreRedFoul : pm.scoreBlueFoul,
                     foulPointsBlue: sameOrientation ? pm.scoreBlueFoul : pm.scoreRedFoul,
+                    dqRed: (sameOrientation ? redDq : blueDq) || undefined,
+                    dqBlue: (sameOrientation ? blueDq : redDq) || undefined,
                 };
                 importedThisPass++;
                 importedTotal++;
@@ -511,22 +522,17 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                                 <h3 className="font-bold text-sm flex items-center gap-2 mb-3">
                                     <PieChart size={16} className="text-primary" /> Win Probability
                                 </h3>
-                                {!simResults ? (
-                                    <div className="text-center py-4">
-                                        <p className="text-xs text-muted-foreground mb-4">Run 2,000 simulations with performance variance to see realistic championship odds.</p>
-                                        <button
-                                            onClick={handleRunMonteCarlo}
-                                            className="w-full py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold transition-colors shadow-sm"
-                                        >
-                                            Run Monte Carlo
-                                        </button>
-                                    </div>
-                                ) : (
+                                <p className="text-[10px] text-muted-foreground mb-3">
+                                    {playedCount > 0
+                                        ? `${playedCount} resultado(s) real(es) fijos · el resto se simula con la forma en playoffs`
+                                        : "Antes de playoffs: 2,000 simulaciones con la fuerza de qualys"}
+                                </p>
+                                {simResults && (
                                     <div className="space-y-3">
-                                        {simResults.slice(0, 5).map(res => (
+                                        {simResults.map(res => (
                                             <div key={res.allianceId} className="relative">
                                                 <div className="flex justify-between text-xs font-bold mb-1">
-                                                    <span className="text-foreground">Alliance {res.allianceId}</span>
+                                                    <span className={res.championProbability === 0 && playedCount > 0 ? "text-muted-foreground line-through" : "text-foreground"}>Alliance {res.allianceId}</span>
                                                     <span className="text-primary">{(res.championProbability * 100).toFixed(1)}%</span>
                                                 </div>
                                                 <div className="h-1.5 bg-border rounded-full overflow-hidden">
@@ -534,12 +540,6 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                                                 </div>
                                             </div>
                                         ))}
-                                        <button
-                                            onClick={handleRunMonteCarlo}
-                                            className="w-full mt-2 py-1.5 bg-border hover:bg-border/70 rounded-lg text-[10px] font-bold text-muted-foreground transition-colors"
-                                        >
-                                            Rerun Simulation
-                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -569,6 +569,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                                             <div className="text-[10px] font-bold text-muted-foreground uppercase">Est. Score</div>
                                             <div className="font-mono font-black text-foreground">{alliance.totalOPR.toFixed(0)}</div>
                                         </div>
+                                        <AllianceFormLine f={form.get(alliance.id)} />
                                     </div>
                                 ))}
                             </div>
@@ -691,6 +692,22 @@ interface BracketVisualProps {
     bracket: PlayoffMatch[];
     onMatchClick: (matchId: string, allianceId: number) => void;
     type: 2 | 4 | 6 | 8;
+}
+
+/** "In playoffs: +31 pts vs projection (2 matches) → next forecast +15". */
+function AllianceFormLine({ f }: { f?: { n: number; sum: number; offset: number } }) {
+    if (!f || f.n === 0) return null;
+    const avg = f.sum / f.n;
+    const sign = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(0)}`;
+    return (
+        <div className="mt-1 flex justify-between items-center text-[10px]">
+            <span className="font-bold text-muted-foreground uppercase">Forma playoffs ({f.n})</span>
+            <span className={clsx("font-mono font-bold", avg >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
+                title={`Promedio ${sign(avg)} pts vs su proyección por partido; su siguiente pronóstico se ajusta ${sign(f.offset)}`}>
+                {sign(avg)} pts/partido → {sign(f.offset)}
+            </span>
+        </div>
+    );
 }
 
 function BracketVisual({ bracket, onMatchClick, type, alliances, matchData, onSelectMatch }: BracketVisualProps) {

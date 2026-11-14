@@ -5,7 +5,8 @@ import { inputsFromEntry } from "@/lib/games/score-inputs";
 import { useState, useMemo, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting, FTCHybridScheduleMatch, FTCAward, FTCAllianceSelection } from "@/types/scouting";
-import { winProbabilityFromNormalModel, playoffWinProbability } from "@/lib/win-probability";
+import { winProbabilityFromNormalModel } from "@/lib/win-probability";
+import { playoffForecaster } from "@/lib/playoff-form";
 import { eventStrengthModel } from "@/lib/live-projection";
 import { predictionLedger, scorecard, type LedgerRow } from "@/lib/prediction-ledger";
 import PredictionCell, { LedgerSummary, PredictionBar } from "@/components/event/PredictionLedger";
@@ -170,6 +171,9 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
         const playedQuals = matches.filter(m => m.tournamentLevel === "QUALIFICATION"
             && (!!m.postResultTime || m.scoreRedFinal + m.scoreBlueFinal > 0));
         const model = playedQuals.length >= 2 ? eventStrengthModel(playedQuals) : null;
+        // Upcoming playoffs also learn from the playoff results so far (#113).
+        const fc = model ? playoffForecaster(model, matches.filter(m => m.tournamentLevel === "PLAYOFF"
+            && (!!m.postResultTime || m.scoreRedFinal + m.scoreBlueFinal > 0))) : null;
         const sigmaDiff = model ? model.sigmaDiff : sigmaAlliance * Math.SQRT2;
         const allianceDetail = (teams: FTCHybridScheduleMatch["teams"]) => {
             const perTeam = teams.map(t => {
@@ -200,12 +204,13 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                 const redDetail = allianceDetail(red);
                 const blueDetail = allianceDetail(blue);
                 const redNums = red.map(t => t.teamNumber), blueNums = blue.map(t => t.teamNumber);
-                const mu = (a: number[]) => a.reduce((sum, t) => sum + (model?.strength(t) ?? 0), 0);
-                const pRed = !model
+                const isQual = m.tournamentLevel === "QUALIFICATION";
+                const mu = (a: number[]) => (!isQual && fc ? fc.mu(a) : a.reduce((sum, t) => sum + (model?.strength(t) ?? 0), 0));
+                const pRed = !model || !fc
                     ? winProbabilityFromNormalModel(redDetail.total, blueDetail.total, sigmaDiff)
-                    : m.tournamentLevel === "QUALIFICATION"
+                    : isQual
                         ? model.pRed(redNums, blueNums)
-                        : playoffWinProbability(mu(redNums), mu(blueNums), model.sigmaDiff);
+                        : fc.pRed(redNums, blueNums);
                 return {
                     match: m,
                     red,

@@ -1,6 +1,6 @@
 import type { FTCAllianceSelection, FTCHybridScheduleMatch, FTCMatch, TeamRanking } from "@/types/scouting";
 import { eventStrengthModel } from "@/lib/live-projection";
-import { playoffWinProbability } from "@/lib/win-probability";
+import { playoffForecaster } from "@/lib/playoff-form";
 import { matchKey, playOrder, shortMatchLabel } from "@/lib/following-summary";
 
 /**
@@ -21,7 +21,7 @@ import { matchKey, playOrder, shortMatchLabel } from "@/lib/following-summary";
 export interface EventSnapshot {
     eventCode: string;
     schedule: FTCHybridScheduleMatch[];
-    /** Qualification matches with scores (for the live strength model). */
+    /** Played matches with scores, any level (quals → strength model, playoffs → playoff form #113). */
     matches: FTCMatch[];
     rankings: TeamRanking[];
     alliances: FTCAllianceSelection[];
@@ -104,6 +104,7 @@ export function diffEvent(prev: EventNotifyState | null, snap: EventSnapshot): {
     if (lastPlayed >= 0) {
         const playedQuals = snap.matches.filter(m => m.tournamentLevel === "QUALIFICATION");
         const model = playedQuals.length >= 2 ? eventStrengthModel(playedQuals) : null;
+        const fc = model ? playoffForecaster(model, snap.matches.filter(m => m.tournamentLevel === "PLAYOFF")) : null;
         for (let i = lastPlayed + 1; i < seq.length && i <= lastPlayed + SOON_AHEAD; i++) {
             const m = seq[i];
             const red = side(m, "Red"), blue = side(m, "Blue");
@@ -112,9 +113,8 @@ export function diffEvent(prev: EventNotifyState | null, snap: EventSnapshot): {
             if (state.soon.includes(key)) continue;
             state.soon.push(key);
             let pRed: number | null = null;
-            if (model) {
-                const mu = (a: number[]) => a.reduce((s, t) => s + model.strength(t), 0);
-                pRed = m.tournamentLevel === "QUALIFICATION" ? model.pRed(red, blue) : playoffWinProbability(mu(red), mu(blue), model.sigmaDiff);
+            if (model && fc) {
+                pRed = m.tournamentLevel === "QUALIFICATION" ? model.pRed(red, blue) : fc.pRed(red, blue);
             }
             events.push({
                 kind: "matchSoon", eventCode: code, key, teams: [...red, ...blue],

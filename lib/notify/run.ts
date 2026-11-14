@@ -141,14 +141,13 @@ export async function runLiveNotify(deadline: number, now = Date.now()): Promise
             fetchHybridSchedule(season, code), fetchMatches(season, code), fetchRankings(season, code), fetchAlliances(season, code),
         ]);
         if (schedule.length === 0) continue;
-        const qualMatches = matches.filter(m => m.tournamentLevel === "QUALIFICATION"
-            && ((m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0));
+        const playedMatches = matches.filter(m => (m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0);
 
         const stateRef = db.collection("notify_state").doc(`${season}_${code}`);
         const { events, requestsSince } = await db.runTransaction(async tx => {
             const snap = await tx.get(stateRef);
             const prev = snap.exists ? (snap.data() as StateDoc) : null;
-            const r = diffEvent(prev?.state ?? null, { eventCode: code, schedule, matches: qualMatches, rankings, alliances });
+            const r = diffEvent(prev?.state ?? null, { eventCode: code, schedule, matches: playedMatches, rankings, alliances });
             const since = prev?.requestsSince ?? now; // first sight: only requests from now on
             tx.set(stateRef, { state: r.next, requestsSince: now, updatedAt: FieldValue.serverTimestamp() });
             return { events: r.events, requestsSince: since };

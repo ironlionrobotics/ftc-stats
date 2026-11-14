@@ -1,12 +1,13 @@
 import type { FTCMatch } from "@/types/scouting";
 import { eventStrengthModel } from "@/lib/live-projection";
-import { playoffWinProbability } from "@/lib/win-probability";
+import { playoffForecaster } from "@/lib/playoff-form";
 
 /**
  * "Who did PRIDE pick, and who won?" (decision #111). Pure replay of the
  * pre-match forecast for every played match: quals use the live event model
  * fitted ONLY on the quals before it (calibrated, #109); playoffs use the
- * whole quals model with playoff σ (#59). The model is deterministic, so this
+ * whole quals model plus each alliance's playoff form from the matches
+ * before it (lib/playoff-form.ts, #113). The model is deterministic, so this
  * is exactly what any PRIDE screen showed before the match — no stored log
  * needed, and it can't be tweaked after the fact.
  */
@@ -82,10 +83,11 @@ export function predictionLedger(matches: FTCMatch[]): LedgerRow[] {
     });
     if (playoffs.length) {
         const model = quals.length >= 2 ? eventStrengthModel(quals) : null;
-        const mu = (a: number[]) => a.reduce((s, t) => s + (model?.strength(t) ?? 0), 0);
+        const fc = model ? playoffForecaster(model) : null;
         for (const m of playoffs) {
             const red = sideOf(m, "Red"), blue = sideOf(m, "Blue");
-            push(m, model ? playoffWinProbability(mu(red), mu(blue), model.sigmaDiff) : null, model ? [mu(red), mu(blue)] : null);
+            push(m, fc ? fc.pRed(red, blue) : null, fc ? [fc.mu(red), fc.mu(blue)] : null);
+            fc?.record(m); // the next forecast learns from this result
         }
     }
     return rows;

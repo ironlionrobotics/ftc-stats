@@ -7,6 +7,9 @@ import {
     runMonteCarloSimulation,
     explainSynergyScore,
     calculateSynergyScore,
+    playoffForm,
+    seededRandom,
+    PLAYOFF_FORM_K,
 } from "./alliance-utils";
 import { playoffWinProbability } from "./win-probability";
 import type { TeamEvolution } from "@/app/actions/analytics";
@@ -269,5 +272,66 @@ describe("runMonteCarloSimulation — agrees with the analytic model", () => {
         // Evenly matched → both near 50%.
         expect(results[0].championProbability).toBeGreaterThan(0.4);
         expect(results[0].championProbability).toBeLessThan(0.6);
+    });
+});
+
+describe("playoff form and reality-conditioned Monte Carlo (#113)", () => {
+    // 6-alliance double elimination: M1 = A4 vs A5, M2 = A3 vs A6.
+    const six = () => [alliance(1, 130, 20), alliance(2, 115, 20), alliance(3, 132, 20), alliance(4, 96, 20), alliance(5, 79, 20), alliance(6, 54, 20)];
+
+    it("a real result is fixed: the alliance that lost twice has 0% to win it all", () => {
+        const as = six();
+        const adj = {
+            M1: { realRed: 70, realBlue: 90 },   // A4 70 – A5 90 → A4 drops to M6
+            M2: { realRed: 120, realBlue: 40 },  // A3 beats A6 → A6 drops to M5
+        };
+        const bracket = updateBracket(initializeBracket(6), as, adj);
+        const m6 = bracket.find(m => m.id === "M6")!;
+        expect(m6.blueAllianceId).toBe(4);
+        const adj2 = { ...adj, M6: { realRed: 100, realBlue: 60 } }; // A4 loses again → out
+        const res = runMonteCarloSimulation(as, 6, 1000, { adjustments: adj2, random: seededRandom(1) });
+        expect(res.find(r => r.allianceId === 4)!.championProbability).toBe(0);
+    });
+
+    it("forced winners are honored by the simulation, not only the bracket", () => {
+        const as = six();
+        const res = runMonteCarloSimulation(as, 6, 500, { overrides: { M1: 5 }, random: seededRandom(2) });
+        // A4 was forced to lose M1 → it can't reach the upper final; it still lives in the lower bracket.
+        const base = runMonteCarloSimulation(as, 6, 500, { random: seededRandom(2) });
+        expect(res.find(r => r.allianceId === 4)!.championProbability)
+            .toBeLessThan(base.find(r => r.allianceId === 4)!.championProbability);
+    });
+
+    it("form = residuals shrunk by K: outscoring the projection raises the next forecast", () => {
+        const as = six();
+        const adj = { M1: { realRed: 96, realBlue: 79 + 60 } }; // A5 scores 60 over its projection
+        const bracket = updateBracket(initializeBracket(6), as, adj);
+        const f = playoffForm(bracket, as, adj);
+        expect(f.get(5)!.n).toBe(1);
+        expect(f.get(5)!.sum).toBeCloseTo(60, 6);
+        expect(f.get(5)!.offset).toBeCloseTo(60 / (PLAYOFF_FORM_K + 1), 6);
+        expect(f.get(4)!.offset).toBeCloseTo(0, 6);
+        // A5's next match (M3 vs A1) uses the offset; M1 itself (already played) does not.
+        const m3 = bracket.find(m => m.id === "M3")!;
+        expect(m3.blueAllianceId).toBe(5);
+        expect(m3.blueScorePrediction).toBeCloseTo(79 + 60 / (PLAYOFF_FORM_K + 1), 6);
+        expect(bracket.find(m => m.id === "M1")!.blueScorePrediction).toBeCloseTo(79, 6);
+    });
+
+    it("seeded simulation is a pure function of its inputs", () => {
+        const as = six();
+        const a = runMonteCarloSimulation(as, 6, 300, { random: seededRandom(7) });
+        const b = runMonteCarloSimulation(as, 6, 300, { random: seededRandom(7) });
+        expect(a).toEqual(b);
+    });
+});
+
+describe("Oracle form ignores disqualified sides (#113)", () => {
+    it("a DQ'd 0 doesn't drag the alliance's form", () => {
+        const as = [alliance(1, 130, 20), alliance(2, 115, 20), alliance(3, 132, 20), alliance(4, 96, 20), alliance(5, 79, 20), alliance(6, 54, 20)];
+        const adj = { M1: { realRed: 96, realBlue: 0, dqBlue: true } };
+        const f = playoffForm(updateBracket(initializeBracket(6), as, adj), as, adj);
+        expect(f.get(5)).toBeUndefined();
+        expect(f.get(4)!.n).toBe(1);
     });
 });

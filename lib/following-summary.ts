@@ -1,6 +1,6 @@
 import type { FTCHybridScheduleMatch, FTCMatch, TeamRanking } from "@/types/scouting";
 import { eventStrengthModel } from "@/lib/live-projection";
-import { playoffWinProbability } from "@/lib/win-probability";
+import { playoffForecaster } from "@/lib/playoff-form";
 
 /**
  * Live state of a FOLLOWED event for "Hoy" (decision #110). Pure: the server
@@ -87,16 +87,16 @@ export function summarizeEvent(
     const playedQuals = matches.filter(m => m.tournamentLevel === "QUALIFICATION"
         && ((m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0));
     const model = playedQuals.length >= 2 ? eventStrengthModel(playedQuals) : null;
+    const playedPlayoffs = matches.filter(m => m.tournamentLevel === "PLAYOFF"
+        && ((m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0));
+    const fc = model ? playoffForecaster(model, playedPlayoffs) : null;
 
     const seq = ordered(schedule);
     const next = seq.filter(m => !played(m)).slice(0, nextCount).map<MatchLine>(m => {
         const red = side(m, "Red"), blue = side(m, "Blue");
         let pRed: number | null = null;
-        if (model && red.length && blue.length) {
-            const mu = (a: number[]) => a.reduce((s, t) => s + model.strength(t), 0);
-            pRed = m.tournamentLevel === "QUALIFICATION"
-                ? model.pRed(red, blue)
-                : playoffWinProbability(mu(red), mu(blue), model.sigmaDiff);
+        if (model && fc && red.length && blue.length) {
+            pRed = m.tournamentLevel === "QUALIFICATION" ? model.pRed(red, blue) : fc.pRed(red, blue);
         }
         return { description: shortMatchLabel(m.description, m.tournamentLevel, m.matchNumber, m.series), level: m.tournamentLevel, matchNumber: m.matchNumber, startTime: m.startTime ?? null, red, blue, pRed };
     });

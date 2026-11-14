@@ -1289,3 +1289,50 @@ El de Next es stale-while-revalidate: la primera petición después de que expir
 - Con TTL más largo (eventos de la temporada, equipo) se queda `revalidate`, que es inofensivo a esa escala.
 
 Esto también importa para los avisos push (#110): el cron lee con los mismos fetchers.
+
+## #113 · Playoffs: el pronóstico aprende de los playoffs ya jugados (2026-11-14)
+
+**Hallazgo (USMIRHQ, playoffs en vivo):** el Oracle y el registro de pronósticos usaban **solo** la fuerza de qualys durante todo el playoff.
+- A2 (23106+10136) metió 146 y 165 contra ~105 proyectados.
+- A5 (30434+7305) pasó de 78 a 107 y luego a 146.
+- Aun así, sus siguientes pronósticos no se movían.
+
+**Además, en el Oracle:**
+- el Monte Carlo ("Win Probability") re-simulaba el bracket desde cero, ignorando resultados reales y ganadores forzados: una alianza eliminada seguía con probabilidad de campeonar;
+- solo se recalculaba al picar "Rerun".
+
+**Decisión: forma en playoffs.**
+- Cada partido de playoffs jugado deja un residual por alianza: real − proyectado (np en el modelo en vivo; en el Oracle, contra su proyección con incidentes y fouls).
+- El siguiente pronóstico se mueve `Σ residuales / (K + n)` con **K = 2** (`PLAYOFF_FORM_K`).
+- Un partido raro mueve poco; una tendencia, mucho.
+- **Modelo en vivo (`lib/playoff-form.ts`):** registro, página del evento, "Siguiendo" y avisos. Su σ de playoffs pasa de ×2.4 a **×1.6** (`LIVE_PLAYOFF_SIGMA_INFLATION`). El 2.4 se calibró para el σ propio del Oracle (#59), no para el σ de residuales del OPR ridge.
+- **Oracle (`lib/alliance-utils.ts`):**
+  - `updateBracket` aplica la forma en orden de juego (cada pronóstico solo ve los resultados anteriores);
+  - `playoffForm` alimenta la línea "Forma playoffs" de cada alianza;
+  - `runMonteCarloSimulation` fija resultados reales y ganadores forzados y simula solo lo que falta, con la forma.
+  - Con RNG sembrado (`seededRandom`) es una función pura y se recalcula sola; ya no hay botón.
+  - El Oracle conserva su ×2.4: no se re-ajustó en este backtest.
+
+**Backtest** (`scripts/playoff-update-backtest.ts`, eventos de prueba no usados para ajustar):
+
+| Temporada | Partidos | Hoy (qualys, ×2.4) | Con forma (K=2, ×1.6) |
+|---|---|---|---|
+| 2025 | 3,056 | 76.1 % · Brier 0.167 · log loss 0.506 | 76.3 % · 0.160 · 0.487 |
+| 2024 | 2,480 | 76.3 % · 0.164 · 0.497 | 77.9 % · 0.152 · 0.462 |
+| 2026 | 87 | 75.9 % · 0.155 · 0.473 | 73.6 % · 0.141 · 0.427 |
+
+El óptimo de K es 2–3 en las tres temporadas.
+
+**USMIRHQ** (repetición de los 8 playoffs): antes acertaba 4/8 y ahora 6/8. M7 y M8 cambian a acierto. M6 (A3 con un robot fallando) sigue sin poder anticiparse con un solo partido de evidencia: el fallo de un robot no se pronostica.
+
+**Cierre de USMIRHQ (final A2 205 – 122 A1):**
+- Con solo qualys, PRIDE daba la final a A1 con 62 % (el Oracle viejo, ~56 %).
+- Con la forma: A2 76 % (✓). El Oracle con forma daba A2 61 % y campeón A2 62 % desde M7.
+- En los 10 playoffs: 5/10 con solo qualys, 7/10 con forma.
+
+**Ajuste adicional: descalificaciones.** En M9, A5 quedó descalificada (`dq: true`, 0 puntos oficiales; anotó 94 en la cancha). Un 0 por DQ es una sanción, no rendimiento, así que se excluye:
+- del OPR de qualys (`sideDisqualified` en `eventStrengthModel`);
+- de la forma en vivo (`playoffForecaster.record`);
+- de la forma del Oracle (`MatchAdjustment.dqRed/dqBlue`, que llenan al importar resultados).
+
+**Límite conocido:** A2 jugó en playoffs muy por encima de sus qualys (np 146, 165 y 185 contra 105 proyectados), sin tendencia visible en sus 5 qualys por equipo. Es sinergia de la pareja: no se puede ver antes de su primer playoff (M4 sigue siendo un fallo), pero la forma la captura desde el segundo.
