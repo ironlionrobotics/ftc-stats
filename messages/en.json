@@ -1962,5 +1962,47 @@
       "playoffs": "Alliances, playoffs and champion",
       "pride": "Pit lending and scout board"
     }
+  },
+  "PredictionLedger": {
+    "column": "PRIDE forecast",
+    "red": "Red",
+    "blue": "Blue",
+    "tossup": "Toss-up {pct}",
+    "tie": "tie",
+    "hit": "PRIDE was right",
+    "miss": "PRIDE was wrong",
+    "hitShort": "Right",
+    "missShort": "Wrong",
+    "noForecast": "—",
+    "noForecastHint": "No forecast: needs at least 2 played quals.",
+    "tossupHint": "Nearly 50/50: PRIDE doesn't pick a winner.",
+    "title": "PRIDE's forecast at this event",
+    "titleTeam": "PRIDE's forecast in {team}'s matches",
+    "hits": "right ({pct})",
+    "tossups": "{n, plural, one {# toss-up} other {# toss-ups}} with no favorite",
+    "brier": "Brier {brier} (coin flip: 0.250; lower is better)",
+    "explain": "Who PRIDE picked BEFORE each match, using only earlier matches, against who won."
+  },
+  "LiveScoreboard": {
+    "title": "Today, live",
+    "updated": "Updated {time} · refreshes itself",
+    "lead": "What PRIDE forecast BEFORE each match of the events in progress, against what happened. The model never saw these matches: no after-the-fact tuning here.",
+    "none": "No events with played matches right now.",
+    "accuracy": "Right",
+    "accuracySub": "{hits} of {calls} matches with a favorite",
+    "brier": "Brier",
+    "brierSub": "coin flip = 0.250; lower is better",
+    "matches": "Matches",
+    "matchesSub": "{tossups} toss-ups (nearly 50/50) with no favorite",
+    "events": "Events",
+    "eventsSub": "with matches, of {live} in progress",
+    "calibration": "Calibration: when PRIDE says X%, does the favorite win X% of the time?",
+    "band": "{lo}–{hi}%",
+    "bandLine": "said {pred} · real {real}",
+    "calibrationHint": "Well calibrated = “said” and “real” close in every band.",
+    "colEvent": "Event",
+    "colHits": "Right",
+    "colBrier": "Brier",
+    "colRecent": "Last 5"
   }
 }

@@ -1962,5 +1962,47 @@
       "playoffs": "Alianzas, playoffs y campeón",
       "pride": "Préstamos y reparto de scouts"
     }
+  },
+  "PredictionLedger": {
+    "column": "pronóstico PRIDE",
+    "red": "Rojo",
+    "blue": "Azul",
+    "tossup": "Parejo {pct}",
+    "tie": "empate",
+    "hit": "PRIDE acertó",
+    "miss": "PRIDE falló",
+    "hitShort": "Acertó",
+    "missShort": "Falló",
+    "noForecast": "—",
+    "noForecastHint": "Sin pronóstico: hacen falta al menos 2 qualys jugadas.",
+    "tossupHint": "Casi 50/50: PRIDE no le da el gane a nadie.",
+    "title": "Pronóstico de PRIDE en este evento",
+    "titleTeam": "Pronóstico de PRIDE en los partidos de {team}",
+    "hits": "aciertos ({pct})",
+    "tossups": "{n, plural, one {# partido parejo} other {# partidos parejos}} sin favorito",
+    "brier": "Brier {brier} (moneda al aire: 0.250; menos es mejor)",
+    "explain": "A quién le daba el gane PRIDE ANTES de cada partido, solo con los partidos anteriores, contra quién ganó."
+  },
+  "LiveScoreboard": {
+    "title": "Hoy, en vivo",
+    "updated": "Actualizado {time} · se refresca solo",
+    "lead": "Lo que PRIDE pronosticó ANTES de cada partido de los eventos en curso, contra lo que pasó. Son partidos que el modelo nunca vio: aquí no hay ajuste a posteriori.",
+    "none": "No hay eventos con partidos jugados en este momento.",
+    "accuracy": "Aciertos",
+    "accuracySub": "{hits} de {calls} partidos con favorito",
+    "brier": "Brier",
+    "brierSub": "moneda al aire = 0.250; menos es mejor",
+    "matches": "Partidos",
+    "matchesSub": "{tossups} parejos (casi 50/50) sin favorito",
+    "events": "Eventos",
+    "eventsSub": "con partidos, de {live} en curso",
+    "calibration": "Calibración: cuando PRIDE dice X %, ¿gana el favorito X % de las veces?",
+    "band": "{lo}–{hi} %",
+    "bandLine": "dijo {pred} · real {real}",
+    "calibrationHint": "Bien calibrado = «dijo» y «real» parecidos en cada franja.",
+    "colEvent": "Evento",
+    "colHits": "Aciertos",
+    "colBrier": "Brier",
+    "colRecent": "Últimos 5"
   }
 }

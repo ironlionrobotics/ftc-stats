@@ -1239,3 +1239,39 @@ Se renderizan con el mismo motor que el scouting (`DynamicGameForm`). Los datos 
 **Solo cambia `pRed`**, que usa "Hoy" para el próximo partido. La proyección del ranking (Monte Carlo) ya muestrea su propia incertidumbre y no se toca.
 
 **Otras apps:** depthftc es la única encontrada con pronóstico por partido y fórmula pública: suma de NP OPR, logística con escala max(14, 0.28 × fuerza media) y sin métricas publicadas. En su modo justo (Pre-Event, OPR del evento anterior) acertó 40 % en USMIRHQ (log loss 1.02): solo 11 de 36 equipos tenían un evento previo, y su escala es demasiado agresiva. Su modo por defecto (Season Best) usa el mismo evento, así que no es comparable.
+
+## #110 · Seguir eventos y equipos, avisos push (2026-11-14)
+
+- **Seguir:** se pueden seguir hasta 10 eventos y 10 equipos además de "mi equipo".
+  - Se guarda en la cookie httpOnly `pride_follows`, así que funciona sin cuenta.
+  - Con cuenta se copia en `users/{uid}.follows`, y al iniciar sesión se une la lista del dispositivo con la de la cuenta.
+- **"Hoy":**
+  - muestra los eventos en curso y de los próximos 7 días (México o todas las regiones, con búsqueda);
+  - agrega las tarjetas de "Siguiendo", que se actualizan cada 60 s solo si la pestaña está visible.
+- **Avisos:** Web Push estándar (VAPID) con `web-push` en el servidor; el cliente no carga ningún SDK.
+  - **Suscripción:** se guarda en `push_subscriptions/{sha256(endpoint)}` y solo la escribe el servidor.
+  - **Seguridad (SSRF):** se valida que el endpoint sea de un push service conocido.
+  - **Envío:** un cron cada minuto (Cloud Scheduler → `POST /api/cron/live` con `X-Cron-Secret`) corre `diffEvent` en una transacción por evento. Cada aviso sale una sola vez, y si alguien empieza a seguir un evento a medias no recibe lo que ya pasó.
+  - **Quién recibe qué:** quien sigue un equipo recibe "juega en ~2", sus resultados, alianzas y campeón. Quien sigue un evento solo recibe los hitos.
+  - **Avisos de PRIDE:** recordatorio del robot reclamado en el reparto, solicitudes de préstamo a los equipos presentes, y préstamo registrado o devuelto a la otra parte.
+
+## #111 · Registro de pronósticos: a quién le daba el gane PRIDE vs quién ganó (2026-11-14)
+
+**Hallazgo:** la app tenía **tres** pronósticos distintos para un mismo partido.
+- **"Hoy" y las tarjetas:** `eventStrengthModel`, calibrado en #109.
+- **Próximos partidos de la página del evento:** un OPR propio sin regularizar y sin el piso de σ. En USMIRHQ acertaba 54 % con log loss 1.19: se pasaba de seguro, por ejemplo 2 % en la Q33.
+- **Resultados de la página del evento:** una barra "pitagórica" calculada con el ranking actual. Ya incluía el resultado del propio partido, es decir, era post hoc.
+
+**Decisión:** un solo modelo para todo.
+- **`lib/prediction-ledger.ts`** repite el pronóstico previo de cada partido jugado. Las qualys usan solo las qualys anteriores (#109); los playoffs usan el modelo de qualys con el σ de playoffs (#59).
+  - Es determinista, así que muestra exactamente lo que se veía antes del partido, sin guardar nada y sin poder retocarse después.
+  - Si la probabilidad está a menos de 5 puntos de 50 %, se marca como **"Parejo"** y no cuenta como acierto ni como fallo.
+- **Página del evento:** en cada partido, bajo su nombre, aparece el favorito con su porcentaje y **✓ Acertó / ✗ Falló**, más un resumen del evento (o del equipo filtrado). Los próximos partidos usan el mismo modelo.
+- **`/oracle` "Hoy, en vivo":** el registro de todos los eventos en curso, con caché de 2 min.
+
+**Fuera de muestra, 14-nov** (74 eventos en curso, 1,294 partidos):
+- acierta el 76.1 % de los partidos con favorito, con Brier 0.183 y log loss ~0.535 (la moneda da 0.250 y 0.693);
+- calibración por franja (dijo / real): 54/56, 65/64, 74/78, 84/89, 96/98.
+- Se queda un poco corto arriba, pero no se ajusta con un solo día; se vuelve a revisar con más eventos.
+
+**Q36 de USMIRHQ (la consulta de Héctor):** antes del partido PRIDE daba 53 % a la roja, es decir, "Parejo". Ganó la roja por 13.

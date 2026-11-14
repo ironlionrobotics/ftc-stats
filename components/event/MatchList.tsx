@@ -3,8 +3,12 @@
 import { gameDefinitionFor } from "@/lib/games/registry";
 import { inputsFromEntry } from "@/lib/games/score-inputs";
 import { useState, useMemo, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting, FTCHybridScheduleMatch, FTCAward, FTCAllianceSelection } from "@/types/scouting";
-import { winProbabilityFromNormalModel } from "@/lib/win-probability";
+import { winProbabilityFromNormalModel, playoffWinProbability } from "@/lib/win-probability";
+import { eventStrengthModel } from "@/lib/live-projection";
+import { predictionLedger, scorecard, type LedgerRow } from "@/lib/prediction-ledger";
+import PredictionCell, { LedgerSummary } from "@/components/event/PredictionLedger";
 import clsx from "clsx";
 import { Trophy, Zap, Star, Info, Target, MousePointer2, AlertTriangle, Clock, ChevronDown, Award, Users } from "lucide-react";
 
@@ -24,6 +28,7 @@ interface MatchListProps {
 
 export default function MatchList({ matches, rankings, filterTeam, setFilterTeam, scoutingData, schedule, awards, selectedAlliances }: MatchListProps) {
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
+    const tLedger = useTranslations("PredictionLedger");
 
     const toggleMatch = (matchId: string) => {
         setExpandedMatch(prev => prev === matchId ? null : matchId);
@@ -32,6 +37,16 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
     const filteredMatches = filterTeam
         ? matches.filter(m => m.teams.some(t => t.teamNumber === filterTeam))
         : matches;
+
+    // What PRIDE said BEFORE each played match vs who won (decision #111). Built
+    // from the full match list (the model only ever sees earlier matches).
+    const ledger = useMemo(() => predictionLedger(matches), [matches]);
+    const ledgerByKey = useMemo(() => new Map(ledger.map(r => [`${r.level}:${r.series}:${r.matchNumber}`, r])), [ledger]);
+    const ledgerCard = useMemo(
+        () => scorecard(filterTeam ? ledger.filter(r => r.red.includes(filterTeam) || r.blue.includes(filterTeam)) : ledger),
+        [ledger, filterTeam],
+    );
+    const predictionFor = (m: FTCMatch): LedgerRow | undefined => ledgerByKey.get(`${m.tournamentLevel}:${m.series ?? 0}:${m.matchNumber}`);
 
     const qualMatches = filteredMatches.filter(m => m.tournamentLevel === "QUALIFICATION");
     const otherMatches = filteredMatches.filter(m => m.tournamentLevel !== "QUALIFICATION" && m.tournamentLevel !== "PRACTICE");
@@ -150,7 +165,12 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
             ? Math.sqrt(residuals.reduce((s, r) => s + r * r, 0) / residuals.length)
             : 0;
 
-        const sigmaDiff = sigmaAlliance * Math.SQRT2;
+        // Same calibrated model as "Hoy" and the following cards (#109/#111);
+        // the hand-rolled OPR above only explains the split (auto/tele/fouls).
+        const playedQuals = matches.filter(m => m.tournamentLevel === "QUALIFICATION"
+            && (!!m.postResultTime || m.scoreRedFinal + m.scoreBlueFinal > 0));
+        const model = playedQuals.length >= 2 ? eventStrengthModel(playedQuals) : null;
+        const sigmaDiff = model ? model.sigmaDiff : sigmaAlliance * Math.SQRT2;
         const allianceDetail = (teams: FTCHybridScheduleMatch["teams"]) => {
             const perTeam = teams.map(t => {
                 const opr = oprData.overall.get(t.teamNumber) ?? 0;
@@ -179,13 +199,19 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                 const blue = m.teams.filter(t => t.station.startsWith("Blue"));
                 const redDetail = allianceDetail(red);
                 const blueDetail = allianceDetail(blue);
-                const pRed = winProbabilityFromNormalModel(redDetail.total, blueDetail.total, sigmaDiff);
+                const redNums = red.map(t => t.teamNumber), blueNums = blue.map(t => t.teamNumber);
+                const mu = (a: number[]) => a.reduce((sum, t) => sum + (model?.strength(t) ?? 0), 0);
+                const pRed = !model
+                    ? winProbabilityFromNormalModel(redDetail.total, blueDetail.total, sigmaDiff)
+                    : m.tournamentLevel === "QUALIFICATION"
+                        ? model.pRed(redNums, blueNums)
+                        : playoffWinProbability(mu(redNums), mu(blueNums), model.sigmaDiff);
                 return {
                     match: m,
                     red,
                     blue,
-                    muRed: redDetail.total,
-                    muBlue: blueDetail.total,
+                    muRed: model ? mu(redNums) : redDetail.total,
+                    muBlue: model ? mu(blueNums) : blueDetail.total,
                     pRed,
                     redDetail,
                     blueDetail,
@@ -433,6 +459,8 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                 </section>
             )}
 
+            {ledgerCard.n > 0 && <LedgerSummary card={ledgerCard} team={filterTeam} />}
+
             {qualMatches.length > 0 && (
                 <section>
                     <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
@@ -443,7 +471,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                         <table className="w-full text-left border-collapse min-w-[900px]">
                             <thead>
                                 <tr className="text-muted-foreground border-b border-border text-sm uppercase tracking-wider">
-                                    <th className="p-4 font-medium min-w-[150px]">Match</th>
+                                    <th className="p-4 font-medium min-w-[170px]">Match · {tLedger("column")}</th>
                                     <th colSpan={2} className="p-2 font-medium text-center bg-danger/5 text-danger rounded-tl-lg border-x border-border/50">Red Alliance</th>
                                     <th colSpan={2} className="p-2 font-medium text-center bg-secondary/5 text-secondary rounded-tr-lg border-x border-border/50">Blue Alliance</th>
                                     <th className="p-4 font-medium text-center min-w-[120px]">Score</th>
@@ -461,6 +489,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                                         scoutingData={scoutingData}
                                         isExpanded={expandedMatch === match.description}
                                         onToggle={() => toggleMatch(match.description)}
+                                        prediction={predictionFor(match)}
                                     />
                                 ))}
                             </tbody>
@@ -479,7 +508,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                         <table className="w-full text-left border-collapse min-w-[900px]">
                             <thead>
                                 <tr className="text-muted-foreground border-b border-border text-sm uppercase tracking-wider">
-                                    <th className="p-4 font-medium min-w-[150px]">Match</th>
+                                    <th className="p-4 font-medium min-w-[170px]">Match · {tLedger("column")}</th>
                                     <th colSpan={2} className="p-2 font-medium text-center bg-danger/5 text-danger rounded-tl-lg border-x border-border/50">Red Alliance</th>
                                     <th colSpan={2} className="p-2 font-medium text-center bg-secondary/5 text-secondary rounded-tr-lg border-x border-border/50">Blue Alliance</th>
                                     <th className="p-4 font-medium text-center min-w-[120px]">Score</th>
@@ -497,6 +526,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                                         scoutingData={scoutingData}
                                         isExpanded={expandedMatch === match.description}
                                         onToggle={() => toggleMatch(match.description)}
+                                        prediction={predictionFor(match)}
                                     />
                                 ))}
                             </tbody>
@@ -583,7 +613,7 @@ function TeamInfo({ team, teamNamesMap, onTeamClick, filterTeam }: { team?: FTCM
 
 // ... (KPICard and TeamInfo remain unchanged) ...
 
-function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scoutingData, isExpanded, onToggle }: {
+function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scoutingData, isExpanded, onToggle, prediction }: {
     match: FTCMatch,
     rankings: TeamRanking[],
     teamNamesMap: Map<number, string>,
@@ -591,7 +621,9 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
     filterTeam: number | null,
     scoutingData: MatchScouting[],
     isExpanded: boolean,
-    onToggle: () => void
+    onToggle: () => void,
+    /** PRIDE's pre-match forecast for this match (#111). */
+    prediction?: LedgerRow
 }) {
     const redTeams = match.teams.filter(t => t.station.startsWith('Red')).sort((a, b) => a.station.localeCompare(b.station));
     const blueTeams = match.teams.filter(t => t.station.startsWith('Blue')).sort((a, b) => a.station.localeCompare(b.station));
@@ -620,41 +652,6 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
 
     const startTime = formatTime(match.actualStartTime);
 
-    // PREDICTION LOGIC
-    const getAllianceStats = (teams: FTCMatchTeam[]) => {
-        let totalStrength = 0;
-        let totalMatches = 0;
-        let teamsFound = 0;
-        teams.forEach(t => {
-            const rank = rankings.find(r => r.teamNumber === t.teamNumber);
-            if (rank) {
-                const strength = rank.qualAverage || rank.sortOrder2 || 0;
-                totalStrength += strength;
-                totalMatches += rank.matchesPlayed;
-                teamsFound++;
-            }
-        });
-        return { strength: teamsFound > 0 ? totalStrength : 0, matchesPlayed: teamsFound > 0 ? Math.round(totalMatches / teamsFound) : 0 };
-    };
-
-    const redStats = getAllianceStats(redTeams);
-    const blueStats = getAllianceStats(blueTeams);
-
-    // Bill James' Pythagorean Expectation adaptation
-    let redProb = 50;
-    let blueProb = 50;
-    let hasPrediction = false;
-
-    if (redStats.strength > 0 || blueStats.strength > 0) {
-        const r2 = Math.pow(redStats.strength, 2);
-        const b2 = Math.pow(blueStats.strength, 2);
-        if (r2 + b2 > 0) {
-            redProb = (r2 / (r2 + b2)) * 100;
-            blueProb = 100 - redProb;
-            hasPrediction = true;
-        }
-    }
-
     return (
         <>
             <tr onClick={onToggle} className={`cursor-pointer transition-colors border-b border-border/50 last:border-0 ${isExpanded ? "bg-muted shadow-inner" : "hover:bg-muted/50"}`}>
@@ -663,6 +660,7 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                         {shortenDescription(match.description)}
                         {isExpanded && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
                     </div>
+                    {isPlayed && <div className="mt-1.5"><PredictionCell row={prediction} /></div>}
                 </td>
 
                 <td className={clsx("p-4 border-l-4", redWin ? "border-danger bg-danger/10" : "border-transparent")}>
@@ -698,15 +696,6 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                                 </div>
                             </div>
 
-                            {/* Prediction Bar */}
-                            {hasPrediction && (
-                                <div className="w-full max-w-[140px] mx-auto opacity-80 hover:opacity-100 transition-opacity">
-                                    <div className="h-1 w-full flex rounded-full overflow-hidden bg-muted">
-                                        <div style={{ width: `${redProb}%` }} className="h-full bg-danger" />
-                                        <div style={{ width: `${blueProb}%` }} className="h-full bg-secondary" />
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     ) : (
                         <div className="text-center">

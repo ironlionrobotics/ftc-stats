@@ -3,6 +3,8 @@ import { getTranslations, getFormatter } from "next-intl/server";
 import { ORACLE_CALIBRATION as C } from "@/lib/reports/oracle-calibration";
 import { Target, Activity, Layers, AlertTriangle, Repeat, ExternalLink } from "lucide-react";
 import clsx from "clsx";
+import { Suspense } from "react";
+import LiveScoreboard from "@/components/oracle/LiveScoreboard";
 
 export async function generateMetadata(): Promise<Metadata> {
     const t = await getTranslations("OraclePage");
@@ -55,6 +57,11 @@ export default async function OracleCalibrationPage() {
                     <Stat value={`${C.totals.seasons}`} label={t("statSeasons")} sub={t("statSeasonsSub")} />
                 </div>
             </header>
+
+            {/* ── Today, live (decision #111) ───────────────────────────── */}
+            <Suspense fallback={<div className="mb-12 h-40 animate-pulse rounded-2xl border border-border bg-card" />}>
+                <LiveScoreboard />
+            </Suspense>
 
             {/* ── Reliability ───────────────────────────────────────────── */}
             <Section

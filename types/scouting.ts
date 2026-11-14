@@ -418,6 +418,8 @@ export interface FTCMatch {
     actualStartTime?: string;
     postResultTime?: string;
     tournamentLevel: string; // "QUALIFICATION", "PLAYOFF", etc.
+    /** Playoffs: FTC double elimination repeats matchNumber 1; `series` numbers the matches. */
+    series?: number;
 }
 
 /**
