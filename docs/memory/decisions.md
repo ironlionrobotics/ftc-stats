@@ -1229,7 +1229,7 @@ Se renderizan con el mismo motor que el scouting (`DynamicGameForm`). Los datos 
 
 **Hallazgo (Rochester Qualifier USMIRHQ, en vivo, 14-nov):** el pronóstico de qualys que muestra "Hoy" (`eventStrengthModel`, OPR del evento solo con los partidos ya jugados) acertó 62 % pero falló con 95 % en Q21 y Q31. Su log loss (0.713) era peor que el de una moneda (0.693). La razón: con 2 o 3 partidos por robot el OPR es muy ruidoso, y σ solo medía el ruido de los marcadores, no esa incertidumbre.
 
-**Backtest** (`scripts/live-quals-backtest.ts`, corre el código real de `lib/` con `scripts/run-ts.cjs`): 202 eventos BIOBUZZ terminados en FTCScout. Se ajusta en 101 eventos y se reporta en los otros 101 (1,584 partidos).
+**Backtest** (`scripts/live-quals-backtest.ts`, corre el código real de `lib/` con `scripts/run-ts.mjs`): 202 eventos BIOBUZZ terminados en FTCScout. Se ajusta en 101 eventos y se reporta en los otros 101 (1,584 partidos).
 - **Modelo:** σ_eff = σ_diff · √(1 + A / n̄), con n̄ = promedio de qualys ya jugadas por los robots del partido. El mejor valor es **A = 4**; la cresta λ = 1 se queda igual.
 - **Global:** el acierto queda en 71.1 % (no cambia quién es favorito). Brier 0.192 → 0.185 y log loss 0.578 → 0.544.
 - **Calibración:** en la franja "90–100 %", el real pasó de 88 % a 96 % (pronóstico 95 %). En "80–90 %", de 74 % a 85 %.

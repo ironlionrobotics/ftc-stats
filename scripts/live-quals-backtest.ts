@@ -11,7 +11,7 @@
  *             n̄ = mean quals already played by the 4 robots in the match
  * Fit on even-indexed events, reported on odd-indexed ones (held out).
  *
- * Run: node scripts/run-ts.cjs scripts/live-quals-backtest.ts 2026
+ * Run: node scripts/run-ts.mjs scripts/live-quals-backtest.ts 2026
  * Cache: data/live-quals-backtest/season-<S>.json (delete to refetch).
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -23,10 +23,15 @@ const SEASON = Number(process.argv[2] ?? 2026);
 const DIR = join(process.cwd(), "data", "live-quals-backtest");
 const CACHE = join(DIR, `season-${SEASON}.json`);
 
+interface GqlTeam { teamNumber: number; alliance: "Red" | "Blue"; onField?: boolean | null }
+interface GqlSide { totalPointsNp: number | null; totalPoints: number | null }
+interface GqlMatch { matchNum: number; tournamentLevel: string; scores: { red?: GqlSide; blue?: GqlSide } | null; teams: GqlTeam[] }
+interface GqlEvent { code: string; finished: boolean; hasMatches: boolean }
+
 interface Q { n: number; red: number[]; blue: number[]; redNp: number; blueNp: number; redTot: number; blueTot: number }
 interface Ev { code: string; quals: Q[] }
 
-async function gql(query: string): Promise<any> {
+async function gql<T>(query: string): Promise<T> {
     for (let attempt = 0; attempt < 4; attempt++) {
         try {
             const r = await fetch("https://api.ftcscout.org/graphql", {
@@ -37,12 +42,13 @@ async function gql(query: string): Promise<any> {
             if (r.status === 429 || r.status >= 500) throw new Error(`HTTP ${r.status}`);
             const j = await r.json();
             if (j.errors) throw new Error(j.errors[0].message);
-            return j.data;
+            return j.data as T;
         } catch (e) {
             if (attempt === 3) throw e;
             await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
         }
     }
+    throw new Error("unreachable");
 }
 
 /** A usable qual: both alliances fielded and every score present. */
@@ -54,20 +60,20 @@ async function load(): Promise<Ev[]> {
         const cached: Ev[] = JSON.parse(readFileSync(CACHE, "utf8"));
         return cached.map(e => ({ ...e, quals: e.quals.filter(ok) })).filter(e => e.quals.length >= 6);
     }
-    const list = (await gql(`query{ eventsSearch(season:${SEASON}, limit:5000){ code finished hasMatches } }`)).eventsSearch
-        .filter((e: any) => e.finished && e.hasMatches).map((e: any) => e.code as string);
+    const list = (await gql<{ eventsSearch: GqlEvent[] }>(`query{ eventsSearch(season:${SEASON}, limit:5000){ code finished hasMatches } }`)).eventsSearch
+        .filter(e => e.finished && e.hasMatches).map(e => e.code);
     const out: Ev[] = [];
     for (let i = 0; i < list.length; i += 4) {
         const batch = await Promise.all(list.slice(i, i + 4).map(async (code: string) => {
-            const d = await gql(`query{ eventByCode(season:${SEASON}, code:"${code}"){ matches { matchNum tournamentLevel scores { ... on MatchScores${SEASON} { red { totalPointsNp totalPoints } blue { totalPointsNp totalPoints } } } teams { teamNumber alliance onField } } } }`);
+            const d = await gql<{ eventByCode: { matches: GqlMatch[] } | null }>(`query{ eventByCode(season:${SEASON}, code:"${code}"){ matches { matchNum tournamentLevel scores { ... on MatchScores${SEASON} { red { totalPointsNp totalPoints } blue { totalPointsNp totalPoints } } } teams { teamNumber alliance onField } } } }`);
             const quals: Q[] = (d.eventByCode?.matches ?? [])
-                .filter((m: any) => m.tournamentLevel === "Quals" && m.scores?.red)
-                .map((m: any) => ({
+                .filter(m => m.tournamentLevel === "Quals" && m.scores?.red && m.scores?.blue)
+                .map(m => ({
                     n: m.matchNum,
-                    red: m.teams.filter((t: any) => t.alliance === "Red" && t.onField !== false).map((t: any) => t.teamNumber),
-                    blue: m.teams.filter((t: any) => t.alliance === "Blue" && t.onField !== false).map((t: any) => t.teamNumber),
-                    redNp: m.scores.red.totalPointsNp, blueNp: m.scores.blue.totalPointsNp,
-                    redTot: m.scores.red.totalPoints, blueTot: m.scores.blue.totalPoints,
+                    red: m.teams.filter(t => t.alliance === "Red" && t.onField !== false).map(t => t.teamNumber),
+                    blue: m.teams.filter(t => t.alliance === "Blue" && t.onField !== false).map(t => t.teamNumber),
+                    redNp: m.scores!.red!.totalPointsNp as number, blueNp: m.scores!.blue!.totalPointsNp as number,
+                    redTot: m.scores!.red!.totalPoints as number, blueTot: m.scores!.blue!.totalPoints as number,
                 }))
                 .sort((a: Q, b: Q) => a.n - b.n);
             return { code, quals };
