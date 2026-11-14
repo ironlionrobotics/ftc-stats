@@ -18,6 +18,7 @@ import { loadFollowingSnapshot } from "@/lib/following-snapshot";
 import FollowingPanel from "@/components/home/FollowingPanel";
 import EventsToday from "@/components/home/EventsToday";
 import FollowTeamInline from "@/components/home/FollowTeamInline";
+import NotifySettings from "@/components/notifications/NotifySettings";
 
 /**
  * Hoy (plan "PRIDE abierta al público", Etapa 2, decision #98): the home of
@@ -40,7 +41,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     const query = typeof params?.q === "string" ? params.q.slice(0, 40) : "";
     const followSections = (
         <Suspense fallback={null}>
-            <FollowSections follows={follows} region={region} query={query} season={current} />
+            <FollowSections follows={follows} region={region} query={query} season={current} hasTeam={team !== null} />
         </Suspense>
     );
 
@@ -113,7 +114,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 }
 
 /** "Siguiendo" + today's events (decision #110), streamed after the main card. */
-async function FollowSections({ follows, region, query, season }: { follows: Follows; region: EventRegion; query: string; season: number }) {
+async function FollowSections({ follows, region, query, season, hasTeam }: { follows: Follows; region: EventRegion; query: string; season: number; hasTeam: boolean }) {
     const [events, snapshot] = await Promise.all([fetchEvents(season), loadFollowingSnapshot(follows, season)]);
     const items = listEvents(events, region, query, follows.events);
     const hasFollows = snapshot.events.length + snapshot.teams.length > 0;
@@ -122,6 +123,7 @@ async function FollowSections({ follows, region, query, season }: { follows: Fol
             {/* Remount when the list changes: a followed/unfollowed item must show at once. */}
             {hasFollows && <FollowingPanel key={serializeFollows(follows)} initial={snapshot} season={season} />}
             <div className="mt-4"><FollowTeamInline /></div>
+            {(hasFollows || hasTeam) && <NotifySettings />}
             <EventsToday items={items} followed={follows.events} region={region} query={query} season={season} />
         </>
     );

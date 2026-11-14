@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { toast } from "sonner";
 import { toggleFollowAction } from "@/app/actions/following";
 import { mirrorFollows } from "@/lib/follows-sync";
+import { syncPushFollows } from "@/lib/push-client";
 import { MAX_FOLLOWS } from "@/lib/follows";
 import { useAuth } from "@/context/AuthContext";
 
@@ -22,6 +23,7 @@ export default function FollowStar({ kind, value, following, label }: { kind: "e
         if (!res.ok) return;
         if (res.capped) { toast.error(t("capped", { max: MAX_FOLLOWS })); return; }
         if (user) void mirrorFollows(user.uid, res.follows);
+        void syncPushFollows();
         router.refresh();
     });
     return (

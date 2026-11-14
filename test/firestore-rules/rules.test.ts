@@ -250,3 +250,24 @@ describe("no team-less writes, whatever orgId they claim (#102 review 2)", () =>
         }
     });
 });
+
+describe("following and push are server-side (#110)", () => {
+    it("a user may keep its follows on its own doc only", async () => {
+        await seed("users/u1", bareProfile);
+        await seed("users/u2", bareProfile);
+        const db = env.authenticatedContext("u1").firestore();
+        await assertSucceeds(updateDoc(doc(db, "users/u1"), { follows: { events: ["MXTLQ"], teams: [30311] } }));
+        await assertFails(updateDoc(doc(db, "users/u2"), { follows: { events: ["MXTLQ"], teams: [30311] } }));
+    });
+    it("no client can read or write subscriptions, notify state or the index", async () => {
+        await seed("push_subscriptions/abc", { endpoint: "https://fcm.googleapis.com/x", keys: { p256dh: "k", auth: "a" } });
+        for (const ctx of [env.authenticatedContext("u1").firestore(), env.unauthenticatedContext().firestore()]) {
+            await assertFails(getDoc(doc(ctx, "push_subscriptions/abc")));
+            await assertFails(setDoc(doc(ctx, "push_subscriptions/new"), { endpoint: "https://evil.example/x" }));
+            await assertFails(getDoc(doc(ctx, "notify_state/2026_MXTLQ")));
+            await assertFails(setDoc(doc(ctx, "notify_state/2026_MXTLQ"), { v: 1 }));
+            await assertFails(getDoc(doc(ctx, "notify_index/main")));
+            await assertFails(setDoc(doc(ctx, "notify_index/main"), { events: ["X"] }));
+        }
+    });
+});

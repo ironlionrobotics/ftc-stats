@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { toggleFollowAction } from "@/app/actions/following";
 import { mirrorFollows } from "@/lib/follows-sync";
+import { syncPushFollows } from "@/lib/push-client";
 import { MAX_FOLLOWS } from "@/lib/follows";
 import { isValidTeamNumber } from "@/lib/input-guards";
 import { useAuth } from "@/context/AuthContext";
@@ -26,6 +27,7 @@ export default function FollowTeamInline() {
             const res = await toggleFollowAction("team", n);
             if (res.capped) { toast.error(t("capped", { max: MAX_FOLLOWS })); return; }
             if (user) void mirrorFollows(user.uid, res.follows);
+        void syncPushFollows();
             setValue("");
             router.refresh();
         });

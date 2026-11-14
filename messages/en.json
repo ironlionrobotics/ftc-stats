@@ -1935,6 +1935,32 @@
       "requestBody": "Have it? Answer in Pit lending · {event}",
       "claimTitle": "Your assigned robot plays in ~{ahead, plural, one {# match} other {# matches}}",
       "claimBody": "{team} in {label} · {event}"
+    },
+    "test": {
+      "title": "PRIDE: notifications on",
+      "body": "This is how news about your followed teams and events will arrive."
+    }
+  },
+  "NotifySettings": {
+    "title": "Notifications on this device",
+    "hint": "We'll tell you when your team or a followed team is about to play, their results, alliances and champions of events you follow, and (with a team account) pit lending and scout assignments.",
+    "enable": "Turn on notifications",
+    "disable": "Turn off",
+    "test": "Send a test",
+    "testSent": "Test sent: it should arrive in a few seconds.",
+    "enabled": "Notifications on for this device.",
+    "failed": "Couldn't turn on notifications. Try again.",
+    "permissionNeeded": "We need your permission to send notifications.",
+    "denied": "PRIDE notifications are blocked in this browser. Allow them in the site settings and come back.",
+    "iosInstall": "On iPhone and iPad notifications work with PRIDE installed: tap Share → “Add to Home Screen” and open it from there.",
+    "unsupported": "This browser doesn't support push notifications.",
+    "noServiceWorker": "Notifications turn on in the installed app or the published version (not in development mode).",
+    "categories": "Which notifications to get",
+    "cat": {
+      "soon": "My team is about to play",
+      "results": "My teams' results",
+      "playoffs": "Alliances, playoffs and champion",
+      "pride": "Pit lending and scout board"
     }
   }
 }

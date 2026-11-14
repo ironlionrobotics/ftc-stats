@@ -419,6 +419,19 @@ service cloud.firestore {
             allow write: if false;
         }
 
+        // Web Push (#110): device subscriptions (endpoint + keys are bearer
+        // secrets for that device), the cron's per-event notify state and the
+        // index of followed events/teams. Server (Admin SDK) only.
+        match /push_subscriptions/{id} {
+            allow read, write: if false;
+        }
+        match /notify_state/{id} {
+            allow read, write: if false;
+        }
+        match /notify_index/{id} {
+            allow read, write: if false;
+        }
+
         // Federated pool (#102): per-event pseudonyms (org → "A", "B"…).
         // Server-only: knowing the mapping would undo the pseudonymity.
         match /pool_aliases/{doc} {

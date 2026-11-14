@@ -15,6 +15,7 @@ import { setFollowedTeamAction } from "@/app/actions/follow-team";
 import { replaceFollowsAction } from "@/app/actions/following";
 import { mergeFollows, normalizeFollows, sameFollows, type Follows } from "@/lib/follows";
 import { mirrorFollows } from "@/lib/follows-sync";
+import { syncPushFollows } from "@/lib/push-client";
 import { deleteMyAccountAction } from "@/app/actions/delete-account";
 import { PRIMARY_NAV, SECONDARY_NAV, isActive, type NavItem } from "./nav";
 
@@ -56,6 +57,7 @@ export default function AppShell({ followedTeam, follows }: { followedTeam: numb
         let cancelled = false;
         (async () => {
             const res = await setFollowedTeamAction(orgTeam);
+            if (res.ok) void syncPushFollows();
             if (!cancelled && res.ok) router.refresh();
         })();
         return () => { cancelled = true; };
@@ -71,7 +73,7 @@ export default function AppShell({ followedTeam, follows }: { followedTeam: numb
         const merged = mergeFollows(follows, fromDoc);
         if (!sameFollows(merged, fromDoc)) void mirrorFollows(user.uid, merged);
         if (!sameFollows(merged, follows)) {
-            void replaceFollowsAction(merged).then(() => router.refresh());
+            void replaceFollowsAction(merged).then(() => { void syncPushFollows(); router.refresh(); });
         }
     }, [user, userDoc, follows, router]);
 
@@ -230,6 +232,7 @@ function AccountPanel({ team, onClose }: { team: number | null; onClose: () => v
     const follow = (value: number | null) =>
         startTransition(async () => {
             await setFollowedTeamAction(value);
+            void syncPushFollows();
             router.refresh();
         });
 

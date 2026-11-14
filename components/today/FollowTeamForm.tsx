@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { setFollowedTeamAction } from "@/app/actions/follow-team";
+import { syncPushFollows } from "@/lib/push-client";
 
 /** Inline "follow your team" form for the Today page (no account needed). */
 export default function FollowTeamForm() {
@@ -25,7 +26,7 @@ export default function FollowTeamForm() {
                 setInvalid(false);
                 startTransition(async () => {
                     const res = await setFollowedTeamAction(n);
-                    if (res.ok) router.refresh();
+                    if (res.ok) { void syncPushFollows(); router.refresh(); }
                     else setInvalid(true);
                 });
             }}

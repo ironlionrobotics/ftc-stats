@@ -36,3 +36,42 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+// Web Push (decision #110). The server (lib/notify/send.ts) sends a small JSON
+// payload {title, body, url, tag}; a repeated tag replaces the previous
+// notification for the same match instead of stacking.
+interface PushPayload { title?: string; body?: string; url?: string; tag?: string }
+
+self.addEventListener("push", (event: PushEvent) => {
+    let data: PushPayload = {};
+    try {
+        data = event.data?.json() ?? {};
+    } catch {
+        data = { title: event.data?.text() };
+    }
+    const title = data.title || "PRIDE";
+    event.waitUntil(self.registration.showNotification(title, {
+        body: data.body ?? "",
+        tag: data.tag,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-96.png",
+        data: { url: data.url ?? "/" },
+    }));
+});
+
+self.addEventListener("notificationclick", (event: NotificationEvent) => {
+    event.notification.close();
+    const raw = (event.notification.data as { url?: string } | undefined)?.url ?? "/";
+    // Same-origin paths only: a payload can never send the user elsewhere.
+    const target = new URL(raw.startsWith("/") ? raw : "/", self.location.origin).href;
+    event.waitUntil((async () => {
+        const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+        const open = windows.find(w => new URL(w.url).origin === self.location.origin);
+        if (open) {
+            await open.focus();
+            await open.navigate(target).catch(() => undefined);
+            return;
+        }
+        await self.clients.openWindow(target);
+    })());
+});

@@ -1935,6 +1935,32 @@
       "requestBody": "¿Lo tienen? Respóndanle en Préstamos · {event}",
       "claimTitle": "Tu robot asignado juega en ~{ahead, plural, one {# partido} other {# partidos}}",
       "claimBody": "{team} en {label} · {event}"
+    },
+    "test": {
+      "title": "PRIDE: avisos activados",
+      "body": "Así te llegará lo de tus equipos y eventos seguidos."
+    }
+  },
+  "NotifySettings": {
+    "title": "Avisos en este dispositivo",
+    "hint": "Te avisamos cuando tu equipo o un equipo que sigues está por jugar, sus resultados, alianzas y campeón de los eventos que sigues, y (con cuenta de equipo) préstamos y reparto.",
+    "enable": "Activar avisos",
+    "disable": "Desactivar",
+    "test": "Enviar prueba",
+    "testSent": "Prueba enviada: debería llegarte en unos segundos.",
+    "enabled": "Avisos activados en este dispositivo.",
+    "failed": "No se pudieron activar los avisos. Intenta de nuevo.",
+    "permissionNeeded": "Necesitamos tu permiso para mandarte avisos.",
+    "denied": "Bloqueaste los avisos de PRIDE en este navegador. Actívalos en la configuración del sitio y vuelve aquí.",
+    "iosInstall": "En iPhone y iPad los avisos funcionan con PRIDE instalada: toca Compartir → «Agregar a pantalla de inicio» y ábrela desde ahí.",
+    "unsupported": "Este navegador no soporta avisos push.",
+    "noServiceWorker": "Los avisos se activan con la app instalada o en la versión publicada (no en el modo de desarrollo).",
+    "categories": "Qué avisos recibir",
+    "cat": {
+      "soon": "Mi equipo está por jugar",
+      "results": "Resultados de mis equipos",
+      "playoffs": "Alianzas, playoffs y campeón",
+      "pride": "Préstamos y reparto de scouts"
     }
   }
 }
