@@ -682,7 +682,10 @@
       "events": "Eventos",
       "teams": "Equipos",
       "scouting": "Scouting",
-      "strategy": "Estrategia"
+      "strategy": "Estrategia",
+      "event": "Evento",
+      "capture": "Capturar",
+      "more": "Más"
     },
     "more": {
       "title": "Más",
@@ -690,14 +693,18 @@
       "oracle": "Precisión del modelo",
       "card": "Trading Card",
       "lending": "Préstamos de pits",
-      "workshop": "Taller"
+      "workshop": "Taller",
+      "allEvents": "Todos los eventos"
     },
     "aria": {
       "primary": "Navegación principal",
       "more": "Más herramientas"
     },
     "search": {
-      "placeholder": "Número de equipo"
+      "placeholder": "Número de equipo",
+      "open": "Buscar equipo",
+      "go": "Ver equipo",
+      "hint": "Escribe el número del equipo."
     },
     "account": {
       "menu": "Cuenta y ajustes",
@@ -730,7 +737,23 @@
     "pastSeason": {
       "text": "Estás viendo la temporada {season}, no la actual ({current}). Los eventos, el scouting, los préstamos y las prácticas de aquí son de esa temporada.",
       "action": "Ir a {current}"
-    }
+    },
+    "eventSwitch": {
+      "choose": "Elegir evento",
+      "title": "Evento activo",
+      "help": "Evento, Capturar, Estrategia y Préstamos usan este evento.",
+      "live": "En vivo",
+      "upcoming": "Próximos",
+      "past": "Anteriores",
+      "all": "Ver todos los eventos",
+      "liveBadge": "En vivo"
+    },
+    "skip": "Saltar al contenido",
+    "assistant": {
+      "label": "Botón del asistente",
+      "help": "Muestra un botón flotante para abrir el asistente de estrategia."
+    },
+    "filters": "Filtros"
   },
   "TeamsPage": {
     "title": "Equipos",
@@ -1024,7 +1047,8 @@
     "brand": "Iron Lion AI",
     "subtitle": "Asesor estratégico",
     "analyzing": "Analizando...",
-    "placeholder": "Pregunta sobre estrategia..."
+    "placeholder": "Pregunta sobre estrategia...",
+    "open": "Abrir el asistente"
   },
   "OnlineSync": {
     "discordTitle": "Sync de scouting bloqueado",
@@ -1603,7 +1627,6 @@
     "teamTools": "Herramientas del equipo"
   },
   "ScoutingEvent": {
-    "event": "Evento",
     "noEvents": "Todavía no hay eventos en esta temporada.",
     "rosterSeason": "FIRST aún no publica los equipos de este evento: se muestran los equipos con resultados en la temporada. Escribe un número para scoutear a cualquier equipo.",
     "rosterNone": "FIRST aún no publica los equipos de este evento. Escribe un número de equipo en el buscador para scoutearlo.",
@@ -1672,7 +1695,6 @@
   "Lending": {
     "title": "Préstamos de pits",
     "subtitle": "Quién tiene en este evento la pieza o herramienta que necesitas, y si lo prestado ya regresó.",
-    "event": "Evento",
     "signIn": "Inicia sesión con tu equipo para pedir y prestar.",
     "needTeam": "Registra tu equipo (o únete con un código) para usar los préstamos.",
     "noEvent": "No hay evento que mostrar.",

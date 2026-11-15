@@ -9,6 +9,7 @@ import { getMatchScoutingOnce } from "@/lib/scouting-service";
 import { getCurrentSeason, DEFAULT_ORG_ID } from "@/lib/constants";
 import type { MatchScouting } from "@/types/scouting";
 import { useTranslations } from "next-intl";
+import { useAssistantPref } from "@/lib/stores/assistant-pref";
 
 /**
  * Builds a compact digest of the event's free-text scouting notes — the one
@@ -41,6 +42,7 @@ export default function AssistantChat() {
     const t = useTranslations("AssistantChat");
     const { user, orgId } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+    const showLauncher = useAssistantPref(s => s.showLauncher);
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string, isError?: boolean }[]>([
         { role: 'assistant', content: t("greeting") }
     ]);
@@ -218,13 +220,14 @@ export default function AssistantChat() {
                 </div>
             </div>
 
-            {/* Floating Toggle Button */}
-            {!isOpen && (
+            {/* Floating launcher — opt-in from the account panel (#116). */}
+            {!isOpen && showLauncher && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="pointer-events-auto w-14 h-14 bg-secondary hover:bg-secondary/90 rounded-full shadow-sm flex items-center justify-center text-secondary-foreground transition-all transform hover:scale-110 active:scale-95 border-2 border-background"
+                    aria-label={t("open")}
+                    className="pointer-events-auto w-12 h-12 bg-brand hover:bg-brand/90 rounded-full shadow-sm flex items-center justify-center text-brand-foreground transition-colors border-2 border-background"
                 >
-                    <MessageSquare size={26} fill="white" />
+                    <MessageSquare size={22} />
                 </button>
             )}
         </div>

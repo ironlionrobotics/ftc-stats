@@ -682,7 +682,10 @@
       "events": "Events",
       "teams": "Teams",
       "scouting": "Scouting",
-      "strategy": "Strategy"
+      "strategy": "Strategy",
+      "event": "Event",
+      "capture": "Capture",
+      "more": "More"
     },
     "more": {
       "title": "More",
@@ -690,14 +693,18 @@
       "oracle": "Model accuracy",
       "card": "Trading Card",
       "lending": "Pit lending",
-      "workshop": "Workshop"
+      "workshop": "Workshop",
+      "allEvents": "All events"
     },
     "aria": {
       "primary": "Main navigation",
       "more": "More tools"
     },
     "search": {
-      "placeholder": "Team number"
+      "placeholder": "Team number",
+      "open": "Find a team",
+      "go": "Open team",
+      "hint": "Type the team number."
     },
     "account": {
       "menu": "Account and settings",
@@ -730,7 +737,23 @@
     "pastSeason": {
       "text": "You're viewing the {season} season, not the current one ({current}). Events, scouting, lending and practice here belong to that season.",
       "action": "Go to {current}"
-    }
+    },
+    "eventSwitch": {
+      "choose": "Choose event",
+      "title": "Active event",
+      "help": "Event, Capture, Strategy and Lending use this event.",
+      "live": "Live",
+      "upcoming": "Upcoming",
+      "past": "Earlier",
+      "all": "See all events",
+      "liveBadge": "Live"
+    },
+    "skip": "Skip to content",
+    "assistant": {
+      "label": "Assistant button",
+      "help": "Shows a floating button to open the strategy assistant."
+    },
+    "filters": "Filters"
   },
   "TeamsPage": {
     "title": "Teams",
@@ -1024,7 +1047,8 @@
     "brand": "Iron Lion AI",
     "subtitle": "Strategic Advisor",
     "analyzing": "Analyzing...",
-    "placeholder": "Ask about strategy..."
+    "placeholder": "Ask about strategy...",
+    "open": "Open the assistant"
   },
   "OnlineSync": {
     "discordTitle": "Scouting sync blocked",
@@ -1603,7 +1627,6 @@
     "teamTools": "Team tools"
   },
   "ScoutingEvent": {
-    "event": "Event",
     "noEvents": "No events this season yet.",
     "rosterSeason": "FIRST hasn't published this event's team list yet — showing teams with results this season. Type a number to scout any team.",
     "rosterNone": "FIRST hasn't published this event's team list yet. Type a team number in the search box to scout it.",
@@ -1672,7 +1695,6 @@
   "Lending": {
     "title": "Pit lending",
     "subtitle": "Who at this event has the part or tool you need — and did what was lent come back.",
-    "event": "Event",
     "signIn": "Sign in with your team to borrow and lend.",
     "needTeam": "Register your team (or join it with a code) to use pit lending.",
     "noEvent": "No event to show.",

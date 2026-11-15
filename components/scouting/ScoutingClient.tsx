@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ScoutTeam, PitScouting, MatchScouting } from "@/types/scouting";
-import { SCOUTING_EVENT_COOKIE } from "@/lib/scouting-event";
 import TeamList from "@/components/scouting/TeamList";
 import ScoutingForm from "@/components/scouting/ScoutingForm";
 import PitQuestionnaire from "@/components/scouting/PitQuestionnaire";
@@ -26,16 +24,9 @@ import { ClipboardList, Trophy, Eye, ChevronLeft, Users, LayoutGrid } from "luci
 import clsx from "clsx";
 import { toast } from "sonner";
 
-export interface ScoutingEventOption {
-    code: string;
-    name: string;
-    dateStart: string;
-}
 
 interface ScoutingClientProps {
     initialTeams: ScoutTeam[];
-    /** Events the scout can pick (oldest first). */
-    events: ScoutingEventOption[];
     /** Event every match/super entry is filed under; null = no event to scout. */
     eventCode: string | null;
     /** Where the team list came from: the event's FIRST roster, season results, or nothing yet. */
@@ -44,7 +35,7 @@ interface ScoutingClientProps {
     schedule: ScheduledMatch[];
 }
 
-export default function ScoutingClient({ initialTeams, events, eventCode, rosterSource, schedule }: ScoutingClientProps) {
+export default function ScoutingClient({ initialTeams, eventCode, rosterSource, schedule }: ScoutingClientProps) {
     const t = useTranslations("ScoutingClient");
     const { user, orgId } = useAuth();
     const { season, program } = useProgram();
@@ -53,7 +44,6 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
     const seasonDef = useMemo(() => gameDefinitionFor("FTC", season), [season]);
     const pitQuestions = useMemo(() => selfReportDefinition(seasonDef), [seasonDef]);
     const tEvent = useTranslations("ScoutingEvent");
-    const router = useRouter();
     // Teams typed in by number when FIRST hasn't published the event roster.
     const [addedTeams, setAddedTeams] = useState<ScoutTeam[]>([]);
     const teams = useMemo(() => {
@@ -99,12 +89,6 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
         });
         return () => unsubscribe();
     }, [season, eventCode, orgId]);
-
-    const changeEvent = (code: string) => {
-        // Remembered for next visits (the server validates it against the season's events).
-        document.cookie = `${SCOUTING_EVENT_COOKIE}=${code}; path=/; max-age=${60 * 60 * 24 * 120}; samesite=lax`;
-        router.push(`/scouting?event=${code}`);
-    };
 
     const addTeam = (teamNumber: number) => {
         setAddedTeams(prev => prev.some(tm => tm.teamNumber === teamNumber)
@@ -160,25 +144,7 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
                     mobileShowForm ? "hidden md:flex" : "flex"
                 )}>
                     <div className="border-b border-border p-4 space-y-2">
-                        <label htmlFor="scouting-event" className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            {tEvent("event")}
-                        </label>
-                        {events.length > 0 ? (
-                            <select
-                                id="scouting-event"
-                                value={eventCode ?? ""}
-                                onChange={(e) => changeEvent(e.target.value)}
-                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-                            >
-                                {events.map(ev => (
-                                    <option key={ev.code} value={ev.code}>
-                                        {ev.dateStart.slice(0, 10)} · {ev.name} ({ev.code})
-                                    </option>
-                                ))}
-                            </select>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">{tEvent("noEvents")}</p>
-                        )}
+                        {!eventCode && <p className="text-sm text-muted-foreground">{tEvent("noEvents")}</p>}
                         {eventCode && program === "FTC" && (
                             <button
                                 type="button"
@@ -207,7 +173,7 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
                 </div>
 
                 {/* Main Content Area */}
-                <main className={clsx(
+                <div className={clsx(
                     "flex-1 flex-col h-full overflow-hidden",
                     mobileShowForm ? "flex" : "hidden md:flex"
                 )}>
@@ -315,7 +281,7 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
                             {t("selectTeam")}
                         </div>
                     )}
-                </main>
+                </div>
             </div>
         </div>
     );

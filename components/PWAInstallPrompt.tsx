@@ -1,111 +1,93 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Download, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 /**
- * Detects the `beforeinstallprompt` event (Chrome/Edge/Android) and shows a
- * small pill in the bottom-left so the user can install the PWA without
- * digging through browser menus. Once dismissed it stays hidden for 7 days
- * (localStorage key `pwa-install-dismissed`).
- *
- * iOS Safari does NOT fire `beforeinstallprompt` — install on iOS is a manual
- * Share → "Add to Home Screen" step that we can't surface from JS. The pill
- * just won't appear there, which is the least-bad option.
+ * PWA install (Chrome/Edge/Android `beforeinstallprompt`). Decision #116: no
+ * floating banner over the content any more. `PWAInstallCapture` (mounted
+ * once in the root layout) keeps the browser's event whatever page the visit
+ * starts on; `PWAInstallCard` shows an inline, dismissible card on Hoy.
+ * Dismissed → hidden for 7 days (localStorage `pwa-install-dismissed`).
+ * iOS Safari never fires the event (install is Share → Add to Home Screen).
  */
 
 const DISMISS_KEY = "pwa-install-dismissed";
-const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;
     userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-export default function PWAInstallPrompt() {
-    const t = useTranslations("PwaInstall");
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-    const [visible, setVisible] = useState(false);
+let deferred: BeforeInstallPromptEvent | null = null;
+const listeners = new Set<() => void>();
+const emit = () => listeners.forEach(l => l());
+const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 
+/** Mount once (root layout): captures the install event for later. Renders nothing. */
+export function PWAInstallCapture() {
     useEffect(() => {
-        // Already installed? Don't show.
-        if (typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches) {
-            return;
-        }
-        // Recently dismissed? Don't show.
-        const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0);
-        if (dismissedAt && Date.now() - dismissedAt < DISMISS_TTL_MS) {
-            return;
-        }
-
         const handler = (e: Event) => {
-            // The default Chrome mini-infobar is suppressed by preventDefault
-            // so we can show our own UI on our schedule.
-            e.preventDefault();
-            setDeferredPrompt(e as BeforeInstallPromptEvent);
-            setVisible(true);
+            e.preventDefault(); // suppress Chrome's mini-infobar; we offer our own card
+            deferred = e as BeforeInstallPromptEvent;
+            emit();
         };
         window.addEventListener("beforeinstallprompt", handler);
         return () => window.removeEventListener("beforeinstallprompt", handler);
     }, []);
+    return null;
+}
 
-    const handleInstall = async () => {
-        if (!deferredPrompt) return;
-        await deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
-        if (choice.outcome === "accepted") {
-            setVisible(false);
-            setDeferredPrompt(null);
-        }
+function recentlyDismissed(): boolean {
+    try {
+        const at = Number(localStorage.getItem(DISMISS_KEY) || 0);
+        return at > 0 && Date.now() - at < DISMISS_TTL_MS;
+    } catch {
+        return false;
+    }
+}
+
+/** Inline install card (Hoy). Nothing when installed, unsupported or dismissed. */
+export default function PWAInstallCard() {
+    const t = useTranslations("PwaInstall");
+    const prompt = useSyncExternalStore(subscribe, () => deferred, () => null);
+    const [hidden, setHidden] = useState(false);
+
+    if (!prompt || hidden || recentlyDismissed()) return null;
+    if (window.matchMedia("(display-mode: standalone)").matches) return null;
+
+    const install = async () => {
+        await prompt.prompt();
+        const choice = await prompt.userChoice;
+        if (choice.outcome === "accepted") { deferred = null; emit(); }
     };
-
-    const handleDismiss = () => {
-        localStorage.setItem(DISMISS_KEY, String(Date.now()));
-        setVisible(false);
+    const dismiss = () => {
+        try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* private mode */ }
+        setHidden(true);
     };
-
-    if (!visible || !deferredPrompt) return null;
 
     return (
-        <div
-            className="fixed bottom-[calc(var(--tabbar-h)+1rem)] left-4 md:bottom-6 md:left-[calc(14rem+1.5rem)] z-40 max-w-sm bg-card border border-primary/30 rounded-xl shadow-sm p-3 flex items-start gap-3 animate-in slide-in-from-bottom-2 fade-in-0"
-            role="region"
-            aria-label={t("regionLabel")}
-        >
-            <div className="p-2 bg-primary/15 text-primary rounded-lg flex-shrink-0">
+        <section className="flex items-start gap-3 rounded-xl border border-border bg-card p-3" aria-label={t("regionLabel")}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand-ink">
                 <Download size={18} />
-            </div>
-            <div className="flex-1 min-w-0">
+            </span>
+            <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-foreground">{t("title")}</p>
-                <p className="text-xs text-muted-foreground leading-snug mt-0.5">
-                    {t("body")}
-                </p>
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{t("body")}</p>
                 <div className="mt-2 flex gap-2">
-                    <button
-                        type="button"
-                        onClick={handleInstall}
-                        className="px-3 py-1.5 bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground text-xs font-bold rounded-md transition-all"
-                    >
+                    <button type="button" onClick={install} className="min-h-[44px] rounded-lg bg-brand px-4 text-sm font-bold text-brand-foreground">
                         {t("install")}
                     </button>
-                    <button
-                        type="button"
-                        onClick={handleDismiss}
-                        className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-xs font-bold rounded-md transition-all"
-                    >
+                    <button type="button" onClick={dismiss} className="min-h-[44px] rounded-lg px-3 text-sm font-semibold text-muted-foreground hover:text-foreground">
                         {t("later")}
                     </button>
                 </div>
             </div>
-            <button
-                type="button"
-                onClick={handleDismiss}
-                aria-label={t("close")}
-                className="text-muted-foreground hover:text-foreground p-1 -mr-1 -mt-1"
-            >
-                <X size={14} />
+            <button type="button" onClick={dismiss} aria-label={t("close")} className="-mr-1 -mt-1 flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground">
+                <X size={16} />
             </button>
-        </div>
+        </section>
     );
 }

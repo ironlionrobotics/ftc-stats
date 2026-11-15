@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
-import { Search, Moon, Sun, SunMoon, LogIn, LogOut, X, Star, User as UserIcon } from "lucide-react";
+import { Search, Moon, Sun, SunMoon, LogIn, LogOut, X, Star, User as UserIcon, Menu } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/lib/stores/theme-store";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
@@ -17,7 +17,11 @@ import { mergeFollows, normalizeFollows, sameFollows, type Follows } from "@/lib
 import { mirrorFollows } from "@/lib/follows-sync";
 import { syncPushFollows } from "@/lib/push-client";
 import { deleteMyAccountAction } from "@/app/actions/delete-account";
-import { PRIMARY_NAV, SECONDARY_NAV, isActive, type NavItem } from "./nav";
+import { MOBILE_TABS, RAIL_NAV, SECONDARY_NAV, MORE_NAV, isActive, type NavItem } from "./nav";
+import EventSwitcher from "./EventSwitcher";
+import { Sheet } from "@/components/ui/Sheet";
+import { useAssistantPref } from "@/lib/stores/assistant-pref";
+import type { EventSummary } from "@/lib/active-event-context";
 
 // Team-admin panels. Each self-gates on role; deferred so the Firebase client
 // SDK they pull in never lands in the chunk every public page downloads.
@@ -32,19 +36,29 @@ function useHydrated(): boolean {
 }
 
 /**
- * App shell (plan "PRIDE abierta al público", Etapa 1).
- *  - Desktop: left rail with the 5 destinations, team search, "more" tools and
- *    the account button.
- *  - Mobile: top bar (brand, followed team, account) + bottom tab bar with the
- *    5 destinations — reachable with one thumb.
- *  - Account panel (both): followed team, theme, language, sign in/out, the
- *    team-admin panels, and FIRST attribution.
- * `followedTeam` comes from the `pride_team` cookie (read in the root layout).
+ * App shell (decision #116, direction "Oro").
+ *  - Desktop/tablet rail: the active-event switcher, team search, Hoy · Evento
+ *    · Capturar · Equipos · Estrategia, the "more" tools and the account.
+ *  - Phone: top bar (brand, active-event chip, team search, account) and a
+ *    bottom bar with the four event-day tasks plus "Más" — one thumb.
+ *  - Account panel (both): followed team, theme, language, assistant button,
+ *    sign in/out, team-admin panels, FIRST attribution.
+ * `followedTeam` comes from the `pride_team` cookie and `activeEvent` from
+ * lib/active-event-server.ts (both read in the root layout).
  */
-export default function AppShell({ followedTeam, follows }: { followedTeam: number | null; follows: Follows }) {
+export default function AppShell({ followedTeam, follows, activeEvent, eventOptions, aiAssistant }: {
+    followedTeam: number | null;
+    follows: Follows;
+    activeEvent: EventSummary | null;
+    eventOptions: EventSummary[];
+    aiAssistant: boolean;
+}) {
     const pathname = usePathname();
     const t = useTranslations("Shell");
     const [panelOpen, setPanelOpen] = useState(false);
+    const [moreOpen, setMoreOpen] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const moreActive = MORE_NAV.some(item => isActive(item, pathname)) && !MOBILE_TABS.some(item => isActive(item, pathname));
     const { user, userDoc } = useAuth();
     const team = followedTeam ?? (userDoc?.orgId ? Number(userDoc.orgId) : null);
     const router = useRouter();
@@ -79,12 +93,19 @@ export default function AppShell({ followedTeam, follows }: { followedTeam: numb
 
     return (
         <>
-            {/* Desktop rail */}
+            <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:rounded-lg focus:bg-brand focus:px-4 focus:py-3 focus:font-bold focus:text-brand-foreground">
+                {t("skip")}
+            </a>
+
+            {/* Desktop/tablet rail */}
             <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-56 flex-col border-r border-border bg-card">
                 <Brand />
-                <div className="px-3 pb-3"><TeamSearch /></div>
+                <div className="space-y-2 px-3 pb-3">
+                    <EventSwitcher active={activeEvent} options={eventOptions} wide />
+                    <TeamSearch />
+                </div>
                 <nav className="flex flex-col gap-0.5 px-3" aria-label={t("aria.primary")}>
-                    {PRIMARY_NAV.map(item => <RailLink key={item.href} item={item} active={isActive(item, pathname)} label={t(item.labelKey)} />)}
+                    {RAIL_NAV.map(item => <RailLink key={item.href} item={eventHref(item, activeEvent)} active={isActive(item, pathname)} label={t(item.labelKey)} />)}
                 </nav>
                 <p className="mt-5 mb-1 px-6 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("more.title")}</p>
                 <nav className="flex flex-col gap-0.5 px-3" aria-label={t("aria.more")}>
@@ -95,39 +116,78 @@ export default function AppShell({ followedTeam, follows }: { followedTeam: numb
                 </div>
             </aside>
 
-            {/* Mobile top bar */}
-            <header className="md:hidden sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border bg-background/95 px-4">
-                <Link href="/" className="font-black tracking-[0.04em] text-foreground">PRIDE</Link>
+            {/* Phone top bar */}
+            <header className="md:hidden sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-3">
+                <Link href="/" className="shrink-0 px-1 font-black tracking-[0.04em] text-foreground">PRIDE</Link>
+                <div className="min-w-0 flex-1"><EventSwitcher active={activeEvent} options={eventOptions} /></div>
+                <button type="button" onClick={() => setSearchOpen(true)} aria-label={t("search.open")} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-muted">
+                    <Search className="h-5 w-5" />
+                </button>
                 <AccountButton team={team} onClick={() => setPanelOpen(true)} />
             </header>
 
-            {/* Mobile bottom tabs */}
+            {/* Phone bottom bar: four tasks + Más */}
             <nav
                 className="md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]"
                 aria-label={t("aria.primary")}
             >
-                {PRIMARY_NAV.map(item => {
-                    const active = isActive(item, pathname);
-                    const Icon = item.icon;
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            aria-current={active ? "page" : undefined}
-                            className={clsx(
-                                "flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-xs",
-                                active ? "font-bold text-foreground" : "text-muted-foreground",
-                            )}
-                        >
-                            <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
-                            {t(item.labelKey)}
-                        </Link>
-                    );
-                })}
+                {MOBILE_TABS.map(item => (
+                    <TabLink key={item.href} item={eventHref(item, activeEvent)} active={isActive(item, pathname)} label={t(item.labelKey)} />
+                ))}
+                <button
+                    type="button"
+                    onClick={() => setMoreOpen(true)}
+                    aria-expanded={moreOpen}
+                    className={clsx("relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-xs", moreActive ? "font-bold text-foreground" : "text-muted-foreground")}
+                >
+                    {moreActive && <span className="absolute top-0 h-[3px] w-8 rounded-b bg-brand" aria-hidden />}
+                    <Menu className="h-5 w-5" strokeWidth={moreActive ? 2.5 : 2} />
+                    {t("nav.more")}
+                </button>
             </nav>
 
-            {panelOpen && <AccountPanel team={followedTeam} onClose={() => setPanelOpen(false)} />}
+            <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={t("more.title")} closeLabel={t("account.close")}>
+                <nav aria-label={t("aria.more")} className="divide-y divide-border">
+                    {MORE_NAV.map(item => {
+                        const Icon = item.icon;
+                        const active = isActive(item, pathname);
+                        return (
+                            <Link key={item.href} href={item.href} onClick={() => setMoreOpen(false)} aria-current={active ? "page" : undefined}
+                                className={clsx("flex min-h-[52px] items-center gap-3 px-1 text-base", active ? "font-semibold text-foreground" : "text-foreground/90")}>
+                                <Icon className={clsx("h-5 w-5", active ? "text-brand-ink" : "text-muted-foreground")} /> {t(item.labelKey)}
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </Sheet>
+
+            <Sheet open={searchOpen} onClose={() => setSearchOpen(false)} title={t("search.open")} closeLabel={t("account.close")}>
+                <p className="mb-2 text-sm text-muted-foreground">{t("search.hint")}</p>
+                <TeamSearch large onDone={() => setSearchOpen(false)} />
+            </Sheet>
+
+            {panelOpen && <AccountPanel team={followedTeam} aiAssistant={aiAssistant} onClose={() => setPanelOpen(false)} />}
         </>
+    );
+}
+
+/** The Evento tab links straight to the active event (works offline from the SW cache); `/event` redirects otherwise. */
+function eventHref(item: NavItem, active: EventSummary | null): NavItem {
+    return item.href === "/event" && active ? { ...item, href: `/event/${active.code}` } : item;
+}
+
+function TabLink({ item, active, label }: { item: NavItem; active: boolean; label: string }) {
+    const Icon = item.icon;
+    return (
+        <Link
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            className={clsx("relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-xs", active ? "font-bold text-foreground" : "text-muted-foreground")}
+        >
+            {active && <span className="absolute top-0 h-[3px] w-8 rounded-b bg-brand" aria-hidden />}
+            <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
+            {label}
+        </Link>
     );
 }
 
@@ -148,17 +208,17 @@ function RailLink({ item, active, label, small }: { item: NavItem; active: boole
             aria-current={active ? "page" : undefined}
             className={clsx(
                 "flex items-center gap-3 rounded-[4px] px-3 transition-colors",
-                small ? "min-h-[36px] text-[13px]" : "min-h-[40px] text-sm",
-                active ? "bg-foreground font-semibold text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                small ? "min-h-[40px] text-sm" : "min-h-[44px] text-sm",
+                active ? "bg-muted font-semibold text-foreground shadow-[inset_3px_0_0_var(--color-brand)]" : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
         >
-            <Icon className={small ? "h-4 w-4" : "h-[18px] w-[18px]"} />
+            <Icon className={clsx(small ? "h-4 w-4" : "h-[18px] w-[18px]", active && "text-brand-ink")} />
             {label}
         </Link>
     );
 }
 
-function TeamSearch() {
+function TeamSearch({ large, onDone }: { large?: boolean; onDone?: () => void }) {
     const t = useTranslations("Shell");
     const router = useRouter();
     const [q, setQ] = useState("");
@@ -171,19 +231,30 @@ function TeamSearch() {
                 if (/^\d{1,5}$/.test(n)) {
                     router.push(`/team/${n}`);
                     setQ("");
+                    onDone?.();
                 }
             }}
-            className="relative"
+            className={clsx("relative", large && "flex gap-2")}
         >
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
                 value={q}
                 onChange={e => setQ(e.target.value)}
                 inputMode="numeric"
+                enterKeyHint="go"
+                autoFocus={large}
                 placeholder={t("search.placeholder")}
                 aria-label={t("search.placeholder")}
-                className="h-9 w-full rounded-[4px] border border-border bg-muted pl-8 pr-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
+                className={clsx(
+                    "w-full rounded-lg border border-border bg-muted pl-8 pr-2 text-foreground placeholder:text-muted-foreground focus:border-foreground focus:outline-none",
+                    large ? "h-12 min-w-0 flex-1 font-mono text-lg tabular-nums" : "h-10 text-sm",
+                )}
             />
+            {large && (
+                <button type="submit" className="h-12 shrink-0 rounded-lg bg-brand px-4 text-sm font-bold text-brand-foreground">
+                    {t("search.go")}
+                </button>
+            )}
         </form>
     );
 }
@@ -218,13 +289,12 @@ function AccountButton({ team, onClick, wide }: { team: number | null; onClick: 
     );
 }
 
-function AccountPanel({ team, onClose }: { team: number | null; onClose: () => void }) {
+function AccountPanel({ team, aiAssistant, onClose }: { team: number | null; aiAssistant: boolean; onClose: () => void }) {
     const t = useTranslations("Shell");
     const tAttr = useTranslations("Attribution");
     const { user, userDoc, signInWithGoogle, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const hydrated = useHydrated();
-    const pathname = usePathname();
     const router = useRouter();
     const [teamInput, setTeamInput] = useState(team ? String(team) : "");
     const [pending, startTransition] = useTransition();
@@ -278,20 +348,6 @@ function AccountPanel({ team, onClose }: { team: number | null; onClose: () => v
                     </form>
                 </section>
 
-                {/* More tools (mobile only — the rail lists them on desktop) */}
-                <nav className="mb-5 md:hidden" aria-label={t("aria.more")}>
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("more.title")}</p>
-                    {SECONDARY_NAV.map(item => {
-                        const Icon = item.icon;
-                        return (
-                            <Link key={item.href} href={item.href} onClick={onClose}
-                                className={clsx("flex min-h-[44px] items-center gap-3 border-b border-border text-sm", isActive(item, pathname) ? "font-semibold text-foreground" : "text-muted-foreground")}>
-                                <Icon className="h-4 w-4" /> {t(item.labelKey)}
-                            </Link>
-                        );
-                    })}
-                </nav>
-
                 {/* Preferences */}
                 <section className="mb-5 flex items-center gap-3">
                     <button
@@ -304,6 +360,7 @@ function AccountPanel({ team, onClose }: { team: number | null; onClose: () => v
                     </button>
                     <div className="flex-1"><LocaleSwitcher /></div>
                 </section>
+                {aiAssistant && <AssistantToggle />}
 
                 {/* Account */}
                 <section className="mb-4 border-t border-border pt-4">
@@ -394,5 +451,33 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
                 </button>
             </div>
         </div>
+    );
+}
+
+/** Opt-in floating assistant button (#116: nothing floats over content by default). */
+function AssistantToggle() {
+    const t = useTranslations("Shell");
+    const hydrated = useHydrated();
+    const show = useAssistantPref(s => s.showLauncher);
+    const setShow = useAssistantPref(s => s.setShowLauncher);
+    const on = hydrated && show;
+    return (
+        <section className="mb-5 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{t("assistant.label")}</p>
+                <p className="text-xs text-muted-foreground">{t("assistant.help")}</p>
+            </div>
+            <button
+                type="button"
+                role="switch"
+                aria-checked={on}
+                aria-label={t("assistant.label")}
+                disabled={!hydrated}
+                onClick={() => setShow(!show)}
+                className={clsx("relative h-7 w-12 shrink-0 rounded-full border transition-colors", on ? "border-brand bg-brand" : "border-border bg-muted")}
+            >
+                <span className={clsx("absolute top-0.5 h-5 w-5 rounded-full bg-background shadow-sm transition-transform", on ? "translate-x-6" : "translate-x-0.5")} />
+            </button>
+        </section>
     );
 }

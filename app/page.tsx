@@ -19,6 +19,7 @@ import FollowingPanel from "@/components/home/FollowingPanel";
 import EventsToday from "@/components/home/EventsToday";
 import FollowTeamInline from "@/components/home/FollowTeamInline";
 import NotifySettings from "@/components/notifications/NotifySettings";
+import PWAInstallCard from "@/components/PWAInstallPrompt";
 
 /**
  * Hoy (plan "PRIDE abierta al público", Etapa 2, decision #98): the home of
@@ -47,7 +48,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
     if (team === null) {
         return (
-            <main className="container mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-16">
+            <div className="container mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-16">
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{kicker}</p>
                 <h1 className="mt-2 text-4xl font-black md:text-5xl">{t("welcomeTitle")}</h1>
                 <p className="mt-3 max-w-prose text-muted-foreground">{t("welcomeBody")}</p>
@@ -56,7 +57,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                     {t.rich("orBrowse", { events: chunks => <Link href="/events" className="underline hover:text-foreground">{chunks}</Link> })}
                 </p>
                 {followSections}
-            </main>
+            </div>
         );
     }
 
@@ -65,7 +66,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     const pct = (p: number) => format.number(p, { style: "percent", maximumFractionDigits: 0 });
 
     return (
-        <main className="container mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
+        <div className="container mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
             <OpenLoansNotice />
             <header className="mb-6 border-b border-border pb-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{kicker}</p>
@@ -109,7 +110,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
             {followSections}
 
             <p className="mt-10 text-xs text-muted-foreground">{t("footnote")}</p>
-        </main>
+        </div>
     );
 }
 
@@ -123,6 +124,7 @@ async function FollowSections({ follows, region, query, season, hasTeam }: { fol
             {/* Remount when the list changes: a followed/unfollowed item must show at once. */}
             {hasFollows && <FollowingPanel key={serializeFollows(follows)} initial={snapshot} season={season} />}
             <div className="mt-4"><FollowTeamInline /></div>
+            <div className="mt-4"><PWAInstallCard /></div>
             {(hasFollows || hasTeam) && <NotifySettings />}
             <EventsToday items={items} followed={follows.events} region={region} query={query} season={season} />
         </>

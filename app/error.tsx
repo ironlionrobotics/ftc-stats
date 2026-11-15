@@ -16,7 +16,7 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
         Sentry.captureException(error);
     }, [error]);
     return (
-        <main className="container mx-auto flex min-h-[60vh] flex-col items-start justify-center gap-4 px-4 py-16 md:px-8">
+        <div className="container mx-auto flex min-h-[60vh] flex-col items-start justify-center gap-4 px-4 py-16 md:px-8">
             <h1 className="text-3xl font-black md:text-4xl">{t("errorTitle")}</h1>
             <p className="max-w-prose text-muted-foreground">{t("errorBody")}</p>
             {error.digest && <p className="font-mono text-xs text-muted-foreground">{t("errorRef", { ref: error.digest })}</p>}
@@ -28,6 +28,6 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
                     {t("home")}
                 </Link>
             </div>
-        </main>
+        </div>
     );
 }

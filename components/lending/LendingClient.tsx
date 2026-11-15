@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations, useFormatter, useNow } from "next-intl";
 import { toast } from "sonner";
 import clsx from "clsx";
@@ -10,7 +9,6 @@ import { MapPin, Search, Plus, Trash2, Check, Hand } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { SCOUTING_EVENT_COOKIE } from "@/lib/scouting-event";
 import { isValidTeamNumber } from "@/lib/input-guards";
 import {
     INVENTORY_CATEGORIES, LIMITS, cleanText, isOpenLoan, itemsAtEvent, matchesQuery,
@@ -23,27 +21,13 @@ import {
 } from "@/lib/lending-service";
 import { recordLoanAction, markLoanReturnedAction, disputeLoanAction } from "@/app/actions/lending";
 
-interface EventOption { code: string; name: string; dateStart: string }
 
-export default function LendingClient({ season, eventCode, events }: { season: number; eventCode: string | null; events: EventOption[] }) {
+export default function LendingClient({ season, eventCode }: { season: number; eventCode: string | null }) {
     const t = useTranslations("Lending");
-    const router = useRouter();
     const { user, orgId, loading } = useAuth();
-
-    const changeEvent = (code: string) => {
-        document.cookie = `${SCOUTING_EVENT_COOKIE}=${code}; path=/; max-age=${60 * 60 * 24 * 120}; samesite=lax`;
-        router.push(`/lending?event=${code}`);
-    };
 
     return (
         <div className="space-y-5">
-            <label className="block max-w-md">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("event")}</span>
-                <select value={eventCode ?? ""} onChange={e => changeEvent(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                    {events.map(ev => <option key={ev.code} value={ev.code}>{ev.dateStart.slice(0, 10)} · {ev.name} ({ev.code})</option>)}
-                </select>
-            </label>
             {loading ? null
                 : !user ? <Notice>{t("signIn")}</Notice>
                 : !orgId ? <Notice>{t("needTeam")}</Notice>

@@ -1,17 +1,17 @@
 import { getAggregatedStats } from "@/lib/aggregation";
-import { fetchEvents, fetchEventTeams, fetchHybridSchedule } from "@/lib/ftc-api";
+import { fetchEventTeams, fetchHybridSchedule } from "@/lib/ftc-api";
 import { scheduledQuals } from "@/lib/scout-claims";
 import { getCurrentSeason } from "@/lib/constants";
 import { normalizeEventCode, parseSeason } from "@/lib/input-guards";
-import { scoutingEventOptions, pickScoutingEvent, SCOUTING_EVENT_COOKIE } from "@/lib/scouting-event";
+import { resolveActiveEvent } from "@/lib/active-event-server";
 import ScoutingClient from "@/components/scouting/ScoutingClient";
 import { cookies } from "next/headers";
-import type { ScoutTeam } from "@/types/scouting";
+import type { FTCEvent, ScoutTeam } from "@/types/scouting";
 import PastSeasonBanner from "@/components/shell/PastSeasonBanner";
 
 /**
- * Scouting is per EVENT: the page picks one (`?event=`, else the scout's last
- * choice in a cookie, else live → next → latest) and lists the teams FIRST has
+ * Scouting is per EVENT: the app-wide active event (#116; `?event=` of a
+ * shared link wins, see lib/active-event-context.ts). Lists the teams FIRST has
  * registered for it, which exist before any match is played. When FIRST hasn't
  * published the roster yet, it falls back to the season's teams with results,
  * and the scout can always add a team by number.
@@ -25,11 +25,12 @@ export default async function ScoutingPage({ searchParams }: { searchParams: Pro
 
     if (program !== "FTC") {
         // FRC: no real data source wired yet (TBA pending) — never show fabricated numbers
-        return <ScoutingClient initialTeams={[]} events={[]} eventCode={null} rosterSource="none" schedule={[]} />;
+        return <ScoutingClient initialTeams={[]} eventCode={null} rosterSource="none" schedule={[]} />;
     }
 
-    const requested = normalizeEventCode(params?.event) ?? normalizeEventCode(cookieStore.get(SCOUTING_EVENT_COOKIE)?.value);
-    const { options, selected, teams, rosterSource, schedule } = await loadScoutingRoster(season, requested);
+    // The app-wide active event (#116); `?event=` overrides for shared links.
+    const { selected } = await resolveActiveEvent(season, normalizeEventCode(params?.event));
+    const { teams, rosterSource, schedule } = await loadScoutingRoster(season, selected);
 
     return (
         <>
@@ -38,7 +39,6 @@ export default async function ScoutingPage({ searchParams }: { searchParams: Pro
             // Remount per event: added teams, selection and live entries belong to one event.
             key={selected?.code ?? "none"}
             initialTeams={teams}
-            events={options.map(e => ({ code: e.code, name: e.name, dateStart: e.dateStart }))}
             eventCode={selected?.code ?? null}
             rosterSource={rosterSource}
             schedule={schedule}
@@ -47,11 +47,9 @@ export default async function ScoutingPage({ searchParams }: { searchParams: Pro
     );
 }
 
-/** Event options, the chosen event and its roster (server-side; see module comment). */
-async function loadScoutingRoster(season: number, requested: string | null) {
-    const [allEvents, { teamStats }] = await Promise.all([fetchEvents(season), getAggregatedStats(season)]);
-    const options = scoutingEventOptions(allEvents, "MX", requested);
-    const selected = pickScoutingEvent(options, requested, Date.now());
+/** The chosen event's roster and schedule (server-side; see module comment). */
+async function loadScoutingRoster(season: number, selected: FTCEvent | null) {
+    const { teamStats } = await getAggregatedStats(season);
 
     const [registered, rawSchedule] = selected
         ? await Promise.all([fetchEventTeams(season, selected.code), fetchHybridSchedule(season, selected.code)])
@@ -67,5 +65,5 @@ async function loadScoutingRoster(season: number, requested: string | null) {
         teams = teamStats.map(t => ({ teamNumber: t.teamNumber, teamName: t.teamName, hasAdvanced: t.hasAdvanced }));
         rosterSource = teams.length > 0 ? "season" : "none";
     }
-    return { options, selected, teams, rosterSource, schedule };
+    return { teams, rosterSource, schedule };
 }

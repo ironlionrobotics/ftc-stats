@@ -27,12 +27,12 @@ export default async function TeamsPage({ searchParams }: { searchParams: Promis
     }
 
     return (
-        <main className="container mx-auto px-4 md:px-8 py-6 md:py-10">
+        <div className="container mx-auto px-4 md:px-8 py-6 md:py-10">
             <header className="mb-6">
                 <h1 className="text-3xl md:text-4xl font-black uppercase tracking-[0.02em]">{t("title")}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("subtitle", { season })}</p>
             </header>
             <StatsTable data={teamStats} />
-        </main>
+        </div>
     );
 }

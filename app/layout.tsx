@@ -13,7 +13,8 @@ import QueryProvider from "@/components/QueryProvider";
 import DeferredGlobals from "@/components/DeferredGlobals";
 import ThemedToaster from "@/components/ThemedToaster";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import { PWAInstallCapture } from "@/components/PWAInstallPrompt";
+import { activeEventForShell } from "@/lib/active-event-server";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
@@ -84,10 +85,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Runtime config (superadmin console). Server-cached (memory → Firestore); degrades to defaults.
-  const appConfig = await getAppConfig();
-  // Active locale (cookie/Accept-Language) for <html lang> and the intl provider.
-  const locale = await getLocale();
+  // Runtime config (superadmin console, server-cached; degrades to defaults),
+  // active locale (cookie/Accept-Language) and the app-wide active event for
+  // the shell chip (#116; capped at 1.5 s, never throws) — in parallel.
+  const [appConfig, locale, { active: activeEvent, options: eventOptions }] = await Promise.all([
+    getAppConfig(),
+    getLocale(),
+    activeEventForShell(),
+  ]);
   // Team the visitor follows without an account (pride_team cookie).
   const cookieStore = await cookies();
   const followedTeam = parseFollowedTeam(cookieStore.get(FOLLOW_TEAM_COOKIE)?.value);
@@ -109,12 +114,12 @@ export default async function RootLayout({
           <QueryProvider>
             <AuthProvider>
               <ConfirmProvider>
-                <AppShell followedTeam={followedTeam} follows={follows} />
-                <div className="md:ml-56 min-h-screen pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
+                <AppShell followedTeam={followedTeam} follows={follows} activeEvent={activeEvent} eventOptions={eventOptions} aiAssistant={appConfig.features.aiAssistant} />
+                <main id="main" tabIndex={-1} className="md:ml-56 min-h-screen pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0 outline-none">
                   {children}
-                </div>
+                </main>
                 <DeferredGlobals aiAssistant={appConfig.features.aiAssistant} />
-                <PWAInstallPrompt />
+                <PWAInstallCapture />
                 <ThemedToaster />
               </ConfirmProvider>
             </AuthProvider>

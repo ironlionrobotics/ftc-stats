@@ -11,6 +11,7 @@ import { cookies } from "next/headers";
 import type { AggregatedTeamStats, FTCEvent } from "@/types/scouting";
 
 import EventFilter from "@/components/EventFilter";
+import { MobileCollapsible } from "@/components/ui/Collapsible";
 import EventList from "@/components/EventList";
 import { CacheWriter, OfflineFallback } from "@/components/HydrateAndCache";
 import { getTranslations } from "next-intl/server";
@@ -24,6 +25,7 @@ interface PageProps {
 
 export default async function EventsPage({ searchParams }: PageProps) {
   const t = await getTranslations("EventsPage");
+  const tShell = await getTranslations("Shell");
   const resolvedParams = await searchParams;
   const cookieStore = await cookies();
 
@@ -70,7 +72,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const gameName = seasonGameName(season) || "Season Stats";
 
   return (
-    <main className="min-h-screen bg-background relative">
+    <div className="min-h-screen bg-background relative">
       {/* Blueprint grid fading from the top — the page's single texture. */}
       <div className="absolute inset-x-0 top-0 h-[420px] bg-grid pointer-events-none opacity-60" aria-hidden />
 
@@ -106,6 +108,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
 
         <section className="mb-8">
+          <MobileCollapsible label={tShell("filters")}>
           <EventFilter
             currentSeason={season}
             allEvents={allSeasonEvents.map((e) => ({
@@ -118,6 +121,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
             }))}
             latestAvailableSeason={getCurrentSeason()}
           />
+          </MobileCollapsible>
         </section>
 
         {teamStats.length > 0 || filteredEvents.length > 0 ? (
@@ -140,6 +144,6 @@ export default async function EventsPage({ searchParams }: PageProps) {
           <p>{t("footer", { year: new Date().getFullYear() })}</p>
         </footer>
       </div>
-    </main>
+    </div>
   );
 }
