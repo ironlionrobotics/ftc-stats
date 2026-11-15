@@ -1444,3 +1444,19 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
 - **Componentes base:** `AllianceSides`, `ProbabilityBar`, `TeamLink`, `ResultChip`, `Counter` y otros.
 - **Antes del 23-nov:** Hoy, Evento y Captura.
 - **Después del 28-nov:** Equipo y Estrategia en tablet.
+
+**Fases 2–4 (14-nov, commits aae533c y 5c0d63a):**
+- **Evento activo único** (`lib/active-event-context.ts`):
+  - un `?event=` de un link compartido siempre gana;
+  - si no, la elección recordada, salvo que haya caducado mientras otro evento está en vivo;
+  - si no, el evento del equipo seguido;
+  - si no, el de la región.
+- **Navegación móvil:** Hoy · Evento · Capturar · Equipos · Más, con chip de evento y búsqueda de equipo. Se quitaron los 5 selectores de evento y los elementos flotantes.
+- **Hoy:** abre con el próximo partido.
+- **Evento:** abre en Partidos; los números de equipo son enlaces y las tablas están traducidas.
+- **Captura:** cola de próximos partidos, con el partido y el equipo precargados.
+- **Pendiente después del 28-nov:**
+  - página de Equipo sin hero, que lea `?event=` para volver al evento;
+  - Estrategia en tablet con arrastre táctil;
+  - uso de `ResultChip`;
+  - re-auditoría Rams.
