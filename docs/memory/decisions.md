@@ -1345,3 +1345,27 @@ El óptimo de K es 2–3 en las tres temporadas.
 - **Backtest:** OPR sin regularizar contra ridge, ambos con forma: log loss 0.493 → 0.487 (2025) y 0.465 → 0.462 (2024).
 - **USMIRHQ con el Oracle unificado:** 8/10 en playoffs y final A2 76 %. Como campeón favorecía a A2 desde M5 (44 %) y con 73 % tras M7; antes del cambio decía A1 o A3.
 - **Fuera de alcance:** el Oracle del Data Lab (comparación de varios eventos) sigue usando promedios de temporada.
+
+## #114 · Punto de partida con eventos anteriores de la temporada: validado, pendiente de implementar (2026-11-14)
+
+**Problema:** cada evento arranca de cero. En los 94 eventos del 12 al 14 de noviembre, el primer tercio de qualys acertó 73 % contra 80 % del último. 67 de esos 94 eventos son league meets, cuyos equipos ya jugaron meets anteriores.
+
+**Modelo probado** (`scripts/pre-event-prior-backtest.ts`):
+- Es el mismo OPR ridge, pero cada robot se encoge hacia **su propio** punto de partida y no hacia el robot promedio: `prior_t = μ0 + (OPR previo_t − promedio de OPR previos de los robots del evento)`.
+- Es decir, la fuerza **relativa** de eventos anteriores, recentrada en el nivel de este evento, porque los puntajes suben durante la temporada.
+- Peso λp = 2 partidos. La incertidumbre de #109 cuenta el punto de partida como λp partidos jugados (A = 4, sin cambios).
+- Con punto de partida hay pronóstico **desde el primer partido**; hoy no lo hay hasta 2 qualys.
+
+**Backtest** (eventos de prueba no usados para ajustar; los partidos sin pronóstico cuentan como 50 %):
+
+| | 2025: 733 eventos, 19,265 partidos | 2026: 102 eventos, 1,877 partidos |
+|---|---|---|
+| Log loss total | 0.566 → **0.528** | 0.554 → **0.549** |
+| Primer tercio | 0.643 → **0.565** | 0.651 → **0.628** |
+| Último tercio | 0.500 → **0.493** | 0.471 → 0.486 (empeora un poco) |
+| Aciertos totales | 64.8 % → **72.0 %** | 63.5 % → 67 % |
+
+- En league meets de 2025, el primer tercio pasa de 44 % a 65 % de aciertos.
+- **ρ** (encoger la fuerza relativa previa) no ayudó: el óptimo es 1.
+
+**Pendiente:** la implementación tiene un costo nuevo de API, porque por cada evento hay que conocer los eventos anteriores de cada equipo (`/events?teamNumber=`) y sus partidos. Las ventajas: eso no cambia (caché larga) y en leagues son pocos eventos distintos. Requiere decidir dónde se calcula y qué pantallas lo usan.
