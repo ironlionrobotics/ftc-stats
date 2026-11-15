@@ -66,7 +66,7 @@ async function main() {
                 channels: 4,
                 // Background matches the app's theme color so the icon edges
                 // blend with the launcher tile color.
-                background: { r: 10, g: 10, b: 10, alpha: 1 },
+                background: { r: 15, g: 14, b: 12, alpha: 1 },
             },
         })
             .composite([{ input: resizedBuffer, top: padding, left: padding }])
