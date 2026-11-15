@@ -49,8 +49,8 @@ import { guessActiveEventCode } from "@/lib/active-event";
 import {
     computeWeightedScores,
     sortTeamsByWeightedScore,
-    DEFAULT_WEIGHTS,
-    WEIGHT_KEYS,
+    defaultWeightsFor,
+    weightKeysFor,
     type PicklistWeights,
 } from "@/lib/picklist-weights";
 
@@ -87,12 +87,14 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [weightsOpen, setWeightsOpen] = useState(false);
-    const [weights, setWeights] = useState<PicklistWeights>(DEFAULT_WEIGHTS);
+    // BIOBUZZ+ ranks by the event's model OPR by default; DECODE keeps its weights (#115).
+    const [weights, setWeights] = useState<PicklistWeights>(() => defaultWeightsFor(season));
 
     const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
     // Per-(org,event) weights live in localStorage so they're personal to the
     // strategy lead, not pushed onto the org's shared picklist doc.
-    const weightsKey = `picklist-weights:${effectiveOrgId}:${eventCode}`;
+    // v2 from BIOBUZZ on: weights saved under the old defaults must not override the new ones.
+    const weightsKey = `picklist-weights:${season >= 2026 ? "v2:" : ""}${effectiveOrgId}:${eventCode}`;
 
     // Hydrate weights from localStorage once we know the event.
     useEffect(() => {
@@ -104,13 +106,13 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
             if (cancelled) return;
             try {
                 const stored = localStorage.getItem(weightsKey);
-                if (stored) setWeights({ ...DEFAULT_WEIGHTS, ...JSON.parse(stored) });
+                if (stored) setWeights({ ...defaultWeightsFor(season), ...JSON.parse(stored) });
             } catch {
                 // ignore malformed JSON
             }
         });
         return () => { cancelled = true; };
-    }, [weightsKey]);
+    }, [weightsKey, season]);
 
     const updateWeight = (key: keyof PicklistWeights, value: number) => {
         setWeights(prev => {
@@ -366,7 +368,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                         </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                        {WEIGHT_KEYS.map(key => (
+                        {weightKeysFor(season).map(key => (
                             <div key={key} className="space-y-1">
                                 <div className="flex items-center justify-between">
                                     <label className="text-xs font-medium text-foreground">
@@ -588,7 +590,7 @@ function SortableTeamCard({
                 </div>
                 {team && (
                     <div className="text-[10px] text-muted-foreground truncate">
-                        {team.teamName} · RS {team.averageRS?.toFixed(1) ?? "—"} · NP {team.averageNP?.toFixed(1) ?? "—"}
+                        {team.teamName} · {teamLine(team)}
                     </div>
                 )}
             </div>
@@ -640,7 +642,7 @@ function AvailableTeamCard({
                     {score !== undefined && <ScoreBadge score={score} />}
                 </div>
                 <div className="text-[10px] text-muted-foreground truncate">
-                    {team.teamName} · RS {team.averageRS?.toFixed(1) ?? "—"}
+                    {team.teamName} · {teamLine(team)}
                 </div>
             </div>
             <IconBtn title={t("addToPicklist")} onClick={onAddToPicklist} activeColor="emerald">
@@ -658,6 +660,16 @@ function AvailableTeamCard({
  * Verde > 66, ámbar > 33, gris si más bajo. Da contexto al ranking sin
  * dominar visualmente la card.
  */
+/** Event metrics when the team played quals at the selected event (#115), else season averages. */
+function teamLine(team: AggregatedTeamStats): string {
+    const p = team.pick;
+    if (!p) return `RS ${team.averageRS?.toFixed(1) ?? "—"} · NP ${team.averageNP?.toFixed(1) ?? "—"}`;
+    const parts = [`OPR ${p.opr.toFixed(0)}`];
+    if (p.tipsOpr !== undefined) parts.push(`TIPS ${p.tipsOpr.toFixed(1)}`);
+    if (p.leavePark !== undefined) parts.push(`L/P ${Math.round(p.leavePark * 100)}%`);
+    return parts.join(" · ");
+}
+
 function ScoreBadge({ score }: { score: number }) {
     const t = useTranslations("PicklistEditor");
     const pct = Math.round(score * 100);

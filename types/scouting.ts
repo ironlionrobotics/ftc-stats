@@ -105,6 +105,8 @@ export interface AggregatedTeamStats {
     totalNP: number;
     averageNP: number;
     opr: number;
+    /** Metrics at the event selected on /strategy (lib/pick-metrics.ts, #115). */
+    pick?: import("@/lib/pick-metrics").PickMetrics;
     events: {
         // Official FIRST event code (e.g. "MXCIQ") — the namespace scouting
         // entries, event pages, and the FTC API all share. Display strings

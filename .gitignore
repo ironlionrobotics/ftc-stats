@@ -60,6 +60,7 @@ data/growth-curves/
 data/draft-science/
 data/live-quals-backtest/
 data/playoff-backtest/
+data/season-pull/
 
 # Agent worktrees (Claude Code isolation)
 .claude/worktrees/

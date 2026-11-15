@@ -1369,3 +1369,41 @@ El óptimo de K es 2–3 en las tres temporadas.
 - **ρ** (encoger la fuerza relativa previa) no ayudó: el óptimo es 1.
 
 **Pendiente:** la implementación tiene un costo nuevo de API, porque por cada evento hay que conocer los eventos anteriores de cada equipo (`/events?teamNumber=`) y sus partidos. Las ventajas: eso no cambia (caché larga) y en leagues son pocos eventos distintos. Requiere decidir dónde se calcula y qué pantallas lo usan.
+
+## #115 · BIOBUZZ: elegir aliado por el OPR del modelo, no por RS ni victorias (2026-11-14)
+
+**Pregunta de Héctor:** si el TIP pesa tanto (con un TIP de ventaja se gana el 95 % de las qualys), ¿hay que ajustar el algoritmo?
+
+**1. El modelo de victoria no cambia.** Se probó un modelo de "primero TIPS" (P de más TIPS, y si empatan, el resto de los puntos) contra el actual (`scripts/tips-model-backtest.ts`, eventos de prueba no usados para ajustar):
+
+| | Actual (puntos) | Primero TIPS |
+|---|---|---|
+| Qualys 2026 (2,477 partidos) | log loss **0.547** | 0.560 |
+| Playoffs (130) | 0.480 | 0.479 |
+
+El "95 %" es un hecho a toro pasado. Antes del partido, el OPR de puntos ya contiene la información de los TIPS, que son la mitad de los puntos.
+
+**2. El picklist ordenaba con métricas que dependen de los compañeros.** ¿Qué tanto acierta la suma de la métrica de los dos equipos al ganador de playoffs?
+
+| Métrica | 2026 | 2025 | 2024 |
+|---|---|---|---|
+| OPR del modelo | **77.3 %** | **75.7 %** | **76.2 %** |
+| OPR de TIPS | 77.7 % | — | — |
+| Promedio de puntos de sus alianzas | 72.0 % | 74.3 % | 73.8 % |
+| Ranking Score | 69.3 % | — | — |
+| % de victorias | 65.7 % | 65.1 % | 65.9 % |
+
+- Muestra: 264 playoffs en 2026, 6,215 en 2025 y 5,135 en 2024.
+- La confiabilidad LEAVE/PARK **empeora** la elección si se pondera: con peso 5 da 76.5 %, con 30 da 73.5 %. Se muestra junto a cada equipo, pero no se pondera.
+
+**Decisión (solo para la temporada ≥ 2026; DECODE y anteriores sin cambios):**
+- **`lib/pick-metrics.ts`:** por equipo, en el evento elegido en /strategy, calcula el OPR del modelo en vivo, el OPR de TIPS y la confiabilidad LEAVE + PARK final **exacta por robot**. Esta sale de las banderas oficiales del breakdown, asignadas por orden de estación.
+- **Picklist:** los pesos por defecto de BIOBUZZ son solo el OPR del modelo (100); los demás sliders quedan disponibles en 0.
+  - Cada tarjeta muestra "OPR · TIPS · L/P %".
+  - Los pesos se guardan con la clave `v2`, para que los guardados con los defaults viejos no pisen los nuevos.
+  - Una clave faltante cuenta como 0 (antes daba NaN).
+- **Oracle:** el bono "+10 si el auto combinado pasa de 30" (heurística de DECODE) se quita para equipos de la temporada ≥ 2026 (`TeamEvolution.season`). En playoffs de 2026 bajaba el acierto de 77.3 % a 76.5 %.
+- **Ejemplo, USMIRHQ:**
+  - 10136 (el pick de A2, campeona) queda 3.º por OPR y era 10.º por RS;
+  - 7305 (el robot de A5 que despegó en playoffs) queda 4.º, y por RS ni siquiera estaba en el top 10.
+- **Pendiente:** validar el término de riesgo por fouls del Oracle (tope de 30 puntos). En BIOBUZZ los fouls solo deciden el 3 % de los partidos.

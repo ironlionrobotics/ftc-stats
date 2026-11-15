@@ -3,6 +3,9 @@ import {
     computeWeightedScores,
     sortTeamsByWeightedScore,
     DEFAULT_WEIGHTS,
+    WEIGHT_KEYS,
+    defaultWeightsFor,
+    weightKeysFor,
     type PicklistWeights,
 } from "./picklist-weights";
 import type { AggregatedTeamStats } from "@/types/scouting";
@@ -32,7 +35,7 @@ describe("computeWeightedScores", () => {
         const teams = [team({ teamNumber: 1 }), team({ teamNumber: 2 })];
         const weights: PicklistWeights = {
             averageRS: 0, averageNP: 0, averageAutoPoints: 0,
-            winRate: 0, bestRank: 0, advancementPoints: 0,
+            winRate: 0, bestRank: 0, advancementPoints: 0, modelOpr: 0, tipsOpr: 0, leavePark: 0,
         };
         const scores = computeWeightedScores(teams, weights);
         expect(scores.get(1)).toBe(0.5);
@@ -47,7 +50,7 @@ describe("computeWeightedScores", () => {
         ];
         const weights: PicklistWeights = {
             averageRS: 0, averageNP: 100, averageAutoPoints: 0,
-            winRate: 0, bestRank: 0, advancementPoints: 0,
+            winRate: 0, bestRank: 0, advancementPoints: 0, modelOpr: 0, tipsOpr: 0, leavePark: 0,
         };
         const scores = computeWeightedScores(teams, weights);
         // Team 1 has max NP → normalized = 1; Team 3 min → 0; Team 2 middle.
@@ -65,7 +68,7 @@ describe("computeWeightedScores", () => {
         ];
         const weights: PicklistWeights = {
             averageRS: 0, averageNP: 0, averageAutoPoints: 0,
-            winRate: 0, bestRank: 100, advancementPoints: 0,
+            winRate: 0, bestRank: 100, advancementPoints: 0, modelOpr: 0, tipsOpr: 0, leavePark: 0,
         };
         const scores = computeWeightedScores(teams, weights);
         expect(scores.get(1)!).toBeGreaterThan(scores.get(2)!);
@@ -80,7 +83,7 @@ describe("computeWeightedScores", () => {
         ];
         const weights: PicklistWeights = {
             averageRS: 0, averageNP: 0, averageAutoPoints: 0,
-            winRate: 100, bestRank: 0, advancementPoints: 0,
+            winRate: 100, bestRank: 0, advancementPoints: 0, modelOpr: 0, tipsOpr: 0, leavePark: 0,
         };
         const scores = computeWeightedScores(teams, weights);
         expect(scores.get(1)).toBe(1);
@@ -95,7 +98,7 @@ describe("computeWeightedScores", () => {
         // Equal weights → both teams should score 0.5 (one wins NP, other wins RS).
         const equal: PicklistWeights = {
             averageRS: 50, averageNP: 50, averageAutoPoints: 0,
-            winRate: 0, bestRank: 0, advancementPoints: 0,
+            winRate: 0, bestRank: 0, advancementPoints: 0, modelOpr: 0, tipsOpr: 0, leavePark: 0,
         };
         const scoresEqual = computeWeightedScores(teams, equal);
         expect(scoresEqual.get(1)).toBeCloseTo(0.5, 1);
@@ -104,7 +107,7 @@ describe("computeWeightedScores", () => {
         // Heavy NP weight → team 1 wins.
         const npHeavy: PicklistWeights = {
             averageRS: 10, averageNP: 90, averageAutoPoints: 0,
-            winRate: 0, bestRank: 0, advancementPoints: 0,
+            winRate: 0, bestRank: 0, advancementPoints: 0, modelOpr: 0, tipsOpr: 0, leavePark: 0,
         };
         const scoresNP = computeWeightedScores(teams, npHeavy);
         expect(scoresNP.get(1)!).toBeGreaterThan(scoresNP.get(2)!);
@@ -128,10 +131,43 @@ describe("sortTeamsByWeightedScore", () => {
     });
 });
 
+describe("weights saved before a metric existed", () => {
+    it("a missing key counts as 0, never NaN", () => {
+        const teams = [team({ teamNumber: 1, averageNP: 10 }), team({ teamNumber: 2, averageNP: 20 })];
+        const old = { averageRS: 0, averageNP: 50, averageAutoPoints: 0, winRate: 0, bestRank: 0, advancementPoints: 0 } as unknown as PicklistWeights;
+        const scores = computeWeightedScores(teams, old);
+        expect(scores.get(2)).toBe(1);
+        expect(scores.get(1)).toBe(0);
+    });
+});
+
 describe("DEFAULT_WEIGHTS", () => {
-    it("is a balanced starting point — every metric has positive weight", () => {
-        for (const key of Object.keys(DEFAULT_WEIGHTS) as (keyof PicklistWeights)[]) {
+    it("DECODE and earlier: the six original metrics, all positive, event metrics off (unchanged behavior)", () => {
+        for (const key of ["averageRS", "averageNP", "averageAutoPoints", "winRate", "bestRank", "advancementPoints"] as (keyof PicklistWeights)[]) {
             expect(DEFAULT_WEIGHTS[key]).toBeGreaterThan(0);
         }
+        expect(DEFAULT_WEIGHTS.modelOpr + DEFAULT_WEIGHTS.tipsOpr + DEFAULT_WEIGHTS.leavePark).toBe(0);
+        expect(defaultWeightsFor(2025)).toBe(DEFAULT_WEIGHTS);
+        expect(weightKeysFor(2025)).not.toContain("modelOpr");
+    });
+
+    it("BIOBUZZ (2026+): ranks by the model OPR alone (#115)", () => {
+        const w = defaultWeightsFor(2026);
+        expect(w.modelOpr).toBe(100);
+        expect(WEIGHT_KEYS.filter(k => k !== "modelOpr").every(k => w[k] === 0)).toBe(true);
+        expect(weightKeysFor(2026)[0]).toBe("modelOpr");
+    });
+
+    it("BIOBUZZ ordering follows the event OPR, not partner-dependent RS or win rate", () => {
+        const mk = (n: number, opr: number, rs: number, wins: number) => ({
+            teamNumber: n, averageRS: rs, averageNP: 0, averageAutoPoints: 0, totalWins: wins, totalLosses: 5 - wins, totalTies: 0,
+            bestRank: 1, advancementPoints: { total: 0 }, pick: { opr, matches: 5 },
+        }) as unknown as AggregatedTeamStats;
+        // Team 1: lucky partners (high RS, 5 wins) but weak robot; team 2: strong robot, unlucky.
+        const teams = [mk(1, 20, 4.5, 5), mk(2, 45, 2.0, 2)];
+        const scores = computeWeightedScores(teams, defaultWeightsFor(2026));
+        expect(sortTeamsByWeightedScore([1, 2], scores)).toEqual([2, 1]);
+        const legacy = computeWeightedScores(teams, DEFAULT_WEIGHTS);
+        expect(sortTeamsByWeightedScore([1, 2], legacy)).toEqual([1, 2]); // DECODE logic untouched
     });
 });

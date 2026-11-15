@@ -335,3 +335,16 @@ describe("Oracle form ignores disqualified sides (#113)", () => {
         expect(f.get(4)!.n).toBe(1);
     });
 });
+
+describe("synergy auto bonus is DECODE-only (#115)", () => {
+    const t = (n: number, opr: number, autoOPR: number, season?: number) =>
+        ({ teamNumber: n, teamName: "", isAdvanced: false, events: [], consistencyScore: 0, trend: "stable", powerScore: 0, opr, autoOPR, season }) as TeamEvolution;
+    it("DECODE (or unknown season): +10 when combined auto OPR > 30 — unchanged", () => {
+        expect(calculateSynergyScore(t(1, 50, 20), t(2, 40, 15))).toBe(100);
+        expect(calculateSynergyScore(t(1, 50, 20, 2025), t(2, 40, 15, 2025))).toBe(100);
+    });
+    it("BIOBUZZ: plain OPR sum, no auto bonus", () => {
+        expect(calculateSynergyScore(t(1, 50, 20, 2026), t(2, 40, 15, 2026))).toBe(90);
+        expect(explainSynergyScore(t(1, 50, 20, 2026), t(2, 40, 15, 2026)).reasons.some(r => r.key === "dominantAuto")).toBe(false);
+    });
+});

@@ -57,6 +57,8 @@ export interface TeamEvolution {
     powerScore: number; // 0-100 internal metric
     projectedNationalRank?: number;
     opr?: number;
+    /** Season these numbers belong to — gates season-specific Oracle rules (#115). */
+    season?: number;
     /** Per-robot score σ when the caller already has a calibrated one (event
      *  page: the live model's, #113); computeTeamSigma then uses it as is. */
     sigma?: number;
@@ -291,6 +293,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
                 teamMap.set(rank.teamNumber, {
                     teamNumber: rank.teamNumber,
                     teamName: rank.teamName,
+                    season,
                     isAdvanced: false,
                     events: [],
                     consistencyScore: 0,

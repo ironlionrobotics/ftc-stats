@@ -282,10 +282,13 @@ export function explainSynergyScore(t1: TeamEvolution, t2: TeamEvolution): { sco
         combinedOPR: Math.round(combinedOPR),
     });
 
-    // Auto Synergy
+    // Auto Synergy — a DECODE-era heuristic (+10 when combined auto OPR > 30).
+    // BIOBUZZ (2026+) drops it: on 2026 playoffs it LOWERED the pick accuracy
+    // of the plain OPR sum, 77.3 % → 76.5 % (decision #115). Earlier seasons keep it.
     const autoSynergy = (t1.autoOPR || 0) + (t2.autoOPR || 0);
+    const biobuzz = (t1.season ?? 0) >= 2026 || (t2.season ?? 0) >= 2026;
     let synergyBonus = 0;
-    if (autoSynergy > 30) {
+    if (!biobuzz && autoSynergy > 30) {
         synergyBonus += 10;
         reasons.push({ key: "dominantAuto", autoSynergy: Math.round(autoSynergy) });
     }

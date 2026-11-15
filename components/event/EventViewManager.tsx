@@ -336,6 +336,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 trend,
                 powerScore,
                 opr,
+                season,
                 sigma: robotSigma,
                 autoOPR: auto,
                 teleOPR: tele,
