@@ -694,7 +694,8 @@
       "card": "Trading Card",
       "lending": "Pit lending",
       "workshop": "Workshop",
-      "allEvents": "All events"
+      "allEvents": "All events",
+      "about": "About PRIDE"
     },
     "aria": {
       "primary": "Main navigation",
@@ -1631,7 +1632,8 @@
     "viewEvent": "View event",
     "yourChance": "Your chance to win",
     "yourDay": "Your day",
-    "noEventsShort": "No events registered in season {season}."
+    "noEventsShort": "No events registered in season {season}.",
+    "aboutLink": "What is PRIDE?"
   },
   "Sidebar": {
     "teamTools": "Team tools"
@@ -2229,5 +2231,83 @@
     "anSolid": "Solid edge: {diff} pts against noise of ±{sigma}; an upset is around {upset}%.",
     "sideFemRed": "red",
     "sideFemBlue": "blue"
+  },
+  "About": {
+    "metaTitle": "What is PRIDE",
+    "metaDescription": "Stats, match forecasts and shared scouting for FIRST Tech Challenge teams. Free, in English and Spanish, and it keeps working offline at the venue.",
+    "kicker": "About PRIDE",
+    "title": "Scouting and stats for FTC, as a pride",
+    "lede": "PRIDE brings together FIRST's official data, a model that forecasts matches and the scouting several teams share. It's free, works on your phone and keeps working when the venue network goes down.",
+    "ctaFollow": "Follow your team",
+    "ctaEvent": "Open an event",
+    "noAccount": "No account needed to see stats and forecasts.",
+    "tasksTitle": "What you do with PRIDE on event day",
+    "tasks": {
+      "today": {
+        "title": "Today",
+        "body": "Your next match: who you play with, who against and your chance to win. Plus your place in the ranking and where you'll likely finish."
+      },
+      "event": {
+        "title": "Event",
+        "body": "Live and upcoming matches with their forecast, the ranking, the alliances and a playoff bracket simulator that learns from every result."
+      },
+      "capture": {
+        "title": "Capture",
+        "body": "Match and pit scouting from your phone. Tap a robot in the queue and the form opens with the match set. Captures are saved on the phone when there's no network."
+      },
+      "strategy": {
+        "title": "Strategy",
+        "body": "A live picklist shared with your team, ordered by what each robot really adds, a match simulator and a printable sheet for the drive coach."
+      }
+    },
+    "diffTitle": "What makes PRIDE different",
+    "diff": {
+      "pool": {
+        "title": "Scouting shared between teams",
+        "body": "Each team scouts some robots and everyone sees more. The pool is reciprocal (you contribute to see), uses per-event pseudonyms and never shares private notes or names."
+      },
+      "truth": {
+        "title": "Data checked against reality",
+        "body": "Captures are compared with FIRST's official results. Each scout gains or loses weight by how well they match, and every team's Trading Card is anchored to its real numbers."
+      },
+      "playoffs": {
+        "title": "Forecasts that learn",
+        "body": "In playoffs the forecast adjusts to what each alliance is doing, not just to quals. And every forecast is logged so you can see what it got right and what it didn't."
+      },
+      "venue": {
+        "title": "Built for the venue",
+        "body": "Works one-handed on your phone, with nothing to install from a store, in English and Spanish, and keeps your captures when the venue network fails."
+      }
+    },
+    "accuracyTitle": "How good are the forecasts?",
+    "accuracyStat": "~3 in 4",
+    "accuracyBody": "Tested against 7 seasons and more than 21,000 real playoff matches, the model picks the winner about 76% of the time, and when it says 70%, the favorite wins about 70% of the time.",
+    "accuracyNote": "A forecast is a probability, not a promise: the other 24% happens too.",
+    "accuracyLink": "See the model's accuracy",
+    "worldTitle": "For teams everywhere",
+    "worldBody": "PRIDE was born in Monterrey with team 30311 Iron Lion, but FIRST's data covers every FTC event in the world: look up any team or event.",
+    "frcSoon": "FRC: coming soon",
+    "startTitle": "How to start",
+    "steps": {
+      "one": {
+        "title": "Follow your team",
+        "body": "Type its number on Today. No account."
+      },
+      "two": {
+        "title": "Pick your event",
+        "body": "From the chip at the top. The whole app works on that event."
+      },
+      "three": {
+        "title": "Register your team",
+        "body": "With a team account you capture scouting, share the picklist and join the pool."
+      }
+    },
+    "principlesTitle": "House rules",
+    "principles": {
+      "free": "Free and ad-free: FIRST's data is used for non-commercial purposes.",
+      "privacy": "We never show students' names or data.",
+      "source": "Stats come from FIRST's official API."
+    },
+    "madeBy": "Made by Iron Lion Robotics · FTC #30311, Monterrey, Mexico."
   }
 }

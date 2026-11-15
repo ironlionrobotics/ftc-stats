@@ -694,7 +694,8 @@
       "card": "Trading Card",
       "lending": "Préstamos de pits",
       "workshop": "Taller",
-      "allEvents": "Todos los eventos"
+      "allEvents": "Todos los eventos",
+      "about": "Acerca de PRIDE"
     },
     "aria": {
       "primary": "Navegación principal",
@@ -1631,7 +1632,8 @@
     "viewEvent": "Ver evento",
     "yourChance": "Tu probabilidad de ganar",
     "yourDay": "Tu día",
-    "noEventsShort": "Sin eventos registrados en la temporada {season}."
+    "noEventsShort": "Sin eventos registrados en la temporada {season}.",
+    "aboutLink": "¿Qué es PRIDE?"
   },
   "Sidebar": {
     "teamTools": "Herramientas del equipo"
@@ -2229,5 +2231,83 @@
     "anSolid": "Ventaja sólida: {diff} pts frente a un ruido de ±{sigma}; la sorpresa ronda el {upset}%.",
     "sideFemRed": "roja",
     "sideFemBlue": "azul"
+  },
+  "About": {
+    "metaTitle": "Qué es PRIDE",
+    "metaDescription": "Estadística, pronósticos y scouting compartido para equipos FIRST Tech Challenge. Gratis, en español e inglés, y funciona sin red en el evento.",
+    "kicker": "Acerca de PRIDE",
+    "title": "Scouting y estadística para FTC, en manada",
+    "lede": "PRIDE junta los datos oficiales de FIRST, un modelo que pronostica partidos y el scouting que varios equipos comparten. Es gratis, funciona en el celular y sigue funcionando cuando la red del evento se cae.",
+    "ctaFollow": "Sigue a tu equipo",
+    "ctaEvent": "Abre un evento",
+    "noAccount": "No necesitas cuenta para ver estadísticas y pronósticos.",
+    "tasksTitle": "Lo que haces con PRIDE el día del evento",
+    "tasks": {
+      "today": {
+        "title": "Hoy",
+        "body": "Tu próximo partido: con quién juegas, contra quién y tu probabilidad de ganar. También tu lugar en el ranking y el rango donde probablemente terminas."
+      },
+      "event": {
+        "title": "Evento",
+        "body": "Partidos en vivo y los siguientes con su pronóstico, el ranking, las alianzas y un simulador del bracket de playoffs que aprende de cada resultado."
+      },
+      "capture": {
+        "title": "Capturar",
+        "body": "Scouting de partidos y pits desde el celular. Tocas un robot de la cola y el formulario abre con el partido puesto. Lo capturado se guarda en el teléfono si no hay red."
+      },
+      "strategy": {
+        "title": "Estrategia",
+        "body": "Picklist en vivo con tu equipo, ordenado por lo que de verdad aporta cada robot, un simulador de partidos y una hoja imprimible para el drive coach."
+      }
+    },
+    "diffTitle": "Lo que hace diferente a PRIDE",
+    "diff": {
+      "pool": {
+        "title": "Scouting compartido entre equipos",
+        "body": "Cada equipo scoutea a algunos robots y todos ven más. El pool es recíproco (para ver hay que aportar), usa seudónimos por evento y nunca comparte notas privadas ni nombres."
+      },
+      "truth": {
+        "title": "Datos contrastados con la realidad",
+        "body": "Las capturas se comparan con los resultados oficiales de FIRST. Cada scout gana o pierde peso según qué tan bien coincide, y la Trading Card de cada equipo se ancla a sus números reales."
+      },
+      "playoffs": {
+        "title": "Pronósticos que aprenden",
+        "body": "En playoffs el pronóstico se ajusta con lo que cada alianza va haciendo, no solo con las calificaciones. Y cada pronóstico queda registrado para que veas en qué acertó y en qué no."
+      },
+      "venue": {
+        "title": "Pensado para la sede",
+        "body": "Funciona en el celular con una mano, sin descargar nada de una tienda, en español e inglés, y guarda lo que capturas cuando la red del evento falla."
+      }
+    },
+    "accuracyTitle": "¿Qué tan bien pronostica?",
+    "accuracyStat": "~3 de cada 4",
+    "accuracyBody": "Probado contra 7 temporadas y más de 21,000 partidos de playoffs reales, el modelo acierta al ganador alrededor de 76 % de las veces, y cuando dice 70 %, gana el favorito cerca de 70 % de las veces.",
+    "accuracyNote": "Un pronóstico es una probabilidad, no una promesa: el 24 % restante también pasa.",
+    "accuracyLink": "Ver la precisión del modelo",
+    "worldTitle": "Para equipos de todo el mundo",
+    "worldBody": "PRIDE nació en Monterrey con el equipo 30311 Iron Lion, pero los datos de FIRST cubren todos los eventos de FTC del mundo: busca cualquier equipo o evento.",
+    "frcSoon": "FRC: próximamente",
+    "startTitle": "Cómo empezar",
+    "steps": {
+      "one": {
+        "title": "Sigue a tu equipo",
+        "body": "Escribe su número en Hoy. Sin cuenta."
+      },
+      "two": {
+        "title": "Elige tu evento",
+        "body": "Desde el chip de arriba. Toda la app trabaja sobre ese evento."
+      },
+      "three": {
+        "title": "Registra a tu equipo",
+        "body": "Con una cuenta de equipo capturas scouting, compartes el picklist y entras al pool."
+      }
+    },
+    "principlesTitle": "Reglas de la casa",
+    "principles": {
+      "free": "Gratis y sin anuncios: los datos de FIRST se usan sin fines comerciales.",
+      "privacy": "Nunca mostramos nombres ni datos de estudiantes.",
+      "source": "Las estadísticas vienen de la API oficial de FIRST."
+    },
+    "madeBy": "Hecho por Iron Lion Robotics · FTC #30311, Monterrey, México."
   }
 }

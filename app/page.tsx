@@ -62,6 +62,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                 <p className="mt-8 text-sm text-muted-foreground">
                     {t.rich("orBrowse", { events: chunks => <Link href="/events" className="underline hover:text-foreground">{chunks}</Link> })}
                 </p>
+                <p className="mt-2 text-sm">
+                    <Link href="/acerca" className="font-semibold text-foreground underline underline-offset-4">{t("aboutLink")}</Link>
+                </p>
                 {followSections}
             </div>
         );

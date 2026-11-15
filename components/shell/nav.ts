@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarRange, ClipboardList, Home, Swords, Users, BarChart2, Target, IdCard, Wrench, Timer, type LucideIcon } from "lucide-react";
+import { CalendarDays, CalendarRange, ClipboardList, Home, Swords, Users, BarChart2, Target, IdCard, Wrench, Timer, Info, type LucideIcon } from "lucide-react";
 
 /**
  * Navigation model of the app shell (decision #116, direction "Oro").
@@ -34,6 +34,7 @@ const TOOLS: NavItem[] = [
     { href: "/card", labelKey: "more.card", icon: IdCard, match: ["/card"] },
     { href: "/analytics", labelKey: "more.dataLab", icon: BarChart2, match: ["/analytics"] },
     { href: "/oracle", labelKey: "more.oracle", icon: Target, match: ["/oracle"] },
+    { href: "/acerca", labelKey: "more.about", icon: Info, match: ["/acerca"] },
 ];
 
 /** Rail "more" list. */
