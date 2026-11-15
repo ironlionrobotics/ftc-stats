@@ -19,9 +19,11 @@ interface MatchScoutingFormWrapperProps {
     team: ScoutTeam;
     eventCode: string;
     entries: MatchScouting[];
+    /** Match number to start the form at (picked from the capture queue). */
+    initialMatchNumber?: number | null;
 }
 
-export default function MatchScoutingForm({ team, eventCode, entries }: MatchScoutingFormWrapperProps) {
+export default function MatchScoutingForm({ team, eventCode, entries, initialMatchNumber }: MatchScoutingFormWrapperProps) {
     const { program, season } = useProgram();
     const confirm = useConfirm();
     const t = useTranslations("MatchScoutingHub");
@@ -102,7 +104,7 @@ export default function MatchScoutingForm({ team, eventCode, entries }: MatchSco
         const definition = gameDefinitionFor("FTC", season);
         const seasonEntries = programEntries.filter(e => e.season === season);
         if (definition) {
-            FormComponent = <GameScoutingForm key={definition.id} definition={definition} team={team} eventCode={eventCode} entries={seasonEntries} />;
+            FormComponent = <GameScoutingForm key={`${definition.id}-${initialMatchNumber ?? 0}`} definition={definition} team={team} eventCode={eventCode} entries={seasonEntries} initialMatchNumber={initialMatchNumber} />;
         }
     } else if (program === "FRC") {
         FormComponent = <FRC_ReefscapeForm team={team} eventCode={eventCode} entries={programEntries} onSaveSuccess={loadPending} />;

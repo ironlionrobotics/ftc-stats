@@ -9,9 +9,14 @@ export default async function NotFound() {
             <p className="font-mono text-sm text-muted-foreground">404</p>
             <h1 className="text-3xl font-black md:text-4xl">{t("notFoundTitle")}</h1>
             <p className="max-w-prose text-muted-foreground">{t("notFoundBody")}</p>
-            <Link href="/" className="rounded-[4px] bg-foreground px-4 py-2 text-sm font-semibold text-background">
-                {t("home")}
-            </Link>
+            <div className="flex flex-wrap gap-2">
+                <Link href="/" className="flex min-h-[44px] items-center rounded-xl bg-brand px-4 text-sm font-bold text-brand-foreground">
+                    {t("home")}
+                </Link>
+                <Link href="/events" className="flex min-h-[44px] items-center rounded-xl border border-border px-4 text-sm font-bold text-foreground hover:bg-muted">
+                    {t("allEvents")}
+                </Link>
+            </div>
         </div>
     );
 }

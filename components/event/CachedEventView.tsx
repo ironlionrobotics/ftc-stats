@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import EventStats from "@/components/event/EventStats";
 import EventViewManager from "@/components/event/EventViewManager";
 import type {
     FTCEvent, FTCMatch, TeamRanking, AdvancementResponse, FTCAward,
@@ -55,8 +54,6 @@ export default function CachedEventView({ payload }: { payload: CachedEventPaylo
                     </div>
                 </div>
             </header>
-
-            <EventStats matches={payload.matches} rankings={payload.rankings} />
 
             <EventViewManager
                 matches={payload.matches}

@@ -174,20 +174,20 @@ function CounterFieldRender({
                     type="button"
                     onClick={() => rhf.onChange(Math.max(min, value - 1))}
                     disabled={disabled}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-muted rounded-md hover:bg-border text-muted-foreground active:bg-border disabled:opacity-50 transition-colors"
+                    className="min-w-[56px] min-h-[56px] flex items-center justify-center bg-card rounded-lg border border-border hover:bg-border text-foreground active:bg-border disabled:opacity-50 transition-colors"
                     aria-label={tGames("aria.decrement", { label: gameLabel(field.label) ?? field.id })}
                 >
-                    <Minus size={16} />
+                    <Minus size={22} />
                 </button>
-                <span className={clsx("text-xl font-black w-12 text-center", colorClass)}>{value}</span>
+                <span className={clsx("flex-1 text-center font-mono text-[28px] font-extrabold tabular-nums", colorClass)}>{value}</span>
                 <button
                     type="button"
                     onClick={() => rhf.onChange(Math.min(max, value + 1))}
                     disabled={disabled}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-muted rounded-md hover:bg-border text-muted-foreground active:bg-border disabled:opacity-50 transition-colors"
+                    className="min-w-[56px] min-h-[56px] flex items-center justify-center bg-brand rounded-lg text-brand-foreground hover:bg-brand/90 active:bg-brand/80 disabled:opacity-50 transition-colors"
                     aria-label={tGames("aria.increment", { label: gameLabel(field.label) ?? field.id })}
                 >
-                    <Plus size={16} />
+                    <Plus size={22} />
                 </button>
             </div>
         </div>

@@ -11,7 +11,9 @@ import { eventStrengthModel } from "@/lib/live-projection";
 import { predictionLedger, scorecard, type LedgerRow } from "@/lib/prediction-ledger";
 import PredictionCell, { LedgerSummary, PredictionBar } from "@/components/event/PredictionLedger";
 import clsx from "clsx";
-import { Trophy, Zap, Star, Info, Target, MousePointer2, AlertTriangle, Clock, ChevronDown, Award, Users } from "lucide-react";
+import { Trophy, Zap, Star, Target, MousePointer2, AlertTriangle, Clock, ChevronDown, Award, Users, Filter } from "lucide-react";
+import { TeamLink } from "@/components/ui/TeamLink";
+import InfoTip from "@/components/event/InfoTip";
 
 interface MatchListProps {
     matches: FTCMatch[];
@@ -25,11 +27,18 @@ interface MatchListProps {
     awards?: FTCAward[];
     /** Official playoff alliances — used to show a team's alliance role. */
     selectedAlliances?: FTCAllianceSelection[];
+    /** Event code, so team links carry the event to the team page. */
+    eventCode?: string;
 }
 
-export default function MatchList({ matches, rankings, filterTeam, setFilterTeam, scoutingData, schedule, awards, selectedAlliances }: MatchListProps) {
+/** Translator signature shared with module-level helpers. */
+type Tr = (key: string, values?: Record<string, string | number>) => string;
+
+export default function MatchList({ matches, rankings, filterTeam, setFilterTeam, scoutingData, schedule, awards, selectedAlliances, eventCode }: MatchListProps) {
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
     const tLedger = useTranslations("PredictionLedger");
+    const tA = useTranslations("Alliance");
+    const t = useTranslations("MatchList");
 
     const toggleMatch = (matchId: string) => {
         setExpandedMatch(prev => prev === matchId ? null : matchId);
@@ -225,6 +234,29 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
             });
     }, [schedule, matches, oprData, filterTeam]);
 
+    // Pre-match win probability of the still-unplayed matches (same numbers as
+    // the upcoming cards above) so the phone rows can show it without recomputing.
+    const pRedByKey = new Map(upcomingMatches.map(u => [`${u.match.tournamentLevel}:${u.match.series ?? 0}:${u.match.matchNumber}`, u.pRed]));
+    const phoneList = (list: FTCMatch[]) => (
+        <div className="space-y-2 md:hidden">
+            {/* Red/blue always with the word (#116): one legend per list. */}
+            <div className="flex justify-between px-12 text-xs font-extrabold tracking-[0.08em]" aria-hidden>
+                <span className="text-alliance-red">{tA("red")}</span>
+                <span className="text-alliance-blue">{tA("blue")}</span>
+            </div>
+            {list.map(match => (
+                <MatchCard
+                    key={`${match.tournamentLevel}-${match.series ?? 0}-${match.matchNumber}-${match.description}`}
+                    match={match}
+                    filterTeam={filterTeam}
+                    eventCode={eventCode}
+                    prediction={predictionFor(match)}
+                    pRedPending={pRedByKey.get(`${match.tournamentLevel}:${match.series ?? 0}:${match.matchNumber}`)}
+                />
+            ))}
+        </div>
+    );
+
     // Calculate Dynamic KPIs for filtered team
     const stats = {
         wins: 0, losses: 0, ties: 0,
@@ -270,10 +302,10 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
     const allianceRole = (() => {
         if (!filterTeam || !selectedAlliances?.length) return null;
         for (const a of selectedAlliances) {
-            if (a.captain?.teamNumber === filterTeam) return { number: a.number, role: "Capitán" };
-            if (a.round1?.teamNumber === filterTeam) return { number: a.number, role: "1er pick" };
-            if (a.round2?.teamNumber === filterTeam) return { number: a.number, role: "2do pick" };
-            if (a.backup?.teamNumber === filterTeam) return { number: a.number, role: "Backup" };
+            if (a.captain?.teamNumber === filterTeam) return { number: a.number, role: t("roleCaptain") };
+            if (a.round1?.teamNumber === filterTeam) return { number: a.number, role: t("rolePick1") };
+            if (a.round2?.teamNumber === filterTeam) return { number: a.number, role: t("rolePick2") };
+            if (a.backup?.teamNumber === filterTeam) return { number: a.number, role: t("roleBackup") };
         }
         return null;
     })();
@@ -291,19 +323,19 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                             <div>
                                 <h2 className="text-2xl font-bold text-foreground tracking-tight leading-none mb-2">{teamNamesMap.get(filterTeam)}</h2>
                                 <div className="flex items-center gap-3 text-muted-foreground text-sm font-medium">
-                                    <span className="flex items-center gap-1.5"><Trophy size={14} className="text-primary" /> {stats.count} Matches analizados</span>
+                                    <span className="flex items-center gap-1.5"><Trophy size={14} className="text-primary" /> {t("matchesAnalyzed", { n: stats.count })}</span>
                                     <span className="w-1 h-1 rounded-full bg-border" />
-                                    <span>Temporada FTC</span>
+                                    <span>{t("ftcSeason")}</span>
                                 </div>
                                 {(allianceRole || teamAwards.length > 0) && (
                                     <div className="flex flex-wrap items-center gap-2 mt-3">
                                         {allianceRole && (
                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
-                                                <Users size={12} /> Alianza {allianceRole.number} · {allianceRole.role}
+                                                <Users size={12} /> {t("allianceRole", { n: allianceRole.number, role: allianceRole.role })}
                                             </span>
                                         )}
                                         {teamAwards.map((aw, i) => {
-                                            const label = aw.name || aw.awardName || "Premio";
+                                            const label = aw.name || aw.awardName || t("awardFallback");
                                             const isWin = aw.series === 1;
                                             return (
                                                 <span
@@ -325,112 +357,107 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                             onClick={() => setFilterTeam(null)}
                             className="px-6 py-3 bg-muted hover:bg-muted/80 text-foreground text-sm font-bold rounded-2xl transition-all border border-border flex items-center justify-center gap-2 group"
                         >
-                            Quitar Filtro <span className="text-primary group-hover:rotate-90 transition-transform">×</span>
+                            {t("clearFilter")} <span className="text-primary group-hover:rotate-90 transition-transform">×</span>
                         </button>
                     </div>
 
                     {/* KPI Grid */}
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                         <KPICard
-                            label="OPR"
+                            label={t("kpiOpr")}
                             value={opr.toFixed(1)}
                             icon={<Zap className="text-warning" size={20} />}
-                            subline="Offensive Power Rating"
+                            subline={t("kpiOprSub")}
                             tooltip={
                                 <div className="space-y-2">
-                                    <p><strong className="text-warning">¿Qué es?</strong> Offensive Power Rating.</p>
-                                    <p><strong>Cálculo:</strong> Algoritmo de álgebra lineal que aísla la contribución individual de cada robot del puntaje total de sus alianzas.</p>
-                                    <p><strong>Interpretación:</strong></p>
+                                    <p><strong className="text-warning">{t("tipWhat")}</strong> {t("tipOprWhat")}</p>
+                                    <p><strong>{t("tipHow")}</strong> {t("tipOprHow")}</p>
+                                    <p><strong>{t("tipRead")}</strong></p>
                                     <ul className="list-disc list-inside opacity-90">
-                                        <li><span className="text-success">Alto (+):</span> Gran capacidad de anotación.</li>
-                                        <li><span className="text-danger">Bajo (-):</span> Bajo rendimiento ofensivo.</li>
+                                        <li><span className="text-success">{t("tipHigh")}</span> {t("tipOprHigh")}</li>
+                                        <li><span className="text-error">{t("tipLow")}</span> {t("tipOprLow")}</li>
                                     </ul>
                                 </div>
                             }
                         />
                         <KPICard
-                            label="Auto OPR"
+                            label={t("kpiAuto")}
                             value={autoOPR.toFixed(1)}
                             icon={<Target className="text-primary" size={20} />}
-                            subline="Contribution (Calculated)"
+                            subline={t("kpiAutoSub")}
                             tooltip={
                                 <div className="space-y-2">
-                                    <p><strong className="text-primary">¿Qué es?</strong> Contribución en Autónomo.</p>
-                                    <p><strong>Cálculo:</strong> OPR aplicado exclusivamente a los puntos anotados en el periodo autónomo.</p>
-                                    <p><strong>Uso:</strong> Identificar equipos con rutinas autónomas consistentes y de alto valor.</p>
+                                    <p><strong className="text-primary">{t("tipWhat")}</strong> {t("tipAutoWhat")}</p>
+                                    <p><strong>{t("tipHow")}</strong> {t("tipAutoHow")}</p>
+                                    <p><strong>{t("tipUse")}</strong> {t("tipAutoUse")}</p>
                                 </div>
                             }
                         />
                         <KPICard
-                            label="TeleOp OPR"
+                            label={t("kpiTele")}
                             value={teleOPR.toFixed(1)}
                             icon={<MousePointer2 className="text-secondary" size={20} />}
-                            subline="Driver Control (Estimated)"
+                            subline={t("kpiTeleSub")}
                             tooltip={
                                 <div className="space-y-2">
-                                    <p><strong className="text-secondary">¿Qué es?</strong> Poder en TeleOp/Endgame.</p>
-                                    <p><strong>Cálculo:</strong> (OPR Total) - (Auto OPR).</p>
-                                    <p><strong>Uso:</strong> Evaluar la habilidad del conductor y la capacidad de anotación manual del robot.</p>
+                                    <p><strong className="text-secondary">{t("tipWhat")}</strong> {t("tipTeleWhat")}</p>
+                                    <p><strong>{t("tipHow")}</strong> {t("tipTeleHow")}</p>
+                                    <p><strong>{t("tipUse")}</strong> {t("tipTeleUse")}</p>
                                 </div>
                             }
                         />
                         <KPICard
-                            label="Foul Strategy"
+                            label={t("kpiFoul")}
                             value={(drawnFoulOPR > 0 ? "+" : "") + drawnFoulOPR.toFixed(1)}
                             icon={<Star className="text-primary" size={20} />}
-                            subline="Pts provocados al rival"
+                            subline={t("kpiFoulSub")}
                             tooltip={
                                 <div className="space-y-2">
-                                    <p><strong className="text-primary">¿Qué es?</strong> Faltas Provocadas (Drawn).</p>
-                                    <p><strong>Cálculo:</strong> OPR de los puntos que la alianza <em>oponente</em> regaló por penalizaciones.</p>
-                                    <p><strong>Interpretación:</strong></p>
+                                    <p><strong className="text-primary">{t("tipWhat")}</strong> {t("tipFoulWhat")}</p>
+                                    <p><strong>{t("tipHow")}</strong> {t("tipFoulHow")}</p>
+                                    <p><strong>{t("tipRead")}</strong></p>
                                     <ul className="list-disc list-inside opacity-90">
-                                        <li><span className="text-success">Alto (+):</span> El equipo fuerza errores en el rival (Estrategia).</li>
-                                        <li><span className="text-muted-foreground">Bajo/Cero:</span> Juego neutral, no provoca faltas.</li>
+                                        <li><span className="text-success">{t("tipHigh")}</span> {t("tipFoulHigh")}</li>
+                                        <li><span className="text-muted-foreground">{t("tipZero")}</span> {t("tipFoulLow")}</li>
                                     </ul>
                                 </div>
                             }
                         />
                         <KPICard
-                            label="Net Discipline"
+                            label={t("kpiNet")}
                             value={(netDiscipline > 0 ? "+" : "") + netDiscipline.toFixed(1)}
-                            icon={<Zap className={netDiscipline >= 0 ? "text-success" : "text-danger"} size={20} />}
-                            subline="Margen Neto"
+                            icon={<Zap className={netDiscipline >= 0 ? "text-success" : "text-error"} size={20} />}
+                            subline={t("kpiNetSub")}
                             tooltip={
                                 <div className="space-y-2">
-                                    <p><strong className={netDiscipline >= 0 ? "text-success" : "text-danger"}>¿Qué es?</strong> Disciplina Neta.</p>
-                                    <p><strong>Cálculo:</strong> (Faltas Provocadas) - (Faltas Cometidas).</p>
-                                    <p><strong>Interpretación:</strong></p>
+                                    <p><strong className={netDiscipline >= 0 ? "text-success" : "text-error"}>{t("tipWhat")}</strong> {t("tipNetWhat")}</p>
+                                    <p><strong>{t("tipHow")}</strong> {t("tipNetHow")}</p>
+                                    <p><strong>{t("tipRead")}</strong></p>
                                     <ul className="list-disc list-inside opacity-90">
-                                        <li><span className="text-success">Positivo (+):</span> Ganas más puntos por estrategia de los que pierdes por errores (Mastermind).</li>
-                                        <li><span className="text-danger">Negativo (-):</span> Regalas más puntos de los que generas. (Riesgo).</li>
+                                        <li><span className="text-success">{t("tipPos")}</span> {t("tipNetPos")}</li>
+                                        <li><span className="text-error">{t("tipNeg")}</span> {t("tipNetNeg")}</li>
                                     </ul>
                                 </div>
                             }
                         />
                         <div className="bg-card border border-border rounded-2xl p-4 hover:border-primary/30 transition-all shadow-sm flex flex-col justify-between relative">
-                            <div className="absolute top-2 right-2 group/tooltip">
-                                <div className="p-1 text-muted-foreground hover:text-primary transition-colors cursor-help">
-                                    <Info size={14} />
-                                </div>
-                                <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-card border border-border text-foreground text-xs rounded-xl shadow-sm opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 pointer-events-none text-left leading-relaxed">
-                                    <p className="mb-1"><strong className="text-danger">Tarjetas (Cards)</strong></p>
-                                    <p className="text-xs leading-relaxed">Advertencias (Yellow) y Descalificaciones (Red) acumuladas en el evento. Un alto número indica riesgo de descalificación para la alianza.</p>
-                                </div>
-                            </div>
+                            <InfoTip align="end" className="absolute top-2 right-2">
+                                <p className="mb-1"><strong className="text-error">{t("tipCardsTitle")}</strong></p>
+                                <p className="text-xs leading-relaxed">{t("tipCardsBody")}</p>
+                            </InfoTip>
                             <div className="flex items-center justify-between mb-3">
-                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Cards</span>
+                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("kpiCards")}</span>
                                 <AlertTriangle className="text-danger" size={20} />
                             </div>
 
                             <div className="flex gap-2">
                                 <div className="flex-1 bg-warning/10 border border-warning/20 rounded-lg p-2 text-center">
                                     <div className="text-xl font-black text-warning">{stats.yellowCards}</div>
-                                    <div className="text-xs font-bold text-warning uppercase">Yellow</div>
+                                    <div className="text-xs font-bold text-warning uppercase">{t("yellow")}</div>
                                 </div>
                                 <div className="flex-1 bg-danger/10 border border-danger/20 rounded-lg p-2 text-center">
                                     <div className="text-xl font-black text-danger">{stats.redCards}</div>
-                                    <div className="text-xs font-bold text-danger uppercase">Red</div>
+                                    <div className="text-xs font-bold text-danger uppercase">{t("red")}</div>
                                 </div>
                             </div>
                         </div>
@@ -443,11 +470,11 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                     <div className="flex items-baseline justify-between mb-4 gap-3 flex-wrap">
                         <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
                             <span className="w-2 h-8 bg-secondary rounded-full" />
-                            Próximos partidos
+                            {t("upcoming")}
                             <span className="px-2 py-0.5 rounded-md bg-secondary/10 text-secondary font-mono text-xs">{upcomingMatches.length}</span>
                         </h3>
                         <p className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
-                            Predicción: OPR + σ del evento · sin penalizaciones
+                            {t("predictionNote")}
                         </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -456,7 +483,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                                 key={`${item.match.tournamentLevel}-${item.match.matchNumber}-${item.match.series ?? 0}`}
                                 item={item}
                                 filterTeam={filterTeam}
-                                onTeamClick={setFilterTeam}
+                                eventCode={eventCode}
                                 isNext={idx === 0}
                             />
                         ))}
@@ -470,16 +497,17 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                 <section>
                     <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                         <span className="w-2 h-8 bg-primary rounded-full transition-all" />
-                        Resultados — Qualification {filterTeam && <span className="text-muted-foreground text-sm font-normal">— {qualMatches.length} partidos</span>}
+                        {t("qualResults")} {filterTeam && <span className="text-muted-foreground text-sm font-normal">{t("matchCount", { n: qualMatches.length })}</span>}
                     </h3>
-                    <div className="overflow-x-auto">
+                    {phoneList(qualMatches)}
+                    <div className="hidden overflow-x-auto md:block">
                         <table className="w-full text-left border-collapse min-w-[900px]">
                             <thead>
                                 <tr className="text-muted-foreground border-b border-border text-sm uppercase tracking-wider">
-                                    <th className="p-4 font-medium min-w-[170px]">Match · {tLedger("column")}</th>
-                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-red/5 text-alliance-red rounded-tl-lg border-x border-border/50">Red Alliance</th>
-                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-blue/5 text-alliance-blue rounded-tr-lg border-x border-border/50">Blue Alliance</th>
-                                    <th className="p-4 font-medium text-center min-w-[120px]">Score</th>
+                                    <th className="p-4 font-medium min-w-[170px]">{t("colMatch")} · {tLedger("column")}</th>
+                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-red/5 text-alliance-red rounded-tl-lg border-x border-border/50">{t("colRed")}</th>
+                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-blue/5 text-alliance-blue rounded-tr-lg border-x border-border/50">{t("colBlue")}</th>
+                                    <th className="p-4 font-medium text-center min-w-[120px]">{t("colScore")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/50">
@@ -495,6 +523,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                                         isExpanded={expandedMatch === match.description}
                                         onToggle={() => toggleMatch(match.description)}
                                         prediction={predictionFor(match)}
+                                        eventCode={eventCode}
                                     />
                                 ))}
                             </tbody>
@@ -507,16 +536,17 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                 <section>
                     <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                         <span className="w-2 h-8 bg-secondary rounded-full" />
-                        Playoffs {filterTeam && <span className="text-muted-foreground text-sm font-normal">— {otherMatches.length} partidos</span>}
+                        {t("playoffs")} {filterTeam && <span className="text-muted-foreground text-sm font-normal">{t("matchCount", { n: otherMatches.length })}</span>}
                     </h3>
-                    <div className="overflow-x-auto">
+                    {phoneList(otherMatches)}
+                    <div className="hidden overflow-x-auto md:block">
                         <table className="w-full text-left border-collapse min-w-[900px]">
                             <thead>
                                 <tr className="text-muted-foreground border-b border-border text-sm uppercase tracking-wider">
-                                    <th className="p-4 font-medium min-w-[170px]">Match · {tLedger("column")}</th>
-                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-red/5 text-alliance-red rounded-tl-lg border-x border-border/50">Red Alliance</th>
-                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-blue/5 text-alliance-blue rounded-tr-lg border-x border-border/50">Blue Alliance</th>
-                                    <th className="p-4 font-medium text-center min-w-[120px]">Score</th>
+                                    <th className="p-4 font-medium min-w-[170px]">{t("colMatch")} · {tLedger("column")}</th>
+                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-red/5 text-alliance-red rounded-tl-lg border-x border-border/50">{t("colRed")}</th>
+                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-blue/5 text-alliance-blue rounded-tr-lg border-x border-border/50">{t("colBlue")}</th>
+                                    <th className="p-4 font-medium text-center min-w-[120px]">{t("colScore")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/50">
@@ -532,6 +562,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                                         isExpanded={expandedMatch === match.description}
                                         onToggle={() => toggleMatch(match.description)}
                                         prediction={predictionFor(match)}
+                                        eventCode={eventCode}
                                     />
                                 ))}
                             </tbody>
@@ -541,7 +572,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
             )}
 
             {filteredMatches.length === 0 && (
-                <div className="text-muted-foreground italic text-center py-8">No match data available for this filter.</div>
+                <div className="text-muted-foreground italic text-center py-8">{t("empty")}</div>
             )}
         </div>
     );
@@ -550,16 +581,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
 function KPICard({ label, value, icon, subline, tooltip }: { label: string, value: string, icon: React.ReactNode, subline: string, tooltip?: React.ReactNode }) {
     return (
         <div className="bg-card border border-border rounded-2xl p-4 hover:border-primary/30 transition-all shadow-sm relative">
-            {tooltip && (
-                <div className="absolute top-2 right-2 group/tooltip">
-                    <div className="p-1 text-muted-foreground hover:text-primary transition-colors cursor-help">
-                        <Info size={14} />
-                    </div>
-                    <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-card border border-border text-foreground text-xs rounded-xl shadow-sm opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 pointer-events-none text-left leading-relaxed">
-                        {tooltip}
-                    </div>
-                </div>
-            )}
+            {tooltip && <InfoTip align="end" className="absolute top-2 right-2">{tooltip}</InfoTip>}
             <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{label}</span>
                 <div className="p-2 bg-muted rounded-lg group-hover:bg-primary/10 transition-colors">
@@ -572,53 +594,137 @@ function KPICard({ label, value, icon, subline, tooltip }: { label: string, valu
     );
 }
 
-function TeamInfo({ team, teamNamesMap, onTeamClick, filterTeam }: { team?: FTCMatchTeam, teamNamesMap: Map<number, string>, onTeamClick: (id: number) => void, filterTeam: number | null }) {
+function TeamInfo({ team, teamNamesMap, onTeamClick, filterTeam, eventCode }: { team?: FTCMatchTeam, teamNamesMap: Map<number, string>, onTeamClick: (id: number) => void, filterTeam: number | null, eventCode?: string }) {
+    const t = useTranslations("MatchList");
     if (!team) return <div className="min-w-[120px]" />;
-    const name = teamNamesMap.get(team.teamNumber) || "Team";
+    const name = teamNamesMap.get(team.teamNumber) || t("teamFallback");
     const isRed = team.station.startsWith('Red');
     const isFiltered = filterTeam === team.teamNumber;
 
     return (
-        <button
-            onClick={() => onTeamClick(team.teamNumber)}
+        <div
             className={clsx(
-                "flex flex-col items-center min-w-[140px] px-3 group/team rounded-xl py-2 transition-all relative",
+                "flex flex-col items-center min-w-[140px] px-3 rounded-xl py-2 transition-all relative",
                 isFiltered
                     ? (isRed
-                        ? "bg-alliance-red/10 ring-2 ring-alliance-red scale-105 z-20 shadow-sm"
-                        : "bg-alliance-blue/10 ring-2 ring-alliance-blue scale-105 z-20 shadow-sm")
-                    : "hover:bg-muted"
+                        ? "bg-alliance-red/10 ring-2 ring-alliance-red z-20 shadow-sm"
+                        : "bg-alliance-blue/10 ring-2 ring-alliance-blue z-20 shadow-sm")
+                    : ""
             )}
-            key={team.teamNumber}
         >
             <div className="absolute top-1 right-1 flex flex-col gap-0.5">
                 {team.yellowCard && <div className="w-1.5 h-3 bg-warning rounded-sm shadow-sm" />}
                 {team.redCard && <div className="w-1.5 h-3 bg-error text-white rounded-sm shadow-sm" />}
             </div>
-            <span className={clsx(
-                "font-mono transition-all",
-                isFiltered
-                    ? (isRed ? "text-alliance-red" : "text-alliance-blue") + " scale-110 font-black text-lg"
-                    : (isRed ? "text-alliance-red" : "text-alliance-blue") + " font-bold text-base",
-                !isFiltered && "group-hover/team:scale-110"
-            )}>
-                {team.teamNumber}
+            {/* The number goes to the team page; filtering is its own explicit control. */}
+            <span className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                <TeamLink
+                    team={team.teamNumber}
+                    event={eventCode}
+                    className={clsx(isRed ? "text-alliance-red" : "text-alliance-blue", isFiltered ? "font-black text-lg" : "font-bold text-base")}
+                />
+                <button
+                    type="button"
+                    onClick={() => onTeamClick(team.teamNumber)}
+                    aria-label={t("filterTeam", { team: team.teamNumber })}
+                    aria-pressed={isFiltered}
+                    className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                    <Filter size={14} aria-hidden />
+                </button>
             </span>
             <span className={clsx(
-                "text-xs uppercase tracking-tighter transition-colors font-medium text-center leading-tight whitespace-normal max-w-[130px]",
+                "text-xs uppercase tracking-tighter font-medium text-center leading-tight whitespace-normal max-w-[130px]",
                 isFiltered
                     ? (isRed ? "text-alliance-red font-black" : "text-alliance-blue font-black")
-                    : "text-muted-foreground group-hover/team:text-foreground"
+                    : "text-muted-foreground"
             )}>
                 {name}
             </span>
-        </button>
+        </div>
     );
 }
 
-// ... (KPICard and TeamInfo remain unchanged) ...
+/** "Q14" for quals, the shortened description otherwise ("Round 1 Match 2" -> "R1 M2"). */
+function shortenDescription(desc: string) {
+    return desc
+        .replace(/Round\s+/g, 'R')
+        .replace(/Match\s+/g, 'M')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
 
-function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scoutingData, isExpanded, onToggle, prediction }: {
+/**
+ * Phone layout of one match (< md): label, red alliance left, score (or the
+ * predicted win % when unplayed) in the middle with the winning score
+ * underlined, blue alliance right. Team numbers open the team page.
+ */
+function MatchCard({ match, filterTeam, eventCode, prediction, pRedPending }: {
+    match: FTCMatch;
+    filterTeam: number | null;
+    eventCode?: string;
+    prediction?: LedgerRow;
+    /** P(red wins) for a match that has not been played yet. */
+    pRedPending?: number;
+}) {
+    const t = useTranslations("MatchList");
+    const redTeams = match.teams.filter(x => x.station.startsWith('Red')).sort((a, b) => a.station.localeCompare(b.station));
+    const blueTeams = match.teams.filter(x => x.station.startsWith('Blue')).sort((a, b) => a.station.localeCompare(b.station));
+    const isPlayed = !!match.postResultTime || (match.scoreRedFinal > 0 || match.scoreBlueFinal > 0);
+    const redWin = isPlayed && match.scoreRedFinal > match.scoreBlueFinal;
+    const blueWin = isPlayed && match.scoreBlueFinal > match.scoreRedFinal;
+    const mine = filterTeam != null && match.teams.some(x => x.teamNumber === filterTeam);
+    const label = match.tournamentLevel === "QUALIFICATION" ? `Q${match.matchNumber}` : shortenDescription(match.description);
+    const time = match.actualStartTime
+        ? new Date(match.actualStartTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : null;
+    const pctRed = pRedPending === undefined ? null : Math.round(pRedPending * 100);
+    const scoreCls = (win: boolean, color: string) => clsx(
+        "font-mono text-lg tabular-nums",
+        win ? clsx("font-black underline decoration-2 underline-offset-4", color) : "font-medium text-muted-foreground",
+    );
+
+    return (
+        <div className={clsx(
+            "min-h-[52px] rounded-xl border border-border bg-card px-3 py-1",
+            mine && "shadow-[inset_4px_0_0_var(--color-brand)]",
+        )}>
+            {mine && <span className="sr-only">{t("phoneFollowed")}</span>}
+            <div className="grid grid-cols-[3.25rem_1fr_auto_1fr] items-center gap-2">
+                <span className="font-mono text-xs font-bold leading-tight text-muted-foreground">{label}</span>
+                <div className="flex flex-col items-start">
+                    <span className="sr-only">{t("sideRed")}</span>
+                    {redTeams.map(x => (
+                        <TeamLink key={x.teamNumber} team={x.teamNumber} event={eventCode} className="inline-flex min-h-8 items-center px-1 text-base font-bold text-alliance-red" />
+                    ))}
+                </div>
+                <div className="text-center">
+                    {isPlayed ? (
+                        <>
+                            <span className={scoreCls(redWin, "text-alliance-red")}>{match.scoreRedFinal}</span>
+                            <span className="mx-1 text-muted-foreground" aria-hidden>–</span>
+                            <span className={scoreCls(blueWin, "text-alliance-blue")}>{match.scoreBlueFinal}</span>
+                        </>
+                    ) : pctRed !== null ? (
+                        <span className="font-mono text-xs font-bold tabular-nums text-muted-foreground">{t("phoneWinPct", { red: pctRed, blue: 100 - pctRed })}</span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground" suppressHydrationWarning>{time ?? t("pending")}</span>
+                    )}
+                </div>
+                <div className="flex flex-col items-end">
+                    <span className="sr-only">{t("sideBlue")}</span>
+                    {blueTeams.map(x => (
+                        <TeamLink key={x.teamNumber} team={x.teamNumber} event={eventCode} className="inline-flex min-h-8 items-center px-1 text-base font-bold text-alliance-blue" />
+                    ))}
+                </div>
+            </div>
+            {isPlayed && <div className="pb-1.5 pl-[3.75rem]"><PredictionCell row={prediction} /></div>}
+        </div>
+    );
+}
+
+function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scoutingData, isExpanded, onToggle, prediction, eventCode }: {
+    eventCode?: string,
     match: FTCMatch,
     rankings: TeamRanking[],
     teamNamesMap: Map<number, string>,
@@ -633,14 +739,7 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
     const redTeams = match.teams.filter(t => t.station.startsWith('Red')).sort((a, b) => a.station.localeCompare(b.station));
     const blueTeams = match.teams.filter(t => t.station.startsWith('Blue')).sort((a, b) => a.station.localeCompare(b.station));
 
-    const shortenDescription = (desc: string) => {
-        return desc
-            .replace(/Round\s+/g, 'R')
-            .replace(/Match\s+/g, 'M')
-            .replace(/\s+/g, ' ')
-            .trim();
-    };
-
+    const t = useTranslations("MatchList");
     const isPlayed = !!match.postResultTime || (match.scoreRedFinal > 0 || match.scoreBlueFinal > 0);
     const redWin = isPlayed && match.scoreRedFinal > match.scoreBlueFinal;
     const blueWin = isPlayed && match.scoreBlueFinal > match.scoreRedFinal;
@@ -669,17 +768,17 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                 </td>
 
                 <td className={clsx("p-4 border-l-4", redWin ? "border-alliance-red bg-alliance-red/10" : "border-transparent")}>
-                    <TeamInfo team={redTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} />
+                    <TeamInfo team={redTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
                 </td>
                 <td className={clsx("p-4 border-r border-border/20", redWin ? "bg-alliance-red/10" : "border-transparent")}>
-                    <TeamInfo team={redTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} />
+                    <TeamInfo team={redTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
                 </td>
 
                 <td className={clsx("p-4", blueWin ? "bg-alliance-blue/10" : "border-transparent")}>
-                    <TeamInfo team={blueTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} />
+                    <TeamInfo team={blueTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
                 </td>
                 <td className={clsx("p-4 border-r-4", blueWin ? "border-alliance-blue bg-alliance-blue/10" : "border-transparent")}>
-                    <TeamInfo team={blueTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} />
+                    <TeamInfo team={blueTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
                 </td>
 
                 <td className="p-4 text-center min-w-[200px]">
@@ -692,7 +791,7 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                                 )}>
                                     <span className={clsx("text-xl", redWin ? "font-black" : "font-bold")}>{match.scoreRedFinal}</span>
                                 </div>
-                                <span className="text-xs font-black text-border uppercase">Final</span>
+                                <span className="text-xs font-black text-border uppercase">{t("final")}</span>
                                 <div className={clsx(
                                     "flex items-center justify-center min-w-[45px] py-1 rounded-lg transition-all",
                                     blueWin ? "bg-alliance-blue-fill text-white shadow-sm" : "text-muted-foreground/30 font-medium"
@@ -705,7 +804,7 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                         </div>
                     ) : (
                         <div className="text-center">
-                            {startTime ? <span className="px-2 py-1 bg-muted rounded text-xs font-bold text-muted-foreground">{startTime}</span> : <span className="text-xs text-muted-foreground">Pending</span>}
+                            {startTime ? <span className="px-2 py-1 bg-muted rounded text-xs font-bold text-muted-foreground" suppressHydrationWarning>{startTime}</span> : <span className="text-xs text-muted-foreground">{t("pending")}</span>}
                         </div>
                     )}
                 </td>
@@ -714,7 +813,7 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
             {isExpanded && (
                 <tr className="bg-muted/30 animate-in slide-in-from-top-2 duration-300">
                     <td colSpan={6} className="p-0">
-                        <MatchDetails match={match} rankings={rankings} scoutingData={scoutingData} />
+                        <MatchDetails match={match} rankings={rankings} scoutingData={scoutingData} eventCode={eventCode} />
                     </td>
                 </tr>
             )}
@@ -722,7 +821,8 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
     );
 }
 
-function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rankings: TeamRanking[], scoutingData: MatchScouting[] }) {
+function MatchDetails({ match, rankings, scoutingData, eventCode }: { match: FTCMatch, rankings: TeamRanking[], scoutingData: MatchScouting[], eventCode?: string }) {
+    const t = useTranslations("MatchList");
     const redTele = match.scoreRedFinal - match.scoreRedAuto - match.scoreBlueFoul;
     const blueTele = match.scoreBlueFinal - match.scoreBlueAuto - match.scoreRedFoul;
 
@@ -736,7 +836,7 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
         const rank = rankings.find(r => r.teamNumber === teamNumber);
 
         return {
-            name: rank?.teamName || "Team",
+            name: rank?.teamName || t("teamFallback"),
             opr: rank?.sortOrder2 || 0, // Fallback OPR/NP
             avgAuto: rank?.sortOrder4 || 0, // This is Matches Played in Rank, not Avg Auto. Need recalculation or trust rankings map
             // Note: sortOrder meaning varies. Standard: 1=RP, 2=TBP1, 3=TBP2. 
@@ -755,13 +855,13 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
             {/* Alliance Comparison */}
             <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="space-y-4">
-                    <h4 className="text-alliance-red font-bold uppercase tracking-widest text-xs border-b border-alliance-red/20 pb-2">Red Alliance</h4>
+                    <h4 className="text-alliance-red font-bold uppercase tracking-widest text-xs border-b border-alliance-red/20 pb-2">{t("detailRed")}</h4>
                     <div className="grid gap-2">
-                        <StatRow label="Auto" value={match.scoreRedAuto} color="text-alliance-red font-bold" />
-                        <StatRow label="TeleOp" value={redTele} color="text-alliance-red" />
-                        <StatRow label="Penalty In" value={match.scoreBlueFoul} color="text-muted-foreground italic" />
+                        <StatRow label={t("statAuto")} value={match.scoreRedAuto} color="text-alliance-red font-bold" />
+                        <StatRow label={t("statTele")} value={redTele} color="text-alliance-red" />
+                        <StatRow label={t("statPenaltyIn")} value={match.scoreBlueFoul} color="text-muted-foreground italic" />
                         <div className="pt-2 border-t border-border mt-2">
-                            <StatRow label="Total" value={match.scoreRedFinal} color="text-alliance-red font-black text-lg" />
+                            <StatRow label={t("statTotal")} value={match.scoreRedFinal} color="text-alliance-red font-black text-lg" />
                         </div>
                     </div>
                 </div>
@@ -771,13 +871,13 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
                 </div>
 
                 <div className="space-y-4">
-                    <h4 className="text-alliance-blue font-bold uppercase tracking-widest text-xs border-b border-alliance-blue/20 pb-2">Blue Alliance</h4>
+                    <h4 className="text-alliance-blue font-bold uppercase tracking-widest text-xs border-b border-alliance-blue/20 pb-2">{t("detailBlue")}</h4>
                     <div className="grid gap-2">
-                        <StatRow label="Auto" value={match.scoreBlueAuto} color="text-alliance-blue font-bold" />
-                        <StatRow label="TeleOp" value={blueTele} color="text-alliance-blue" />
-                        <StatRow label="Penalty In" value={match.scoreRedFoul} color="text-muted-foreground italic" />
+                        <StatRow label={t("statAuto")} value={match.scoreBlueAuto} color="text-alliance-blue font-bold" />
+                        <StatRow label={t("statTele")} value={blueTele} color="text-alliance-blue" />
+                        <StatRow label={t("statPenaltyIn")} value={match.scoreRedFoul} color="text-muted-foreground italic" />
                         <div className="pt-2 border-t border-border mt-2">
-                            <StatRow label="Total" value={match.scoreBlueFinal} color="text-alliance-blue font-black text-lg" />
+                            <StatRow label={t("statTotal")} value={match.scoreBlueFinal} color="text-alliance-blue font-black text-lg" />
                         </div>
                     </div>
                 </div>
@@ -786,18 +886,18 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
             {/* Team Breakdown (If Scouting Data Exists) */}
             <div className="bg-card rounded-xl border border-border p-4">
                 <h4 className="font-bold text-foreground mb-4 flex items-center gap-2">
-                    <Zap size={16} className="text-primary" /> Team Performance Insights
+                    <Zap size={16} className="text-primary" /> {t("insights")}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {[redTeams, blueTeams].map((teams, idx) => (
                         <div key={idx} className="space-y-3">
-                            {teams.map(t => {
-                                const stats = getTeamStats(t.teamNumber);
+                            {teams.map(tm => {
+                                const stats = getTeamStats(tm.teamNumber);
                                 return (
-                                    <div key={t.teamNumber} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
+                                    <div key={tm.teamNumber} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
                                         <div>
                                             <div className={`text-lg font-black font-mono ${idx === 0 ? "text-alliance-red" : "text-alliance-blue"}`}>
-                                                {t.teamNumber}
+                                                <TeamLink team={tm.teamNumber} event={eventCode} />
                                             </div>
                                             <div className="text-xs text-muted-foreground font-bold uppercase">{stats.name}</div>
                                         </div>
@@ -820,7 +920,7 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
                                                 );
                                             })}
                                             <div>
-                                                <span className="block text-xs text-muted-foreground uppercase">Season NP Avg</span>
+                                                <span className="block text-xs text-muted-foreground uppercase">{t("seasonNp")}</span>
                                                 <span className="font-mono font-bold text-sm text-muted-foreground">{stats.opr.toFixed(1)}</span>
                                             </div>
                                         </div>
@@ -870,10 +970,10 @@ interface UpcomingItem {
  * (auto vs teleop), who drives it, foul discipline, and how solid the lead is
  * relative to the event's observed score noise.
  */
-function buildMatchAnalysis(redDetail: AllianceDetail, blueDetail: AllianceDetail, pRed: number, sigmaDiff: number): string[] {
+function buildMatchAnalysis(t: Tr, redDetail: AllianceDetail, blueDetail: AllianceDetail, pRed: number, sigmaDiff: number): string[] {
     const bullets: string[] = [];
     const diff = redDetail.total - blueDetail.total;
-    const favName = diff >= 0 ? "Roja" : "Azul";
+    const favName = t(diff >= 0 ? "sideFemRed" : "sideFemBlue");
     const favDetail = diff >= 0 ? redDetail : blueDetail;
     const absDiff = Math.abs(diff);
     const favPct = Math.round((diff >= 0 ? pRed : 1 - pRed) * 100);
@@ -881,36 +981,36 @@ function buildMatchAnalysis(redDetail: AllianceDetail, blueDetail: AllianceDetai
     const autoDiff = redDetail.auto - blueDetail.auto;
     const teleDiff = redDetail.tele - blueDetail.tele;
     const phase = Math.abs(autoDiff) >= Math.abs(teleDiff)
-        ? { name: "autónomo", d: autoDiff }
-        : { name: "teleop/endgame", d: teleDiff };
+        ? { name: t("anPhaseAuto"), d: autoDiff }
+        : { name: t("anPhaseTele"), d: teleDiff };
 
     if (absDiff < 5) {
-        bullets.push(`Alianzas prácticamente parejas en contribución ofensiva (Δ ${absDiff.toFixed(0)} pts) — el pronóstico de ${favPct}% es casi un volado.`);
+        bullets.push(t("anTied", { diff: absDiff.toFixed(0), pct: favPct }));
     } else {
-        bullets.push(`Alianza ${favName} favorita por ~${absDiff.toFixed(0)} pts; la ventaja se construye sobre todo en ${phase.name} (Δ ${Math.abs(phase.d).toFixed(0)} pts).`);
+        bullets.push(t("anFavored", { fav: favName, diff: absDiff.toFixed(0), phase: phase.name, phaseDiff: Math.abs(phase.d).toFixed(0) }));
     }
 
     const top = [...favDetail.perTeam].sort((a, b) => b.opr - a.opr)[0];
     if (top && favDetail.total > 0 && top.opr / Math.max(favDetail.total, 1) >= 0.6) {
-        bullets.push(`El motor de la alianza ${favName} es ${top.teamNumber}: aporta ~${top.opr.toFixed(0)} de sus ${favDetail.total.toFixed(0)} pts proyectados.`);
+        bullets.push(t("anEngine", { fav: favName, team: top.teamNumber, opr: top.opr.toFixed(0), total: favDetail.total.toFixed(0) }));
     }
 
     const foulGap = Math.abs(redDetail.foulsGiven - blueDetail.foulsGiven);
     const sloppy = redDetail.foulsGiven >= blueDetail.foulsGiven
-        ? { side: "Roja", v: redDetail.foulsGiven }
-        : { side: "Azul", v: blueDetail.foulsGiven };
+        ? { side: t("sideFemRed"), v: redDetail.foulsGiven }
+        : { side: t("sideFemBlue"), v: blueDetail.foulsGiven };
     if (sloppy.v >= 8 && foulGap >= 5) {
-        bullets.push(`Disciplina: la alianza ${sloppy.side} regala ~${sloppy.v.toFixed(0)} pts/partido en faltas — en un match cerrado eso decide.`);
+        bullets.push(t("anDiscipline", { side: sloppy.side, pts: sloppy.v.toFixed(0) }));
     }
 
     if (sigmaDiff > 0) {
         const z = absDiff / sigmaDiff;
         if (z < 0.5) {
-            bullets.push(`Alta volatilidad: la variación típica del evento (±${sigmaDiff.toFixed(0)} pts) supera la ventaja — cualquiera puede ganar.`);
+            bullets.push(t("anVolatile", { sigma: sigmaDiff.toFixed(0) }));
         } else if (z < 1.2) {
-            bullets.push(`Partido abierto: ventaja de ${absDiff.toFixed(0)} pts contra un ruido típico de ±${sigmaDiff.toFixed(0)} pts.`);
+            bullets.push(t("anOpen", { diff: absDiff.toFixed(0), sigma: sigmaDiff.toFixed(0) }));
         } else {
-            bullets.push(`Ventaja sólida: ${absDiff.toFixed(0)} pts frente a un ruido de ±${sigmaDiff.toFixed(0)} — el upset ronda el ${100 - favPct}%.`);
+            bullets.push(t("anSolid", { diff: absDiff.toFixed(0), sigma: sigmaDiff.toFixed(0), upset: 100 - favPct }));
         }
     }
     return bullets;
@@ -922,13 +1022,14 @@ function buildMatchAnalysis(redDetail: AllianceDetail, blueDetail: AllianceDetai
  * from the OPR components. Module-level per the React Compiler
  * static-components rule.
  */
-function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
+function UpcomingMatchCard({ item, filterTeam, eventCode, isNext }: {
     item: UpcomingItem;
     filterTeam: number | null;
-    onTeamClick: (team: number | null) => void;
+    eventCode?: string;
     /** The soonest upcoming match — gets the Direction C live scanline signature. */
     isNext?: boolean;
 }) {
+    const t = useTranslations("MatchList");
     const { match, red, blue, muRed, muBlue, pRed, redDetail, blueDetail, sigmaDiff } = item;
     const [showAnalysis, setShowAnalysis] = useState(false);
     const pctRed = Math.round(pRed * 100);
@@ -939,22 +1040,20 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
     const isQual = match.tournamentLevel === "QUALIFICATION";
     const label = isQual ? `Q${match.matchNumber}` : match.description;
 
-    const TeamChip = ({ t, side }: { t: FTCHybridScheduleMatch["teams"][number]; side: "red" | "blue" }) => (
-        <button
-            type="button"
-            onClick={() => onTeamClick(filterTeam === t.teamNumber ? null : t.teamNumber)}
+    // Team numbers open the team page; the followed/filtered team gets the gold "you" ring.
+    const TeamChip = ({ tm, side }: { tm: FTCHybridScheduleMatch["teams"][number]; side: "red" | "blue" }) => (
+        <TeamLink
+            team={tm.teamNumber}
+            event={eventCode}
+            underline={false}
             className={clsx(
-                "px-2 py-1 rounded-md font-mono text-xs font-bold transition-colors border",
-                filterTeam === t.teamNumber
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : side === "red"
-                        ? "bg-alliance-red/5 text-alliance-red border-alliance-red/20 hover:bg-alliance-red/10"
-                        : "bg-alliance-blue/5 text-alliance-blue border-alliance-blue/20 hover:bg-alliance-blue/10",
+                "inline-flex min-h-11 items-center px-2 rounded-md text-sm font-bold border",
+                side === "red" ? "bg-alliance-red-tint text-alliance-red border-alliance-red/20" : "bg-alliance-blue-tint text-alliance-blue border-alliance-blue/20",
+                filterTeam === tm.teamNumber && "ring-2 ring-brand",
             )}
-            title={t.teamName ?? undefined}
         >
-            {t.teamNumber}{t.surrogate ? "*" : ""}
-        </button>
+            {tm.teamNumber}{tm.surrogate ? "*" : ""}
+        </TeamLink>
     );
 
     return (
@@ -968,22 +1067,22 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
                     {isNext && (
                         <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-xs font-bold uppercase tracking-wider">
                             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                            Próximo
+                            {t("next")}
                         </span>
                     )}
                 </div>
-                <span className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                <span className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground" suppressHydrationWarning>
                     {time && <><Clock size={12} /> {time}</>}
                 </span>
             </div>
 
             <div className="flex items-center justify-between gap-2">
                 <div className="flex gap-1.5 flex-wrap">
-                    {red.map(t => <TeamChip key={t.teamNumber} t={t} side="red" />)}
+                    {red.map(tm => <TeamChip key={tm.teamNumber} tm={tm} side="red" />)}
                 </div>
-                <span className="text-xs font-bold text-muted-foreground uppercase shrink-0">vs</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase shrink-0">{t("vs")}</span>
                 <div className="flex gap-1.5 flex-wrap justify-end">
-                    {blue.map(t => <TeamChip key={t.teamNumber} t={t} side="blue" />)}
+                    {blue.map(tm => <TeamChip key={tm.teamNumber} tm={tm} side="blue" />)}
                 </div>
             </div>
 
@@ -991,7 +1090,7 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
             <div className="space-y-1.5">
                 <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
                     <span className={clsx(pRed >= 0.5 && "text-alliance-red font-bold")}>{pctRed}% · {Math.round(muRed)}</span>
-                    <span className="text-xs uppercase tracking-wider">proyección</span>
+                    <span className="text-xs uppercase tracking-wider">{t("projection")}</span>
                     <span className={clsx(pRed < 0.5 && "text-alliance-blue font-bold")}>{Math.round(muBlue)} · {pctBlue}%</span>
                 </div>
                 <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
@@ -1006,7 +1105,7 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
                 onClick={() => setShowAnalysis(v => !v)}
                 className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors pt-1"
             >
-                ¿Por qué este pronóstico?
+                {t("why")}
                 <ChevronDown size={14} className={clsx("transition-transform", showAnalysis && "rotate-180")} />
             </button>
 
@@ -1015,8 +1114,8 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
                     {/* Component comparison: Auto / Teleop */}
                     <div className="grid grid-cols-2 gap-2 font-mono text-xs">
                         {[
-                            { name: "Auto", r: redDetail.auto, b: blueDetail.auto },
-                            { name: "Tele+End", r: redDetail.tele, b: blueDetail.tele },
+                            { name: t("statAuto"), r: redDetail.auto, b: blueDetail.auto },
+                            { name: t("teleEnd"), r: redDetail.tele, b: blueDetail.tele },
                         ].map(row => (
                             <div key={row.name} className="bg-muted rounded-lg px-2.5 py-1.5 flex items-center justify-between">
                                 <span className={clsx("font-bold", row.r >= row.b ? "text-alliance-red" : "text-muted-foreground")}>{row.r.toFixed(0)}</span>
@@ -1028,22 +1127,22 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
                     {/* Per-team contributions */}
                     <div className="flex justify-between gap-3 font-mono text-xs text-muted-foreground">
                         <div className="space-y-0.5">
-                            {redDetail.perTeam.map(t => (
-                                <div key={t.teamNumber}>
-                                    <span className="text-alliance-red font-bold">{t.teamNumber}</span> · OPR {t.opr.toFixed(0)}
+                            {redDetail.perTeam.map(tm => (
+                                <div key={tm.teamNumber}>
+                                    <span className="text-alliance-red font-bold">{tm.teamNumber}</span> · {t("oprOf", { opr: tm.opr.toFixed(0) })}
                                 </div>
                             ))}
                         </div>
                         <div className="space-y-0.5 text-right">
-                            {blueDetail.perTeam.map(t => (
-                                <div key={t.teamNumber}>
-                                    OPR {t.opr.toFixed(0)} · <span className="text-alliance-blue font-bold">{t.teamNumber}</span>
+                            {blueDetail.perTeam.map(tm => (
+                                <div key={tm.teamNumber}>
+                                    {t("oprOf", { opr: tm.opr.toFixed(0) })} · <span className="text-alliance-blue font-bold">{tm.teamNumber}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
                     <ul className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
-                        {buildMatchAnalysis(redDetail, blueDetail, pRed, sigmaDiff).map((b, i) => (
+                        {buildMatchAnalysis(t, redDetail, blueDetail, pRed, sigmaDiff).map((b, i) => (
                             <li key={i} className="flex gap-2">
                                 <span className="text-primary shrink-0 mt-0.5">▸</span>
                                 <span>{b}</span>

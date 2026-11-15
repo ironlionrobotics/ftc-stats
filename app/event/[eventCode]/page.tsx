@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { fetchMatches, fetchRankings, fetchEvents, fetchAdvancement, fetchEventAwards, fetchAdvancementPoints, fetchHybridSchedule, fetchAlliances, fetchMatchScores } from "@/lib/ftc-api";
 import { analyzeMultipleEvents } from "@/app/actions/analytics";
 import { allianceRpObs } from "@/lib/rp-inference";
@@ -6,9 +7,9 @@ import type { EventTeamRp } from "@/components/event/EventViewManager";
 import { getCurrentSeason, CHAMPIONSHIP_EVENTS_2025, PREMIER_EVENTS_2025 } from "@/lib/constants";
 import Link from "next/link";
 import EventViewManager from "@/components/event/EventViewManager";
-import EventStats from "@/components/event/EventStats";
 import { CacheWriter, OfflineFallback } from "@/components/HydrateAndCache";
 import { cookies } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import AutoRefresh from "@/components/AutoRefresh";
 import { eventWindow } from "@/lib/today-summary";
 
@@ -22,6 +23,7 @@ export default async function EventPage(props: EventPageProps) {
     const searchParams = await props.searchParams;
     const { eventCode } = params;
 
+    const t = await getTranslations("EventPage");
     const cookieStore = await cookies();
     // Resolution order: ?season= URL param (explicit from a link), then the
     // user's cookie, then getCurrentSeason() (which knows about the FTC
@@ -82,24 +84,8 @@ export default async function EventPage(props: EventPageProps) {
         );
     }
 
-    if (!event) {
-        return (
-            <div className="p-8 text-foreground min-h-[50vh] flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-2xl">⚠️</span>
-                </div>
-                <h1 className="text-3xl font-bold mb-2">Event Not Found</h1>
-                <p className="text-muted-foreground max-w-md">
-                    No encontramos el evento <span className="text-primary font-mono">{eventCode}</span> en las temporadas{" "}
-                    <span className="text-foreground font-bold">{candidateSeasons.join(", ")}</span>.
-                </p>
-                <p className="text-muted-foreground text-xs mt-2 max-w-md">
-                    Si sabes a qué temporada pertenece, prueba la URL{" "}
-                    <code className="text-primary">/event/{eventCode}?season=AÑO</code>.
-                </p>
-            </div>
-        );
-    }
+    if (!event) notFound();
+
 
     const [matches, rankings, advancement, awards, advancementPoints, schedule, alliances, scores] = await Promise.all([
         fetchMatches(season, event.code),
@@ -144,7 +130,7 @@ export default async function EventPage(props: EventPageProps) {
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-xs uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                        Season {season}
+                        {t("season", { season })}
                     </div>
                     <h1 className="text-4xl md:text-5xl font-bold font-display text-foreground">
                         {event.name}
@@ -163,9 +149,9 @@ export default async function EventPage(props: EventPageProps) {
             {(() => {
                 const upper = event.code.toUpperCase();
                 const group = CHAMPIONSHIP_EVENTS_2025.some(e => e.code === upper)
-                    ? { label: "Divisiones · Houston", items: CHAMPIONSHIP_EVENTS_2025 }
+                    ? { label: t("divisions"), items: CHAMPIONSHIP_EVENTS_2025 }
                     : PREMIER_EVENTS_2025.some(e => e.code === upper)
-                        ? { label: "Premier Events", items: PREMIER_EVENTS_2025 }
+                        ? { label: t("premier"), items: PREMIER_EVENTS_2025 }
                         : null;
                 if (!group) return null;
                 return (
@@ -202,8 +188,6 @@ export default async function EventPage(props: EventPageProps) {
                     schedule, alliances, season,
                 }}
             />
-
-            <EventStats matches={matches} rankings={rankings} />
 
             <EventViewManager
                 matches={matches}

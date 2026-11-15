@@ -4,12 +4,17 @@ import { useState, useMemo } from "react";
 import { TeamRanking, FTCMatch } from "@/types/scouting";
 import clsx from "clsx";
 // Trophy and Star removed
-import { Users, ArrowUpDown, ArrowUp, ArrowDown, Info } from "lucide-react";
+import { Users, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { TeamLink } from "@/components/ui/TeamLink";
+import InfoTip from "@/components/event/InfoTip";
 
 interface RankingTableProps {
     rankings: TeamRanking[];
     matches?: FTCMatch[];
     onTeamClick?: (teamNumber: number) => void;
+    /** Event code, so team links carry the event to the team page. */
+    eventCode?: string;
 }
 
 interface OprStats {
@@ -42,20 +47,16 @@ interface HeaderWithTooltipProps {
     tooltip: React.ReactNode;
     sortConfig: SortConfig;
     handleSort: (key: string) => void;
+    tipAlign?: "start" | "center" | "end";
 }
 
-function HeaderWithTooltip({ label, column, tooltip, sortConfig, handleSort }: HeaderWithTooltipProps) {
+function HeaderWithTooltip({ label, column, tooltip, sortConfig, handleSort, tipAlign }: HeaderWithTooltipProps) {
     return (
         <th className={clsx("p-4 font-bold relative group/head", column && "cursor-pointer hover:bg-muted/50 transition-colors")} onClick={() => column && handleSort(column)}>
             <div className={clsx("flex items-center gap-1 uppercase tracking-widest", column && "justify-center")}>
                 <span className={clsx(column === 'opr' && "text-primary")}>{label}</span>
                 {column && <SortIcon column={column} sortConfig={sortConfig} />}
-                <div className="group/tip relative inline-block ml-1">
-                    <Info size={10} className="text-muted-foreground/50 hover:text-primary transition-colors cursor-help" />
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-card border border-border text-foreground text-xs rounded-lg shadow-sm opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 pointer-events-none text-left leading-relaxed font-normal normal-case tracking-normal">
-                        {tooltip}
-                    </div>
-                </div>
+                <InfoTip align={tipAlign} className="ml-1">{tooltip}</InfoTip>
             </div>
         </th>
     );
@@ -83,7 +84,14 @@ function HighlightValue({ value, column, formatted, extremes }: HighlightValuePr
     );
 }
 
-export default function RankingTable({ rankings, matches = [], onTeamClick }: RankingTableProps) {
+export default function RankingTable({ rankings, matches = [], onTeamClick, eventCode }: RankingTableProps) {
+    const t = useTranslations("RankingTable");
+    const tip = (key: "Rs" | "Np" | "Base" | "Auto" | "High" | "Opr" | "Disc" | "Sched", tone?: "Good" | "Bad") => (
+        <>
+            <strong>{t(`tip${key}Title`)}</strong> {t(`tip${key}Body`)}
+            {tone && <><br /><span className={tone === "Good" ? "text-success" : "text-error"}>{t(`tip${key}${tone}`)}</span></>}
+        </>
+    );
     // State for sorting
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'rank', direction: 'asc' });
 
@@ -222,7 +230,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
     if (!rankings || rankings.length === 0) {
         return (
             <div className="text-muted-foreground italic text-center py-8 bg-muted rounded-2xl border border-border">
-                No ranking data available for this event yet.
+                {t("empty")}
             </div>
         );
     }
@@ -241,56 +249,56 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                     <thead>
                         <tr className="text-muted-foreground border-b border-border text-xs uppercase tracking-widest bg-muted/30">
                             <th className="p-4 font-bold cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('rank')}>
-                                <div className="flex items-center gap-1">Rank <SortIcon column="rank" sortConfig={sortConfig} /></div>
+                                <div className="flex items-center gap-1">{t("rank")} <SortIcon column="rank" sortConfig={sortConfig} /></div>
                             </th>
                             <th className="p-4 font-bold">
-                                <span className="flex items-center gap-1"><Users size={12} className="inline mr-1 text-secondary" /> Team</span>
+                                <span className="flex items-center gap-1"><Users size={12} className="inline mr-1 text-secondary" /> {t("team")}</span>
                             </th>
                             <HeaderWithTooltip
-                                label="RS" column="sortOrder1"
-                                tooltip={<><strong>Ranking Score:</strong> Principal métrica oficial (RP). <br /> <span className="text-success">(+) Alto:</span> Mejor posición competitiva.</>}
+                                label={t("rs")} column="sortOrder1"
+                                tooltip={tip("Rs")}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
-                                label="NP Avg" column="sortOrder2"
-                                tooltip={<><strong>Match Points (Avg):</strong> Promedio de puntos sin penalizaciones. <br /> <span className="text-success">(+) Alto:</span> Potencia bruta de la alianza.</>}
+                                label={t("npAvg")} column="sortOrder2"
+                                tooltip={tip("Np", "Good")}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
-                                label="Base" column="sortOrder3"
-                                tooltip={<><strong>Base Points:</strong> Puntos promedio de juego manual. <br /> <span className="text-success">(+) Alto:</span> Consistencia en TeleOp.</>}
+                                label={t("base")} column="sortOrder3"
+                                tooltip={tip("Base", "Good")}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
-                                label="Auto" column="sortOrder4"
-                                tooltip={<><strong>Auto Pts:</strong> Puntos promedio en autónomo oficial. <br /> <span className="text-success">(+) Alto:</span> Capacidad de inicio.</>}
+                                label={t("auto")} column="sortOrder4"
+                                tooltip={tip("Auto", "Good")}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
-                                label="High" column="highScore"
-                                tooltip={<><strong>High Score:</strong> Puntaje más alto logrado en el evento.</>}
+                                label={t("high")} column="highScore"
+                                tooltip={tip("High")}
                                 sortConfig={sortConfig} handleSort={handleSort}
                             />
                             <HeaderWithTooltip
-                                label="OPR" column="opr"
-                                tooltip={<><strong>Offensive Power Rating:</strong> Contribución ofensiva individual estimada. <br /> <span className="text-success">(+) Alto:</span> Máxima anotación propia.</>}
-                                sortConfig={sortConfig} handleSort={handleSort}
+                                label={t("opr")} column="opr"
+                                tooltip={tip("Opr", "Good")}
+                                sortConfig={sortConfig} handleSort={handleSort} tipAlign="end"
                             />
                             <HeaderWithTooltip
-                                label="Disc" column="netDiscipline"
-                                tooltip={<><strong>Net Discipline:</strong> Diferencia entre faltas provocadas y cometidas. <br /> <span className="text-success">(+) Mastermind</span></>}
-                                sortConfig={sortConfig} handleSort={handleSort}
+                                label={t("disc")} column="netDiscipline"
+                                tooltip={tip("Disc", "Good")}
+                                sortConfig={sortConfig} handleSort={handleSort} tipAlign="end"
                             />
                             <HeaderWithTooltip
-                                label="Sched" column="scheduleLuck"
-                                tooltip={<><strong>Suerte de calendario:</strong> OPR medio de tus aliados menos el de tus rivales en quals. <br /> <span className="text-danger">(−) Negativo:</span> calendario difícil — tu rank subestima al equipo.</>}
-                                sortConfig={sortConfig} handleSort={handleSort}
+                                label={t("sched")} column="scheduleLuck"
+                                tooltip={tip("Sched", "Bad")}
+                                sortConfig={sortConfig} handleSort={handleSort} tipAlign="end"
                             />
                             <th className="p-4 font-bold text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('wins')}>
-                                <div className="flex items-center justify-center gap-1">W-L-T <SortIcon column="wins" sortConfig={sortConfig} /></div>
+                                <div className="flex items-center justify-center gap-1">{t("wlt")} <SortIcon column="wins" sortConfig={sortConfig} /></div>
                             </th>
                             <th className="p-4 font-bold text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('matchesPlayed')}>
-                                <div className="flex items-center justify-center gap-1">Plays <SortIcon column="matchesPlayed" sortConfig={sortConfig} /></div>
+                                <div className="flex items-center justify-center gap-1">{t("plays")} <SortIcon column="matchesPlayed" sortConfig={sortConfig} /></div>
                             </th>
                         </tr>
                     </thead>
@@ -309,9 +317,14 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <button onClick={() => onTeamClick?.(rank.teamNumber)} className="text-left w-full group-hover:text-primary transition-colors">
-                                        <div className="font-bold text-foreground text-lg">{rank.teamNumber}</div>
-                                        <div className="text-xs text-muted-foreground font-medium truncate max-w-[150px]">{rank.teamName}</div>
+                                    <TeamLink team={rank.teamNumber} event={eventCode} className="block text-lg font-bold text-foreground" />
+                                    <button
+                                        type="button"
+                                        onClick={() => onTeamClick?.(rank.teamNumber)}
+                                        aria-label={t("openProfile", { team: rank.teamNumber })}
+                                        className="block max-w-[150px] truncate text-left text-xs font-medium text-muted-foreground hover:text-foreground"
+                                    >
+                                        {rank.teamName}
                                     </button>
                                 </td>
                                 <td className="p-4 text-center text-sm font-bold">
@@ -342,7 +355,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                                 </td>
                                 <td className="p-4 text-center font-mono text-xs">
                                     <span className={rank.scheduleLuck < -3 ? "text-danger font-bold" : rank.scheduleLuck > 3 ? "text-success" : "text-muted-foreground"}
-                                        title={rank.scheduleLuck < -3 ? "Calendario difícil — el rank subestima al equipo" : rank.scheduleLuck > 3 ? "Calendario favorable" : "Calendario neutral"}>
+                                        title={rank.scheduleLuck < -3 ? t("schedHard") : rank.scheduleLuck > 3 ? t("schedEasy") : t("schedNeutral")}>
                                         {(rank.scheduleLuck > 0 ? "+" : "") + rank.scheduleLuck.toFixed(1)}
                                     </span>
                                 </td>

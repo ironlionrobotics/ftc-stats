@@ -8,6 +8,7 @@ import { FOLLOW_TEAM_COOKIE, parseFollowedTeam } from "@/lib/follow-team";
 import { seasonRulesFor } from "@/lib/games/season-rules";
 import { seasonGameName } from "@/lib/games/season-names";
 import { pickRelevantEvent, summarizeAtEvent, daysUntil, type TodayAtEvent } from "@/lib/today-summary";
+import { shortMatchLabel } from "@/lib/following-summary";
 import FollowTeamForm from "@/components/today/FollowTeamForm";
 import OpenLoansNotice from "@/components/today/OpenLoansNotice";
 import { Suspense } from "react";
@@ -20,12 +21,17 @@ import EventsToday from "@/components/home/EventsToday";
 import FollowTeamInline from "@/components/home/FollowTeamInline";
 import NotifySettings from "@/components/notifications/NotifySettings";
 import PWAInstallCard from "@/components/PWAInstallPrompt";
+import { AllianceSides, ProbabilityBar } from "@/components/ui/Alliance";
+import { Notice, Stat } from "@/components/ui/Status";
+import { resolveActiveEvent } from "@/lib/active-event-server";
+import type { FTCEvent } from "@/types/scouting";
 
 /**
- * Hoy (plan "PRIDE abierta al público", Etapa 2, decision #98): the home of
- * the team the visitor follows (pride_team cookie) — next match with odds,
- * ranking and projection, alliance-selection odds — from public FIRST data,
- * no account needed. Without a followed team it asks for one.
+ * Hoy (decisions #98, #116): the home of the team the visitor follows
+ * (pride_team cookie), from public FIRST data, no account needed. The first
+ * thing on the screen is what matters now: the next match (who plays, the
+ * chance to win, a one-tap "scout it"), else the next event, else the app's
+ * active event. Without a followed team it asks for one.
  */
 export default async function TodayPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
     const t = await getTranslations("TodayPage");
@@ -62,54 +68,67 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     }
 
     const { info, pick, atEvent, seasonResults, now } = await loadToday(team, season);
+    // No event of the followed team yet (FIRST publishes rosters late): show
+    // the app's active event instead of an empty page.
+    const fallback = pick ? null : (await resolveActiveEvent(current)).selected;
 
     const pct = (p: number) => format.number(p, { style: "percent", maximumFractionDigits: 0 });
+    const tA = await getTranslations("Alliance");
+    const allianceLabels = { red: tA("red"), blue: tA("blue") };
 
     return (
-        <div className="container mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
+        <div className="container mx-auto max-w-3xl space-y-4 px-4 py-5 md:px-8 md:py-8">
             <OpenLoansNotice />
-            <header className="mb-6 border-b border-border pb-5">
+            <header>
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{kicker}</p>
-                <h1 className="mt-1 flex flex-wrap items-baseline gap-x-3 text-4xl font-black md:text-5xl">
+                <h1 className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[28px] font-extrabold leading-tight">
                     <span className="font-mono tabular-nums">{team}</span>
-                    {info?.nameShort && <span className="text-2xl font-bold text-muted-foreground md:text-3xl">{info.nameShort}</span>}
+                    {info?.nameShort && <span className="text-xl font-bold text-muted-foreground">{info.nameShort}</span>}
                 </h1>
-                {pick && (
-                    <p className="mt-2 text-sm text-muted-foreground">
+                {pick?.phase === "live" && (
+                    <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="h-2 w-2 rounded-full bg-brand" aria-hidden />
                         <Link href={`/event/${pick.event.code}?season=${season}`} className="font-semibold text-foreground underline-offset-4 hover:underline">{pick.event.name}</Link>
-                        {" · "}
-                        {t(`phase.${pick.phase}`, { days: daysUntil(pick.event, now) })}
+                        <span>· {t("phase.live")}</span>
                     </p>
                 )}
             </header>
 
-            {!pick && <p className="text-muted-foreground">{t("noEvents", { season })}</p>}
-
-            {atEvent && <LiveSection team={team} s={atEvent} t={t} pct={pct} format={format} />}
+            {atEvent && pick && <LiveSection team={team} event={pick.event} season={season} s={atEvent} t={t} pct={pct} format={format} labels={allianceLabels} />}
 
             {pick && pick.phase !== "live" && (
+                <EventCard title={pick.phase === "upcoming" ? t("nextEvent") : t(`phase.past`)} event={pick.event} season={season}
+                    note={pick.phase === "upcoming" ? t("phase.upcoming", { days: daysUntil(pick.event, now) }) : undefined} cta={t("viewEvent")} format={format} />
+            )}
+
+            {!pick && (
+                <>
+                    {fallback && <EventCard title={t("activeEvent")} event={fallback} season={current} cta={t("viewEvent")} format={format} />}
+                    <Notice>{fallback ? t("notRegistered", { team }) : t("noEventsShort", { season })}</Notice>
+                </>
+            )}
+
+            {pick && pick.phase !== "live" && seasonResults.length > 0 && (
                 <section>
-                    <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("seasonResults")}</h2>
-                    {seasonResults.length === 0 ? (
-                        <p className="text-muted-foreground">{t("noResultsYet")}</p>
-                    ) : (
-                        <ul className="divide-y divide-border border-y border-border">
-                            {[...seasonResults].reverse().map(r => (
-                                <li key={r.eventCode} className="flex items-center justify-between gap-4 py-3">
-                                    <Link href={`/event/${r.eventCode}?season=${season}`} className="min-w-0 truncate font-semibold hover:underline">{r.eventName}</Link>
+                    <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("seasonResults")}</h2>
+                    <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+                        {[...seasonResults].reverse().map(r => (
+                            <li key={r.eventCode}>
+                                <Link href={`/event/${r.eventCode}?season=${season}`} className="flex min-h-[48px] items-center justify-between gap-4 px-3 py-2">
+                                    <span className="min-w-0 truncate font-semibold">{r.eventName}</span>
                                     <span className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
                                         {t("resultLine", { rank: r.rank, w: r.wins, l: r.losses, t: r.ties })}
                                     </span>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
                 </section>
             )}
 
             {followSections}
 
-            <p className="mt-10 text-xs text-muted-foreground">{t("footnote")}</p>
+            <p className="pt-4 text-xs text-muted-foreground">{t("footnote")}</p>
         </div>
     );
 }
@@ -159,45 +178,65 @@ async function loadToday(team: number, season: number) {
 type T = Awaited<ReturnType<typeof getTranslations<"TodayPage">>>;
 type F = Awaited<ReturnType<typeof getFormatter>>;
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
+function EventCard({ title, event, season, note, cta, format }: { title: string; event: FTCEvent; season: number; note?: string; cta: string; format: F }) {
+    const d = (iso: string) => format.dateTime(new Date(iso), { day: "numeric", month: "short", timeZone: "UTC" });
+    const dates = event.dateEnd && event.dateEnd.slice(0, 10) !== event.dateStart.slice(0, 10) ? `${d(event.dateStart)} – ${d(event.dateEnd)}` : d(event.dateStart);
     return (
-        <div className="rounded-[4px] border border-border bg-card p-4">
-            <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
-            <div className="mt-1 font-mono text-3xl font-black tabular-nums">{value}</div>
-            {note && <div className="mt-0.5 text-xs text-muted-foreground">{note}</div>}
-        </div>
+        <section className="rounded-2xl border border-border bg-card p-4">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h2>
+            <p className="mt-1 text-xl font-bold leading-snug">{event.name}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground"><span className="font-mono">{event.code}</span> · {dates}{note ? ` · ${note}` : ""}</p>
+            <Link href={`/event/${event.code}?season=${season}`} className="mt-3 flex min-h-[44px] items-center justify-center rounded-xl border border-border text-sm font-bold hover:bg-muted">
+                {cta}
+            </Link>
+        </section>
     );
 }
 
-function LiveSection({ team, s, t, pct, format }: { team: number; s: TodayAtEvent; t: T; pct: (p: number) => string; format: F }) {
+function LiveSection({ team, event, season, s, t, pct, format, labels }: {
+    team: number; event: FTCEvent; season: number; s: TodayAtEvent; t: T; pct: (p: number) => string; format: F; labels: { red: string; blue: string };
+}) {
     const next = s.nextMatch;
     const startTime = next?.startTime && Number.isFinite(Date.parse(next.startTime))
         ? format.dateTime(new Date(next.startTime), { hour: "numeric", minute: "2-digit" })
         : null;
+    const mine = next ? [team, ...next.partners.map(p => p.teamNumber)] : [];
+    const theirs = next ? next.opponents.map(p => p.teamNumber) : [];
+    const red = next?.alliance === "Red" ? mine : theirs;
+    const blue = next?.alliance === "Red" ? theirs : mine;
+    const pRed = next && next.winProbability !== null ? (next.alliance === "Red" ? next.winProbability : 1 - next.winProbability) : null;
     return (
-        <div className="space-y-6">
-            <section aria-labelledby="next-heading" className="rounded-[4px] border border-border bg-card p-4 md:p-5">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <>
+            <section aria-labelledby="next-heading" className="rounded-2xl border border-border bg-card p-4">
+                <div className="flex items-baseline justify-between gap-2">
                     <h2 id="next-heading" className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("nextMatch")}</h2>
                     <span className="text-xs text-muted-foreground">{t("qualsProgress", { played: s.qualsPlayed, total: s.qualsTotal })}</span>
                 </div>
                 {next ? (
                     <>
-                        <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
-                            <span className="font-mono text-3xl font-black">{next.description}</span>
+                        <div className="mt-1 flex items-baseline justify-between gap-3">
+                            <span className="font-mono text-[28px] font-extrabold leading-tight">{shortMatchLabel(next.description, next.tournamentLevel, next.matchNumber)}</span>
                             {startTime && <span className="text-sm text-muted-foreground">{startTime}</span>}
                         </div>
-                        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
-                            <AllianceBox color={next.alliance} teams={[team, ...next.partners.map(p => p.teamNumber)]} label={t("yourAlliance")} />
-                            <span className="self-center text-xs text-muted-foreground">vs</span>
-                            <AllianceBox color={next.alliance === "Red" ? "Blue" : "Red"} teams={next.opponents.map(p => p.teamNumber)} label={t("opponents")} />
-                        </div>
-                        {next.winProbability !== null && (
-                            <p className="mt-3 text-sm">
-                                <span className="font-mono text-xl font-black tabular-nums">{pct(next.winProbability)}</span>{" "}
-                                <span className="text-muted-foreground">{t("winChance")}</span>
-                            </p>
+                        <AllianceSides red={red} blue={blue} me={team} event={event.code} labels={labels} className="mt-3" />
+                        {pRed !== null && next.winProbability !== null && (
+                            <div className="mt-3">
+                                <p className="mb-1.5 text-sm">
+                                    {t("yourChance")}: <b className="font-mono text-lg tabular-nums">{pct(next.winProbability)}</b>
+                                </p>
+                                <ProbabilityBar pRed={pRed} labels={labels} format={pct} />
+                            </div>
                         )}
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                            {/^QUAL/i.test(next.tournamentLevel) ? (
+                                <Link href={`/scouting?match=${next.matchNumber}&event=${event.code}`} className="flex min-h-[48px] items-center justify-center rounded-xl bg-brand px-3 text-sm font-bold text-brand-foreground">
+                                    {t("scoutMatch", { match: shortMatchLabel(next.description, next.tournamentLevel, next.matchNumber) })}
+                                </Link>
+                            ) : <span aria-hidden />}
+                            <Link href={`/event/${event.code}?season=${season}`} className="flex min-h-[48px] items-center justify-center rounded-xl border border-border px-3 text-sm font-bold hover:bg-muted">
+                                {t("viewMatch")}
+                            </Link>
+                        </div>
                     </>
                 ) : (
                     <p className="mt-2 text-muted-foreground">{s.qualsTotal === 0 ? t("noSchedule") : t("noNextMatch")}</p>
@@ -205,7 +244,7 @@ function LiveSection({ team, s, t, pct, format }: { team: number; s: TodayAtEven
             </section>
 
             {s.ranking && (
-                <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <section aria-label={t("yourDay")} className="grid grid-cols-2 gap-2 md:grid-cols-4">
                     <Stat label={t("rank")} value={`#${s.ranking.currentRank}`} note={t("ofTeams", { n: s.ranking.teamCount })} />
                     <Stat label={t("rs")} value={s.ranking.rs.toFixed(2)} note={`${s.ranking.record.wins}–${s.ranking.record.losses}–${s.ranking.record.ties}`} />
                     {s.ranking.projected
@@ -216,17 +255,6 @@ function LiveSection({ team, s, t, pct, format }: { team: number; s: TodayAtEven
                         : <Stat label={t("allianceOdds")} value="—" />}
                 </section>
             )}
-        </div>
-    );
-}
-
-function AllianceBox({ color, teams, label }: { color: "Red" | "Blue"; teams: number[]; label: string }) {
-    return (
-        <div
-            className={`rounded-[3px] px-3 py-2 text-white ${color === "Red" ? "bg-alliance-red-fill" : "bg-alliance-blue-fill"}`}
-        >
-            <div className="text-xs font-semibold uppercase tracking-[0.06em] opacity-80">{label}</div>
-            <div className="font-mono text-lg font-black tabular-nums">{teams.join(" · ") || "—"}</div>
-        </div>
+        </>
     );
 }

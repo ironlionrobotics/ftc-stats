@@ -2,7 +2,10 @@ import { getAggregatedStats } from "@/lib/aggregation";
 import { fetchEventTeams, fetchHybridSchedule } from "@/lib/ftc-api";
 import { scheduledQuals } from "@/lib/scout-claims";
 import { getCurrentSeason } from "@/lib/constants";
-import { normalizeEventCode, parseSeason } from "@/lib/input-guards";
+import { isValidTeamNumber, normalizeEventCode, parseSeason } from "@/lib/input-guards";
+import AutoRefresh from "@/components/AutoRefresh";
+import { isEventLive } from "@/lib/active-event-context";
+import { FOLLOW_TEAM_COOKIE, parseFollowedTeam } from "@/lib/follow-team";
 import { resolveActiveEvent } from "@/lib/active-event-server";
 import ScoutingClient from "@/components/scouting/ScoutingClient";
 import { cookies } from "next/headers";
@@ -31,10 +34,19 @@ export default async function ScoutingPage({ searchParams }: { searchParams: Pro
     // The app-wide active event (#116); `?event=` overrides for shared links.
     const { selected } = await resolveActiveEvent(season, normalizeEventCode(params?.event));
     const { teams, rosterSource, schedule } = await loadScoutingRoster(season, selected);
+    // Deep links from Hoy ("Scoutear Q14") and shared links: ?match=&team=.
+    const matchParam = Number(params?.match);
+    const initialMatch = Number.isInteger(matchParam) && matchParam >= 1 && matchParam <= 999 ? matchParam : null;
+    const live = selected ? liveNow(selected) : false;
+    const teamParam = Number(params?.team);
+    const initialTeam = isValidTeamNumber(teamParam) ? teamParam : null;
+    const followedTeam = parseFollowedTeam(cookieStore.get(FOLLOW_TEAM_COOKIE)?.value);
 
     return (
         <>
         <PastSeasonBanner season={season} current={current} />
+        {/* The queue follows the schedule while the event is on (state survives). */}
+        {live && <AutoRefresh everyMs={60_000} />}
         <ScoutingClient
             // Remount per event: added teams, selection and live entries belong to one event.
             key={selected?.code ?? "none"}
@@ -42,6 +54,9 @@ export default async function ScoutingPage({ searchParams }: { searchParams: Pro
             eventCode={selected?.code ?? null}
             rosterSource={rosterSource}
             schedule={schedule}
+            initialMatch={initialMatch}
+            initialTeam={initialTeam}
+            followedTeam={followedTeam}
         />
         </>
     );
@@ -66,4 +81,9 @@ async function loadScoutingRoster(season: number, selected: FTCEvent | null) {
         rosterSource = teams.length > 0 ? "season" : "none";
     }
     return { teams, rosterSource, schedule };
+}
+
+/** Module scope: Date.now() is impure (React Compiler purity). */
+function liveNow(e: FTCEvent): boolean {
+    return isEventLive(e, Date.now());
 }

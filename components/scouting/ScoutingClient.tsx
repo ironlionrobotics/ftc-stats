@@ -12,6 +12,7 @@ import MatchScoutingForm from "@/components/scouting/MatchScoutingForm";
 import SuperScoutingForm from "@/components/scouting/SuperScoutingForm";
 import PoolPanel from "@/components/scouting/PoolPanel";
 import ScoutBoard from "@/components/scouting/ScoutBoard";
+import CaptureQueue from "@/components/scouting/CaptureQueue";
 import type { ScheduledMatch } from "@/lib/scout-claims";
 import { getPitScouting, listenToMatchScouting } from "@/lib/scouting-service";
 import { useSavePitScouting } from "@/lib/hooks/use-scouting-mutations";
@@ -20,7 +21,7 @@ import { useProgram } from "@/lib/stores/program-store";
 import { DEFAULT_ORG_ID, scoutNameFromUser } from "@/lib/orgs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import Tip from "@/components/ui/Tip";
-import { ClipboardList, Trophy, Eye, ChevronLeft, Users, LayoutGrid } from "lucide-react";
+import { ClipboardList, Trophy, Eye, ChevronLeft, Users, LayoutGrid, ListOrdered } from "lucide-react";
 import clsx from "clsx";
 import { toast } from "sonner";
 
@@ -31,11 +32,17 @@ interface ScoutingClientProps {
     eventCode: string | null;
     /** Where the team list came from: the event's FIRST roster, season results, or nothing yet. */
     rosterSource: "event" | "season" | "none";
-    /** Upcoming qualification matches (FIRST schedule) for the scout board. */
+    /** Upcoming qualification matches (FIRST schedule) for the queue and the scout board. */
     schedule: ScheduledMatch[];
+    /** Deep link (?match=): start the queue / the form at this match. */
+    initialMatch?: number | null;
+    /** Deep link (?team=): open this team's capture directly. */
+    initialTeam?: number | null;
+    /** The followed team, marked in the queue. */
+    followedTeam?: number | null;
 }
 
-export default function ScoutingClient({ initialTeams, eventCode, rosterSource, schedule }: ScoutingClientProps) {
+export default function ScoutingClient({ initialTeams, eventCode, rosterSource, schedule, initialMatch = null, initialTeam = null, followedTeam = null }: ScoutingClientProps) {
     const t = useTranslations("ScoutingClient");
     const { user, orgId } = useAuth();
     const { season, program } = useProgram();
@@ -45,23 +52,31 @@ export default function ScoutingClient({ initialTeams, eventCode, rosterSource, 
     const pitQuestions = useMemo(() => selfReportDefinition(seasonDef), [seasonDef]);
     const tEvent = useTranslations("ScoutingEvent");
     // Teams typed in by number when FIRST hasn't published the event roster.
-    const [addedTeams, setAddedTeams] = useState<ScoutTeam[]>([]);
+    const [addedTeams, setAddedTeams] = useState<ScoutTeam[]>(() =>
+        initialTeam !== null && !initialTeams.some(tm => tm.teamNumber === initialTeam)
+            ? [{ teamNumber: initialTeam, teamName: tEvent("teamByNumber", { n: initialTeam }) }]
+            : []);
     const teams = useMemo(() => {
         const known = new Set(initialTeams.map(tm => tm.teamNumber));
         return [...initialTeams, ...addedTeams.filter(tm => !known.has(tm.teamNumber))];
     }, [initialTeams, addedTeams]);
     const [selectedTeamId, setSelectedTeamId] = useState<number | null>(
-        initialTeams.length > 0 ? initialTeams[0].teamNumber : null
+        initialTeam ?? (initialTeams.length > 0 ? initialTeams[0].teamNumber : null)
     );
+    // Match number the capture form starts at (picked in the queue or ?match=).
+    const [pickedMatch, setPickedMatch] = useState<number | null>(initialTeam ? initialMatch : null);
     const [pitData, setPitData] = useState<PitScouting | null>(null);
     const savePitMutation = useSavePitScouting();
     const [matchScoutingEntries, setMatchScoutingEntries] = useState<MatchScouting[]>([]);
     // Mobile master-detail: below md the list and the form are alternate
     // screens (picking a team slides to the form; ChevronLeft goes back).
     // Desktop always shows both — md: classes override this flag.
-    const [mobileShowForm, setMobileShowForm] = useState(false);
-    // "board" = scout assignment board (#103); "robot" = one team's forms.
-    const [view, setView] = useState<"robot" | "board">("robot");
+    // "queue" = upcoming matches, tap a robot to capture (#116, the default
+    // when FIRST has a schedule); "board" = assignment board (#103);
+    // "robot" = one team's forms.
+    const startView: "queue" | "robot" = initialTeam === null && eventCode !== null && schedule.length > 0 ? "queue" : "robot";
+    const [mobileShowForm, setMobileShowForm] = useState(startView === "queue" || initialTeam !== null);
+    const [view, setView] = useState<"queue" | "robot" | "board">(startView);
     // Remounting Tabs with a new default opens a specific tab (the board's
     // "scout now" jumps straight to Match).
     const [tabState, setTabState] = useState<{ key: number; tab: string | null }>({ key: 0, tab: null });
@@ -95,6 +110,8 @@ export default function ScoutingClient({ initialTeams, eventCode, rosterSource, 
             ? prev
             : [...prev, { teamNumber, teamName: tEvent("teamByNumber", { n: teamNumber }) }]);
         setSelectedTeamId(teamNumber);
+        setPickedMatch(null);
+        setView("robot");
         setMobileShowForm(true);
     };
 
@@ -145,6 +162,18 @@ export default function ScoutingClient({ initialTeams, eventCode, rosterSource, 
                 )}>
                     <div className="border-b border-border p-4 space-y-2">
                         {!eventCode && <p className="text-sm text-muted-foreground">{tEvent("noEvents")}</p>}
+                        {eventCode && schedule.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => { setView("queue"); setMobileShowForm(true); }}
+                                className={clsx(
+                                    "flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold",
+                                    view === "queue" ? "border-brand bg-brand/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground",
+                                )}
+                            >
+                                <ListOrdered size={16} /> {tEvent("openQueue")}
+                            </button>
+                        )}
                         {eventCode && program === "FTC" && (
                             <button
                                 type="button"
@@ -167,7 +196,7 @@ export default function ScoutingClient({ initialTeams, eventCode, rosterSource, 
                         teams={teams}
                         onAddTeam={eventCode ? addTeam : undefined}
                         selectedTeamId={selectedTeamId}
-                        onSelectTeam={(id) => { setSelectedTeamId(id); setView("robot"); setMobileShowForm(true); }}
+                        onSelectTeam={(id) => { setSelectedTeamId(id); setPickedMatch(null); setView("robot"); setMobileShowForm(true); }}
                         scoutingDataMap={{}} // Not used anymore for local storage
                     />
                 </div>
@@ -184,7 +213,22 @@ export default function ScoutingClient({ initialTeams, eventCode, rosterSource, 
                     >
                         <ChevronLeft size={18} /> {t("teams")}
                     </button>
-                    {view === "board" && eventCode ? (
+                    {view === "queue" && eventCode ? (
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pb-4">
+                            <CaptureQueue
+                                matches={schedule}
+                                focusMatch={initialMatch}
+                                followedTeam={followedTeam}
+                                onPick={(n, match) => {
+                                    if (!teams.some(tm => tm.teamNumber === n)) addTeam(n);
+                                    setSelectedTeamId(n);
+                                    setPickedMatch(match);
+                                    setView("robot");
+                                    setTabState(prev => ({ key: prev.key + 1, tab: "match" }));
+                                }}
+                            />
+                        </div>
+                    ) : view === "board" && eventCode ? (
                         <div className="flex-1 overflow-y-auto custom-scrollbar">
                             <ScoutBoard
                                 season={season}
@@ -193,13 +237,14 @@ export default function ScoutingClient({ initialTeams, eventCode, rosterSource, 
                                 onScoutTeam={(n) => {
                                     if (!teams.some(tm => tm.teamNumber === n)) addTeam(n);
                                     setSelectedTeamId(n);
+                                    setPickedMatch(null);
                                     setView("robot");
                                     setTabState(prev => ({ key: prev.key + 1, tab: "match" }));
                                 }}
                             />
                         </div>
                     ) : selectedTeam ? (
-                        <Tabs key={tabState.key} defaultValue={tabState.tab ?? (program === 'FTC' ? "pit" : "match")} className="flex-1 flex flex-col">
+                        <Tabs key={tabState.key} defaultValue={tabState.tab ?? "match"} className="flex-1 flex flex-col">
                             <Tip
                                 id="scouting-modes-v1"
                                 title={t("tipTitle")}
@@ -208,14 +253,14 @@ export default function ScoutingClient({ initialTeams, eventCode, rosterSource, 
                                 {t.rich("tipBody", { b: (chunks) => <strong>{chunks}</strong> })}
                             </Tip>
                             <TabsList className="mb-4 bg-muted border border-border p-1 w-full md:w-fit">
+                                <TabsTrigger value="match" className="flex items-center gap-2">
+                                    <Trophy size={16} /> {t("tabMatch")}
+                                </TabsTrigger>
                                 {program === 'FTC' && (
                                     <TabsTrigger value="pit" className="flex items-center gap-2">
                                         <ClipboardList size={16} /> {t("tabPit")}
                                     </TabsTrigger>
                                 )}
-                                <TabsTrigger value="match" className="flex items-center gap-2">
-                                    <Trophy size={16} /> {t("tabMatch")}
-                                </TabsTrigger>
                                 <TabsTrigger value="super" className="flex items-center gap-2">
                                     <Eye size={16} /> {t("tabSuper")}
                                 </TabsTrigger>
@@ -254,6 +299,7 @@ export default function ScoutingClient({ initialTeams, eventCode, rosterSource, 
                                         <MatchScoutingForm
                                             team={selectedTeam}
                                             eventCode={eventCode}
+                                            initialMatchNumber={pickedMatch}
                                             entries={matchScoutingEntries.filter(e => e.teamNumber === selectedTeam.teamNumber)}
                                         />
                                     ) : <p className="p-6 text-muted-foreground">{tEvent("needEvent")}</p>}

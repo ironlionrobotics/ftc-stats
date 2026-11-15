@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import EventStats from "./EventStats";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Sheet } from "@/components/ui/Sheet";
 import MatchList from "./MatchList";
 import RankingTable from "./RankingTable";
 import ParticipantList from "./ParticipantList";
@@ -11,7 +15,7 @@ import type { BiobuzzRpInputs } from "@/lib/rp-counts";
 import { seasonRulesFor } from "@/lib/games/season-rules";
 import { eventStrengthModel } from "@/lib/live-projection";
 import { oracleRobotSigma } from "@/lib/playoff-form";
-import { Trophy, LayoutList, History, Sparkles, Medal, Target, Zap as LucideZap } from "lucide-react";
+import { Trophy, LayoutList, History, Sparkles, Medal, Target, Zap as LucideZap, MoreHorizontal } from "lucide-react";
 // lib/scouting-service is imported dynamically in the effect below: it reaches
 // the Firebase client SDK, and this is the public event page — the one people
 // load most on venue wifi. Statically importing it put ~397 KB of Firestore in
@@ -51,8 +55,27 @@ interface EventViewManagerProps {
     teamRp?: Record<number, EventTeamRp>;
 }
 
+type TabKey = "matches" | "rankings" | "alliances" | "teams" | "advancement" | "awards";
+/** Phone shows the first three; the rest live under "Más" (decision #116). */
+const PRIMARY_TABS = [
+    { key: "matches", icon: LayoutList },
+    { key: "rankings", icon: Trophy },
+    { key: "alliances", icon: Sparkles },
+] as const;
+const MORE_TABS = [
+    { key: "teams", icon: LucideUsers },
+    { key: "advancement", icon: Target },
+    { key: "awards", icon: Medal },
+] as const;
+
 export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, schedule, selectedAlliances, eventCode, season, matchBonusRp, teamRp }: EventViewManagerProps) {
-    const [activeTab, setActiveTab] = useState<"matches" | "rankings" | "oracle" | "teams" | "advancement" | "awards">("teams");
+    const t = useTranslations("EventView");
+    const tShell = useTranslations("Shell");
+    const router = useRouter();
+    // Partidos first: the live / next match is what people open an event for (#116).
+    const [activeTab, setActiveTab] = useState<TabKey>("matches");
+    const [moreOpen, setMoreOpen] = useState(false);
+    const openTeam = (teamNumber: number) => router.push(`/team/${teamNumber}?event=${eventCode}`);
     const [scoutingData, setScoutingData] = useState<MatchScouting[]>([]);
     const [filterTeam, setFilterTeam] = useState<number | null>(null);
     const { orgId } = useAuth();
@@ -64,11 +87,14 @@ export default function EventViewManager({ matches, rankings, advancement, award
         return Math.max(...rankings.map(r => r.matchesPlayed)) || 5;
     }, [rankings]);
 
-    const [selectedRound, setSelectedRound] = useState<number>(totalRounds);
+    // null = "Final" (follows new rounds as they come in). The slider lives on
+    // Ranking only, so the other tabs always use the latest round.
+    const [roundChoice, setRoundChoice] = useState<number | null>(null);
+    const selectedRound = activeTab === "rankings" && roundChoice !== null ? Math.min(roundChoice, totalRounds) : totalRounds;
 
     // Fetch scouting data when Oracle or Matches is active
     useEffect(() => {
-        if (!((activeTab === 'oracle' || activeTab === 'matches') && eventCode)) return;
+        if (!((activeTab === 'alliances' || activeTab === 'matches') && eventCode)) return;
         let cancelled = false;
         let unsubscribe: (() => void) | undefined;
         (async () => {
@@ -351,88 +377,104 @@ export default function EventViewManager({ matches, rankings, advancement, award
         });
     }, [simulatedRankings, matches, selectedRound, matchesPerRound, scoutingData, season, teamRp]);
 
+    const tabButton = (key: TabKey, Icon: typeof Trophy, extra?: string) => (
+        <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === key}
+            onClick={() => { setActiveTab(key); setMoreOpen(false); }}
+            className={clsx(
+                "flex min-h-[44px] min-w-0 items-center justify-center gap-2 rounded-lg px-2 text-sm font-bold whitespace-nowrap md:shrink-0 md:px-4",
+                activeTab === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                extra,
+            )}
+        >
+            <Icon size={16} aria-hidden className="hidden sm:block" /> {t(`tabs.${key}`)}
+        </button>
+    );
+    const moreActive = MORE_TABS.some(x => x.key === activeTab);
+
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                {/* Tab bar scrolls inside itself on mobile — 7 fixed-width
-                    buttons used to force the whole page to pan sideways. */}
-                <div className="flex p-1 bg-card border border-border rounded-xl w-full md:w-fit shadow-sm overflow-x-auto max-w-full">
-                    {/* One accent for active state (modern-technical: a single
-                        violet, not a rainbow per tab). */}
-                    {([
-                        { key: "teams", label: "Teams", icon: <LucideUsers size={18} /> },
-                        { key: "rankings", label: "Rankings", icon: <Trophy size={18} /> },
-                        { key: "matches", label: "Matches", icon: <LayoutList size={18} /> },
-                        { key: "oracle", label: "Oracle", icon: <Sparkles size={18} /> },
-                        { key: "advancement", label: "Advancement", icon: <Target size={18} /> },
-                        { key: "awards", label: "Awards", icon: <Medal size={18} /> },
-                    ] as const).map(tab => (
-                        <button
-                            key={tab.key}
-                            onClick={() => setActiveTab(tab.key)}
-                            className={clsx(
-                                "shrink-0 flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200",
-                                activeTab === tab.key
-                                    ? "bg-primary text-primary-foreground shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                            )}
-                        >
-                            {tab.icon} {tab.label}
-                        </button>
-                    ))}
+        <div className="space-y-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div role="tablist" aria-label={t("moreTitle")} className="flex w-full gap-1 rounded-xl bg-muted p-1 md:w-fit">
+                    {PRIMARY_TABS.map(x => tabButton(x.key, x.icon, "flex-1 md:flex-none"))}
+                    {MORE_TABS.map(x => tabButton(x.key, x.icon, "hidden md:flex"))}
+                    <button
+                        type="button"
+                        onClick={() => setMoreOpen(true)}
+                        aria-haspopup="dialog"
+                        className={clsx("flex min-h-[44px] min-w-0 flex-1 items-center justify-center gap-1 rounded-lg px-2 text-sm font-bold md:hidden", moreActive ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}
+                    >
+                        <MoreHorizontal size={16} aria-hidden /> {moreActive ? t(`tabs.${activeTab}`) : t("tabs.more")}
+                    </button>
                     <Link
                         href={`/event/${eventCode}/pro`}
-                        className="shrink-0 flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 rounded-lg text-sm font-black whitespace-nowrap transition-all duration-200 text-secondary hover:bg-secondary/10 border border-transparent hover:border-secondary/20"
+                        className="hidden min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold text-brand-ink hover:bg-card md:flex"
                     >
-                        <LucideZap size={18} /> PRO
+                        <LucideZap size={16} aria-hidden /> PRO
                     </Link>
                 </div>
 
-                {activeTab !== "matches" && (
-                    <div className="flex flex-col gap-1 w-full md:w-auto min-w-[240px]">
-                        <div className="flex justify-between items-center px-1">
-                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                <History size={12} /> Historia por Ronda
+                {activeTab === "rankings" && (
+                    <div className="flex w-full min-w-[240px] flex-col gap-1 md:w-auto">
+                        <div className="flex items-center justify-between px-1">
+                            <label htmlFor="round-history" className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                <History size={12} aria-hidden /> {t("history")}
                             </label>
-                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
-                                {selectedRound === totalRounds ? "FINAL" : `Ronda ${selectedRound}`}
+                            <span className="rounded bg-muted px-2 py-0.5 text-xs font-bold text-foreground">
+                                {selectedRound === totalRounds ? t("final") : t("round", { n: selectedRound })}
                             </span>
                         </div>
-                        <div className="flex items-center gap-3 bg-card p-2 rounded-xl border border-border shadow-sm">
+                        <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-2">
                             <span className="text-xs font-bold text-muted-foreground">R1</span>
                             <input
+                                id="round-history"
                                 type="range"
                                 min="1"
                                 max={totalRounds}
                                 step="1"
                                 value={selectedRound}
-                                onChange={(e) => setSelectedRound(parseInt(e.target.value))}
-                                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                onChange={(e) => { const n = parseInt(e.target.value); setRoundChoice(n >= totalRounds ? null : n); }}
+                                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-brand"
                             />
-                            <span className="text-xs font-bold text-muted-foreground">Final</span>
+                            <span className="text-xs font-bold text-muted-foreground">{t("final")}</span>
                         </div>
                     </div>
                 )}
             </div>
 
+            <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={t("moreTitle")} closeLabel={tShell("account.close")}>
+                <div className="divide-y divide-border">
+                    {MORE_TABS.map(x => (
+                        <button key={x.key} type="button" onClick={() => { setActiveTab(x.key); setMoreOpen(false); }}
+                            className="flex min-h-[52px] w-full items-center gap-3 px-1 text-left text-base text-foreground">
+                            <x.icon size={18} className="text-muted-foreground" aria-hidden /> {t(`tabs.${x.key}`)}
+                        </button>
+                    ))}
+                    <Link href={`/event/${eventCode}/pro`} onClick={() => setMoreOpen(false)} className="flex min-h-[52px] items-center gap-3 px-1 text-base text-foreground">
+                        <LucideZap size={18} className="text-muted-foreground" aria-hidden /> PRO
+                    </Link>
+                </div>
+            </Sheet>
+
             <div className="animate-in fade-in duration-500">
                 {activeTab === "rankings" && (
-                    <RankingTable
-                        rankings={simulatedRankings}
-                        matches={matches}
-                        onTeamClick={(teamNumber) => {
-                            setFilterTeam(teamNumber);
-                            setActiveTab("matches");
-                        }}
-                    />
+                    <div className="space-y-5">
+                        <RankingTable
+                            rankings={simulatedRankings}
+                            matches={matches}
+                            onTeamClick={openTeam}
+                            eventCode={eventCode}
+                        />
+                        <EventStats matches={matches} rankings={rankings} />
+                    </div>
                 )}
                 {activeTab === "teams" && (
                     <ParticipantList
                         rankings={rankings}
-                        onTeamClick={(teamNumber) => {
-                            setFilterTeam(teamNumber);
-                            setActiveTab("matches");
-                        }}
+                        onTeamClick={openTeam}
                     />
                 )}
                 {activeTab === "matches" && (
@@ -445,9 +487,10 @@ export default function EventViewManager({ matches, rankings, advancement, award
                         schedule={schedule}
                         awards={awards}
                         selectedAlliances={selectedAlliances}
+                        eventCode={eventCode}
                     />
                 )}
-                {activeTab === "oracle" && (
+                {activeTab === "alliances" && (
                     <div className="space-y-6">
                         {selectedAlliances && selectedAlliances.length > 0 && (
                             <SelectedAlliancesPanel alliances={selectedAlliances} />
@@ -479,22 +522,22 @@ export default function EventViewManager({ matches, rankings, advancement, award
  * match). Module-level per the React Compiler static-components rule.
  */
 function SelectedAlliancesPanel({ alliances }: { alliances: FTCAllianceSelection[] }) {
+    const t = useTranslations("EventView");
     const isThreeRobot = alliances.some(a => a.round2 != null);
     return (
         <div className="bg-card border border-border rounded-xl p-4 md:p-5">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
                 <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                    <span className="w-1.5 h-6 bg-primary rounded-full" />
-                    Alianzas oficiales
+                    {t("officialAlliances")}
                 </h3>
                 <span className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
-                    {alliances.length} alianzas · {isThreeRobot ? "3 robots (juegan 2 por match, §15.3)" : "2 robots"}
+                    {t("alliancesFormat", { n: alliances.length, format: isThreeRobot ? t("threeRobot") : t("twoRobot") })}
                 </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {alliances.map(a => (
                     <div key={a.number} className="bg-muted rounded-lg px-3 py-2.5 flex items-center gap-3">
-                        <span className="w-7 h-7 shrink-0 rounded-md bg-primary/10 text-primary font-display font-bold text-sm flex items-center justify-center">
+                        <span className="w-7 h-7 shrink-0 rounded-md bg-card text-foreground font-display font-bold text-sm flex items-center justify-center">
                             {a.number}
                         </span>
                         <div className="font-mono text-xs text-foreground flex flex-wrap gap-x-2 gap-y-0.5">

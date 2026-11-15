@@ -3,6 +3,7 @@
 import { FTCMatch, TeamRanking } from "@/types/scouting";
 import { Trophy, Zap, BarChart3, Users, Target } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import type { ElementType } from "react";
 
 interface HighlightData {
@@ -40,7 +41,9 @@ const StatCard = ({ title, value, subValue, icon: Icon, colorClass }: {
     </div>
 );
 
-const MatchHighlight = ({ data, label, icon: Icon }: { data: HighlightData, label: string, icon: ElementType }) => (
+const MatchHighlight = ({ data, label, icon: Icon }: { data: HighlightData, label: string, icon: ElementType }) => {
+    const t = useTranslations("EventStats");
+    return (
     <div className="p-6 rounded-3xl border border-border bg-card space-y-4 hover:border-primary/30 transition-all duration-300 shadow-sm hover:shadow-md">
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -51,14 +54,14 @@ const MatchHighlight = ({ data, label, icon: Icon }: { data: HighlightData, labe
             </div>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${data.alliance === 'Red' ? 'bg-alliance-red/10 text-alliance-red border border-alliance-red/10' : 'bg-alliance-blue/10 text-alliance-blue border border-alliance-blue/10'
                 }`}>
-                {data.alliance} Alliance
+                {data.alliance === 'Red' ? t("allianceRed") : t("allianceBlue")}
             </span>
         </div>
         <div className="flex items-end justify-between gap-4">
             <div>
                 <h3 className="text-4xl font-black text-foreground mb-0.5 tracking-tight">{data.score}</h3>
                 <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                    {data.match?.description.replace('Qualification', 'Quals')}
+                    {data.match?.description.replace('Qualification', t("qualShort"))}
                 </p>
             </div>
             <div className="flex -space-x-3">
@@ -70,9 +73,11 @@ const MatchHighlight = ({ data, label, icon: Icon }: { data: HighlightData, labe
             </div>
         </div>
     </div>
-);
+    );
+};
 
 export default function EventStats({ matches, rankings }: EventStatsProps) {
+    const t = useTranslations("EventStats");
     const stats = useMemo(() => {
         if (!matches || matches.length === 0) return null;
 
@@ -193,26 +198,26 @@ export default function EventStats({ matches, rankings }: EventStatsProps) {
             {/* Main Stats Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
-                    title="Avg Score"
+                    title={t("avgScore")}
                     value={stats.avgScore.toFixed(1)}
                     icon={BarChart3}
                     colorClass="from-primary to-primary/70"
                 />
                 <StatCard
-                    title="Avg Auto"
+                    title={t("avgAuto")}
                     value={stats.avgAuto.toFixed(1)}
                     icon={Zap}
                     colorClass="from-secondary to-secondary/70"
                 />
                 <StatCard
-                    title="Matches"
+                    title={t("matches")}
                     value={stats.qualMatchesCount + stats.playoffMatchesCount}
-                    subValue={`${stats.qualMatchesCount}Q | ${stats.playoffMatchesCount}P`}
+                    subValue={t("split", { q: stats.qualMatchesCount, p: stats.playoffMatchesCount })}
                     icon={Users}
                     colorClass="from-primary to-primary/70"
                 />
                 <StatCard
-                    title="Teams"
+                    title={t("teams")}
                     value={stats.totalTeams}
                     icon={Trophy}
                     colorClass="from-secondary to-secondary/70"
@@ -221,9 +226,9 @@ export default function EventStats({ matches, rankings }: EventStatsProps) {
 
             {/* Match Highlights Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <MatchHighlight data={stats.highFinal} label="Highest Score" icon={Trophy} />
-                <MatchHighlight data={stats.highClean} label="Highest Clean" icon={Target} />
-                <MatchHighlight data={stats.highAuto} label="Highest Auto" icon={Zap} />
+                <MatchHighlight data={stats.highFinal} label={t("highestScore")} icon={Trophy} />
+                <MatchHighlight data={stats.highClean} label={t("highestClean")} icon={Target} />
+                <MatchHighlight data={stats.highAuto} label={t("highestAuto")} icon={Zap} />
             </div>
         </div>
     );

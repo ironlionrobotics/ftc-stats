@@ -29,6 +29,8 @@ interface GameScoutingFormProps {
     /** Event the entries are filed under — chosen on /scouting, never guessed. */
     eventCode: string;
     entries: MatchScouting[];
+    /** Match number to start at (capture queue); defaults to 1. */
+    initialMatchNumber?: number | null;
 }
 
 /**
@@ -57,11 +59,12 @@ type FormValues = Record<string, unknown>;
  * `matchNumber` is universal (not a per-game field), so it's added to the
  * schema and rendered here rather than in the definition.
  */
-export default function GameScoutingForm({ definition, team, eventCode, entries }: GameScoutingFormProps) {
+export default function GameScoutingForm({ definition, team, eventCode, entries, initialMatchNumber }: GameScoutingFormProps) {
     const t = useTranslations("GameScouting");
     const { user, orgId } = useAuth();
     const { season } = useProgram();
-    const [isAdding, setIsAdding] = useState(false);
+    // Picked from the capture queue → open the form straight away (#116).
+    const [isAdding, setIsAdding] = useState(initialMatchNumber != null);
     // Kept across saves: a scout records a run of matches in the same context.
     const [context, setContext] = useState<ScoutingContext>(DEFAULT_SCOUTING_CONTEXT);
     const tCtx = useTranslations("ScoutingContext");
@@ -75,7 +78,7 @@ export default function GameScoutingForm({ definition, team, eventCode, entries 
         matchNumber: z.coerce.number().int().positive("validation.matchNumberPositive"),
     });
 
-    const defaults: FormValues = { ...defaultsForDefinition(definition), matchNumber: 1 };
+    const defaults: FormValues = { ...defaultsForDefinition(definition), matchNumber: initialMatchNumber ?? 1 };
 
     // Resolver cast: Zod coerce makes TInput/TOutput diverge (same rationale as
     // the hand-written forms). Values are validated at submit regardless.
