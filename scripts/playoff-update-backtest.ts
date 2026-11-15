@@ -115,9 +115,9 @@ function allianceIds(playoffs: M[]): Map<number, number> {
 interface Pred { p: number; y: number; hasHistory: boolean }
 
 /** Every playoff prediction of one event under (k, inflation). */
-function replay(e: Ev, k: number, infl: number): Pred[] {
+function replay(e: Ev, k: number, infl: number, lambda = 1): Pred[] {
     const rows = e.quals.flatMap(m => [{ teams: m.red, value: m.redNp }, { teams: m.blue, value: m.blueNp }]);
-    const opr = componentOpr(rows, { lambda: 1 });
+    const opr = componentOpr(rows, { lambda });
     const meanSize = rows.reduce((s, r) => s + r.teams.length, 0) / rows.length;
     const meanScore = rows.reduce((s, r) => s + r.value, 0) / rows.length;
     const strength = (t: number) => opr.get(t) ?? meanScore / meanSize;
@@ -186,6 +186,11 @@ async function main() {
             fmt(`quals only, infl ${bestInflQualsOnly.infl}`, run(held, Infinity, bestInflQualsOnly.infl, onlyHist));
             fmt(`with playoff update k=${best.k}, infl ${best.infl}`, run(held, best.k, best.infl, onlyHist));
         }
+        // Oracle on the event page used a NON-regularized OPR: same pipeline with λ ≈ 0.
+        const runL = (lambda: number, k: number, infl: number) => score(held.flatMap(e => replay(e, k, infl, lambda)));
+        fmt("OPR sin regularizar (λ≈0), qualys, infl 2.4", runL(1e-6, Infinity, 2.4));
+        fmt(`OPR sin regularizar (λ≈0), forma k=${best.k}, infl ${best.infl}`, runL(1e-6, best.k, best.infl));
+        fmt(`OPR ridge (λ=1), forma k=${best.k}, infl ${best.infl}`, runL(1, best.k, best.infl));
         console.log("-- held-out log loss by k (infl fixed at best) --");
         console.log(K.map(k => `k=${k}: ${run(held, k, best.infl).ll.toFixed(4)}`).join("  "));
     }

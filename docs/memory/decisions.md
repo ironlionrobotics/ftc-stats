@@ -1336,3 +1336,12 @@ El óptimo de K es 2–3 en las tres temporadas.
 - de la forma del Oracle (`MatchAdjustment.dqRed/dqBlue`, que llenan al importar resultados).
 
 **Límite conocido:** A2 jugó en playoffs muy por encima de sus qualys (np 146, 165 y 185 contra 105 proyectados), sin tendencia visible en sus 5 qualys por equipo. Es sinergia de la pareja: no se puede ver antes de su primer playoff (M4 sigue siendo un fallo), pero la forma la captura desde el segundo.
+
+**Oracle unificado con el modelo en vivo (parte 2 de #113).** El Oracle de la página del evento tenía su propio modelo:
+- **Fuerza:** un OPR **sin regularizar** (Gauss-Seidel de 50 iteraciones), ruidoso con ~5 qualys por robot. En USMIRHQ daba A1 127 / A2 115, contra 118 / 105 del modelo calibrado.
+- **σ:** de `computeTeamSigma` sobre un "evento" sintético con `maxPoints: 0`, que lo inflaba hacia su tope. Por eso el Oracle salía tímido: 61 % contra 76 % en la misma final.
+
+**Decisión:** `EventViewManager` arma los equipos del Oracle con `eventStrengthModel` (OPR ridge, np) y con `TeamEvolution.sigma = oracleRobotSigma(model)`, calculado para que el ×2.4 del bracket dé exactamente σ_diff × 1.6. La prueba de paridad está en `lib/playoff-form.test.ts`.
+- **Backtest:** OPR sin regularizar contra ridge, ambos con forma: log loss 0.493 → 0.487 (2025) y 0.465 → 0.462 (2024).
+- **USMIRHQ con el Oracle unificado:** 8/10 en playoffs y final A2 76 %. Como campeón favorecía a A2 desde M5 (44 %) y con 73 % tras M7; antes del cambio decía A1 o A3.
+- **Fuera de alcance:** el Oracle del Data Lab (comparación de varios eventos) sigue usando promedios de temporada.

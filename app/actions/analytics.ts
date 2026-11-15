@@ -57,6 +57,9 @@ export interface TeamEvolution {
     powerScore: number; // 0-100 internal metric
     projectedNationalRank?: number;
     opr?: number;
+    /** Per-robot score σ when the caller already has a calibrated one (event
+     *  page: the live model's, #113); computeTeamSigma then uses it as is. */
+    sigma?: number;
     autoOPR?: number;
     teleOPR?: number;
     endgameOPR?: number;

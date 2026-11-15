@@ -39,6 +39,7 @@ const SIGMA_FALLBACK = 30; // legacy default when we lack any historical signal
  *    scores) isn't surfaced in TeamEvolution.
  */
 export function computeTeamSigma(team: TeamEvolution): number {
+    if (typeof team.sigma === "number" && Number.isFinite(team.sigma) && team.sigma > 0) return team.sigma;
     const events = team.events ?? [];
 
     if (events.length >= 2) {

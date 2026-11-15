@@ -9,6 +9,8 @@ import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, Ad
 import type { TeamEvolution } from "@/app/actions/analytics";
 import type { BiobuzzRpInputs } from "@/lib/rp-counts";
 import { seasonRulesFor } from "@/lib/games/season-rules";
+import { eventStrengthModel } from "@/lib/live-projection";
+import { oracleRobotSigma } from "@/lib/playoff-form";
 import { Trophy, LayoutList, History, Sparkles, Medal, Target, Zap as LucideZap } from "lucide-react";
 // lib/scouting-service is imported dynamically in the effect below: it reaches
 // the Firebase client SDK, and this is the public event page — the one people
@@ -219,7 +221,12 @@ export default function EventViewManager({ matches, rankings, advancement, award
             return new Map(teamsList.map((t, i) => [t, x[i]]));
         };
 
-        const overallOPR = calculateComponentOPR((m, alliance) => alliance === 'Red' ? (m.scoreRedFinal - m.scoreBlueFoul) : (m.scoreBlueFinal - m.scoreRedFoul));
+        // Strength + σ = the calibrated live model (#109/#113), the same numbers
+        // the ledger, "Hoy" and the match list use. (Was an unregularized OPR,
+        // noisy with ~5 quals per robot, and a σ from a one-event fallback.)
+        const model = eventStrengthModel(validMatches.filter(m => !!m.postResultTime || m.scoreRedFinal + m.scoreBlueFinal > 0));
+        const robotSigma = oracleRobotSigma(model);
+        const overallOPR = new Map(simulatedRankings.map(r => [r.teamNumber, model.strength(r.teamNumber)]));
         const autoOPR = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedAuto : m.scoreBlueAuto);
         const drawnFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreBlueFoul : m.scoreRedFoul);
         const committedFoul = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedFoul : m.scoreBlueFoul);
@@ -329,6 +336,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 trend,
                 powerScore,
                 opr,
+                sigma: robotSigma,
                 autoOPR: auto,
                 teleOPR: tele,
                 netDiscipline: netDisc,

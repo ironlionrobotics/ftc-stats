@@ -1,6 +1,6 @@
 import type { FTCMatch } from "@/types/scouting";
 import { npScore, sideDisqualified, type StrengthModel } from "@/lib/live-projection";
-import { winProbabilityFromNormalModel, PLAYOFF_FORM_K } from "@/lib/win-probability";
+import { winProbabilityFromNormalModel, PLAYOFF_FORM_K, PLAYOFF_SIGMA_INFLATION } from "@/lib/win-probability";
 
 /**
  * Live playoff forecast (decision #113): the event's quals strength
@@ -18,6 +18,16 @@ import { winProbabilityFromNormalModel, PLAYOFF_FORM_K } from "@/lib/win-probabi
  * between-event σ (#59). Using 2.4 here was making live playoff odds too timid.
  */
 export const LIVE_PLAYOFF_SIGMA_INFLATION = 1.6;
+
+/**
+ * Per-robot σ to hand the Oracle bracket (TeamEvolution.sigma) so it
+ * reproduces THIS model: two robots combine to σ_alliance·r, two alliances to
+ * σ_diff·r, and the bracket's own ×PLAYOFF_SIGMA_INFLATION brings it to
+ * σ_diff × LIVE_PLAYOFF_SIGMA_INFLATION (r = 1.6 / 2.4).
+ */
+export function oracleRobotSigma(model: StrengthModel): number {
+    return (model.sigmaAlliance / Math.SQRT2) * (LIVE_PLAYOFF_SIGMA_INFLATION / PLAYOFF_SIGMA_INFLATION);
+}
 
 export interface PlayoffForecaster {
     /** Projected non-penalty points of a fielded side: quals strength + its alliance's form. */

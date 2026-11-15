@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { playoffForecaster, LIVE_PLAYOFF_SIGMA_INFLATION } from "./playoff-form";
+import { playoffForecaster, oracleRobotSigma, LIVE_PLAYOFF_SIGMA_INFLATION } from "./playoff-form";
+import { initializeBracket, updateBracket, alliancesFromOfficial } from "./alliance-utils";
 import { predictionLedger } from "./prediction-ledger";
 import { winProbabilityFromNormalModel, PLAYOFF_FORM_K } from "./win-probability";
 import type { StrengthModel } from "./live-projection";
@@ -76,5 +77,20 @@ describe("disqualifications (#113)", () => {
         expect(fc.formOf(3)).toBeNull();        // no residual recorded for the DQ'd alliance
         expect(fc.formOf(1)!.n).toBe(1);        // the other side still counts
         expect(fc.mu([3, 4])).toBe(100);
+    });
+});
+
+describe("Oracle bracket reproduces the live model (#113)", () => {
+    it("same strengths + oracleRobotSigma → same P(red) as playoffForecaster", () => {
+        const strength: Record<number, number> = { 1: 70, 2: 50, 3: 40, 4: 45 };
+        const model: StrengthModel = { ...flat, strength: t => strength[t] ?? 50, sigmaDiff: 30, sigmaAlliance: 30 / Math.SQRT2 };
+        const team = (n: number) => ({ teamNumber: n, teamName: `T${n}`, isAdvanced: false, events: [], consistencyScore: 0, trend: "stable" as const, powerScore: 0, opr: strength[n], sigma: oracleRobotSigma(model) });
+        const pick = (n: number) => ({ teamNumber: n });
+        const alliances = alliancesFromOfficial(
+            [{ number: 1, captain: pick(1), round1: pick(2) }, { number: 2, captain: pick(3), round1: pick(4) }] as never,
+            [1, 2, 3, 4].map(team),
+        );
+        const bracket = updateBracket(initializeBracket(2), alliances);
+        expect(bracket[0].winProbabilityRed).toBeCloseTo(playoffForecaster(model).pRed([1, 2], [3, 4]), 10);
     });
 });
