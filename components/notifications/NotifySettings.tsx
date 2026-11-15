@@ -95,6 +95,9 @@ export default function NotifySettings() {
         else toast.error(t("failed"));
     });
 
+    // Without the VAPID public key (production secrets not set up yet) push
+    // cannot work: hide the panel instead of offering a button that fails.
+    if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return null;
     if (support === null) return null;
 
     return (
