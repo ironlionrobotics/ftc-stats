@@ -98,12 +98,12 @@ export default function MatchSimulator({ teams, eventCode: eventCodeProp }: Matc
                                     <button
                                         onClick={() => addToAlliance(team.teamNumber, 'red')}
                                         disabled={redAlliance.includes(team.teamNumber) || blueAlliance.includes(team.teamNumber)}
-                                        className="p-1 px-2 bg-danger/20 text-danger rounded text-[10px] font-bold"
+                                        className="p-1 px-2 bg-alliance-red/20 text-alliance-red rounded text-xs font-bold"
                                     > {t("red")} </button>
                                     <button
                                         onClick={() => addToAlliance(team.teamNumber, 'blue')}
                                         disabled={redAlliance.includes(team.teamNumber) || blueAlliance.includes(team.teamNumber)}
-                                        className="p-1 px-2 bg-secondary/20 text-secondary rounded text-[10px] font-bold"
+                                        className="p-1 px-2 bg-alliance-blue/20 text-alliance-blue rounded text-xs font-bold"
                                     > {t("blue")} </button>
                                 </div>
                             </div>
@@ -149,12 +149,12 @@ export default function MatchSimulator({ teams, eventCode: eventCodeProp }: Matc
                     <div className="mt-8 space-y-6 animate-in fade-in zoom-in-95 duration-500">
                         {/* Summary Header */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <Card className="p-8 bg-muted border-danger/20 overflow-hidden relative">
+                            <Card className="p-8 bg-muted border-alliance-red/20 overflow-hidden relative">
                                 <div className="absolute -right-4 -bottom-4 opacity-5 pointer-events-none">
                                     <Swords size={180} />
                                 </div>
-                                <div className="text-xs font-bold text-danger uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
+                                <div className="text-xs font-bold text-alliance-red uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-alliance-red-fill animate-pulse" />
                                     {t("redPrediction")}
                                 </div>
                                 <div className="text-6xl font-black text-foreground font-display mb-2">{projection.redAlliance.score}</div>
@@ -162,20 +162,20 @@ export default function MatchSimulator({ teams, eventCode: eventCodeProp }: Matc
                             </Card>
 
                             <Card className="p-8 bg-card border-primary/20 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-danger via-primary to-secondary" />
-                                <div className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] mb-4">{t("winProbability")}</div>
+                                <div className="absolute top-0 left-0 w-full h-1 bg-border" />
+                                <div className="text-xs font-bold text-primary uppercase tracking-[0.3em] mb-4">{t("winProbability")}</div>
                                 <div className="text-7xl font-black text-foreground font-display mb-2">{(projection.winProbability * 100).toFixed(0)}%</div>
                                 <div className="w-full max-w-[200px] h-1.5 bg-muted rounded-full overflow-hidden mt-4">
                                     <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${projection.winProbability * 100}%` }} />
                                 </div>
                             </Card>
 
-                            <Card className="p-8 bg-muted border-secondary/20 overflow-hidden relative">
+                            <Card className="p-8 bg-muted border-alliance-blue/20 overflow-hidden relative">
                                 <div className="absolute -right-4 -bottom-4 opacity-5 pointer-events-none">
                                     <Swords size={180} />
                                 </div>
-                                <div className="text-xs font-bold text-secondary uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                                <div className="text-xs font-bold text-alliance-blue uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-alliance-blue-fill animate-pulse" />
                                     {t("bluePrediction")}
                                 </div>
                                 <div className="text-6xl font-black text-foreground font-display mb-2">{projection.blueAlliance.score}</div>
@@ -246,18 +246,18 @@ function PointBreakdownRow({ label, red, blue }: { label: string, red: number, b
 
     return (
         <div className="space-y-2">
-            <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight">
-                <span className="text-danger">{red.toFixed(0)}</span>
+            <div className="flex justify-between text-xs font-bold uppercase tracking-tight">
+                <span className="text-alliance-red">{red.toFixed(0)}</span>
                 <span className="text-muted-foreground">{label}</span>
-                <span className="text-secondary">{blue.toFixed(0)}</span>
+                <span className="text-alliance-blue">{blue.toFixed(0)}</span>
             </div>
             <div className="h-1 bg-muted rounded-full overflow-hidden flex">
                 <div
-                    className="h-full bg-danger transition-all duration-1000"
+                    className="h-full bg-alliance-red-fill transition-all duration-1000"
                     style={{ width: `${redPct}%` }}
                 />
                 <div
-                    className="h-full bg-secondary transition-all duration-1000"
+                    className="h-full bg-alliance-blue-fill transition-all duration-1000"
                     style={{ width: `${100 - redPct}%` }}
                 />
             </div>
@@ -289,17 +289,17 @@ function AllianceBox({
     return (
         <Card className={clsx(
             "p-6 flex flex-col gap-4 transition-all duration-300",
-            isRed ? "border-danger/20 bg-danger/5" : "border-secondary/20 bg-secondary/5",
+            isRed ? "border-alliance-red/20 bg-alliance-red/5" : "border-alliance-blue/20 bg-alliance-blue/5",
             teams.length === 2 && "ring-2 ring-opacity-50",
-            isRed && teams.length === 2 ? "ring-danger" : teams.length === 2 ? "ring-secondary" : ""
+            isRed && teams.length === 2 ? "ring-alliance-red" : teams.length === 2 ? "ring-alliance-blue" : ""
         )}>
             <div className="flex justify-between items-center px-2">
-                <h2 className={clsx("font-black italic text-2xl uppercase tracking-tighter", isRed ? "text-danger" : "text-secondary")}>
+                <h2 className={clsx("font-black italic text-2xl uppercase tracking-tighter", isRed ? "text-alliance-red" : "text-alliance-blue")}>
                     {isRed ? t("allianceRed") : t("allianceBlue")}
                 </h2>
                 {projection && (
                     <div className="text-right">
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold">{t("projectedScore")}</div>
+                        <div className="text-xs text-muted-foreground uppercase font-bold">{t("projectedScore")}</div>
                         <div className="text-2xl font-bold text-foreground">{projection.score.toFixed(1)}</div>
                     </div>
                 )}
@@ -320,7 +320,7 @@ function AllianceBox({
                                 <div className="flex-1 flex items-center justify-between">
                                     <div className="space-y-1.5">
                                         <div className="text-3xl font-black font-display text-foreground">{team.teamNumber}</div>
-                                        <div className="text-[10px] text-muted-foreground font-bold uppercase truncate max-w-[120px]">{team.teamName}</div>
+                                        <div className="text-xs text-muted-foreground font-bold uppercase truncate max-w-[120px]">{team.teamName}</div>
                                         <SourceBadge
                                             entries={scoutingData.filter(e => e.teamNumber === id)}
                                             scoutReliabilities={scoutReliabilities}
@@ -331,18 +331,18 @@ function AllianceBox({
                                         {teamProj && (
                                             <div className="flex items-center gap-4">
                                                 <div className="flex flex-col items-end gap-1">
-                                                    <div className="text-[10px] text-muted-foreground font-bold">{t("estPoints")}</div>
+                                                    <div className="text-xs text-muted-foreground font-bold">{t("estPoints")}</div>
                                                     <div className="text-xl font-bold text-primary">{teamProj.projectedPoints.toFixed(0)}</div>
                                                 </div>
                                                 <div className="flex flex-col gap-1">
                                                     <button
                                                         onClick={() => setManualAdjustments((prev: Record<number, number>) => ({ ...prev, [id]: (prev[id] || 0) + 10 }))}
-                                                        className="p-1 bg-muted hover:bg-primary/20 rounded text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors"
+                                                        className="p-1 bg-muted hover:bg-primary/20 rounded text-xs font-bold text-muted-foreground hover:text-primary transition-colors"
                                                         title={t("increase")}
                                                     >+10</button>
                                                     <button
                                                         onClick={() => setManualAdjustments((prev: Record<number, number>) => ({ ...prev, [id]: (prev[id] || 0) - 10 }))}
-                                                        className="p-1 bg-muted hover:bg-danger/20 rounded text-[10px] font-bold text-muted-foreground hover:text-danger transition-colors"
+                                                        className="p-1 bg-muted hover:bg-danger/20 rounded text-xs font-bold text-muted-foreground hover:text-danger transition-colors"
                                                         title={t("decrease")}
                                                     >-10</button>
                                                 </div>

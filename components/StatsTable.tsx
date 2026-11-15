@@ -139,7 +139,7 @@ export default function StatsTable({ data }: StatsTableProps) {
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-muted/50 border-b border-border text-muted-foreground text-[10px] uppercase tracking-widest">
+                        <tr className="bg-muted/50 border-b border-border text-muted-foreground text-xs uppercase tracking-widest">
                             <th className="p-2.5 md:p-4 text-center w-12 font-bold">#</th>
                             <th className="p-2.5 md:p-4 cursor-pointer hover:text-foreground transition-colors" onClick={() => handleSort('teamNumber')}>
                                 <div className="flex items-center gap-2">Equipo <ArrowUpDown size={12} /></div>
@@ -220,12 +220,12 @@ export default function StatsTable({ data }: StatsTableProps) {
                                         <td className="p-2.5 md:p-4 text-center text-muted-foreground">{team.averageAutoPoints.toFixed(2)}</td>
                                         <td className="p-2.5 md:p-4 text-center text-foreground font-bold">{Math.round(team.averageHighScore)}</td>
                                         <td className="p-2.5 md:p-4 text-center whitespace-nowrap">
-                                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[10px] font-mono">
-                                                <span className="text-green-600 dark:text-green-500">{team.totalWins}</span>
+                                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-xs font-mono">
+                                                <span className="text-success">{team.totalWins}</span>
                                                 <span className="text-muted-foreground/30">-</span>
-                                                <span className="text-red-600 dark:text-red-500">{team.totalLosses}</span>
+                                                <span className="text-muted-foreground">{team.totalLosses}</span>
                                                 <span className="text-muted-foreground/30">-</span>
-                                                <span className="text-blue-600 dark:text-blue-500">{team.totalTies}</span>
+                                                <span className="text-muted-foreground">{team.totalTies}</span>
                                             </div>
                                         </td>
                                     </>
@@ -244,7 +244,7 @@ export default function StatsTable({ data }: StatsTableProps) {
                                 <td className="p-2.5 md:p-4 text-center">
                                     <div className="flex justify-center flex-wrap gap-2">
                                         {team.events.map((e) => (
-                                            <span key={e.eventCode} className="px-2 py-1 rounded bg-muted text-[10px] border border-border text-muted-foreground">
+                                            <span key={e.eventCode} className="px-2 py-1 rounded bg-muted text-xs border border-border text-muted-foreground">
                                                 {e.abbr || e.eventCode}
                                             </span>
                                         ))}

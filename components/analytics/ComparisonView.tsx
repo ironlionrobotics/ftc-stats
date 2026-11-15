@@ -84,16 +84,16 @@ export default function ComparisonView({
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={eventStats} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#333" opacity={0.2} />
-                                <XAxis dataKey="eventCode" stroke="#888" tick={{ fill: '#888', fontSize: 10 }} />
-                                <YAxis stroke="#888" tick={{ fill: '#888', fontSize: 10 }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.2} />
+                                <XAxis dataKey="eventCode" stroke="var(--color-muted-foreground)" tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }} />
+                                <YAxis stroke="var(--color-muted-foreground)" tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }}
+                                    contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                 />
                                 <Legend />
-                                <Bar dataKey="avgScore" name={t("allianceAvgSeries")} fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="avgAuto" name={t("autoAvgSeries")} fill="#10b981" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="avgScore" name={t("allianceAvgSeries")} fill="var(--color-brand-ink)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="avgAuto" name={t("autoAvgSeries")} fill="var(--color-success)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -106,15 +106,15 @@ export default function ComparisonView({
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={eventStats} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#333" opacity={0.2} />
-                                <XAxis dataKey="eventCode" stroke="#888" tick={{ fill: '#888', fontSize: 10 }} />
-                                <YAxis stroke="#888" tick={{ fill: '#888', fontSize: 10 }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.2} />
+                                <XAxis dataKey="eventCode" stroke="var(--color-muted-foreground)" tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }} />
+                                <YAxis stroke="var(--color-muted-foreground)" tick={{ fill: 'var(--color-muted-foreground)', fontSize: 12 }} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }}
+                                    contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                 />
                                 <Legend />
-                                <Bar dataKey="maxScore" name={t("maxScoreSeries")} fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="maxScore" name={t("maxScoreSeries")} fill="var(--color-muted-foreground)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -137,7 +137,7 @@ export default function ComparisonView({
                     </div>
 
                     <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
-                        <span className="text-[10px] font-bold uppercase px-3 py-1 bg-background rounded shadow-sm text-foreground">{t("teamsTab")}</span>
+                        <span className="text-xs font-bold uppercase px-3 py-1 bg-background rounded shadow-sm text-foreground">{t("teamsTab")}</span>
                         <div className="px-2 text-xs text-muted-foreground font-mono border-l border-border ml-2">
                             {t("teamsAnalyzed", { count: sortedTeams.length })}
                         </div>
@@ -145,7 +145,7 @@ export default function ComparisonView({
                 </div>
 
                 <div className="text-right mb-2">
-                    <span className="text-[10px] text-warning font-bold uppercase tracking-widest flex items-center justify-end gap-1">
+                    <span className="text-xs text-warning font-bold uppercase tracking-widest flex items-center justify-end gap-1">
                         <Sparkles size={10} /> {t("clickRow")}
                     </span>
                 </div>
@@ -153,7 +153,7 @@ export default function ComparisonView({
                 <div className="overflow-x-auto rounded-xl border border-border shadow-sm bg-card">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="bg-muted text-muted-foreground uppercase text-[10px] tracking-wider font-bold">
+                            <tr className="bg-muted text-muted-foreground uppercase text-xs tracking-wider font-bold">
                                 <th onClick={() => handleSort('teamNumber')} className="p-4 text-left cursor-pointer hover:text-foreground transition-colors group">
                                     {t("colTeam")}
                                     <div className="w-8 h-0.5 bg-border mt-1 group-hover:bg-primary transition-colors" />
@@ -162,7 +162,7 @@ export default function ComparisonView({
                                     <th key={e.eventCode} className="p-4 text-center whitespace-nowrap opacity-70">
                                         <div className="flex flex-col items-center">
                                             <span>{e.eventName.replace('Torneo ', '').substring(0, 15)}</span>
-                                            <span className="text-[9px] font-normal opacity-50 mt-1">{t("rankScore")}</span>
+                                            <span className="text-xs font-normal opacity-50 mt-1">{t("rankScore")}</span>
                                         </div>
                                     </th>
                                 ))}
@@ -198,7 +198,7 @@ export default function ComparisonView({
                                                     {expandedTeam === team.teamNumber ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                                     {team.teamNumber}
                                                     {team.projectedNationalRank && team.projectedNationalRank <= 10 && (
-                                                        <span className="text-[9px] bg-warning/10 text-warning px-1.5 py-0.5 rounded border border-warning/20 font-bold uppercase tracking-wider">Top {team.projectedNationalRank}</span>
+                                                        <span className="text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded border border-warning/20 font-bold uppercase tracking-wider">Top {team.projectedNationalRank}</span>
                                                     )}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground font-medium">{team.teamName}</div>
@@ -210,8 +210,8 @@ export default function ComparisonView({
                                                     <td key={e.eventCode} className="p-4 text-center">
                                                         {stat ? (
                                                             <div className="flex flex-col items-center">
-                                                                <span className="font-bold text-foreground text-base">{stat.avgPoints.toFixed(1)} <span className="text-[10px] font-normal text-muted-foreground">{t("avg")}</span></span>
-                                                                <span className="text-[10px] font-bold text-primary">#{stat.rank}</span>
+                                                                <span className="font-bold text-foreground text-base">{stat.avgPoints.toFixed(1)} <span className="text-xs font-normal text-muted-foreground">{t("avg")}</span></span>
+                                                                <span className="text-xs font-bold text-primary">#{stat.rank}</span>
                                                             </div>
                                                         ) : (
                                                             <span className="text-muted-foreground/20 text-xl font-bold">-</span>
@@ -221,9 +221,9 @@ export default function ComparisonView({
                                             })}
 
                                             <td className="p-4 text-center bg-gradient-to-b from-primary/5 to-transparent">
-                                                <div className="font-black text-2xl text-foreground font-display">{team.powerScore.toFixed(1)} <span className="text-[10px] font-bold text-muted-foreground block">PTS</span></div>
+                                                <div className="font-black text-2xl text-foreground font-display">{team.powerScore.toFixed(1)} <span className="text-xs font-bold text-muted-foreground block">PTS</span></div>
                                                 <div className="flex justify-center mt-1">
-                                                    <span className={clsx("text-[9px] px-1.5 py-0.5 rounded font-bold uppercase",
+                                                    <span className={clsx("text-xs px-1.5 py-0.5 rounded font-bold uppercase",
                                                         team.trend === 'up' ? "bg-success/10 text-success" :
                                                             team.trend === 'down' ? "bg-danger/10 text-danger" :
                                                                 "bg-secondary/10 text-secondary"
@@ -237,14 +237,14 @@ export default function ComparisonView({
                                                 <div className="font-black text-xl text-warning font-display">
                                                     {(team.consistencyScore * 100).toFixed(0)}%
                                                 </div>
-                                                <div className="text-[10px] font-bold text-warning/70 uppercase">Estabilidad</div>
+                                                <div className="text-xs font-bold text-warning/70 uppercase">Estabilidad</div>
                                             </td>
 
                                             <td className="p-4 text-center">
                                                 <div className="font-black text-lg text-foreground font-display">
                                                     {team.projectedNationalRank ? `#${team.projectedNationalRank}` : '-'}
                                                 </div>
-                                                <div className="text-[9px] font-bold uppercase text-muted-foreground">Ranking Nac.</div>
+                                                <div className="text-xs font-bold uppercase text-muted-foreground">Ranking Nac.</div>
                                             </td>
                                         </tr>
                                         {expandedTeam === team.teamNumber && (
@@ -258,7 +258,7 @@ export default function ComparisonView({
                                                                 <div className="flex justify-between items-center p-2 bg-muted/50 rounded-lg">
                                                                     <span className="text-xs font-bold text-muted-foreground">{t("highestScore")}</span>
                                                                     <span className="text-sm font-bold text-foreground">
-                                                                        {bestScore} <span className="text-[10px] text-muted-foreground">{t("pts")}</span>
+                                                                        {bestScore} <span className="text-xs text-muted-foreground">{t("pts")}</span>
                                                                     </span>
                                                                 </div>
                                                                 <div className="flex justify-between items-center p-2 bg-muted/50 rounded-lg">
@@ -283,21 +283,21 @@ export default function ComparisonView({
                                                         <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                             <div className="flex flex-col gap-2">
                                                                 <div className="bg-warning/10 p-3 rounded-lg border border-warning/20">
-                                                                    <div className="text-[10px] font-bold text-warning uppercase mb-1">{t("podiumTitle")}</div>
+                                                                    <div className="text-xs font-bold text-warning uppercase mb-1">{t("podiumTitle")}</div>
                                                                     <p className="text-xs text-muted-foreground leading-relaxed">{t("podiumBody")}</p>
                                                                 </div>
                                                                 <div className="bg-success/10 p-3 rounded-lg border border-success/20">
-                                                                    <div className="text-[10px] font-bold text-success uppercase mb-1">{t("strongTitle")}</div>
+                                                                    <div className="text-xs font-bold text-success uppercase mb-1">{t("strongTitle")}</div>
                                                                     <p className="text-xs text-muted-foreground leading-relaxed">{team.trend === 'up' ? t("strongBodyUp") : t("strongBodyStable")}</p>
                                                                 </div>
                                                                 <div className="bg-primary/10 p-3 rounded-lg border border-primary/20">
-                                                                    <div className="text-[10px] font-bold text-primary uppercase mb-1">{t("qualifiedTitle")}</div>
+                                                                    <div className="text-xs font-bold text-primary uppercase mb-1">{t("qualifiedTitle")}</div>
                                                                     <p className="text-xs text-muted-foreground leading-relaxed">{t("qualifiedBody")}</p>
                                                                 </div>
                                                             </div>
                                                             <div className="bg-card rounded-xl border border-border p-4 flex flex-col justify-center">
                                                                 <div className="text-right">
-                                                                    <span className="text-[10px] text-muted-foreground uppercase font-bold">{t("powerScore")}</span>
+                                                                    <span className="text-xs text-muted-foreground uppercase font-bold">{t("powerScore")}</span>
                                                                     <div className="text-4xl font-black text-foreground font-display tracking-tight">{team.powerScore.toFixed(1)}</div>
                                                                 </div>
                                                                 <div className="mt-4 text-xs text-muted-foreground italic">

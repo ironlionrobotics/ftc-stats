@@ -164,9 +164,9 @@ function bucketNote(b: PoolBucket | null | undefined, t: ReturnType<typeof useTr
 function Total({ label, value, note }: { label: string; value: number | null; note?: string }) {
     return (
         <div className="rounded-xl border border-border bg-card p-3">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
             <div className="font-mono text-2xl font-black tabular-nums">{value ?? "—"}</div>
-            {note && <div className="text-[11px] text-muted-foreground">{note}</div>}
+            {note && <div className="text-xs text-muted-foreground">{note}</div>}
         </div>
     );
 }

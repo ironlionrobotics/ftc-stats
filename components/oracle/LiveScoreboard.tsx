@@ -69,7 +69,7 @@ export default async function LiveScoreboard() {
                                             <span className="flex flex-wrap gap-1">
                                                 {e.recent.map(r => (
                                                     <span key={r.label} title={r.p === null ? r.label : `${r.label} · ${Math.round(r.p * 100)}%`}
-                                                        className={clsx("inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 font-mono text-[11px] font-bold",
+                                                        className={clsx("inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 font-mono text-xs font-bold",
                                                             r.correct === null ? "bg-muted text-muted-foreground" : r.correct ? "bg-success/15 text-success" : "bg-danger/15 text-danger")}>
                                                         {r.correct === null ? <Minus size={11} aria-hidden /> : r.correct ? <Check size={11} strokeWidth={3} aria-hidden /> : <X size={11} strokeWidth={3} aria-hidden />}
                                                         {r.label}

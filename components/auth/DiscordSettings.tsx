@@ -121,18 +121,18 @@ export default function DiscordSettings() {
 
     return (
         <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-bold">
                 <Bell size={11} />
                 Discord
             </div>
 
             {configured === null ? (
-                <div className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                     <Loader2 size={10} className="animate-spin" /> {t("loading")}
                 </div>
             ) : configured ? (
                 <>
-                    <div className="text-[10px] text-success flex items-center gap-1.5">
+                    <div className="text-xs text-success flex items-center gap-1.5">
                         <Check size={11} /> {t("configured")}
                     </div>
                     <div className="flex gap-1">
@@ -140,7 +140,7 @@ export default function DiscordSettings() {
                             type="button"
                             onClick={handleTest}
                             disabled={busy}
-                            className="flex-1 px-2 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[10px] font-bold rounded disabled:opacity-50"
+                            className="flex-1 px-2 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded disabled:opacity-50"
                         >
                             {t("test")}
                         </button>
@@ -148,7 +148,7 @@ export default function DiscordSettings() {
                             type="button"
                             onClick={handleClear}
                             disabled={busy}
-                            className="px-2 py-1.5 bg-muted hover:bg-danger/20 text-muted-foreground hover:text-danger text-[10px] font-bold rounded disabled:opacity-50"
+                            className="px-2 py-1.5 bg-muted hover:bg-danger/20 text-muted-foreground hover:text-danger text-xs font-bold rounded disabled:opacity-50"
                             title={t("removeWebhook")}
                         >
                             <XIcon size={10} />
@@ -162,21 +162,21 @@ export default function DiscordSettings() {
                         value={url}
                         onChange={e => setUrl(e.target.value)}
                         placeholder="https://discord.com/api/webhooks/..."
-                        className="w-full px-2 py-1.5 bg-muted border border-border rounded text-foreground text-[10px] font-mono"
+                        className="w-full px-2 py-1.5 bg-muted border border-border rounded text-foreground text-xs font-mono"
                     />
                     <div className="flex gap-1">
                         <button
                             type="button"
                             onClick={handleSave}
                             disabled={busy || !url.trim()}
-                            className="flex-1 px-2 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold rounded disabled:opacity-50 flex items-center justify-center gap-1"
+                            className="flex-1 px-2 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded disabled:opacity-50 flex items-center justify-center gap-1"
                         >
                             {busy && <Loader2 size={10} className="animate-spin" />} {t("save")}
                         </button>
                         <button
                             type="button"
                             onClick={() => { setShowInput(false); setUrl(""); setError(null); }}
-                            className="px-2 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-[10px] font-bold rounded"
+                            className="px-2 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-bold rounded"
                         >
                             {t("cancel")}
                         </button>
@@ -186,14 +186,14 @@ export default function DiscordSettings() {
                 <button
                     type="button"
                     onClick={() => setShowInput(true)}
-                    className="w-full px-2 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[10px] font-bold rounded"
+                    className="w-full px-2 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded"
                 >
                     {t("configure")}
                 </button>
             )}
 
             {error && (
-                <div className="flex items-start gap-1.5 text-[10px] text-danger">
+                <div className="flex items-start gap-1.5 text-xs text-danger">
                     <AlertCircle size={10} className="flex-shrink-0 mt-0.5" />
                     <span>{tErr(error)}</span>
                 </div>

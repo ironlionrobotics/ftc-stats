@@ -48,7 +48,7 @@ export default function AwardList({ awards, rankings }: AwardListProps) {
                                 <div key={`${award.awardId}-${award.teamNumber}-${index}`} className="flex items-center justify-between p-2 hover:bg-muted rounded-lg transition-colors group">
                                     <div className="flex items-center gap-3 w-full">
                                         <div className={`
-                                        w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black border
+                                        w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-black border
                                         ${award.series === 1 ? "bg-warning/10 text-warning border-warning/20" :
                                                 award.series === 2 ? "bg-muted text-muted-foreground border-border" :
                                                     "bg-primary/10 text-primary border-primary/20"}
@@ -58,7 +58,7 @@ export default function AwardList({ awards, rankings }: AwardListProps) {
                                         <div className="flex flex-col min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-bold text-foreground leading-none">{award.teamNumber}</span>
-                                                <span className="text-[10px] text-muted-foreground font-medium uppercase truncate">
+                                                <span className="text-xs text-muted-foreground font-medium uppercase truncate">
                                                     {award.displayTeamNumber !== String(award.teamNumber) ? award.displayTeamNumber : ""}
                                                 </span>
                                             </div>

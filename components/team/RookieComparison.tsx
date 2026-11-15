@@ -90,7 +90,7 @@ export function RookieComparison() {
                     Por OPR bruto, 30311 está en el <b className="text-foreground">top ~14%</b> de los 1,317 rookies del mundo — sólido, aunque el tope
                     (equipos de EE.UU. y Kazajistán con 150-240 OPR) queda lejos. Pero por el <b className="text-foreground">Inspire Award</b> —el máximo honor de
                     FTC— pertenecen a un grupo de solo <b className="text-foreground">36 rookies en todo el planeta (2.7%)</b>, y son el único de México.
-                    <span className="block mt-2 text-[11px] text-muted-foreground/80">
+                    <span className="block mt-2 text-xs text-muted-foreground/80">
                         Origen de esos 36 Inspire rookie: {topCountries} · {t("inspireCountriesGlue")} {otherCountries}.
                     </span>
                 </AwardsCallout>
@@ -120,10 +120,10 @@ function RookieTable({ rows, placeHeader, self, translatePlace }: { rows: Rookie
             <table className="w-full min-w-[560px] text-sm">
                 <thead>
                     <tr className="bg-muted/50 text-muted-foreground">
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest">Equipo</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest">{placeHeader}</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-widest">OPR</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest">Premios 25-26</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest">Equipo</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest">{placeHeader}</th>
+                        <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-widest">OPR</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest">Premios 25-26</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -151,7 +151,7 @@ function RookieTr({ t: row, translatePlace }: { t: RookieRow; translatePlace?: b
             <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
                     <span className={clsx("font-bold leading-tight", row.self ? "text-primary" : "text-foreground")}>{row.name}</span>
-                    {row.self && <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">Nosotros</span>}
+                    {row.self && <span className="text-xs font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">Nosotros</span>}
                 </div>
                 <span className="text-xs text-muted-foreground font-mono">#{row.number}</span>
             </td>
@@ -168,7 +168,7 @@ function RookieTr({ t: row, translatePlace }: { t: RookieRow; translatePlace?: b
                                     <span
                                         key={`${key}-${i}`}
                                         className={clsx(
-                                            "text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap",
+                                            "text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap",
                                             isInspire(a) ? "bg-warning/15 text-warning border border-warning/30" : "bg-muted text-muted-foreground border border-border",
                                         )}
                                     >

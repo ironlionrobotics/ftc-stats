@@ -71,11 +71,11 @@ export default function RpModelTrainer() {
 
     return (
         <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-bold">
                 <Brain size={11} />
                 {t("title")}
             </div>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
                 {t("description", { season })}
             </p>
             <button
@@ -90,7 +90,7 @@ export default function RpModelTrainer() {
 
             {report && (
                 <div className="space-y-1.5 pt-1 border-t border-border">
-                    <div className="flex items-center gap-1.5 text-[10px] text-success">
+                    <div className="flex items-center gap-1.5 text-xs text-success">
                         <CheckCircle2 size={11} />
                         <span>
                             {report.countModel
@@ -99,7 +99,7 @@ export default function RpModelTrainer() {
                         </span>
                     </div>
                     {report.countModel ? null : report.models.length === 0 ? (
-                        <div className="flex items-start gap-1.5 text-[10px] text-warning">
+                        <div className="flex items-start gap-1.5 text-xs text-warning">
                             <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />
                             <span>{t("notEnough")}</span>
                         </div>
@@ -108,7 +108,7 @@ export default function RpModelTrainer() {
                             {report.models.map(m => (
                                 <li
                                     key={m.target}
-                                    className="flex items-center justify-between text-[10px]"
+                                    className="flex items-center justify-between text-xs"
                                 >
                                     <span className="text-muted-foreground capitalize">{m.target}</span>
                                     <span className="font-mono text-muted-foreground">

@@ -13,7 +13,7 @@ export default function ContextPicker({ value, onChange }: { value: ScoutingCont
     const t = useTranslations("ScoutingContext");
     return (
         <fieldset>
-            <legend className="mb-2 block text-[11px] font-bold uppercase text-muted-foreground">{t("label")}</legend>
+            <legend className="mb-2 block text-xs font-bold uppercase text-muted-foreground">{t("label")}</legend>
             <div role="radiogroup" aria-label={t("label")} className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-background p-1 sm:grid-cols-4">
                 {SCOUTING_CONTEXTS.map(ctx => (
                     <button
@@ -44,7 +44,7 @@ export function ContextBadge({ entry }: { entry: { tournamentLevel?: string | nu
     const ctx = contextOf(entry);
     if (ctx === "QUALIFICATION") return null;
     return (
-        <span className="rounded border border-border px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+        <span className="rounded border border-border px-2 py-0.5 text-xs font-semibold text-muted-foreground">
             {t(`option.${ctx}`)}
         </span>
     );

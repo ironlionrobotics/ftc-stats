@@ -25,10 +25,9 @@ const StatCard = ({ title, value, subValue, icon: Icon, colorClass }: {
     colorClass: string;
 }) => (
     <div className="relative overflow-hidden p-6 rounded-3xl border border-border bg-card transition-all duration-300 hover:bg-muted/50 group shadow-sm">
-        <div className={`absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 blur-3xl opacity-10 dark:opacity-20 bg-gradient-to-br ${colorClass} group-hover:opacity-40 transition-opacity`} />
         <div className="relative flex flex-col gap-4">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br ${colorClass} shadow-sm`}>
-                <Icon className="text-white" size={24} />
+                <Icon className={colorClass.includes("secondary") ? "text-secondary-foreground" : "text-primary-foreground"} size={24} />
             </div>
             <div>
                 <p className="text-muted-foreground text-xs font-bold mb-1 uppercase tracking-widest">{title}</p>
@@ -48,9 +47,9 @@ const MatchHighlight = ({ data, label, icon: Icon }: { data: HighlightData, labe
                 <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                     <Icon size={14} />
                 </div>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">{label}</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">{label}</span>
             </div>
-            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${data.alliance === 'Red' ? 'bg-danger/10 text-danger border border-danger/10' : 'bg-secondary/10 text-secondary border border-secondary/10'
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${data.alliance === 'Red' ? 'bg-alliance-red/10 text-alliance-red border border-alliance-red/10' : 'bg-alliance-blue/10 text-alliance-blue border border-alliance-blue/10'
                 }`}>
                 {data.alliance} Alliance
             </span>
@@ -58,13 +57,13 @@ const MatchHighlight = ({ data, label, icon: Icon }: { data: HighlightData, labe
         <div className="flex items-end justify-between gap-4">
             <div>
                 <h3 className="text-4xl font-black text-foreground mb-0.5 tracking-tight">{data.score}</h3>
-                <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+                <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">
                     {data.match?.description.replace('Qualification', 'Quals')}
                 </p>
             </div>
             <div className="flex -space-x-3">
                 {data.teams.map((t: number) => (
-                    <div key={t} className="w-10 h-10 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-black text-foreground shadow-sm transition-transform hover:-translate-y-1 hover:z-10 cursor-pointer">
+                    <div key={t} className="w-10 h-10 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-black text-foreground shadow-sm transition-transform hover:-translate-y-1 hover:z-10 cursor-pointer">
                         {t}
                     </div>
                 ))}

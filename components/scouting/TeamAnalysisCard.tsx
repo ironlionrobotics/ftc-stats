@@ -41,14 +41,14 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                 {/* Consistency Badge */}
                 <div className="flex flex-col items-end">
                     <div className={clsx(
-                        "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                        "text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
                         stats.consistency < 15 ? "bg-success/15 text-success" :
                             stats.consistency < 30 ? "bg-secondary/15 text-secondary" :
                                 "bg-danger/15 text-danger"
                     )}>
                         {stats.consistency < 15 ? t("consistent") : stats.consistency < 30 ? t("volatile") : t("wild")}
                     </div>
-                    <div className="text-[9px] text-muted-foreground mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                         σ: {stats.consistency.toFixed(1)}
                     </div>
                 </div>
@@ -58,13 +58,13 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                 {/* Key Metrics */}
                 <div className="space-y-3">
                     <div>
-                        <div className="text-[9px] font-bold text-muted-foreground uppercase">{t("avgScore")}</div>
+                        <div className="text-xs font-bold text-muted-foreground uppercase">{t("avgScore")}</div>
                         <div className="text-2xl font-black text-secondary tabular-nums">
                             {stats.avgOPR.toFixed(1)}
                         </div>
                     </div>
                     <div>
-                        <div className="text-[9px] font-bold text-muted-foreground uppercase">{t("maxScore")}</div>
+                        <div className="text-xs font-bold text-muted-foreground uppercase">{t("maxScore")}</div>
                         <div className="text-lg font-black text-foreground tabular-nums">
                             {stats.maxScore.toFixed(0)}
                         </div>
@@ -114,7 +114,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                     className="flex flex-col items-center justify-center p-2 rounded hover:bg-secondary/10 hover:text-secondary text-muted-foreground transition-colors group"
                 >
                     <Bot size={16} className="mb-1 group-hover:scale-110 transition-transform" />
-                    <span className="text-[9px] font-bold uppercase">{t("aiNotes")}</span>
+                    <span className="text-xs font-bold uppercase">{t("aiNotes")}</span>
                 </button>
                 <Link
                     href={spyLinks.youtube}
@@ -122,7 +122,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                     className="flex flex-col items-center justify-center p-2 rounded hover:bg-danger/10 hover:text-danger text-muted-foreground transition-colors group"
                 >
                     <Youtube size={16} className="mb-1 group-hover:scale-110 transition-transform" />
-                    <span className="text-[9px] font-bold uppercase">{t("video")}</span>
+                    <span className="text-xs font-bold uppercase">{t("video")}</span>
                 </Link>
                 <Link
                     href={spyLinks.instagram}
@@ -130,7 +130,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                     className="flex flex-col items-center justify-center p-2 rounded hover:bg-primary/10 hover:text-primary text-muted-foreground transition-colors group"
                 >
                     <Instagram size={16} className="mb-1 group-hover:scale-110 transition-transform" />
-                    <span className="text-[9px] font-bold uppercase">{t("social")}</span>
+                    <span className="text-xs font-bold uppercase">{t("social")}</span>
                 </Link>
                 <Link
                     href={spyLinks.theOrangeAlliance}
@@ -138,7 +138,7 @@ export default function TeamAnalysisCard({ stats, rank }: TeamAnalysisCardProps)
                     className="flex flex-col items-center justify-center p-2 rounded hover:bg-primary/10 hover:text-primary text-muted-foreground transition-colors group"
                 >
                     <Database size={16} className="mb-1 group-hover:scale-110 transition-transform" />
-                    <span className="text-[9px] font-bold uppercase">{t("toa")}</span>
+                    <span className="text-xs font-bold uppercase">{t("toa")}</span>
                 </Link>
             </div>
         </div>

@@ -123,17 +123,12 @@ export default async function TeamPage(props: TeamPageProps) {
         <div className="container mx-auto px-4 py-8 max-w-7xl">
             {/* Header / Profile Card */}
             <div className="relative mb-12 group">
-                {/* Background Glow */}
-                <div className="absolute -inset-1 bg-linear-to-r from-primary/20 via-accent/10 to-secondary/20 rounded-3xl blur-xl opacity-50 transition-opacity group-hover:opacity-70" />
 
                 <div className="relative glass-card rounded-3xl overflow-hidden border-border/50">
                     <div className="h-48 md:h-64 w-full relative overflow-hidden">
                         <div className="absolute inset-0 bg-primary/20 bg-linear-to-br from-primary/30 to-secondary/30" />
                         <div className="absolute inset-0 bg-linear-to-t from-background via-transparent to-transparent" />
 
-                        {/* Abstract shapes */}
-                        <div className="absolute top-10 right-10 w-64 h-64 bg-accent/20 rounded-full blur-3xl animate-pulse" />
-                        <div className="absolute -bottom-10 -left-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
                     </div>
 
                     <div className="px-6 md:px-12 pb-10 -mt-12 md:-mt-20 flex flex-col md:flex-row gap-8 items-start md:items-end relative z-10">
@@ -169,15 +164,15 @@ export default async function TeamPage(props: TeamPageProps) {
                     <div className="px-6 md:px-12 py-8 bg-muted/20 border-t border-border/50">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
                             <div className="space-y-1">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block">{t("orgName")}</span>
+                                <span className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] block">{t("orgName")}</span>
                                 <p className="text-foreground font-bold leading-relaxed">{team.nameFull}</p>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block">{t("robotIdentity")}</span>
+                                <span className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] block">{t("robotIdentity")}</span>
                                 <p className="text-foreground font-bold">{team.robotName || t("designationPending")}</p>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] block">{t("sponsors")}</span>
+                                <span className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] block">{t("sponsors")}</span>
                                 <p className="text-muted-foreground text-sm italic leading-relaxed">
                                     {team.nameFull.replace(team.nameShort, "").trim() || t("localInstitution")}
                                 </p>
@@ -237,7 +232,7 @@ export default async function TeamPage(props: TeamPageProps) {
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <div className="text-right hidden md:block">
-                                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block">{t("seasonPeak")}</span>
+                                            <span className="text-xs font-black text-muted-foreground uppercase tracking-widest block">{t("seasonPeak")}</span>
                                             <span className="text-2xl font-black text-primary font-display">{t("rank", { rank: Math.min(...year.events.map((e) => e.ranking.rank)) })}</span>
                                         </div>
                                         <div className="w-14 h-14 rounded-2xl bg-primary shadow-xl shadow-primary/20 flex items-center justify-center text-white">
@@ -259,7 +254,7 @@ export default async function TeamPage(props: TeamPageProps) {
 
                                                     <div className="flex justify-between items-start relative z-10">
                                                         <div className="flex-1 space-y-1">
-                                                            <span className="text-[10px] font-black text-secondary uppercase tracking-[0.25em] block">
+                                                            <span className="text-xs font-black text-secondary uppercase tracking-[0.25em] block">
                                                                 {rank.eventCode}
                                                             </span>
                                                             <h4 className="text-xl font-black text-foreground leading-tight">{rank.eventName || t("regionalEvent")}</h4>
@@ -282,12 +277,12 @@ export default async function TeamPage(props: TeamPageProps) {
                                                     {hasExtras && (
                                                         <div className="relative z-10 flex flex-wrap gap-2 flex-1 content-start">
                                                             {ev.playoff.role && (
-                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-bold">
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
                                                                     <Users size={12} /> {t("alliance", { number: ev.playoff.allianceNumber ?? "", role: t(`role${ev.playoff.role[0].toUpperCase()}${ev.playoff.role.slice(1)}`) })}
                                                                 </span>
                                                             )}
                                                             {ev.playoff.advancement && (
-                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/10 text-secondary border border-secondary/20 text-[11px] font-bold">
+                                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/10 text-secondary border border-secondary/20 text-xs font-bold">
                                                                     <Target size={12} /> {t(`adv${ev.playoff.advancement[0].toUpperCase()}${ev.playoff.advancement.slice(1)}`)}{ev.playoff.playoffRecord ? ` · ${ev.playoff.playoffRecord}` : ""}
                                                                 </span>
                                                             )}
@@ -298,7 +293,7 @@ export default async function TeamPage(props: TeamPageProps) {
                                                                     <span
                                                                         key={`${aw.awardId}-${i}`}
                                                                         className={clsx(
-                                                                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border",
+                                                                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border",
                                                                             isWin ? "bg-warning/10 text-warning border-warning/20" : "bg-muted text-muted-foreground border-border",
                                                                         )}
                                                                     >
@@ -329,11 +324,11 @@ export default async function TeamPage(props: TeamPageProps) {
 function KPIItem({ label, value, sub, highlighted }: { label: string, value: string, sub: string, highlighted?: boolean }) {
     return (
         <div className="bg-muted/40 rounded-xl p-3 border border-border">
-            <span className="block text-[9px] text-muted-foreground font-bold uppercase tracking-wider mb-1">{label}</span>
+            <span className="block text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">{label}</span>
             <div className={clsx("text-lg font-black font-display leading-none mb-1", highlighted ? "text-primary" : "text-foreground")}>
                 {value}
             </div>
-            <span className="text-[9px] text-muted-foreground/70 font-medium italic">{sub}</span>
+            <span className="text-xs text-muted-foreground/70 font-medium italic">{sub}</span>
         </div>
     );
 }

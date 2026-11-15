@@ -4,38 +4,48 @@ import { useEffect } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-export type Theme = "light" | "dark";
+/** "system" follows the OS (prefers-color-scheme) — the default (#116). */
+export type Theme = "light" | "dark" | "system";
 
 interface ThemeState {
     theme: Theme;
     setTheme: (theme: Theme) => void;
+    /** Cycles system → light → dark → system. */
     toggleTheme: () => void;
 }
 
+const NEXT: Record<Theme, Theme> = { system: "light", light: "dark", dark: "system" };
+
+function prefersDark(): boolean {
+    return typeof window !== "undefined" && typeof window.matchMedia === "function"
+        && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+/** Whether `theme` renders dark right now. */
+export function resolvesDark(theme: Theme, osDark: boolean): boolean {
+    return theme === "dark" || (theme === "system" && osDark);
+}
+
+function apply(theme: Theme) {
+    if (typeof document === "undefined") return;
+    document.documentElement.classList.toggle("dark", resolvesDark(theme, prefersDark()));
+}
+
 /**
- * Theme state. Replaces ThemeContext.
- *
- * The store keeps `theme` in sync with `<html class="dark">` so Tailwind's
- * dark-mode variant works. We do the document-class sync in a one-shot
- * useEffect (see useThemeSync below) — that hook must be mounted once at the
- * top of the app, similar to how the old ThemeProvider mounted an effect.
+ * Theme state. The store keeps `<html class="dark">` in sync so Tailwind's
+ * `dark:` variant (bound to the class in app/globals.css) works. The anti-FOUC
+ * script in app/layout.tsx applies the class before paint; useThemeSync keeps
+ * it right after hydration and when the OS scheme changes under "system".
  */
 export const useThemeStore = create<ThemeState>()(
     persist(
         (set, get) => ({
-            // Dark-first (Direction C "Nightshift"). New users open in dark; the
-            // anti-FOUC script in app/layout.tsx applies the class before paint.
-            theme: "dark",
+            theme: "system",
             setTheme: (theme) => {
                 set({ theme });
-                if (typeof document !== "undefined") {
-                    document.documentElement.classList.toggle("dark", theme === "dark");
-                }
+                apply(theme);
             },
-            toggleTheme: () => {
-                const next: Theme = get().theme === "light" ? "dark" : "light";
-                get().setTheme(next);
-            },
+            toggleTheme: () => get().setTheme(NEXT[get().theme] ?? "system"),
         }),
         {
             name: "ftc-theme",
@@ -51,16 +61,18 @@ export const useThemeStore = create<ThemeState>()(
 );
 
 /**
- * Hook to mount once at the root of the app. Syncs the persisted theme to the
- * <html> classList after hydration. Without this, the store would have the
- * right `theme` value but the <html> class would never get toggled until the
- * user manually triggered setTheme().
+ * Mount once at the root. Syncs the persisted theme to the <html> class after
+ * hydration and follows OS changes while the theme is "system".
  */
 export function useThemeSync() {
     const theme = useThemeStore(s => s.theme);
     useEffect(() => {
-        if (typeof document === "undefined") return;
-        document.documentElement.classList.toggle("dark", theme === "dark");
+        apply(theme);
+        if (theme !== "system" || typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+        const mq = window.matchMedia("(prefers-color-scheme: dark)");
+        const onChange = () => apply("system");
+        mq.addEventListener("change", onChange);
+        return () => mq.removeEventListener("change", onChange);
     }, [theme]);
 }
 

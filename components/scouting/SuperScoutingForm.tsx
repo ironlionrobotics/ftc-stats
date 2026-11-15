@@ -154,7 +154,7 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
                         <div className="flex items-center gap-2 mb-1">
                             <Eye className="text-primary" size={20} />
                             <h2 className="text-2xl font-black text-foreground">{t("title")}</h2>
-                            <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-black uppercase tracking-wider border border-primary/30">
+                            <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-xs font-black uppercase tracking-wider border border-primary/30">
                                 {t("subjective")}
                             </span>
                         </div>
@@ -180,7 +180,7 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
                     <Card className="p-6 bg-muted border-border space-y-6">
                         <ContextPicker value={context} onChange={setContext} />
                         <div className="flex items-center gap-4" hidden={!contextHasMatchNumber(context)}>
-                            <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                            <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
                                 {t("matchNumber")}
                             </label>
                             <Controller
@@ -241,7 +241,7 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
                         />
 
                         <div className="space-y-2">
-                            <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                            <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
                                 {t("wouldPick")}
                             </div>
                             <Controller
@@ -282,7 +282,7 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                            <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
                                 {t("notes")}
                             </label>
                             <Controller
@@ -364,12 +364,12 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
                                 <Card key={i} className="p-4 bg-muted border-border">
                                     <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                         <div className="flex items-center gap-3">
-                                            <div className="px-2 py-1 bg-primary/20 text-primary rounded text-[10px] font-black tracking-tighter">
+                                            <div className="px-2 py-1 bg-primary/20 text-primary rounded text-xs font-black tracking-tighter">
                                                 {e.matchNumber ? `M#${e.matchNumber}` : "—"}
                                             </div>
                                             <ContextBadge entry={e} />
                                             {e.orgId && (
-                                                <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-[10px] font-black tracking-wider uppercase">
+                                                <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-xs font-black tracking-wider uppercase">
                                                     #{e.orgId}
                                                 </div>
                                             )}
@@ -380,7 +380,7 @@ export default function SuperScoutingForm({ team, eventCode, entries }: SuperSco
                                         {e.wouldPick !== undefined && (
                                             <span
                                                 className={clsx(
-                                                    "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider",
+                                                    "px-2 py-0.5 rounded text-xs font-black uppercase tracking-wider",
                                                     e.wouldPick
                                                         ? "bg-success/15 text-success border border-success/30"
                                                         : "bg-danger/15 text-danger border border-danger/30",
@@ -425,12 +425,12 @@ function StarPicker({
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-2">
+                <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-2">
                     {icon}
                     {label}
                 </label>
                 {helperText && (
-                    <span className="text-[10px] text-muted-foreground italic">{helperText}</span>
+                    <span className="text-xs text-muted-foreground italic">{helperText}</span>
                 )}
             </div>
             <div className="flex gap-1">
@@ -468,7 +468,7 @@ function RatingBadge({
             <div className="p-2 bg-muted rounded-lg border border-border text-muted-foreground flex items-center gap-2">
                 {icon}
                 <div>
-                    <div className="text-[9px] uppercase tracking-wider">{label}</div>
+                    <div className="text-xs uppercase tracking-wider">{label}</div>
                     <div className="text-sm font-bold">—</div>
                 </div>
             </div>
@@ -478,7 +478,7 @@ function RatingBadge({
         <div className="p-2 bg-muted rounded-lg border border-border flex items-center gap-2">
             {icon}
             <div>
-                <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{label}</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider">{label}</div>
                 <div className="text-sm font-bold text-foreground">{value}/5</div>
             </div>
         </div>

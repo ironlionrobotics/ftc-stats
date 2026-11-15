@@ -11,7 +11,7 @@ import QueryProvider from "@/components/QueryProvider";
 // OnboardingModal + OnlineSync, deferred so the Firebase client SDK they pull
 // in stays off the first-paint critical path. See the module for the rationale.
 import DeferredGlobals from "@/components/DeferredGlobals";
-import { Toaster } from "sonner";
+import ThemedToaster from "@/components/ThemedToaster";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { NextIntlClientProvider } from "next-intl";
@@ -60,18 +60,20 @@ export async function generateMetadata(): Promise<Metadata> {
 import type { Viewport } from "next";
 
 export const viewport: Viewport = {
-  themeColor: "#07080a",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f5f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0e0c" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
 };
 
-// Dark-first: apply the theme class before first paint so a
-// dark-default app never flashes white. Reads the persisted Zustand theme
-// ("ftc-theme" in localStorage); defaults to dark unless the user explicitly
-// chose light. Runs synchronously in <head>, ahead of the React hydration
-// that lib/stores/theme-store.ts performs.
-const themeInitScript = `(function(){try{var s=localStorage.getItem('ftc-theme');var t=s?JSON.parse(s).state.theme:'dark';if(t!=='light'){document.documentElement.classList.add('dark');}}catch(e){document.documentElement.classList.add('dark');}})();`;
+// Apply the theme class before first paint (no flash). Reads the persisted
+// Zustand theme ("ftc-theme" in localStorage): "light", "dark" or "system"
+// (the default, #116), which follows prefers-color-scheme. Runs synchronously
+// in <head>, ahead of the hydration in lib/stores/theme-store.ts.
+const themeInitScript = `(function(){var d=document.documentElement;try{var s=localStorage.getItem('ftc-theme');var t=s?JSON.parse(s).state.theme:'system';var os=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t!=='light'&&os)){d.classList.add('dark');}}catch(e){if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark');}}})();`;
 
 // Theme and program state moved from Context to Zustand stores
 // (lib/stores/theme-store.ts, lib/stores/program-store.ts). The root layout
@@ -113,15 +115,7 @@ export default async function RootLayout({
                 </div>
                 <DeferredGlobals aiAssistant={appConfig.features.aiAssistant} />
                 <PWAInstallPrompt />
-                <Toaster
-                  theme="dark"
-                  position="top-right"
-                  richColors
-                  closeButton
-                  toastOptions={{
-                    style: { fontSize: "13px" },
-                  }}
-                />
+                <ThemedToaster />
               </ConfirmProvider>
             </AuthProvider>
           </QueryProvider>

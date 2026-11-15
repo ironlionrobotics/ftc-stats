@@ -217,7 +217,7 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
         <Card className="p-5 bg-muted border-border space-y-4">
             <div>
                 <h3 className="text-xs font-bold uppercase tracking-widest text-primary">{title}</h3>
-                {hint && <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>}
+                {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
             </div>
             {children}
         </Card>
@@ -229,7 +229,7 @@ type Ctl = Control<TeamProfileFormValues>;
 function TextField({ control, name, label, placeholder }: { control: Ctl; name: "climbLevel" | "drivetrain" | "photoUrl"; label: string; placeholder?: string }) {
     return (
         <div>
-            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">{label}</label>
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">{label}</label>
             <Controller
                 control={control}
                 name={name}
@@ -249,7 +249,7 @@ function TextField({ control, name, label, placeholder }: { control: Ctl; name: 
 function TextArea({ control, name, label, placeholder }: { control: Ctl; name: "robot" | "autonomous" | "strategy"; label: string; placeholder?: string }) {
     return (
         <div>
-            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">{label}</label>
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">{label}</label>
             <Controller
                 control={control}
                 name={name}
@@ -278,7 +278,7 @@ function PhaseRange({
 }) {
     return (
         <div className="rounded-xl border border-border bg-card p-3">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-foreground mb-2">{label}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-foreground mb-2">{label}</div>
             <div className="grid grid-cols-2 gap-2">
                 <NumberBox control={control} name={lowName} label={lowLabel} />
                 <NumberBox control={control} name={highName} label={highLabel} />
@@ -290,7 +290,7 @@ function PhaseRange({
 function NumberBox({ control, name, label }: { control: Ctl; name: "autoLow" | "autoHigh" | "teleopLow" | "teleopHigh" | "endgameLow" | "endgameHigh"; label: string }) {
     return (
         <div>
-            <label className="block text-[9px] font-bold text-muted-foreground uppercase mb-1">{label}</label>
+            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">{label}</label>
             <Controller
                 control={control}
                 name={name}

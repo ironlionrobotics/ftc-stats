@@ -53,13 +53,13 @@ export default function InviteGenerator() {
 
     return (
         <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-bold">
                 <KeyRound size={11} />
                 {t("title")}
             </div>
 
             {!canGenerate && (
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                     {t("onlyAdmins")}
                 </p>
             )}
@@ -89,13 +89,13 @@ export default function InviteGenerator() {
                             {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
                         </button>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                         {t("expires")}
                     </p>
                     <button
                         onClick={handleGenerate}
                         disabled={busy}
-                        className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
                     >
                         {t("generateAnother")}
                     </button>
@@ -103,7 +103,7 @@ export default function InviteGenerator() {
             )}
 
             {error && (
-                <p className="text-[10px] text-danger">{tErr(error)}</p>
+                <p className="text-xs text-danger">{tErr(error)}</p>
             )}
         </div>
     );

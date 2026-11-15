@@ -152,8 +152,6 @@ export default function ScoutingClient({ initialTeams, events, eventCode, roster
     return (
         <div className="min-h-screen bg-background relative overflow-hidden">
             {/* Background Gradients */}
-            <div className="absolute top-0 left-0 w-full h-96 bg-primary/10 blur-[100px] rounded-full -translate-y-1/2 pointer-events-none" />
-            <div className="absolute bottom-0 right-0 w-full h-96 bg-secondary/10 blur-[100px] rounded-full translate-y-1/2 pointer-events-none" />
 
             <div className="container mx-auto px-4 md:px-8 py-8 flex flex-col md:flex-row gap-6 h-screen relative z-10">
                 {/* Sidebar List */}

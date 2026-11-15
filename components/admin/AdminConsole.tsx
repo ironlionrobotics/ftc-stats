@@ -105,10 +105,10 @@ export default function AdminConsole() {
                                 : <XCircle size={18} className="text-danger shrink-0" />}
                             <div className="min-w-0">
                                 <div className="text-sm font-bold text-foreground">{i.label}</div>
-                                <div className="text-[11px] text-muted-foreground font-mono truncate">{i.managedIn}</div>
+                                <div className="text-xs text-muted-foreground font-mono truncate">{i.managedIn}</div>
                             </div>
                             <span className={clsx(
-                                "ml-auto text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0",
+                                "ml-auto text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0",
                                 i.configured ? "bg-success/10 text-success" : "bg-danger/10 text-danger",
                             )}>
                                 {i.configured ? t("ok") : t("missing")}
@@ -131,7 +131,7 @@ export default function AdminConsole() {
                     <label className="flex items-center justify-between gap-4 cursor-pointer">
                         <div>
                             <div className="text-sm font-bold text-foreground">{t("assistantEnabled")}</div>
-                            <div className="text-[11px] text-muted-foreground">{t("assistantEnabledHint")}</div>
+                            <div className="text-xs text-muted-foreground">{t("assistantEnabledHint")}</div>
                         </div>
                         <button
                             type="button"
@@ -152,7 +152,7 @@ export default function AdminConsole() {
 
                     <label className="block">
                         <div className="text-sm font-bold text-foreground">{t("rateLimit")}</div>
-                        <div className="text-[11px] text-muted-foreground mb-1.5">{t("rateLimitHint")}</div>
+                        <div className="text-xs text-muted-foreground mb-1.5">{t("rateLimitHint")}</div>
                         <input
                             type="number"
                             min={1}

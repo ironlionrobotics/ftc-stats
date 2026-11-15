@@ -94,12 +94,12 @@ export default function GroundTruthValidator() {
 
     return (
         <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-bold">
                 <ShieldCheck size={11} />
                 {t("title")}
             </div>
 
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
                 {t("description")}
             </p>
 
@@ -120,7 +120,7 @@ export default function GroundTruthValidator() {
             </div>
 
             {error && (
-                <div className="flex items-start gap-1.5 text-[10px] text-danger">
+                <div className="flex items-start gap-1.5 text-xs text-danger">
                     <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />
                     <span>{tErr(error)}</span>
                 </div>
@@ -128,13 +128,13 @@ export default function GroundTruthValidator() {
 
             {report && (
                 <div className="space-y-1.5 pt-1 border-t border-border">
-                    <div className="flex items-center gap-1.5 text-[10px] text-success">
+                    <div className="flex items-center gap-1.5 text-xs text-success">
                         <CheckCircle2 size={11} />
                         <span>
                             {t("coverage", { covered: report.coveredMatches, eligible: report.eligibleMatches, scouts: report.scoutsUpdated })}
                         </span>
                     </div>
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                         {format.dateTime(new Date(report.ranAt), { dateStyle: "medium", timeStyle: "short" })}
                     </div>
                 </div>
@@ -142,14 +142,14 @@ export default function GroundTruthValidator() {
 
             {scouts.length > 0 && (
                 <div className="space-y-1 pt-1 border-t border-border">
-                    <div className="text-[9px] text-muted-foreground uppercase tracking-wider">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">
                         {t("reliability")}
                     </div>
                     <ul className="space-y-0.5">
                         {scouts.map(s => (
                             <li
                                 key={s.scoutId}
-                                className="flex items-center justify-between text-[10px]"
+                                className="flex items-center justify-between text-xs"
                             >
                                 <span className="truncate text-muted-foreground">
                                     {s.displayName}

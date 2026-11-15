@@ -204,7 +204,7 @@ export async function TeamSeasonReport() {
                             </div>
                             <div className="ml-auto text-right shrink-0">
                                 <div className="font-mono font-bold text-secondary">{team.totOpr.toFixed(0)}</div>
-                                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">OPR</div>
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider">OPR</div>
                             </div>
                         </div>
                     ))}
@@ -341,8 +341,8 @@ function SkillBar({ skill, label }: { skill: (typeof R.skills)[number]; label: s
             <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-2.5">
                     <span className="font-bold text-foreground">{label}</span>
-                    {strong && <span className="text-[10px] font-black uppercase tracking-wider text-success bg-success/10 px-2 py-0.5 rounded-full">Fortaleza</span>}
-                    {skill.key === "auto" && <span className="text-[10px] font-black uppercase tracking-wider text-warning bg-warning/10 px-2 py-0.5 rounded-full">A mejorar</span>}
+                    {strong && <span className="text-xs font-black uppercase tracking-wider text-success bg-success/10 px-2 py-0.5 rounded-full">Fortaleza</span>}
+                    {skill.key === "auto" && <span className="text-xs font-black uppercase tracking-wider text-warning bg-warning/10 px-2 py-0.5 rounded-full">A mejorar</span>}
                 </div>
                 <div className="text-right shrink-0">
                     <span className="font-mono font-bold text-foreground">{skill.value.toFixed(1)}</span>
@@ -382,7 +382,7 @@ function CohortTable({ rows, showSeasons, dividerLabel }: { rows: Array<{ number
                             <Fragment key={t.number}>
                                 {dividerBefore && (
                                     <tr>
-                                        <td colSpan={cols} className="px-4 py-1.5 text-center bg-muted/20 text-muted-foreground/70 font-mono text-[11px] uppercase tracking-wider">
+                                        <td colSpan={cols} className="px-4 py-1.5 text-center bg-muted/20 text-muted-foreground/70 font-mono text-xs uppercase tracking-wider">
                                             {dividerLabel ?? "···"}
                                         </td>
                                     </tr>
@@ -391,7 +391,7 @@ function CohortTable({ rows, showSeasons, dividerLabel }: { rows: Array<{ number
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
                                             <span className={clsx("font-bold leading-tight", t.self ? "text-primary" : "text-foreground")}>{t.name}</span>
-                                            {t.self && <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">Nosotros · rookie</span>}
+                                            {t.self && <span className="text-xs font-black uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">Nosotros · rookie</span>}
                                         </div>
                                         <div className="text-xs text-muted-foreground font-mono">#{t.number}{t.location ? ` · ${t.location}` : ""}</div>
                                     </td>
@@ -435,7 +435,7 @@ function HeroStat({ value, label, sub, icon, accent }: { value: string; label: s
         <div className={clsx("rounded-2xl border p-4", accent ? "border-primary/30 bg-primary/5" : "border-border bg-card/60 backdrop-blur-sm")}>
             <div className={clsx("flex items-center gap-1.5 text-xs font-semibold", accent ? "text-primary" : "text-muted-foreground")}>{icon}{label}</div>
             <div className="mt-1.5 font-display text-2xl md:text-3xl font-black text-foreground leading-none">{value}</div>
-            <div className="mt-1.5 text-[11px] text-muted-foreground leading-tight">{sub}</div>
+            <div className="mt-1.5 text-xs text-muted-foreground leading-tight">{sub}</div>
         </div>
     );
 }
@@ -457,9 +457,9 @@ function EventTypePill({ type, label }: { type: string; label: string }) {
         Championship: "bg-secondary/10 text-secondary border-secondary/20",
         Premier: "bg-primary/10 text-primary border-primary/20",
     };
-    return <span className={clsx("inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border whitespace-nowrap", map[type])}>{label}</span>;
+    return <span className={clsx("inline-block px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap", map[type])}>{label}</span>;
 }
 
 function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <th className={clsx("px-4 py-3 text-center text-[11px] font-bold uppercase tracking-widest", className)}>{children}</th>;
+    return <th className={clsx("px-4 py-3 text-center text-xs font-bold uppercase tracking-widest", className)}>{children}</th>;
 }

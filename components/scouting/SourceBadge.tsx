@@ -96,7 +96,7 @@ export default function SourceBadge({
         return (
             <div
                 className={clsx(
-                    "inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-wider",
+                    "inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted text-muted-foreground text-xs font-bold uppercase tracking-wider",
                     className,
                 )}
                 title={t("noScoutingTitle")}
@@ -120,7 +120,7 @@ export default function SourceBadge({
                 onClick={variant === "full" ? () => setExpanded(v => !v) : undefined}
                 disabled={variant === "compact"}
                 className={clsx(
-                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-colors",
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-bold uppercase tracking-wider transition-colors",
                     chipColor,
                     variant === "full" && "cursor-pointer hover:brightness-110",
                 )}
@@ -198,9 +198,9 @@ function SourcePopover({
                 aria-hidden="true"
             />
 
-            <div className="absolute top-full left-0 mt-1 z-50 min-w-[280px] max-w-sm bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+            <div className="absolute top-full left-0 mt-1 z-50 min-w-[280px] max-w-sm bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
                 <div className="p-3 border-b border-white/10 bg-white/[0.02]">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                         {t("source")}
                     </div>
                 </div>
@@ -208,10 +208,10 @@ function SourcePopover({
                     {byOrg.map(([orgId, orgEntries]) => (
                         <div key={orgId} className="space-y-1.5">
                             <div className="flex items-center gap-2">
-                                <span className="px-1.5 py-0.5 bg-primary/20 text-primary text-[9px] font-black uppercase tracking-wider rounded">
+                                <span className="px-1.5 py-0.5 bg-primary/20 text-primary text-xs font-black uppercase tracking-wider rounded">
                                     {orgId === "unknown" ? t("noOrg") : `#${orgId}`}
                                 </span>
-                                <span className="text-[10px] text-gray-500 font-medium">
+                                <span className="text-xs text-muted-foreground font-medium">
                                     {t("obs", { count: orgEntries.length })}
                                 </span>
                             </div>
@@ -219,12 +219,12 @@ function SourcePopover({
                                 {orgEntries.map((e, i) => (
                                     <li
                                         key={i}
-                                        className="flex items-center justify-between text-[11px] text-gray-300"
+                                        className="flex items-center justify-between text-xs text-foreground"
                                     >
                                         <span className="truncate">{scoutNameOf(e)}</span>
-                                        <span className="flex items-center gap-1 text-gray-500 ml-2 flex-shrink-0">
+                                        <span className="flex items-center gap-1 text-muted-foreground ml-2 flex-shrink-0">
                                             <ConfidenceDot confidence={e.confidence ?? "high"} />
-                                            <span className="text-[10px]">
+                                            <span className="text-xs">
                                                 M{e.matchNumber}
                                             </span>
                                         </span>

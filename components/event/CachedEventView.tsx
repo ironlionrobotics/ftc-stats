@@ -41,7 +41,7 @@ export default function CachedEventView({ payload }: { payload: CachedEventPaylo
         <>
             <header className="mb-8 border-b border-border pb-6">
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-[11px] uppercase">
+                    <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-xs uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                         {t("season", { season })}
                     </div>

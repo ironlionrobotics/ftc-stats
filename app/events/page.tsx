@@ -78,7 +78,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
         <header className="mb-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-border pb-6">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">
                 <span className="text-primary">●</span> {t("season", { season, game: gameName })}
               </p>
               <h1 className="text-4xl md:text-5xl font-bold font-display tracking-tight text-foreground">
@@ -90,11 +90,11 @@ export default async function EventsPage({ searchParams }: PageProps) {
             </div>
             <div className="flex gap-8 w-full md:w-auto">
               <div className="md:text-right">
-                <span className="block font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-1">{t("teams")}</span>
+                <span className="block font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground mb-1">{t("teams")}</span>
                 <span className="text-3xl font-bold text-foreground font-display">{teamStats.length}</span>
               </div>
               <div className="md:text-right border-l border-border pl-8">
-                <span className="block font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-1">{t("advanced")}</span>
+                <span className="block font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground mb-1">{t("advanced")}</span>
                 <span className="text-3xl font-bold text-secondary font-display">
                   {teamStats.filter(s => s.hasAdvanced).length}
                 </span>

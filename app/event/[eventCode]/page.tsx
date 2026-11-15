@@ -85,7 +85,7 @@ export default async function EventPage(props: EventPageProps) {
     if (!event) {
         return (
             <div className="p-8 text-foreground min-h-[50vh] flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mb-4">
                     <span className="text-2xl">⚠️</span>
                 </div>
                 <h1 className="text-3xl font-bold mb-2">Event Not Found</h1>
@@ -142,7 +142,7 @@ export default async function EventPage(props: EventPageProps) {
             {isLiveNow(event) && <AutoRefresh everyMs={60_000} />}
             <header className="mb-8 border-b border-border pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-[11px] uppercase">
+                    <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-xs uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                         Season {season}
                     </div>
@@ -170,7 +170,7 @@ export default async function EventPage(props: EventPageProps) {
                 if (!group) return null;
                 return (
                     <div className="mb-6 flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground mr-1">{group.label}</span>
+                        <span className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground mr-1">{group.label}</span>
                         {group.items.map(d => (
                             <Link
                                 key={d.code}

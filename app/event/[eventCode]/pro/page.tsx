@@ -23,23 +23,23 @@ export default async function ProScoutingPage({
             {/* Header / Context */}
             <div className="mb-8">
                 <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-black uppercase tracking-wider border border-blue-200">
+                    <span className="px-2 py-0.5 bg-brand/15 text-brand-ink rounded text-xs font-black uppercase tracking-wider border border-brand-ink/30">
                         BETA FEATURE
                     </span>
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-black uppercase tracking-wider border border-purple-200">
+                    <span className="px-2 py-0.5 bg-muted text-foreground rounded text-xs font-black uppercase tracking-wider border border-border">
                         IRON LION INTELLIGENCE
                     </span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-2">
+                <h1 className="text-3xl md:text-4xl font-black text-foreground mb-2">
                     Pro-Scouting Database
                 </h1>
-                <p className="text-slate-500 max-w-3xl leading-relaxed">
-                    Acceso exclusivo a métricas agregadas de temporada. Esta herramienta analiza
-                    <span className="font-bold text-slate-700"> todos los partidos históricos </span>
+                <p className="text-muted-foreground max-w-3xl leading-relaxed">
+                    Métricas agregadas de la temporada. Esta herramienta analiza
+                    <span className="font-bold text-foreground"> todos los partidos históricos </span>
                     de cada equipo en la temporada 2025 para calcular consistencia y techos de rendimiento.
                 </p>
 
-                <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-lg flex gap-3 text-amber-800 text-xs items-start max-w-2xl">
+                <div className="mt-4 p-3 bg-warning-tint border border-warning/30 rounded-lg flex gap-3 text-warning text-xs items-start max-w-2xl">
                     <Info className="flex-shrink-0 mt-0.5" size={16} />
                     <p>
                         <strong>Nota de Rendimiento:</strong> La carga inicial puede tardar unos segundos mientras el servidor
@@ -49,7 +49,7 @@ export default async function ProScoutingPage({
                 </div>
             </div>
 
-            <Suspense fallback={<div className="text-slate-400">Cargando dashboard…</div>}>
+            <Suspense fallback={<div className="text-muted-foreground">Cargando dashboard…</div>}>
                 <ProScoutingDashboard eventCode={eventCode} season={season} />
             </Suspense>
         </div>

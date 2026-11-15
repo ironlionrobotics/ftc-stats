@@ -105,10 +105,10 @@ export function ConsistencyTracker({ points, publicNumber, showFtcScoutCaveat }:
             {/* ── Headline diagnosis ─────────────────────────────────────── */}
             <div className="rounded-2xl border border-border bg-card p-5 md:p-6">
                 <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <span className={clsx("text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border", DIAGNOSIS_STYLE[profile.diagnosis].cls)}>
+                    <span className={clsx("text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full border", DIAGNOSIS_STYLE[profile.diagnosis].cls)}>
                         {diagnosisLabel(profile.diagnosis)}
                     </span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                         {tConsistency("ui.eventsAnalyzed", { n: profile.tot.n })}
                     </span>
                 </div>
@@ -168,7 +168,7 @@ export function ConsistencyTracker({ points, publicNumber, showFtcScoutCaveat }:
                                 <div key={ph.key} className={clsx("rounded-xl border p-4", isDriver ? "border-warning/40 bg-warning/5" : "border-border bg-muted/30")}>
                                     <div className="flex items-center justify-between gap-2 mb-3">
                                         <span className="font-bold text-foreground">{phaseLabel(ph.key)}</span>
-                                        <span className={clsx("text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border", DIAGNOSIS_STYLE[ph.diagnosis].cls)}>
+                                        <span className={clsx("text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full border", DIAGNOSIS_STYLE[ph.diagnosis].cls)}>
                                             {diagnosisLabel(ph.diagnosis)}
                                         </span>
                                     </div>
@@ -202,7 +202,7 @@ export function ConsistencyTracker({ points, publicNumber, showFtcScoutCaveat }:
                         </p>
                     </div>
                     <label className="shrink-0">
-                        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{tConsistency("ui.bands.fieldLabel")}</span>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">{tConsistency("ui.bands.fieldLabel")}</span>
                         <select
                             value={fieldCode}
                             onChange={e => setFieldCode(e.target.value)}
@@ -218,7 +218,7 @@ export function ConsistencyTracker({ points, publicNumber, showFtcScoutCaveat }:
                 <div className="overflow-x-auto rounded-xl border border-border">
                     <table className="w-full min-w-[560px] text-sm">
                         <thead>
-                            <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-widest">
+                            <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-widest">
                                 <th className="px-4 py-3 text-left font-bold">{tConsistency("ui.table.form")}</th>
                                 <th className="px-4 py-3 text-center font-bold">{tConsistency("ui.table.opr")}</th>
                                 <th className="px-4 py-3 text-center font-bold">{tConsistency("ui.table.seed")}</th>
@@ -246,7 +246,7 @@ export function ConsistencyTracker({ points, publicNumber, showFtcScoutCaveat }:
                                         />
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={clsx("inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap", VERDICT_STYLE[b.projection.verdict].cls)}>
+                                        <span className={clsx("inline-block px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider border whitespace-nowrap", VERDICT_STYLE[b.projection.verdict].cls)}>
                                             {verdictLabel(b.projection.verdict)}
                                         </span>
                                     </td>
@@ -273,7 +273,7 @@ export function ConsistencyTracker({ points, publicNumber, showFtcScoutCaveat }:
                     </p>
                 )}
 
-                <p className="mt-3 text-[11px] text-muted-foreground flex items-start gap-1.5 leading-snug">
+                <p className="mt-3 text-xs text-muted-foreground flex items-start gap-1.5 leading-snug">
                     <Info size={12} className="shrink-0 mt-0.5" />
                     <span>
                         {tConsistency("ui.footnote.directional")}
@@ -406,7 +406,7 @@ function PickOdds({ odds }: { odds: DraftOdds }) {
         <span className="inline-flex flex-col items-center leading-tight">
             <span className={clsx("font-bold", tone)}>{(p * 100).toFixed(0)}%</span>
             {Math.abs(odds.oprAdjustment) >= 0.02 && (
-                <span className="text-[10px] font-normal text-muted-foreground mt-0.5">
+                <span className="text-xs font-normal text-muted-foreground mt-0.5">
                     {t("ui.oprAdjustment", { delta: signed(odds.oprAdjustment * 100, 0) })}
                 </span>
             )}
@@ -431,7 +431,7 @@ function Metric({ value, label, sub, tone }: { value: string; label: string; sub
         <div className="rounded-xl border border-border bg-muted/30 p-4">
             <div className={clsx("font-display font-black text-2xl md:text-3xl tabular-nums", toneCls)}>{value}</div>
             <div className="text-xs font-bold text-foreground mt-1 leading-snug">{label}</div>
-            <div className="text-[11px] text-muted-foreground mt-1 leading-snug">{sub}</div>
+            <div className="text-xs text-muted-foreground mt-1 leading-snug">{sub}</div>
         </div>
     );
 }
@@ -440,7 +440,7 @@ function Stat({ label, value }: { label: string; value: string }) {
     return (
         <div>
             <dd className="font-mono font-bold text-foreground tabular-nums">{value}</dd>
-            <dt className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</dt>
+            <dt className="text-xs uppercase tracking-wider text-muted-foreground mt-0.5">{label}</dt>
         </div>
     );
 }

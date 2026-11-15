@@ -13,7 +13,7 @@ export default async function AdminPage() {
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 md:py-12 max-w-5xl">
             <header className="mb-8 border-b border-border pb-6">
-                <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-[11px] uppercase mb-2">
+                <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-xs uppercase mb-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                     {t("badge")}
                 </div>

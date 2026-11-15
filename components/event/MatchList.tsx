@@ -415,22 +415,22 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                                 </div>
                                 <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-card border border-border text-foreground text-xs rounded-xl shadow-sm opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 pointer-events-none text-left leading-relaxed">
                                     <p className="mb-1"><strong className="text-danger">Tarjetas (Cards)</strong></p>
-                                    <p className="text-[10px] leading-relaxed">Advertencias (Yellow) y Descalificaciones (Red) acumuladas en el evento. Un alto número indica riesgo de descalificación para la alianza.</p>
+                                    <p className="text-xs leading-relaxed">Advertencias (Yellow) y Descalificaciones (Red) acumuladas en el evento. Un alto número indica riesgo de descalificación para la alianza.</p>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between mb-3">
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Cards</span>
+                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Cards</span>
                                 <AlertTriangle className="text-danger" size={20} />
                             </div>
 
                             <div className="flex gap-2">
                                 <div className="flex-1 bg-warning/10 border border-warning/20 rounded-lg p-2 text-center">
                                     <div className="text-xl font-black text-warning">{stats.yellowCards}</div>
-                                    <div className="text-[8px] font-bold text-warning uppercase">Yellow</div>
+                                    <div className="text-xs font-bold text-warning uppercase">Yellow</div>
                                 </div>
                                 <div className="flex-1 bg-danger/10 border border-danger/20 rounded-lg p-2 text-center">
                                     <div className="text-xl font-black text-danger">{stats.redCards}</div>
-                                    <div className="text-[8px] font-bold text-danger uppercase">Red</div>
+                                    <div className="text-xs font-bold text-danger uppercase">Red</div>
                                 </div>
                             </div>
                         </div>
@@ -446,7 +446,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                             Próximos partidos
                             <span className="px-2 py-0.5 rounded-md bg-secondary/10 text-secondary font-mono text-xs">{upcomingMatches.length}</span>
                         </h3>
-                        <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                        <p className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
                             Predicción: OPR + σ del evento · sin penalizaciones
                         </p>
                     </div>
@@ -477,8 +477,8 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                             <thead>
                                 <tr className="text-muted-foreground border-b border-border text-sm uppercase tracking-wider">
                                     <th className="p-4 font-medium min-w-[170px]">Match · {tLedger("column")}</th>
-                                    <th colSpan={2} className="p-2 font-medium text-center bg-danger/5 text-danger rounded-tl-lg border-x border-border/50">Red Alliance</th>
-                                    <th colSpan={2} className="p-2 font-medium text-center bg-secondary/5 text-secondary rounded-tr-lg border-x border-border/50">Blue Alliance</th>
+                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-red/5 text-alliance-red rounded-tl-lg border-x border-border/50">Red Alliance</th>
+                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-blue/5 text-alliance-blue rounded-tr-lg border-x border-border/50">Blue Alliance</th>
                                     <th className="p-4 font-medium text-center min-w-[120px]">Score</th>
                                 </tr>
                             </thead>
@@ -514,8 +514,8 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                             <thead>
                                 <tr className="text-muted-foreground border-b border-border text-sm uppercase tracking-wider">
                                     <th className="p-4 font-medium min-w-[170px]">Match · {tLedger("column")}</th>
-                                    <th colSpan={2} className="p-2 font-medium text-center bg-danger/5 text-danger rounded-tl-lg border-x border-border/50">Red Alliance</th>
-                                    <th colSpan={2} className="p-2 font-medium text-center bg-secondary/5 text-secondary rounded-tr-lg border-x border-border/50">Blue Alliance</th>
+                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-red/5 text-alliance-red rounded-tl-lg border-x border-border/50">Red Alliance</th>
+                                    <th colSpan={2} className="p-2 font-medium text-center bg-alliance-blue/5 text-alliance-blue rounded-tr-lg border-x border-border/50">Blue Alliance</th>
                                     <th className="p-4 font-medium text-center min-w-[120px]">Score</th>
                                 </tr>
                             </thead>
@@ -561,13 +561,13 @@ function KPICard({ label, value, icon, subline, tooltip }: { label: string, valu
                 </div>
             )}
             <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{label}</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{label}</span>
                 <div className="p-2 bg-muted rounded-lg group-hover:bg-primary/10 transition-colors">
                     {icon}
                 </div>
             </div>
             <div className="text-2xl font-black text-foreground font-display mb-1">{value}</div>
-            <div className="text-[10px] text-muted-foreground font-medium">{subline}</div>
+            <div className="text-xs text-muted-foreground font-medium">{subline}</div>
         </div>
     );
 }
@@ -585,29 +585,29 @@ function TeamInfo({ team, teamNamesMap, onTeamClick, filterTeam }: { team?: FTCM
                 "flex flex-col items-center min-w-[140px] px-3 group/team rounded-xl py-2 transition-all relative",
                 isFiltered
                     ? (isRed
-                        ? "bg-danger/10 ring-2 ring-danger scale-105 z-20 shadow-sm"
-                        : "bg-secondary/10 ring-2 ring-secondary scale-105 z-20 shadow-sm")
+                        ? "bg-alliance-red/10 ring-2 ring-alliance-red scale-105 z-20 shadow-sm"
+                        : "bg-alliance-blue/10 ring-2 ring-alliance-blue scale-105 z-20 shadow-sm")
                     : "hover:bg-muted"
             )}
             key={team.teamNumber}
         >
             <div className="absolute top-1 right-1 flex flex-col gap-0.5">
                 {team.yellowCard && <div className="w-1.5 h-3 bg-warning rounded-sm shadow-sm" />}
-                {team.redCard && <div className="w-1.5 h-3 bg-danger rounded-sm shadow-sm" />}
+                {team.redCard && <div className="w-1.5 h-3 bg-error text-white rounded-sm shadow-sm" />}
             </div>
             <span className={clsx(
                 "font-mono transition-all",
                 isFiltered
-                    ? (isRed ? "text-danger" : "text-secondary") + " scale-110 font-black text-lg"
-                    : (isRed ? "text-danger" : "text-secondary") + " font-bold text-base",
+                    ? (isRed ? "text-alliance-red" : "text-alliance-blue") + " scale-110 font-black text-lg"
+                    : (isRed ? "text-alliance-red" : "text-alliance-blue") + " font-bold text-base",
                 !isFiltered && "group-hover/team:scale-110"
             )}>
                 {team.teamNumber}
             </span>
             <span className={clsx(
-                "text-[10px] uppercase tracking-tighter transition-colors font-medium text-center leading-tight whitespace-normal max-w-[130px]",
+                "text-xs uppercase tracking-tighter transition-colors font-medium text-center leading-tight whitespace-normal max-w-[130px]",
                 isFiltered
-                    ? (isRed ? "text-danger font-black" : "text-secondary font-black")
+                    ? (isRed ? "text-alliance-red font-black" : "text-alliance-blue font-black")
                     : "text-muted-foreground group-hover/team:text-foreground"
             )}>
                 {name}
@@ -668,17 +668,17 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                     {isPlayed && <div className="mt-1.5"><PredictionCell row={prediction} /></div>}
                 </td>
 
-                <td className={clsx("p-4 border-l-4", redWin ? "border-danger bg-danger/10" : "border-transparent")}>
+                <td className={clsx("p-4 border-l-4", redWin ? "border-alliance-red bg-alliance-red/10" : "border-transparent")}>
                     <TeamInfo team={redTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} />
                 </td>
-                <td className={clsx("p-4 border-r border-border/20", redWin ? "bg-danger/10" : "border-transparent")}>
+                <td className={clsx("p-4 border-r border-border/20", redWin ? "bg-alliance-red/10" : "border-transparent")}>
                     <TeamInfo team={redTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} />
                 </td>
 
-                <td className={clsx("p-4", blueWin ? "bg-secondary/10" : "border-transparent")}>
+                <td className={clsx("p-4", blueWin ? "bg-alliance-blue/10" : "border-transparent")}>
                     <TeamInfo team={blueTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} />
                 </td>
-                <td className={clsx("p-4 border-r-4", blueWin ? "border-secondary bg-secondary/10" : "border-transparent")}>
+                <td className={clsx("p-4 border-r-4", blueWin ? "border-alliance-blue bg-alliance-blue/10" : "border-transparent")}>
                     <TeamInfo team={blueTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} />
                 </td>
 
@@ -688,14 +688,14 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                             <div className="flex items-center justify-center gap-2 font-display px-2">
                                 <div className={clsx(
                                     "flex items-center justify-center min-w-[45px] py-1 rounded-lg transition-all",
-                                    redWin ? "bg-danger text-white shadow-sm" : "text-muted-foreground/30 font-medium"
+                                    redWin ? "bg-alliance-red-fill text-white shadow-sm" : "text-muted-foreground/30 font-medium"
                                 )}>
                                     <span className={clsx("text-xl", redWin ? "font-black" : "font-bold")}>{match.scoreRedFinal}</span>
                                 </div>
-                                <span className="text-[10px] font-black text-border uppercase">Final</span>
+                                <span className="text-xs font-black text-border uppercase">Final</span>
                                 <div className={clsx(
                                     "flex items-center justify-center min-w-[45px] py-1 rounded-lg transition-all",
-                                    blueWin ? "bg-secondary text-secondary-foreground shadow-sm" : "text-muted-foreground/30 font-medium"
+                                    blueWin ? "bg-alliance-blue-fill text-white shadow-sm" : "text-muted-foreground/30 font-medium"
                                 )}>
                                     <span className={clsx("text-xl", blueWin ? "font-black" : "font-bold")}>{match.scoreBlueFinal}</span>
                                 </div>
@@ -705,7 +705,7 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                         </div>
                     ) : (
                         <div className="text-center">
-                            {startTime ? <span className="px-2 py-1 bg-muted rounded text-[10px] font-bold text-muted-foreground">{startTime}</span> : <span className="text-xs text-muted-foreground">Pending</span>}
+                            {startTime ? <span className="px-2 py-1 bg-muted rounded text-xs font-bold text-muted-foreground">{startTime}</span> : <span className="text-xs text-muted-foreground">Pending</span>}
                         </div>
                     )}
                 </td>
@@ -755,13 +755,13 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
             {/* Alliance Comparison */}
             <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="space-y-4">
-                    <h4 className="text-danger font-bold uppercase tracking-widest text-xs border-b border-danger/20 pb-2">Red Alliance</h4>
+                    <h4 className="text-alliance-red font-bold uppercase tracking-widest text-xs border-b border-alliance-red/20 pb-2">Red Alliance</h4>
                     <div className="grid gap-2">
-                        <StatRow label="Auto" value={match.scoreRedAuto} color="text-danger font-bold" />
-                        <StatRow label="TeleOp" value={redTele} color="text-danger" />
+                        <StatRow label="Auto" value={match.scoreRedAuto} color="text-alliance-red font-bold" />
+                        <StatRow label="TeleOp" value={redTele} color="text-alliance-red" />
                         <StatRow label="Penalty In" value={match.scoreBlueFoul} color="text-muted-foreground italic" />
                         <div className="pt-2 border-t border-border mt-2">
-                            <StatRow label="Total" value={match.scoreRedFinal} color="text-danger font-black text-lg" />
+                            <StatRow label="Total" value={match.scoreRedFinal} color="text-alliance-red font-black text-lg" />
                         </div>
                     </div>
                 </div>
@@ -771,13 +771,13 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
                 </div>
 
                 <div className="space-y-4">
-                    <h4 className="text-secondary font-bold uppercase tracking-widest text-xs border-b border-secondary/20 pb-2">Blue Alliance</h4>
+                    <h4 className="text-alliance-blue font-bold uppercase tracking-widest text-xs border-b border-alliance-blue/20 pb-2">Blue Alliance</h4>
                     <div className="grid gap-2">
-                        <StatRow label="Auto" value={match.scoreBlueAuto} color="text-secondary font-bold" />
-                        <StatRow label="TeleOp" value={blueTele} color="text-secondary" />
+                        <StatRow label="Auto" value={match.scoreBlueAuto} color="text-alliance-blue font-bold" />
+                        <StatRow label="TeleOp" value={blueTele} color="text-alliance-blue" />
                         <StatRow label="Penalty In" value={match.scoreRedFoul} color="text-muted-foreground italic" />
                         <div className="pt-2 border-t border-border mt-2">
-                            <StatRow label="Total" value={match.scoreBlueFinal} color="text-secondary font-black text-lg" />
+                            <StatRow label="Total" value={match.scoreBlueFinal} color="text-alliance-blue font-black text-lg" />
                         </div>
                     </div>
                 </div>
@@ -796,10 +796,10 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
                                 return (
                                     <div key={t.teamNumber} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
                                         <div>
-                                            <div className={`text-lg font-black font-mono ${idx === 0 ? "text-danger" : "text-secondary"}`}>
+                                            <div className={`text-lg font-black font-mono ${idx === 0 ? "text-alliance-red" : "text-alliance-blue"}`}>
                                                 {t.teamNumber}
                                             </div>
-                                            <div className="text-[10px] text-muted-foreground font-bold uppercase">{stats.name}</div>
+                                            <div className="text-xs text-muted-foreground font-bold uppercase">{stats.name}</div>
                                         </div>
                                         <div className="text-right">
                                             {scoutingData.map((sdItem, i) => {
@@ -820,7 +820,7 @@ function MatchDetails({ match, rankings, scoutingData }: { match: FTCMatch, rank
                                                 );
                                             })}
                                             <div>
-                                                <span className="block text-[8px] text-muted-foreground uppercase">Season NP Avg</span>
+                                                <span className="block text-xs text-muted-foreground uppercase">Season NP Avg</span>
                                                 <span className="font-mono font-bold text-sm text-muted-foreground">{stats.opr.toFixed(1)}</span>
                                             </div>
                                         </div>
@@ -948,8 +948,8 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
                 filterTeam === t.teamNumber
                     ? "bg-primary text-primary-foreground border-primary"
                     : side === "red"
-                        ? "bg-danger/5 text-danger border-danger/20 hover:bg-danger/10"
-                        : "bg-secondary/5 text-secondary border-secondary/20 hover:bg-secondary/10",
+                        ? "bg-alliance-red/5 text-alliance-red border-alliance-red/20 hover:bg-alliance-red/10"
+                        : "bg-alliance-blue/5 text-alliance-blue border-alliance-blue/20 hover:bg-alliance-blue/10",
             )}
             title={t.teamName ?? undefined}
         >
@@ -966,13 +966,13 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
                 <div className="flex items-center gap-2">
                     <span className="font-mono text-sm font-bold text-foreground">{label}</span>
                     {isNext && (
-                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-[10px] font-bold uppercase tracking-wider">
+                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-xs font-bold uppercase tracking-wider">
                             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                             Próximo
                         </span>
                     )}
                 </div>
-                <span className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                <span className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground">
                     {time && <><Clock size={12} /> {time}</>}
                 </span>
             </div>
@@ -981,7 +981,7 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
                 <div className="flex gap-1.5 flex-wrap">
                     {red.map(t => <TeamChip key={t.teamNumber} t={t} side="red" />)}
                 </div>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase shrink-0">vs</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase shrink-0">vs</span>
                 <div className="flex gap-1.5 flex-wrap justify-end">
                     {blue.map(t => <TeamChip key={t.teamNumber} t={t} side="blue" />)}
                 </div>
@@ -990,13 +990,13 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
             {/* Predicted score + win probability split */}
             <div className="space-y-1.5">
                 <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
-                    <span className={clsx(pRed >= 0.5 && "text-danger font-bold")}>{pctRed}% · {Math.round(muRed)}</span>
-                    <span className="text-[10px] uppercase tracking-wider">proyección</span>
-                    <span className={clsx(pRed < 0.5 && "text-secondary font-bold")}>{Math.round(muBlue)} · {pctBlue}%</span>
+                    <span className={clsx(pRed >= 0.5 && "text-alliance-red font-bold")}>{pctRed}% · {Math.round(muRed)}</span>
+                    <span className="text-xs uppercase tracking-wider">proyección</span>
+                    <span className={clsx(pRed < 0.5 && "text-alliance-blue font-bold")}>{Math.round(muBlue)} · {pctBlue}%</span>
                 </div>
                 <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
-                    <div className="bg-danger/80 transition-all" style={{ width: `${pctRed}%` }} />
-                    <div className="bg-secondary/80 transition-all" style={{ width: `${pctBlue}%` }} />
+                    <div className="bg-alliance-red-fill transition-all" style={{ width: `${pctRed}%` }} />
+                    <div className="bg-alliance-blue-fill transition-all" style={{ width: `${pctBlue}%` }} />
                 </div>
             </div>
 
@@ -1004,7 +1004,7 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
             <button
                 type="button"
                 onClick={() => setShowAnalysis(v => !v)}
-                className="w-full flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors pt-1"
+                className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors pt-1"
             >
                 ¿Por qué este pronóstico?
                 <ChevronDown size={14} className={clsx("transition-transform", showAnalysis && "rotate-180")} />
@@ -1013,31 +1013,31 @@ function UpcomingMatchCard({ item, filterTeam, onTeamClick, isNext }: {
             {showAnalysis && (
                 <div className="space-y-3 pt-1 border-t border-border animate-in fade-in slide-in-from-top-1 duration-200">
                     {/* Component comparison: Auto / Teleop */}
-                    <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                    <div className="grid grid-cols-2 gap-2 font-mono text-xs">
                         {[
                             { name: "Auto", r: redDetail.auto, b: blueDetail.auto },
                             { name: "Tele+End", r: redDetail.tele, b: blueDetail.tele },
                         ].map(row => (
                             <div key={row.name} className="bg-muted rounded-lg px-2.5 py-1.5 flex items-center justify-between">
-                                <span className={clsx("font-bold", row.r >= row.b ? "text-danger" : "text-muted-foreground")}>{row.r.toFixed(0)}</span>
-                                <span className="text-[9px] uppercase tracking-wider text-muted-foreground">{row.name}</span>
-                                <span className={clsx("font-bold", row.b > row.r ? "text-secondary" : "text-muted-foreground")}>{row.b.toFixed(0)}</span>
+                                <span className={clsx("font-bold", row.r >= row.b ? "text-alliance-red" : "text-muted-foreground")}>{row.r.toFixed(0)}</span>
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground">{row.name}</span>
+                                <span className={clsx("font-bold", row.b > row.r ? "text-alliance-blue" : "text-muted-foreground")}>{row.b.toFixed(0)}</span>
                             </div>
                         ))}
                     </div>
                     {/* Per-team contributions */}
-                    <div className="flex justify-between gap-3 font-mono text-[10px] text-muted-foreground">
+                    <div className="flex justify-between gap-3 font-mono text-xs text-muted-foreground">
                         <div className="space-y-0.5">
                             {redDetail.perTeam.map(t => (
                                 <div key={t.teamNumber}>
-                                    <span className="text-danger font-bold">{t.teamNumber}</span> · OPR {t.opr.toFixed(0)}
+                                    <span className="text-alliance-red font-bold">{t.teamNumber}</span> · OPR {t.opr.toFixed(0)}
                                 </div>
                             ))}
                         </div>
                         <div className="space-y-0.5 text-right">
                             {blueDetail.perTeam.map(t => (
                                 <div key={t.teamNumber}>
-                                    OPR {t.opr.toFixed(0)} · <span className="text-secondary font-bold">{t.teamNumber}</span>
+                                    OPR {t.opr.toFixed(0)} · <span className="text-alliance-blue font-bold">{t.teamNumber}</span>
                                 </div>
                             ))}
                         </div>

@@ -26,8 +26,8 @@ export default function ProgressChart({ runs }: { runs: PracticeRun[] }) {
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
                     <Line type="monotone" dataKey="total" name={t("total")} stroke="var(--color-primary)" strokeWidth={2.5} dot={false} isAnimationActive={false} />
-                    <Line type="monotone" dataKey="auto" name={t("phaseShort.auto")} stroke="var(--color-alliance-blue)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                    <Line type="monotone" dataKey="teleop" name={t("phaseShort.teleop")} stroke="var(--color-alliance-red)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    <Line type="monotone" dataKey="auto" name={t("phaseShort.auto")} stroke="var(--color-brand-ink)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    <Line type="monotone" dataKey="teleop" name={t("phaseShort.teleop")} stroke="var(--color-warning)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
                     <Line type="monotone" dataKey="endgame" name={t("phaseShort.endgame")} stroke="var(--color-muted-foreground)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
                 </LineChart>
             </ResponsiveContainer>

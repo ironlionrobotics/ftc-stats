@@ -30,8 +30,7 @@ export default function PredictionCell({ row }: { row?: LedgerRow }) {
     return (
         <span className="inline-flex items-center gap-1.5">
             <span
-                className="rounded-md px-2 py-1 font-mono text-xs font-bold text-white"
-                style={{ background: fav === "Red" ? "var(--color-alliance-red)" : "var(--color-alliance-blue)" }}
+                className={`rounded-md px-2 py-1 font-mono text-xs font-bold text-white ${fav === "Red" ? "bg-alliance-red-fill" : "bg-alliance-blue-fill"}`}
             >
                 {label} {pct(p)}
             </span>
@@ -57,7 +56,7 @@ export function PredictionBar({ row }: { row?: LedgerRow }) {
     const r = Math.round(row.pRed * 100), b = 100 - r;
     return (
         <div className="mx-auto w-full max-w-[180px]" title={t("barHint")}>
-            <div className="flex justify-between font-mono text-[11px] font-bold tabular-nums">
+            <div className="flex justify-between font-mono text-xs font-bold tabular-nums">
                 <span style={{ color: "var(--color-alliance-red)" }}>{r}%</span>
                 {row.muRed !== null && row.muBlue !== null && (
                     <span className="font-medium text-muted-foreground">{t("projected", { red: Math.round(row.muRed), blue: Math.round(row.muBlue) })}</span>

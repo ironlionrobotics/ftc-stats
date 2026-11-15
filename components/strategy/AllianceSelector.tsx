@@ -132,9 +132,9 @@ export default function AllianceSelector({ teams, eventCode: eventCodeProp }: Al
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
                                                 <div className="font-bold text-xl text-foreground font-display">{team.teamNumber}</div>
-                                                <div className="text-[10px] text-muted-foreground font-medium uppercase truncate max-w-[120px]">{team.teamName}</div>
+                                                <div className="text-xs text-muted-foreground font-medium uppercase truncate max-w-[120px]">{team.teamName}</div>
                                             </div>
-                                            <div className="flex flex-wrap gap-2 text-[10px]">
+                                            <div className="flex flex-wrap gap-2 text-xs">
                                                 <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-bold">OPR: {team.averageMatchPoints.toFixed(1)}</span>
                                                 <span className="bg-secondary/10 text-secondary px-2 py-0.5 rounded font-bold">Auto: {team.averageAutoPoints.toFixed(1)}</span>
                                                 {scouting && (
@@ -148,7 +148,7 @@ export default function AllianceSelector({ teams, eventCode: eventCodeProp }: Al
                                                     {[1, 2, 3, 4, 5].map(star => (
                                                         <Star key={star} size={10} className={clsx(star <= Math.round(scouting.avgSkill) ? "text-warning fill-warning" : "text-muted-foreground/30")} />
                                                     ))}
-                                                    <span className="text-[10px] text-muted-foreground ml-1">{t("obs", { count: scouting.count })}</span>
+                                                    <span className="text-xs text-muted-foreground ml-1">{t("obs", { count: scouting.count })}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -170,7 +170,6 @@ export default function AllianceSelector({ teams, eventCode: eventCodeProp }: Al
             <div className="flex flex-col gap-4 h-full">
                 <Card className="h-full flex flex-col p-4 bg-muted border-primary/20 shadow-sm relative overflow-hidden">
                     {/* Background Glow */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
 
                     <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2 relative z-10">
                         <span className="w-1.5 h-6 bg-primary rounded-full"></span>
@@ -181,7 +180,7 @@ export default function AllianceSelector({ teams, eventCode: eventCodeProp }: Al
                         {/* Slots */}
                         {[t("slotCaptain"), t("slotFirst"), t("slotSecond")].map((label, idx) => (
                             <div key={label} className="relative p-6 rounded-2xl border-2 border-dashed border-border min-h-[110px] flex flex-col justify-center items-center bg-muted shadow-inner transition-colors hover:border-border/80 group/slot">
-                                <span className="absolute top-2 left-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest group-hover/slot:text-primary transition-colors">{label}</span>
+                                <span className="absolute top-2 left-3 text-xs font-bold text-muted-foreground uppercase tracking-widest group-hover/slot:text-primary transition-colors">{label}</span>
                                 {selectedTeams[idx] ? (
                                     <SelectedTeamCard
                                         team={selectedTeams[idx]}
@@ -192,7 +191,7 @@ export default function AllianceSelector({ teams, eventCode: eventCodeProp }: Al
                                     <div className="flex flex-col items-center gap-2">
                                         <span className="text-muted-foreground/30 font-bold uppercase tracking-tighter text-lg">{t("emptySlot")}</span>
                                         {idx > 0 && selectedTeams.length === idx && (
-                                            <span className="text-[10px] text-primary/50 animate-pulse">{t("selectNext")}</span>
+                                            <span className="text-xs text-primary/50 animate-pulse">{t("selectNext")}</span>
                                         )}
                                     </div>
                                 )}
@@ -217,10 +216,10 @@ export default function AllianceSelector({ teams, eventCode: eventCodeProp }: Al
                                             >
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-bold text-foreground font-display text-sm">{rec.teamNumber}</span>
-                                                    <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{rec.teamName}</span>
+                                                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">{rec.teamName}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-mono text-primary">+{rec.averageMatchPoints.toFixed(1)} OPR</span>
+                                                    <span className="text-xs font-mono text-primary">+{rec.averageMatchPoints.toFixed(1)} pts</span>
                                                     <Plus size={14} className="text-muted-foreground group-hover/rec:text-foreground" />
                                                 </div>
                                             </button>
@@ -231,7 +230,7 @@ export default function AllianceSelector({ teams, eventCode: eventCodeProp }: Al
 
                         {selectedTeams.length > 0 && (
                             <div className="mt-8 p-6 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl border border-border shadow-lg animate-in zoom-in-95 duration-300">
-                                <div className="text-[10px] text-center text-muted-foreground font-bold uppercase tracking-widest mb-2">{t("estimatedScore")}</div>
+                                <div className="text-xs text-center text-muted-foreground font-bold uppercase tracking-widest mb-2">{t("estimatedScore")}</div>
                                 <div className="text-4xl font-bold text-center text-foreground font-display">
                                     {/* Only 2 robots play each match (rule 15.3) — with 3
                                         selected, project the strongest pair, not the sum. */}
@@ -241,7 +240,7 @@ export default function AllianceSelector({ teams, eventCode: eventCodeProp }: Al
                                         .reduce((acc, t) => acc + t.averageMatchPoints, 0)).toFixed(1)}
                                 </div>
                                 {selectedTeams.length === 3 && (
-                                    <p className="text-[10px] text-center text-muted-foreground mt-2">
+                                    <p className="text-xs text-center text-muted-foreground mt-2">
                                         {t("bestPair")}
                                     </p>
                                 )}
@@ -260,7 +259,7 @@ export default function AllianceSelector({ teams, eventCode: eventCodeProp }: Al
                                 window.dispatchEvent(event);
                             }}
                             disabled={selectedTeams.length === 0}
-                            className="flex-1 p-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:shadow-none"
+                            className="flex-1 p-3 bg-brand hover:bg-brand/90 text-brand-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-brand/20 disabled:opacity-50 disabled:shadow-none"
                         >
                             <Bot size={18} /> {t("askAi")}
                         </button>
@@ -285,11 +284,11 @@ function SelectedTeamCard({ team, onRemove, scouting }: { team: AggregatedTeamSt
         <div className="w-full flex justify-between items-center group animate-in slide-in-from-right-4 duration-200">
             <div className="space-y-1">
                 <div className="text-3xl font-bold text-foreground font-display leading-none">{team.teamNumber}</div>
-                <div className="text-[10px] text-secondary font-medium truncate max-w-[140px]">{team.teamName}</div>
+                <div className="text-xs text-secondary font-medium truncate max-w-[140px]">{team.teamName}</div>
                 {scouting && (
                     <div className="flex items-center gap-1">
                         <Star size={10} className="text-warning fill-warning" />
-                        <span className="text-[10px] text-muted-foreground">{t("driver", { skill: scouting.avgSkill.toFixed(1) })}</span>
+                        <span className="text-xs text-muted-foreground">{t("driver", { skill: scouting.avgSkill.toFixed(1) })}</span>
                     </div>
                 )}
             </div>

@@ -181,8 +181,8 @@ function AllianceTeamPicker({
     otherSelected: number[];
     onChange: (next: number[]) => void;
 }) {
-    const accentRing = accent === "red" ? "ring-danger/50" : "ring-secondary/50";
-    const accentBg = accent === "red" ? "bg-danger/10 border-danger/30" : "bg-secondary/10 border-secondary/30";
+    const accentRing = accent === "red" ? "ring-alliance-red/50" : "ring-alliance-blue/50";
+    const accentBg = accent === "red" ? "bg-alliance-red/10 border-alliance-red/30" : "bg-alliance-blue/10 border-alliance-blue/30";
 
     const otherSet = new Set(otherSelected);
     const selectedSet = new Set(selected);
@@ -290,12 +290,12 @@ function PrintableBriefing({ briefing }: { briefing: BriefingData }) {
                     {tCard("winProbability")}
                 </div>
                 <div className="flex items-center text-xs font-bold">
-                    <span className="text-red-600">{tCard("redPct", { pct: redWinPct })}</span>
+                    <span className="text-alliance-red">{tCard("redPct", { pct: redWinPct })}</span>
                     <div className="flex-1 mx-2 h-3 bg-gray-200 rounded-full overflow-hidden flex">
-                        <div className="h-full bg-red-500" style={{ width: `${redWinPct}%` }} />
-                        <div className="h-full bg-blue-500" style={{ width: `${blueWinPct}%` }} />
+                        <div className="h-full bg-alliance-red-fill" style={{ width: `${redWinPct}%` }} />
+                        <div className="h-full bg-alliance-blue-fill" style={{ width: `${blueWinPct}%` }} />
                     </div>
-                    <span className="text-blue-600">{tCard("bluePct", { pct: blueWinPct })}</span>
+                    <span className="text-alliance-blue">{tCard("bluePct", { pct: blueWinPct })}</span>
                 </div>
             </section>
 
@@ -369,7 +369,7 @@ function AllianceColumn({
     projectedScore: number;
 }) {
     const tCard = useTranslations("MatchBriefingCard");
-    const headerColor = color === "red" ? "text-red-600 border-red-600" : "text-blue-600 border-blue-600";
+    const headerColor = color === "red" ? "text-alliance-red border-alliance-red" : "text-alliance-blue border-alliance-blue";
     const tProjections = useTranslations("Projections");
     return (
         <div>
@@ -402,7 +402,7 @@ function AllianceColumn({
                             RS {t.averageRS.toFixed(1)} · NP {t.averageNP.toFixed(1)}
                         </div>
                         {t.redFlags.length > 0 && (
-                            <div className="text-[10px] text-red-600 font-bold mt-1">
+                            <div className="text-[10px] text-error font-bold mt-1">
                                 ⚠ {t.redFlags.map(f => tProjections(f.key)).join(" · ")}
                             </div>
                         )}

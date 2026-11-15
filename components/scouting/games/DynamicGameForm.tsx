@@ -134,11 +134,11 @@ function FieldLabel({ field }: { field: GameField }) {
     const gameLabel = useGameLabel();
     return (
         <div className="flex items-baseline justify-between mb-1.5">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 {gameLabel(field.label)}
             </label>
             {field.helpText && (
-                <span className="text-[10px] text-muted-foreground italic">{gameLabel(field.helpText)}</span>
+                <span className="text-xs text-muted-foreground italic">{gameLabel(field.helpText)}</span>
             )}
         </div>
     );

@@ -178,10 +178,10 @@ function Scorer({ def, season, orgId, uid, mode, setMode, onSaved }: {
 
             <div className="sticky top-0 z-10 grid grid-cols-4 gap-2 rounded-2xl border border-border bg-card/95 p-3 text-center backdrop-blur-none">
                 {(["auto", "teleop", "endgame"] as const).map(ph => (
-                    <div key={ph}><div className="text-[11px] font-semibold uppercase text-muted-foreground">{t(`phaseShort.${ph}`)}</div>
+                    <div key={ph}><div className="text-xs font-semibold uppercase text-muted-foreground">{t(`phaseShort.${ph}`)}</div>
                         <div className="font-mono text-2xl font-black tabular-nums">{score[ph]}</div></div>
                 ))}
-                <div><div className="text-[11px] font-semibold uppercase text-muted-foreground">{t("total")}</div>
+                <div><div className="text-xs font-semibold uppercase text-muted-foreground">{t("total")}</div>
                     <div className="font-mono text-2xl font-black tabular-nums text-primary">{totalOf(score)}</div></div>
             </div>
 

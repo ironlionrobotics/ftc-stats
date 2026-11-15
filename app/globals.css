@@ -1,67 +1,107 @@
 @import "tailwindcss";
 
+/* `dark:` follows the app theme class (theme store), not only the OS. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ============================================================================
- * PRIDE design tokens — Direction "Transmisión" (decision #93, 2026-11-13).
+ * PRIDE design tokens — Direction "Oro" (decision #116, 2026-11-14).
  *
- * Broadcast-scoreboard language: everything is black/white/grey; the ONLY
- * colors are the alliance red and blue (plus success/warning for status).
- * `primary` is now the neutral high-contrast ink (white on dark, black on
- * light) — emphasis comes from weight and size, not from a bright accent.
- * Token NAMES are unchanged, so every existing component adopts the new
- * direction without edits; new code should prefer `alliance-red/blue`.
+ * Warm greys carry everything; ONE brand gold means "you / your team / the
+ * main action / the active tab"; red and blue mean ONLY an alliance (always
+ * with the word ROJO/AZUL); status has its own colors: success green, warning
+ * ORANGE (so it never reads as the gold), error MAGENTA (never alliance red).
+ * Legacy names are kept as aliases so old components follow the system:
+ *   secondary / accent → brand-ink (gold that reads as text or as a fill)
+ *   danger             → error (magenta)
+ *   primary            → neutral ink (emphasis by weight, not hue)
+ * New code uses brand / brand-ink / error / alliance-* directly.
  *
  * Every component color MUST come from these semantic tokens so the light and
  * dark themes both work. Never hardcode slate/white/black in components.
  * Superseded: "Nightshift" chartreuse/cobalt (2026-07-28).
  * ==========================================================================*/
 :root {
+  color-scheme: light;
   /* Light */
-  --color-background: #f2f3f5;
-  --color-foreground: #0c0e12;
+  --color-background: #f6f5f2;
+  --color-foreground: #1b1a17;
   --color-card: #ffffff;
-  --color-card-foreground: #0c0e12;
-  --color-muted: #e8eaee;
-  --color-muted-foreground: #5d6370;
-  --color-border: #d5d9e0;
+  --color-card-foreground: #1b1a17;
+  --color-muted: #eeece7;
+  --color-muted-foreground: #66625a;
+  --color-border: #ddd9d0;
 
-  --color-primary: #0c0e12;          /* ink — the high-contrast "accent" */
+  --color-primary: #1b1a17;          /* neutral ink */
   --color-primary-foreground: #ffffff;
-  --color-secondary: #2457d6;        /* data accent = alliance blue */
+  --color-secondary: #7a5600;        /* legacy alias → brand-ink */
   --color-secondary-foreground: #ffffff;
-  --color-accent: #2457d6;
+  --color-accent: #7a5600;
   --color-accent-foreground: #ffffff;
 
-  --color-alliance-red: #d6303a;
-  --color-alliance-blue: #2457d6;
+  /* Alliances (direction Oro, #116): red/blue mean ONLY an alliance, always
+     with the word ROJO/AZUL. Text tones, solid fills (white text ≥5.7:1) and
+     row tints. */
+  --color-alliance-red: #c8283a;
+  --color-alliance-blue: #1c44b0;
+  --color-alliance-red-fill: #c42634;
+  --color-alliance-blue-fill: #2648b8;
+  --color-alliance-red-tint: #fbebec;
+  --color-alliance-blue-tint: #e9eefb;
 
-  --color-success: #13804a;
-  --color-warning: #a5680a;
-  --color-danger: #d6303a;
+  /* Brand gold = "you / your team / the main action / active tab". `brand` is
+     the fill (dark text on top); `brand-ink` is the gold that reads as text. */
+  --color-brand: #f2b705;
+  --color-brand-foreground: #1b1a17;
+  --color-brand-ink: #7a5600;
+
+  /* Status — each with ONE meaning. Error is magenta, never alliance red. */
+  --color-error: #b0185a;
+  --color-success-tint: #e5f3eb;
+  --color-warning-tint: #fcefe5;
+  --color-error-tint: #fbe7f0;
+
+  --color-success: #17713f;
+  --color-warning: #b4460a;
+  --color-danger: #b0185a;           /* legacy alias → error */
 }
 
 .dark {
-  /* Dark — primary mode. Near-black, three surface steps, hairline borders. */
-  --color-background: #07080a;
-  --color-foreground: #f3f4f6;
-  --color-card: #101217;
-  --color-card-foreground: #f3f4f6;
-  --color-muted: #181b22;
-  --color-muted-foreground: #8b92a1;
-  --color-border: #222731;
+  color-scheme: dark;
+  /* Dark — warm near-black, three surface steps, hairline borders. */
+  --color-background: #0f0e0c;
+  --color-foreground: #f2efe8;
+  --color-card: #1a1916;
+  --color-card-foreground: #f2efe8;
+  --color-muted: #24221e;
+  --color-muted-foreground: #a39e93;
+  --color-border: #34312b;
 
-  --color-primary: #f3f4f6;          /* ink */
-  --color-primary-foreground: #07080a;
-  --color-secondary: #4d7dff;        /* alliance blue */
-  --color-secondary-foreground: #ffffff;
-  --color-accent: #4d7dff;
-  --color-accent-foreground: #ffffff;
+  --color-primary: #f2efe8;          /* neutral ink */
+  --color-primary-foreground: #0f0e0c;
+  --color-secondary: #f5be1e;        /* legacy alias → brand-ink */
+  --color-secondary-foreground: #15130f;
+  --color-accent: #f5be1e;
+  --color-accent-foreground: #15130f;
 
-  --color-alliance-red: #ff4d57;
-  --color-alliance-blue: #4d7dff;
+  --color-alliance-red: #ff6b70;
+  --color-alliance-blue: #5b85ff;
+  --color-alliance-red-fill: #c42634;
+  --color-alliance-blue-fill: #2648b8;
+  --color-alliance-red-tint: #2a1517;
+  --color-alliance-blue-tint: #141b33;
 
-  --color-success: #3ccf7e;
-  --color-warning: #f0b429;
-  --color-danger: #ff4d57;
+  --color-brand: #f5be1e;
+  --color-brand-foreground: #15130f;
+  --color-brand-ink: #f5be1e;
+
+  --color-error: #f47ab8;
+  --color-success-tint: #10241a;
+  --color-warning-tint: #2a1a0d;
+  --color-error-tint: #2b1220;
+
+  --color-success: #45d08a;
+  --color-warning: #fb9a4b;
+  --color-danger: #f47ab8;           /* legacy alias → error */
 }
 
 /* Height of the mobile bottom tab bar (components/shell/AppShell.tsx), so
@@ -84,6 +124,17 @@
   --color-accent-foreground: var(--color-accent-foreground);
   --color-alliance-red: var(--color-alliance-red);
   --color-alliance-blue: var(--color-alliance-blue);
+  --color-alliance-red-fill: var(--color-alliance-red-fill);
+  --color-alliance-blue-fill: var(--color-alliance-blue-fill);
+  --color-alliance-red-tint: var(--color-alliance-red-tint);
+  --color-alliance-blue-tint: var(--color-alliance-blue-tint);
+  --color-brand: var(--color-brand);
+  --color-brand-foreground: var(--color-brand-foreground);
+  --color-brand-ink: var(--color-brand-ink);
+  --color-error: var(--color-error);
+  --color-success-tint: var(--color-success-tint);
+  --color-warning-tint: var(--color-warning-tint);
+  --color-error-tint: var(--color-error-tint);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-danger: var(--color-danger);
@@ -135,6 +186,16 @@
   }
 }
 
+/* Reduced motion: no looping or decorative motion anywhere (#116). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer utilities {
   /* Legacy utility kept for compatibility — now a flat elevated surface
      instead of translucent glass (blur panels read as noise in daylight
@@ -151,8 +212,9 @@
     border-color: var(--color-border);
   }
 
+  /* Decorative gradient text retired in direction Oro: plain ink. */
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-linear-to-r from-primary to-secondary;
+    color: var(--color-foreground);
   }
 
   /* Faint blueprint grid for hero/empty areas — the one piece of texture the
@@ -221,9 +283,20 @@
   color: var(--color-foreground) !important;
 }
 
+/* Alliance fills are the same in both themes and always carry white text. */
+.bg-alliance-red-fill.text-white,
+.bg-alliance-blue-fill.text-white {
+  color: #ffffff !important;
+}
+
 /* Buttons/badges with a solid colored bg keep white text readable. */
 .bg-primary.text-white,
 .bg-secondary.text-white,
+.bg-accent.text-white,
+.bg-danger.text-white,
+.bg-error.text-white,
+.bg-success.text-white,
+.bg-warning.text-white,
 [class*="bg-orange-6"].text-white,
 [class*="bg-blue-6"].text-white,
 [class*="bg-purple-6"].text-white,

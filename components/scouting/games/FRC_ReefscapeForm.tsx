@@ -29,7 +29,7 @@ interface CounterProps {
 function Counter({ label, value, setter, color = "primary" }: CounterProps) {
     return (
         <div className="flex flex-col gap-1 items-center">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{label}</label>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</label>
             <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border shadow-inner">
                 <button onClick={() => setter(Math.max(0, value - 1))} className="p-2 sm:p-3 bg-muted rounded-lg hover:bg-border active:bg-border transition text-muted-foreground"><Minus size={14} /></button>
                 <span className={clsx("text-xl font-black w-8 text-center", color === 'cyan' ? 'text-secondary' : 'text-foreground')}>{value}</span>
@@ -238,7 +238,7 @@ export default function FRC_ReefscapeForm({ team, eventCode, entries, onSaveSucc
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-border pt-8">
                             <div className="space-y-6">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("driverSkill")}</label>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("driverSkill")}</label>
                                     <div className="flex gap-2">
                                         {[1, 2, 3, 4, 5].map(s => (
                                             <button
@@ -252,7 +252,7 @@ export default function FRC_ReefscapeForm({ team, eventCode, entries, onSaveSucc
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("defenseRating")}</label>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("defenseRating")}</label>
                                     <div className="flex gap-2">
                                         {[1, 2, 3, 4, 5].map(s => (
                                             <button
@@ -264,14 +264,14 @@ export default function FRC_ReefscapeForm({ team, eventCode, entries, onSaveSucc
                                             </button>
                                         ))}
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground mt-2">{t("defenseScale")}</p>
+                                    <p className="text-xs text-muted-foreground mt-2">{t("defenseScale")}</p>
                                 </div>
                             </div>
 
                             <div className="space-y-6">
                                 <h4 className="text-sm font-black text-secondary uppercase tracking-widest">Endgame</h4>
                                 <div className="space-y-4">
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t("climbState")}</label>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">{t("climbState")}</label>
                                     <div className="grid grid-cols-3 gap-2">
                                         {(['None', 'Shallow', 'Deep'] as const).map(c => (
                                             <button
@@ -289,7 +289,7 @@ export default function FRC_ReefscapeForm({ team, eventCode, entries, onSaveSucc
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("notes")}</label>
+                            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">{t("notes")}</label>
                             <textarea
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
@@ -329,21 +329,21 @@ export default function FRC_ReefscapeForm({ team, eventCode, entries, onSaveSucc
                                 </div>
                                 <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-bold">
                                     <div className="bg-muted p-3 rounded-xl border border-border">
-                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">{t("totalAutoCoral")}</div>
+                                        <div className="text-muted-foreground uppercase tracking-widest text-xs mb-1">{t("totalAutoCoral")}</div>
                                         <div className="text-lg text-foreground">{(entry.autoCoralL1 ?? 0) + (entry.autoCoralL2 ?? 0) + (entry.autoCoralL3 ?? 0) + (entry.autoCoralL4 ?? 0)}</div>
                                     </div>
                                     <div className="bg-muted p-3 rounded-xl border border-border">
-                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">{t("totalTeleCoral")}</div>
+                                        <div className="text-muted-foreground uppercase tracking-widest text-xs mb-1">{t("totalTeleCoral")}</div>
                                         <div className="text-lg text-foreground">{(entry.teleopCoralL1 ?? 0) + (entry.teleopCoralL2 ?? 0) + (entry.teleopCoralL3 ?? 0) + (entry.teleopCoralL4 ?? 0)}</div>
                                     </div>
                                     <div className="bg-muted p-3 rounded-xl border border-border">
-                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">{t("climb")}</div>
+                                        <div className="text-muted-foreground uppercase tracking-widest text-xs mb-1">{t("climb")}</div>
                                         <div className={clsx("text-lg", (entry.endgameClimbState ?? 'None') === 'None' ? "text-muted-foreground" : "text-warning")}>
                                             {entry.endgameClimbState ?? 'None'}
                                         </div>
                                     </div>
                                     <div className="bg-muted p-3 rounded-xl border border-border flex flex-col justify-center">
-                                        <div className="text-muted-foreground uppercase tracking-widest text-[9px] mb-1">{t("driver")}</div>
+                                        <div className="text-muted-foreground uppercase tracking-widest text-xs mb-1">{t("driver")}</div>
                                         <div className="text-lg text-success">{entry.driverSkill ?? '—'} / 5</div>
                                     </div>
                                 </div>

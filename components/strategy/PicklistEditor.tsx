@@ -363,7 +363,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                             <Sliders size={14} className="text-primary" />
                             {t("weightsHeading")}
                         </h3>
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                             {t.rich("weightsHint", { b: (chunks) => <strong>{chunks}</strong> })}
                         </p>
                     </div>
@@ -374,7 +374,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
                                     <label className="text-xs font-medium text-foreground">
                                         {t(`weight_${key}`)}
                                     </label>
-                                    <span className="text-[10px] text-muted-foreground font-mono">
+                                    <span className="text-xs text-muted-foreground font-mono">
                                         {weights[key]}
                                     </span>
                                 </div>
@@ -471,7 +471,7 @@ export default function PicklistEditor({ teams, eventCode: eventCodeProp }: Pick
 
             {/* Footer audit */}
             {picklist.updatedAt?.seconds && (
-                <div className="text-[10px] text-muted-foreground flex items-center gap-2 justify-end">
+                <div className="text-xs text-muted-foreground flex items-center gap-2 justify-end">
                     <User size={10} />
                     {t("lastEdit", { when: format.dateTime(new Date(picklist.updatedAt.seconds * 1000), { dateStyle: "medium", timeStyle: "short" }) })}
                 </div>
@@ -498,14 +498,14 @@ function Bucket({
     children: React.ReactNode;
 }) {
     const accentColor = {
-        emerald: "border-success/30 bg-success/5",
-        blue: "border-secondary/30 bg-secondary/5",
-        red: "border-danger/30 bg-danger/5",
+        emerald: "border-brand/40 bg-brand/10",
+        blue: "border-border bg-muted",
+        red: "border-error/40 bg-error/10",
     }[accent];
     const accentText = {
-        emerald: "text-success",
-        blue: "text-secondary",
-        red: "text-danger",
+        emerald: "text-brand-ink",
+        blue: "text-muted-foreground",
+        red: "text-error",
     }[accent];
     return (
         <Card className={clsx("p-4 flex flex-col gap-2 min-h-[400px] max-h-[75vh]", accentColor)}>
@@ -515,7 +515,7 @@ function Bucket({
                 </h3>
                 <span className="text-xs font-bold text-muted-foreground">{count}</span>
             </div>
-            <p className="text-[10px] text-muted-foreground mb-2">{helpText}</p>
+            <p className="text-xs text-muted-foreground mb-2">{helpText}</p>
             <div className="space-y-1.5 overflow-y-auto flex-1 custom-scrollbar">{children}</div>
         </Card>
     );
@@ -580,7 +580,7 @@ function SortableTeamCard({
             >
                 <GripVertical size={16} />
             </button>
-            <div className="w-7 text-center text-[10px] font-mono font-black text-muted-foreground">
+            <div className="w-7 text-center text-xs font-mono font-black text-muted-foreground">
                 {rank}
             </div>
             <div className="flex-1 min-w-0">
@@ -589,7 +589,7 @@ function SortableTeamCard({
                     {score !== undefined && <ScoreBadge score={score} />}
                 </div>
                 {team && (
-                    <div className="text-[10px] text-muted-foreground truncate">
+                    <div className="text-xs text-muted-foreground truncate">
                         {team.teamName} · {teamLine(team)}
                     </div>
                 )}
@@ -641,7 +641,7 @@ function AvailableTeamCard({
                     <span className="text-sm font-bold text-foreground">{team.teamNumber}</span>
                     {score !== undefined && <ScoreBadge score={score} />}
                 </div>
-                <div className="text-[10px] text-muted-foreground truncate">
+                <div className="text-xs text-muted-foreground truncate">
                     {team.teamName} · {teamLine(team)}
                 </div>
             </div>
@@ -679,7 +679,7 @@ function ScoreBadge({ score }: { score: number }) {
         : "bg-muted text-muted-foreground border-border";
     return (
         <span
-            className={clsx("px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider border font-mono", color)}
+            className={clsx("px-1.5 py-0.5 rounded text-xs font-black tracking-wider border font-mono", color)}
             title={t("scoreTitle", { pct })}
         >
             {pct}
@@ -703,7 +703,7 @@ function DNPTeamCard({
                 <div className="text-sm font-bold text-foreground line-through decoration-danger/50">
                     {teamNumber}
                 </div>
-                <div className="text-[10px] text-muted-foreground truncate">
+                <div className="text-xs text-muted-foreground truncate">
                     {team?.teamName ?? "—"}
                 </div>
             </div>
@@ -728,10 +728,10 @@ function IconBtn({
     children: React.ReactNode;
 }) {
     const colorMap = {
-        emerald: active ? "bg-success/30 text-success" : "hover:bg-success/20 text-muted-foreground hover:text-success",
+        emerald: active ? "bg-brand/30 text-brand-ink" : "hover:bg-brand/20 text-muted-foreground hover:text-brand-ink",
         amber: active ? "bg-warning/30 text-warning" : "hover:bg-warning/20 text-muted-foreground hover:text-warning",
-        red: active ? "bg-danger/30 text-danger" : "hover:bg-danger/20 text-muted-foreground hover:text-danger",
-        blue: active ? "bg-secondary/30 text-secondary" : "hover:bg-secondary/20 text-muted-foreground hover:text-secondary",
+        red: active ? "bg-error/30 text-error" : "hover:bg-error/20 text-muted-foreground hover:text-error",
+        blue: active ? "bg-muted text-foreground" : "hover:bg-muted text-muted-foreground hover:text-foreground",
     };
     return (
         <button

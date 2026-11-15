@@ -327,7 +327,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                     </div>
 
                     <div className="flex flex-col items-center gap-2">
-                        <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Robots por alianza</p>
+                        <p className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">Robots por alianza</p>
                         <div className="flex gap-3">
                             {([2, 3] as const).map(size => (
                                 <button
@@ -345,7 +345,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                             ))}
                         </div>
                         {allianceSize === 3 && (
-                            <p className="text-[11px] text-muted-foreground max-w-sm">
+                            <p className="text-xs text-muted-foreground max-w-sm">
                                 Regla 15.3: 2ª ronda de picks en orden invertido; en cada match
                                 juegan 2 de los 3 robots (la proyección usa el mejor par).
                             </p>
@@ -401,7 +401,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                                         <div key={i} className="flex justify-between items-center p-2 hover:bg-muted rounded-lg group/item cursor-pointer">
                                             <div onClick={() => handleLoadScenario(s)} className="flex-1">
                                                 <div className="font-bold text-foreground text-xs truncate max-w-[150px]">{s.name}</div>
-                                                <div className="text-[10px] text-muted-foreground">{new Date(s.date).toLocaleDateString()}</div>
+                                                <div className="text-xs text-muted-foreground">{new Date(s.date).toLocaleDateString()}</div>
                                             </div>
                                             <button onClick={(e) => { e.stopPropagation(); handleDeleteScenario(i) }} className="text-muted-foreground hover:text-danger p-1"><RotateCcw size={12} className="rotate-45" /></button>
                                         </div>
@@ -430,12 +430,12 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
 
                             return (
                                 <div key={alliance.id} className="bg-card border border-border rounded-xl p-4 shadow-sm relative">
-                                    <div className="absolute top-0 left-0 bg-muted text-muted-foreground text-[10px] font-black px-2 py-1 rounded-br-lg">
+                                    <div className="absolute top-0 left-0 bg-muted text-muted-foreground text-xs font-black px-2 py-1 rounded-br-lg">
                                         ALLIANCE {alliance.id}
                                     </div>
                                     <div className="mt-6 space-y-3">
                                         <div>
-                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Captain</label>
+                                            <label className="text-xs font-bold text-muted-foreground uppercase block mb-1">Captain</label>
                                             <select
                                                 className="w-full text-sm font-bold border border-border rounded-lg p-2 bg-muted focus:outline-none focus:ring-2 focus:ring-secondary"
                                                 value={alliance.captain?.teamNumber || ""}
@@ -451,7 +451,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Partner</label>
+                                            <label className="text-xs font-bold text-muted-foreground uppercase block mb-1">Partner</label>
                                             <select
                                                 className="w-full text-sm font-bold border border-border rounded-lg p-2 bg-muted focus:outline-none focus:ring-2 focus:ring-secondary"
                                                 value={alliance.pick1?.teamNumber || ""}
@@ -468,7 +468,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Est. OPR</span>
+                                        <span className="text-xs font-bold text-muted-foreground uppercase">Est. OPR</span>
                                         <span className="font-mono font-black text-foreground">{alliance.totalOPR?.toFixed(0) || 0}</span>
                                     </div>
                                 </div>
@@ -500,7 +500,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                                         <div key={i} className="flex justify-between items-center p-2 hover:bg-muted rounded-lg group/item cursor-pointer">
                                             <div onClick={() => handleLoadScenario(s)} className="flex-1">
                                                 <div className="font-bold text-foreground text-xs truncate max-w-[150px]">{s.name}</div>
-                                                <div className="text-[10px] text-muted-foreground">{new Date(s.date).toLocaleDateString()}</div>
+                                                <div className="text-xs text-muted-foreground">{new Date(s.date).toLocaleDateString()}</div>
                                             </div>
                                             <button onClick={(e) => { e.stopPropagation(); handleDeleteScenario(i) }} className="text-muted-foreground hover:text-danger p-1"><RotateCcw size={12} className="rotate-45" /></button>
                                         </div>
@@ -522,7 +522,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                                 <h3 className="font-bold text-sm flex items-center gap-2 mb-3">
                                     <PieChart size={16} className="text-primary" /> Win Probability
                                 </h3>
-                                <p className="text-[10px] text-muted-foreground mb-3">
+                                <p className="text-xs text-muted-foreground mb-3">
                                     {playedCount > 0
                                         ? `${playedCount} resultado(s) real(es) fijos · el resto se simula con la forma en playoffs`
                                         : "Antes de playoffs: 2,000 simulaciones con la fuerza de qualys"}
@@ -566,7 +566,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                                             )}
                                         </div>
                                         <div className="mt-3 pt-2 border-t border-border flex justify-between items-center overflow-hidden">
-                                            <div className="text-[10px] font-bold text-muted-foreground uppercase">Est. Score</div>
+                                            <div className="text-xs font-bold text-muted-foreground uppercase">Est. Score</div>
                                             <div className="font-mono font-black text-foreground">{alliance.totalOPR.toFixed(0)}</div>
                                         </div>
                                         <AllianceFormLine f={form.get(alliance.id)} />
@@ -700,9 +700,9 @@ function AllianceFormLine({ f }: { f?: { n: number; sum: number; offset: number 
     const avg = f.sum / f.n;
     const sign = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(0)}`;
     return (
-        <div className="mt-1 flex justify-between items-center text-[10px]">
+        <div className="mt-1 flex justify-between items-center text-xs">
             <span className="font-bold text-muted-foreground uppercase">Forma playoffs ({f.n})</span>
-            <span className={clsx("font-mono font-bold", avg >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}
+            <span className={clsx("font-mono font-bold", avg >= 0 ? "text-success" : "text-error")}
                 title={`Promedio ${sign(avg)} pts vs su proyección por partido; su siguiente pronóstico se ajusta ${sign(f.offset)}`}>
                 {sign(avg)} pts/partido → {sign(f.offset)}
             </span>
@@ -743,10 +743,10 @@ function BracketVisual({ bracket, onMatchClick, type, alliances, matchData, onSe
                             <div className="absolute left-0 right-0 top-0 bg-primary/[0.04] pointer-events-none" style={{ height: dividerY }} />
                             <div className="absolute left-0 right-0 bg-warning/[0.045] pointer-events-none" style={{ top: dividerY, bottom: 0 }} />
                             <div className="absolute left-0 right-0 border-t-2 border-dashed border-border pointer-events-none" style={{ top: dividerY }} />
-                            <span className="absolute left-2 top-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary/70 pointer-events-none">
+                            <span className="absolute left-2 top-1 font-mono text-xs font-bold uppercase tracking-[0.2em] text-primary/70 pointer-events-none">
                                 ▲ Upper Bracket
                             </span>
-                            <span className="absolute left-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-warning/80 pointer-events-none" style={{ top: dividerY + 6 }}>
+                            <span className="absolute left-2 font-mono text-xs font-bold uppercase tracking-[0.2em] text-warning/80 pointer-events-none" style={{ top: dividerY + 6 }}>
                                 ▼ Lower Bracket · una derrota elimina
                             </span>
                         </>
@@ -757,10 +757,10 @@ function BracketVisual({ bracket, onMatchClick, type, alliances, matchData, onSe
                 <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                     <defs>
                         <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                            <polygon points="0 0, 6 2, 0 4" fill="#cbd5e1" />
+                            <polygon points="0 0, 6 2, 0 4" fill="var(--color-border)" />
                         </marker>
                         <marker id="arrowhead-win" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                            <polygon points="0 0, 6 2, 0 4" fill="#3b82f6" />
+                            <polygon points="0 0, 6 2, 0 4" fill="var(--color-brand-ink)" />
                         </marker>
                     </defs>
                     {bracket.map(match => {
@@ -775,7 +775,7 @@ function BracketVisual({ bracket, onMatchClick, type, alliances, matchData, onSe
                             const controlX = (startPt.x + endPt.x) / 2;
 
                             const isWinnerDetermined = match.winnerId !== null;
-                            const color = isWinnerDetermined ? "#3b82f6" : "#e2e8f0"; // Blue if active
+                            const color = isWinnerDetermined ? "var(--color-brand-ink)" : "var(--color-border)"; // Blue if active
                             const marker = isWinnerDetermined ? "url(#arrowhead-win)" : "url(#arrowhead)";
 
                             paths.push(
@@ -802,7 +802,7 @@ function BracketVisual({ bracket, onMatchClick, type, alliances, matchData, onSe
                                     key={`${match.id}-loss`}
                                     d={`M ${startPt.x} ${startPt.y} C ${controlX} ${startPt.y}, ${controlX} ${endPt.y}, ${endPt.x} ${endPt.y}`}
                                     fill="none"
-                                    stroke="#cbd5e1"
+                                    stroke="var(--color-border)"
                                     strokeWidth="1.5"
                                     strokeDasharray="4 4"
                                     markerEnd="url(#arrowhead)"
@@ -850,7 +850,7 @@ function BracketVisual({ bracket, onMatchClick, type, alliances, matchData, onSe
                             style={{ left: trophyX, top: trophyY - 20, width: 140, height: 120 }}
                         >
                             <Trophy size={32} className="text-warning mb-1" />
-                            <div className="text-[10px] font-bold text-warning uppercase tracking-widest mb-0.5">Champion</div>
+                            <div className="text-xs font-bold text-warning uppercase tracking-widest mb-0.5">Champion</div>
                             {championId ? (
                                 <div className="text-2xl font-black text-foreground">
                                     #{championId}
@@ -906,13 +906,13 @@ function MatchNode({ match, onMatchClick, onSelectMatch, allianceMap, adj }: Mat
         return (
             <span className="font-mono text-right leading-tight">
                 <span className="font-black">{(prob * 100).toFixed(0)}%</span>
-                {pred != null && <span className="block text-[8px] opacity-80">~{Math.round(pred)} pts</span>}
+                {pred != null && <span className="block text-xs opacity-80">~{Math.round(pred)} pts</span>}
             </span>
         );
     };
 
     return (
-        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm w-full h-full text-[10px] flex flex-col">
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm w-full h-full text-xs flex flex-col">
             <div className="bg-muted px-2 py-1 font-bold text-muted-foreground uppercase flex justify-between items-center border-b border-border h-6">
                 <span className="truncate max-w-[110px]">
                     {hasReal && <span className="text-success mr-1" title="Resultado real capturado">●</span>}
@@ -921,7 +921,7 @@ function MatchNode({ match, onMatchClick, onSelectMatch, allianceMap, adj }: Mat
                 </span>
                 <button
                     onClick={() => onSelectMatch(match.id)}
-                    className="text-muted-foreground hover:text-primary font-mono text-[9px] px-1 rounded transition-colors"
+                    className="text-muted-foreground hover:text-primary font-mono text-xs px-1 rounded transition-colors"
                     title="Capturar resultado real / incidentes"
                 >
                     ✎ {match.id}
@@ -936,15 +936,15 @@ function MatchNode({ match, onMatchClick, onSelectMatch, allianceMap, adj }: Mat
                     title={allianceTeamNames(red)}
                     className={clsx(
                         "flex-1 px-2 flex justify-between items-center transition-colors text-left border-b border-border gap-1",
-                        isRedWinner ? "bg-danger/10 text-danger" : "hover:bg-muted text-muted-foreground",
-                        match.overriddenWinnerId === match.redAllianceId && "ring-1 ring-inset ring-danger bg-danger/10"
+                        isRedWinner ? "bg-alliance-red/10 text-alliance-red" : "hover:bg-muted text-muted-foreground",
+                        match.overriddenWinnerId === match.redAllianceId && "ring-1 ring-inset ring-alliance-red bg-alliance-red/10"
                     )}
                 >
                     <div className="flex items-center gap-1.5 overflow-hidden">
-                        <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isRedWinner ? "bg-danger" : "bg-muted-foreground")} />
+                        <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isRedWinner ? "bg-alliance-red-fill" : "bg-muted-foreground")} />
                         <span className="truncate leading-tight">
                             <span className="font-black">{match.redAllianceId ? `A${match.redAllianceId}` : "TBD"}</span>
-                            {red && <span className="block font-mono text-[9px] opacity-90">{allianceTeamsLabel(red)}{(adj?.failedTeamRed != null || adj?.failRed) ? " ⚡" : ""}{((adj?.foulPointsRed ?? (adj?.foulsRed ?? 0) * LEGACY_MAJOR_FOUL_POINTS) > 0) ? ` ⚠${adj?.foulPointsRed ?? (adj?.foulsRed ?? 0) * LEGACY_MAJOR_FOUL_POINTS}` : ""}</span>}
+                            {red && <span className="block font-mono text-xs opacity-90">{allianceTeamsLabel(red)}{(adj?.failedTeamRed != null || adj?.failRed) ? " ⚡" : ""}{((adj?.foulPointsRed ?? (adj?.foulsRed ?? 0) * LEGACY_MAJOR_FOUL_POINTS) > 0) ? ` ⚠${adj?.foulPointsRed ?? (adj?.foulsRed ?? 0) * LEGACY_MAJOR_FOUL_POINTS}` : ""}</span>}
                         </span>
                     </div>
                     {rightCell("red")}
@@ -957,15 +957,15 @@ function MatchNode({ match, onMatchClick, onSelectMatch, allianceMap, adj }: Mat
                     title={allianceTeamNames(blue)}
                     className={clsx(
                         "flex-1 px-2 flex justify-between items-center transition-colors text-left gap-1",
-                        isBlueWinner ? "bg-secondary/10 text-secondary" : "hover:bg-muted text-muted-foreground",
-                        match.overriddenWinnerId === match.blueAllianceId && "ring-1 ring-inset ring-secondary bg-secondary/10"
+                        isBlueWinner ? "bg-alliance-blue/10 text-alliance-blue" : "hover:bg-muted text-muted-foreground",
+                        match.overriddenWinnerId === match.blueAllianceId && "ring-1 ring-inset ring-alliance-blue bg-alliance-blue/10"
                     )}
                 >
                     <div className="flex items-center gap-1.5 overflow-hidden">
-                        <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isBlueWinner ? "bg-secondary" : "bg-muted-foreground")} />
+                        <div className={clsx("w-1.5 h-1.5 rounded-full flex-shrink-0", isBlueWinner ? "bg-alliance-blue-fill" : "bg-muted-foreground")} />
                         <span className="truncate leading-tight">
                             <span className="font-black">{match.blueAllianceId ? `A${match.blueAllianceId}` : "TBD"}</span>
-                            {blue && <span className="block font-mono text-[9px] opacity-90">{allianceTeamsLabel(blue)}{(adj?.failedTeamBlue != null || adj?.failBlue) ? " ⚡" : ""}{((adj?.foulPointsBlue ?? (adj?.foulsBlue ?? 0) * LEGACY_MAJOR_FOUL_POINTS) > 0) ? ` ⚠${adj?.foulPointsBlue ?? (adj?.foulsBlue ?? 0) * LEGACY_MAJOR_FOUL_POINTS}` : ""}</span>}
+                            {blue && <span className="block font-mono text-xs opacity-90">{allianceTeamsLabel(blue)}{(adj?.failedTeamBlue != null || adj?.failBlue) ? " ⚡" : ""}{((adj?.foulPointsBlue ?? (adj?.foulsBlue ?? 0) * LEGACY_MAJOR_FOUL_POINTS) > 0) ? ` ⚠${adj?.foulPointsBlue ?? (adj?.foulsBlue ?? 0) * LEGACY_MAJOR_FOUL_POINTS}` : ""}</span>}
                         </span>
                     </div>
                     {rightCell("blue")}
@@ -993,14 +993,14 @@ function MatchRealityEditor({ match, red, blue, adj, onChange, onClose }: {
 
     const sideBlock = (side: "red" | "blue", alliance: Alliance | null) => {
         const isRed = side === "red";
-        const color = isRed ? "text-danger" : "text-secondary";
+        const color = isRed ? "text-alliance-red" : "text-alliance-blue";
         return (
             <div className="space-y-2">
                 <div className={clsx("font-bold text-sm", color)}>
                     {alliance ? `A${alliance.id} · ${allianceTeamsLabel(alliance)}` : "TBD"}
                 </div>
                 <label className="block">
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Puntaje real</span>
+                    <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Puntaje real</span>
                     <input
                         type="number"
                         min={0}
@@ -1011,7 +1011,7 @@ function MatchRealityEditor({ match, red, blue, adj, onChange, onClose }: {
                     />
                 </label>
                 <label className="block">
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">⚡ Robot que falló</span>
+                    <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">⚡ Robot que falló</span>
                     <select
                         value={(isRed ? adj.failedTeamRed : adj.failedTeamBlue) ?? ""}
                         onChange={e => {
@@ -1029,10 +1029,10 @@ function MatchRealityEditor({ match, red, blue, adj, onChange, onClose }: {
                                 </option>
                             ))}
                     </select>
-                    <span className="block text-[10px] text-muted-foreground mt-0.5">La alianza proyecta con el robot sobreviviente.</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">La alianza proyecta con el robot sobreviviente.</span>
                 </label>
                 <label className="block">
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">⚠ Puntos de foul cometidos <span className="normal-case">(van al rival)</span></span>
+                    <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">⚠ Puntos de foul cometidos <span className="normal-case">(van al rival)</span></span>
                     <div className="flex gap-1.5 mt-0.5">
                         <input
                             type="number"
@@ -1056,10 +1056,10 @@ function MatchRealityEditor({ match, red, blue, adj, onChange, onClose }: {
                             </button>
                         ))}
                     </div>
-                    <span className="block text-[10px] text-muted-foreground mt-0.5">Minor = 5 · Major = {MAJOR_FOUL_POINTS} (igual que &ldquo;Penalty Points Committed&rdquo; oficial).</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">Minor = 5 · Major = {MAJOR_FOUL_POINTS} (igual que &ldquo;Penalty Points Committed&rdquo; oficial).</span>
                 </label>
                 {alliance && (
-                    <p className="font-mono text-[10px] text-muted-foreground">
+                    <p className="font-mono text-xs text-muted-foreground">
                         Indisciplina en quals (neto): {[alliance.captain, alliance.pick1, alliance.pick2]
                             .filter((t): t is TeamEvolution => !!t)
                             .reduce((s, t) => s + (t.netDiscipline || 0), 0).toFixed(0)} pts/match
@@ -1081,10 +1081,10 @@ function MatchRealityEditor({ match, red, blue, adj, onChange, onClose }: {
                 {sideBlock("red", red)}
                 {sideBlock("blue", blue)}
             </div>
-            <p className="font-mono text-[11px] text-muted-foreground border-t border-border pt-2">
-                Proyección ajustada: <span className="text-danger font-bold">{Math.round(match.redScorePrediction ?? 0)}</span>
+            <p className="font-mono text-xs text-muted-foreground border-t border-border pt-2">
+                Proyección ajustada: <span className="text-alliance-red font-bold">{Math.round(match.redScorePrediction ?? 0)}</span>
                 {" – "}
-                <span className="text-secondary font-bold">{Math.round(match.blueScorePrediction ?? 0)}</span>
+                <span className="text-alliance-blue font-bold">{Math.round(match.blueScorePrediction ?? 0)}</span>
                 {" · "}P(roja) {(match.winProbabilityRed * 100).toFixed(0)}%
                 {adj.realRed != null && adj.realBlue != null && " · El resultado REAL define al ganador en el bracket."}
             </p>
@@ -1126,14 +1126,14 @@ function EstimateVsRealTable({ bracket, alliances, matchData }: {
         <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-baseline justify-between flex-wrap gap-2 mb-3">
                 <h4 className="font-bold text-foreground text-sm">Estimado vs Real</h4>
-                <span className="font-mono text-[11px] text-muted-foreground">
+                <span className="font-mono text-xs text-muted-foreground">
                     Aciertos de ganador: <span className={clsx("font-bold", hits === rows.length ? "text-success" : "text-foreground")}>{hits}/{rows.length}</span>
                 </span>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                     <thead>
-                        <tr className="text-muted-foreground font-mono text-[10px] uppercase tracking-wider border-b border-border">
+                        <tr className="text-muted-foreground font-mono text-xs uppercase tracking-wider border-b border-border">
                             <th className="text-left py-1.5 pr-3">Match</th>
                             <th className="text-center py-1.5 px-3">Estimado</th>
                             <th className="text-center py-1.5 px-3">Real</th>
@@ -1146,17 +1146,17 @@ function EstimateVsRealTable({ bracket, alliances, matchData }: {
                             <tr key={m.id}>
                                 <td className="py-2 pr-3">
                                     <span className="font-bold text-foreground">{m.name}</span>
-                                    <span className="block font-mono text-[10px] text-muted-foreground">
-                                        <span className="text-danger">A{m.redAllianceId} {allianceTeamsLabel(red)}</span>
+                                    <span className="block font-mono text-xs text-muted-foreground">
+                                        <span className="text-alliance-red">A{m.redAllianceId} {allianceTeamsLabel(red)}</span>
                                         {" vs "}
-                                        <span className="text-secondary">A{m.blueAllianceId} {allianceTeamsLabel(blue)}</span>
+                                        <span className="text-alliance-blue">A{m.blueAllianceId} {allianceTeamsLabel(blue)}</span>
                                     </span>
                                 </td>
                                 <td className="text-center py-2 px-3 font-mono">
-                                    <span className="text-danger">{Math.round(baseRed)}</span>–<span className="text-secondary">{Math.round(baseBlue)}</span>
+                                    <span className="text-alliance-red">{Math.round(baseRed)}</span>–<span className="text-alliance-blue">{Math.round(baseBlue)}</span>
                                 </td>
                                 <td className="text-center py-2 px-3 font-mono font-bold">
-                                    <span className="text-danger">{adj.realRed}</span>–<span className="text-secondary">{adj.realBlue}</span>
+                                    <span className="text-alliance-red">{adj.realRed}</span>–<span className="text-alliance-blue">{adj.realBlue}</span>
                                 </td>
                                 <td className="text-center py-2 px-3">
                                     <span className={clsx("font-bold", hit ? "text-success" : "text-danger")}>

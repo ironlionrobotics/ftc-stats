@@ -163,7 +163,7 @@ export default function LiveRankingProjection({ teams, eventCode: eventCodeProp 
                 <Card className="p-0 bg-muted border-border overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs">
-                            <thead className="bg-muted text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                            <thead className="bg-muted text-xs uppercase tracking-wider text-muted-foreground font-bold">
                                 <tr>
                                     <Th>{t("col.projected")}</Th>
                                     <Th>{t("col.range")}</Th>
@@ -225,7 +225,7 @@ function Row({ projection: p, highlighted }: { projection: RankingProjection; hi
                 <div className="flex items-center gap-2">
                     {highlighted && <Star size={11} className="text-primary" fill="currentColor" />}
                     <span className="font-bold text-foreground">{p.teamNumber}</span>
-                    <span className="text-muted-foreground text-[10px] truncate">{p.teamName}</span>
+                    <span className="text-muted-foreground text-xs truncate">{p.teamName}</span>
                 </div>
             </td>
             <td className="px-3 py-2 text-right font-mono text-foreground">
@@ -247,20 +247,20 @@ function Row({ projection: p, highlighted }: { projection: RankingProjection; hi
 function DeltaBadge({ delta }: { delta: number }) {
     if (delta === 0) {
         return (
-            <span className="inline-flex items-center gap-0.5 text-muted-foreground text-[10px]">
+            <span className="inline-flex items-center gap-0.5 text-muted-foreground text-xs">
                 <Minus size={10} /> 0
             </span>
         );
     }
     if (delta > 0) {
         return (
-            <span className="inline-flex items-center gap-0.5 text-success text-[10px] font-bold">
+            <span className="inline-flex items-center gap-0.5 text-success text-xs font-bold">
                 <ArrowUp size={10} /> {delta}
             </span>
         );
     }
     return (
-        <span className="inline-flex items-center gap-0.5 text-danger text-[10px] font-bold">
+        <span className="inline-flex items-center gap-0.5 text-danger text-xs font-bold">
             <ArrowDown size={10} /> {Math.abs(delta)}
         </span>
     );

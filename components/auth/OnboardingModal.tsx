@@ -294,7 +294,7 @@ function TabButton({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="space-y-1.5">
-            <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+            <label className="block text-xs text-muted-foreground uppercase font-bold tracking-wider">
                 {label}
             </label>
             {children}

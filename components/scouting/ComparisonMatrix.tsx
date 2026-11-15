@@ -68,10 +68,10 @@ export default function ComparisonMatrix({ heroStats, opponentStats }: Compariso
                             </div>
 
                             <div className="flex flex-col items-center justify-center">
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">{m.label}</span>
+                                <span className="text-xs font-bold text-muted-foreground uppercase mb-0.5">{m.label}</span>
                                 {Math.abs(diff) > 0 && (
                                     <span className={clsx(
-                                        "text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+                                        "text-xs font-bold px-1.5 py-0.5 rounded-full",
                                         isEven ? "bg-muted text-muted-foreground" :
                                             (isBetter ? "bg-success/15 text-success" : "bg-danger/15 text-danger")
                                     )}>
@@ -89,7 +89,7 @@ export default function ComparisonMatrix({ heroStats, opponentStats }: Compariso
             </div>
 
             <div className="p-3 bg-muted border-t border-border text-center">
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                     * Comparison based on full season aggregated data.
                 </p>
             </div>

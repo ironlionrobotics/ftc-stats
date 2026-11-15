@@ -236,7 +236,7 @@ function Viewer({ media }: { media: TeamMedia }) {
         );
     }
     if (!url) return <div className="flex aspect-video items-center justify-center"><Loader2 className="animate-spin" /></div>;
-    if (media.kind === "clip") return <video src={url} controls playsInline className="max-h-[70vh] w-full rounded-lg bg-black" />;
+    if (media.kind === "clip") return <video src={url} controls playsInline className="max-h-[70vh] w-full rounded-lg bg-black/90" />;
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={url} alt={media.caption} className="max-h-[70vh] w-full rounded-lg object-contain" />;
 }

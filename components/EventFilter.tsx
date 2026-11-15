@@ -150,7 +150,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
 
             {/* Common Season Selector */}
             <div className="mb-6">
-                <label className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground block mb-2">Season</label>
+                <label className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground block mb-2">Season</label>
                 <select
                     value={season}
                     onChange={(e) => setSeason(Number(e.target.value))}
@@ -164,7 +164,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
                     {/* Region Selector */}
                     <div className="space-y-2">
-                        <label className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Region</label>
+                        <label className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">Region</label>
                         <select
                             value={region}
                             onChange={(e) => setRegion(e.target.value)}
@@ -183,7 +183,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
 
                     {/* Event Type Selector */}
                     <div className="space-y-2">
-                        <label className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Event Type</label>
+                        <label className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">Event Type</label>
                         <select
                             value={eventType}
                             onChange={(e) => setEventType(e.target.value)}
@@ -196,7 +196,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
 
                     {/* Date Range */}
                     <div className="space-y-2 md:col-span-2">
-                        <label className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Date Range</label>
+                        <label className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">Date Range</label>
                         <div className="flex gap-2">
                             <input
                                 type="date"
@@ -254,7 +254,7 @@ export default function EventFilter({ currentSeason, allEvents, latestAvailableS
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-sm truncate">{event.name}</div>
                                             <div className="text-xs text-muted-foreground flex items-center gap-3">
-                                                <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono">{event.code}</span>
+                                                <span className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{event.code}</span>
                                                 <span className="flex items-center gap-1"><MapPin size={10} /> {event.stateProv || event.country}</span>
                                                 <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(event.dateStart).toLocaleDateString()}</span>
                                             </div>

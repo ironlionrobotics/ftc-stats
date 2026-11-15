@@ -78,7 +78,7 @@ export default function PWAInstallPrompt() {
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-foreground">{t("title")}</p>
-                <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                <p className="text-xs text-muted-foreground leading-snug mt-0.5">
                     {t("body")}
                 </p>
                 <div className="mt-2 flex gap-2">

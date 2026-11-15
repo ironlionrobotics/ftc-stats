@@ -1,0 +1,363 @@
+<title>PRIDE color móvil</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: reading column for the rules; a scroll-snap strip of four phone mockups whose tokens switch by direction (A/B/C) and mode (dark/light), independent of the page theme. */
+:root {
+  --pg-bg: #f3f3f1; --pg-sf: #ffffff; --pg-tx: #151515; --pg-mu: #5f5f5b; --pg-line: #dcdcd7; --pg-focus: #151515;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --num: "DIN Alternate", Bahnschrift, "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pg-bg: #0d0d0d; --pg-sf: #171717; --pg-tx: #eeeeec; --pg-mu: #a3a3a0; --pg-line: #2b2b2b; --pg-focus: #eeeeec; color-scheme: dark } }
+:root[data-theme="dark"] { --pg-bg: #0d0d0d; --pg-sf: #171717; --pg-tx: #eeeeec; --pg-mu: #a3a3a0; --pg-line: #2b2b2b; --pg-focus: #eeeeec; color-scheme: dark }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--pg-bg); color: var(--pg-tx); font: 15px/1.5 var(--ui) }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px }
+h1 { font-size: 28px; line-height: 1.15; margin: 0 0 6px; text-wrap: balance }
+h2 { font-size: 20px; margin: 40px 0 10px; text-wrap: balance }
+h3 { font-size: 16px; margin: 0 0 6px }
+p { margin: 0 0 10px; max-width: 70ch }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--pg-mu); margin-bottom: 6px }
+.lede { color: var(--pg-mu) }
+.controls { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--pg-bg); padding-block: 10px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; border-bottom: 1px solid var(--pg-line); margin-top: 18px }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--pg-bg) }
+.seg { display: inline-flex; border: 1px solid var(--pg-line); border-radius: 10px; padding: 3px; gap: 3px; background: var(--pg-sf) }
+.seg button { font: 600 14px var(--ui); color: var(--pg-mu); background: transparent; border: 0; border-radius: 7px; padding: 8px 12px; min-height: 40px; cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--pg-tx); color: var(--pg-bg) }
+.seg button:focus-visible, a:focus-visible { outline: 2px solid var(--pg-focus); outline-offset: 2px }
+.dirnote { font-size: 14px; color: var(--pg-mu); flex: 1 1 260px; min-width: 0 }
+.dirnote b { color: var(--pg-tx) }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-top: 14px }
+.rule { background: var(--pg-sf); border: 1px solid var(--pg-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; min-width: 0 }
+.rule b { display: block; font-size: 15px; margin-bottom: 2px }
+.tbl { overflow-x: auto; border: 1px solid var(--pg-line); border-radius: 10px; background: var(--pg-sf) }
+table { border-collapse: collapse; width: 100%; font-size: 14px }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--pg-line); vertical-align: middle }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--pg-mu); font-weight: 600 }
+tr:last-child td { border-bottom: 0 }
+td.n { font-family: var(--num); font-variant-numeric: tabular-nums; white-space: nowrap }
+.chip-sw { display: inline-block; width: 18px; height: 18px; border-radius: 4px; vertical-align: -4px; margin-right: 8px; border: 1px solid rgba(127,127,127,.35) }
+
+/* ---------------- Mockup tokens: 3 directions x 2 modes ---------------- */
+.mock { --fs1: 12px; --fs2: 14px; --fs3: 16px; --fs4: 20px; --fs5: 28px; --fs6: 40px;
+  --red-fill: #C42634; --blue-fill: #2648B8; }
+.mock[data-mode="light"] { --red: #C8283A; --blue: #1C44B0; --red-tint: #FBEBEC; --blue-tint: #E9EEFB; --ok: #17713F; --ok-tint: #E5F3EB; --warn: #B4460A; --warn-tint: #FCEFE5; --err: #B0185A; --err-tint: #FBE7F0 }
+.mock[data-mode="dark"] { --red: #FF6B70; --blue: #5B85FF; --red-tint: #2A1517; --blue-tint: #141B33; --ok: #45D08A; --ok-tint: #10241A; --warn: #FB9A4B; --warn-tint: #2A1A0D; --err: #F47AB8; --err-tint: #2B1220 }
+.mock[data-dir="A"][data-mode="light"] { --bg: #F6F5F2; --sf: #FFFFFF; --sf2: #EEECE7; --line: #DDD9D0; --tx: #1B1A17; --mu: #66625A; --you: #F2B705; --you-tx: #8A6200; --cta: #F2B705; --cta-fg: #1B1A17 }
+.mock[data-dir="A"][data-mode="dark"]  { --bg: #0F0E0C; --sf: #1A1916; --sf2: #24221E; --line: #34312B; --tx: #F2EFE8; --mu: #A39E93; --you: #F5BE1E; --you-tx: #F5BE1E; --cta: #F5BE1E; --cta-fg: #15130F }
+.mock[data-dir="B"][data-mode="light"] { --bg: #F3F5F4; --sf: #FFFFFF; --sf2: #E8ECEA; --line: #D3D9D6; --tx: #121715; --mu: #56605C; --you: #0E7C4A; --you-tx: #0B7041; --cta: #0E7C4A; --cta-fg: #FFFFFF }
+.mock[data-dir="B"][data-mode="dark"]  { --bg: #0B0F0D; --sf: #141A17; --sf2: #1C2420; --line: #2A3530; --tx: #EAF1ED; --mu: #93A19A; --you: #3DD486; --you-tx: #3DD486; --cta: #3DD486; --cta-fg: #06110B }
+.mock[data-dir="C"][data-mode="light"] { --bg: #F2F2F0; --sf: #FFFFFF; --sf2: #E9E9E6; --line: #D6D6D2; --tx: #111111; --mu: #5E5E5A; --you: #D4F03C; --you-tx: #4A6400; --cta: #111111; --cta-fg: #FFFFFF }
+.mock[data-dir="C"][data-mode="dark"]  { --bg: #0A0A0A; --sf: #151515; --sf2: #1F1F1F; --line: #2C2C2C; --tx: #F2F2F2; --mu: #9A9A9A; --you: #D4F03C; --you-tx: #D4F03C; --cta: #F2F2F2; --cta-fg: #0A0A0A }
+
+.strip { display: flex; gap: 18px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 6px 2px 14px; margin-top: 12px }
+.phoneWrap { scroll-snap-align: center; flex: 0 0 auto; display: grid; gap: 8px; justify-items: center }
+.phoneWrap figcaption { font-size: 13px; color: var(--pg-mu); text-align: center; max-width: 330px }
+.phone { width: min(340px, calc(100vw - 48px)); height: 700px; border-radius: 30px; border: 1px solid var(--pg-line); background: var(--bg); color: var(--tx); font-family: var(--ui); font-size: var(--fs2); line-height: 1.4; overflow: hidden; display: flex; flex-direction: column; position: relative; box-shadow: 0 1px 0 rgba(0,0,0,.04) }
+.phone .num { font-family: var(--num); font-variant-numeric: tabular-nums }
+.top { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; gap: 8px }
+.word { font-weight: 800; letter-spacing: .06em; font-size: var(--fs2) }
+.ctx { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font-size: var(--fs1); font-weight: 600; background: var(--sf); min-height: 32px }
+.live { width: 8px; height: 8px; border-radius: 50%; background: var(--you); box-shadow: 0 0 0 3px color-mix(in srgb, var(--you) 30%, transparent) }
+.body { flex: 1; overflow: hidden; padding: 0 14px; display: flex; flex-direction: column; gap: 12px }
+.label { font-size: var(--fs1); letter-spacing: .06em; text-transform: uppercase; color: var(--mu); font-weight: 600 }
+.card { background: var(--sf); border: 1px solid var(--line); border-radius: 14px; padding: 12px }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px }
+.big { font-size: var(--fs5); font-weight: 800; line-height: 1 }
+.sides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px }
+.side { border-radius: 10px; padding: 8px 10px; display: grid; gap: 4px }
+.side.r { background: var(--red-tint); box-shadow: inset 3px 0 0 var(--red) }
+.side.b { background: var(--blue-tint); box-shadow: inset -3px 0 0 var(--blue); text-align: right }
+.side .tag { font-size: 11px; font-weight: 800; letter-spacing: .08em }
+.side.r .tag { color: var(--red) } .side.b .tag { color: var(--blue) }
+.team { font-size: var(--fs3); font-weight: 700 }
+.team.me { display: inline-flex; align-items: center; gap: 6px }
+.side.b .team.me { justify-content: flex-end }
+.me-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--you); outline: 2px solid var(--sf); }
+.prob { margin-top: 10px }
+.pbar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px }
+.pbar i { display: block; height: 100% }
+.pbar .r { background: var(--red-fill) } .pbar .b { background: var(--blue-fill) }
+.plab { display: flex; justify-content: space-between; font-size: var(--fs1); margin-top: 4px; color: var(--mu) }
+.plab b { color: var(--tx); font-size: var(--fs2) }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px }
+.btn { min-height: 44px; border-radius: 10px; font: 700 var(--fs2) var(--ui); display: grid; place-items: center; border: 1px solid var(--line); background: var(--sf); color: var(--tx) }
+.btn.cta { background: var(--cta); color: var(--cta-fg); border-color: transparent }
+.wl { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; font-size: var(--fs1); font-weight: 800 }
+.wl.g { background: var(--ok-tint); color: var(--ok) }
+.wl.p { border: 1.5px solid var(--line); color: var(--mu) }
+.wl.e { border: 1.5px dashed var(--mu); color: var(--mu) }
+.mini { display: grid; gap: 8px }
+.li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--sf); border: 1px solid var(--line); min-height: 48px }
+.li.mine { box-shadow: inset 4px 0 0 var(--you) }
+.mut { color: var(--mu); font-size: var(--fs1) }
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--sf); padding: 6px 4px calc(10px) }
+.tab { display: grid; justify-items: center; gap: 2px; font-size: 11px; color: var(--mu); padding-top: 4px; position: relative; min-height: 48px }
+.tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8 }
+.tab.on { color: var(--tx); font-weight: 700 }
+.tab.on::before { content: ""; position: absolute; top: -7px; width: 28px; height: 3px; border-radius: 2px; background: var(--you) }
+.segm { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--sf2); border-radius: 10px; padding: 3px; gap: 3px }
+.segm span { text-align: center; padding: 8px 0; border-radius: 8px; font-weight: 600; color: var(--mu); font-size: var(--fs2); min-height: 38px }
+.segm span.on { background: var(--sf); color: var(--tx); box-shadow: 0 1px 2px rgba(0,0,0,.12) }
+.m-row { display: grid; grid-template-columns: 40px 1fr auto 1fr; align-items: center; gap: 6px; padding: 9px 10px; border-radius: 12px; background: var(--sf); border: 1px solid var(--line); min-height: 52px }
+.m-row .q { font-weight: 800; color: var(--mu); font-size: var(--fs1) }
+.m-row .ts { display: grid; font-weight: 700; font-size: var(--fs2); line-height: 1.25 }
+.m-row .ts.r { color: var(--red) } .m-row .ts.b { color: var(--blue); text-align: right }
+.m-row .sc { font-family: var(--num); font-weight: 800; font-size: var(--fs3); text-align: center; white-space: nowrap }
+.m-row .sc .w { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px }
+.m-row.mine { box-shadow: inset 4px 0 0 var(--you) }
+.m-row .pr { font-size: var(--fs1); color: var(--mu); text-align: center; white-space: nowrap }
+.ts a, .tlink { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px }
+.notice { display: flex; gap: 8px; align-items: center; padding: 9px 12px; border-radius: 10px; font-size: var(--fs1); font-weight: 600 }
+.notice.warn { background: var(--warn-tint); color: var(--warn) }
+.notice.err { background: var(--err-tint); color: var(--err) }
+.notice.ok { background: var(--ok-tint); color: var(--ok) }
+.notice u { margin-left: auto; text-underline-offset: 3px }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.stat { background: var(--sf); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px }
+.stat .v { font-family: var(--num); font-size: var(--fs5); font-weight: 800; line-height: 1.05 }
+.stat .k { display: flex; align-items: center; gap: 6px; font-size: var(--fs1); color: var(--mu); font-weight: 600 }
+.q-mark { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--mu); font-size: 11px; font-weight: 800 }
+.explain { background: var(--sf2); border-radius: 10px; padding: 8px 10px; font-size: var(--fs1); color: var(--tx) }
+.pct { display: inline-block; font-size: var(--fs1); font-weight: 700; border-radius: 6px; padding: 2px 6px; background: var(--sf2); color: var(--tx) }
+.follow { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--tx); font-weight: 700; display: inline-grid; place-items: center; font-size: var(--fs2) }
+.counter { display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; gap: 8px; background: var(--sf); border: 1px solid var(--line); border-radius: 14px; padding: 8px }
+.counter .pm { height: 56px; border-radius: 12px; display: grid; place-items: center; font-size: 26px; font-weight: 700; background: var(--sf2); color: var(--tx) }
+.counter .pm.plus { background: var(--cta); color: var(--cta-fg) }
+.counter .mid { text-align: center }
+.counter .mid .v { font-family: var(--num); font-size: var(--fs6); font-weight: 800; line-height: 1 }
+.toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.tg { min-height: 52px; border-radius: 12px; border: 1px solid var(--line); background: var(--sf); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700 }
+.tg.on { border-color: var(--ok); background: var(--ok-tint); color: var(--ok) }
+.chk { width: 20px; height: 20px; border-radius: 6px; border: 2px solid currentColor; display: grid; place-items: center; font-size: 12px }
+
+/* legend */
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 10px }
+.lg { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; background: var(--sf); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--tx); min-width: 0 }
+.lg .s { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line) }
+.lg b { display: block; font-size: 14px } .lg span { font-size: 12px; color: var(--mu) }
+.lg .r { font-family: var(--num); font-size: 13px; font-weight: 700; white-space: nowrap }
+.legendBox { border-radius: 14px; padding: 12px; background: var(--bg); border: 1px solid var(--pg-line) }
+
+/* IA map */
+.ia { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-top: 12px }
+.ia .node { background: var(--pg-sf); border: 1px solid var(--pg-line); border-radius: 10px; padding: 12px 14px; font-size: 14px; min-width: 0 }
+.ia .node h3 { display: flex; align-items: center; gap: 8px }
+.ia .node ul { margin: 6px 0 0; padding-left: 18px; color: var(--pg-mu) }
+.kbd { font-family: var(--num); font-size: 12px; border: 1px solid var(--pg-line); border-radius: 4px; padding: 0 5px; color: var(--pg-mu) }
+@media (prefers-reduced-motion: no-preference) { .live { animation: pulse 2s ease-in-out infinite } @keyframes pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--you) 0%, transparent) } } }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">PRIDE · propuesta de diseño · 14 de noviembre de 2026</div>
+  <h1>Tres direcciones de color para la app móvil</h1>
+  <p class="lede">Las mismas cuatro pantallas del día del evento con tres sistemas de color. Cambia de dirección y de modo arriba; en el celular desliza las pantallas de lado. Los datos son un ejemplo armado con los equipos inscritos en San Pedro, no resultados reales.</p>
+
+  <h2>Las reglas que comparten las tres</h2>
+  <div class="rules">
+    <div class="rule"><b>Rojo y azul = alianzas, y nada más</b>Siempre con la palabra ROJO o AZUL y la misma posición (rojo a la izquierda). El rojo de error se cambia por magenta.</div>
+    <div class="rule"><b>Un color de marca que significa "tú"</b>Tu equipo, tu partido, la acción principal y la pestaña activa. Nunca rojo ni azul.</div>
+    <div class="rule"><b>Ganar, perder, empatar sin rojo</b>G en verde suave, P en contorno gris, E en contorno punteado. El ganador de un marcador va subrayado.</div>
+    <div class="rule"><b>Tres colores de estado</b>Bien (verde), aviso (naranja) y error (magenta), cada uno con un solo significado.</div>
+    <div class="rule"><b>Seis tamaños de letra</b>12, 14, 16, 20, 28 y 40 px. Nada de 9–11 px. Botones de 44 px o más; contadores de 56 px.</div>
+    <div class="rule"><b>Cero fuentes descargadas</b>Fuentes del sistema, como hoy, y números condensados tipo marcador.</div>
+  </div>
+
+  <div class="controls" role="group" aria-label="Opciones de la vista">
+    <div class="seg" id="dirSeg" role="group" aria-label="Dirección">
+      <button type="button" data-dir="A" aria-pressed="true">A · Oro</button>
+      <button type="button" data-dir="B" aria-pressed="false">B · Cancha</button>
+      <button type="button" data-dir="C" aria-pressed="false">C · Señal</button>
+    </div>
+    <div class="seg" id="modeSeg" role="group" aria-label="Modo">
+      <button type="button" data-mode="dark" aria-pressed="true">Oscuro</button>
+      <button type="button" data-mode="light" aria-pressed="false">Claro</button>
+    </div>
+    <div class="dirnote" id="dirNote"></div>
+  </div>
+
+  <div class="strip" id="strip">
+    <!-- 1. HOY -->
+    <figure class="phoneWrap"><div class="phone mock" data-dir="A" data-mode="dark">
+      <div class="top"><span class="word">PRIDE</span><span class="ctx"><span class="live" aria-hidden="true"></span>MXMOQ · San Pedro</span></div>
+      <div class="body">
+        <div class="card">
+          <div class="row"><span class="label">Tu próximo partido</span><span class="mut">en ~2 partidos</span></div>
+          <div class="row" style="margin-top:6px"><span class="big num">Q14</span><span class="mut">Campo 1</span></div>
+          <div class="sides">
+            <div class="side r"><span class="tag">ROJO</span><span class="team me"><span class="me-dot" aria-hidden="true"></span><span class="num">30311</span></span><span class="team num">23481</span></div>
+            <div class="side b"><span class="tag">AZUL</span><span class="team num">12887</span><span class="team num">26034</span></div>
+          </div>
+          <div class="prob">
+            <div class="pbar" aria-hidden="true"><i class="r" style="width:41%"></i><i class="b" style="width:59%"></i></div>
+            <div class="plab"><span><b class="num">41 %</b> ganas</span><span>proyección <span class="num">58–71</span> vs <span class="num">66–80</span></span></div>
+          </div>
+          <div class="btns"><span class="btn cta">Scoutear Q14</span><span class="btn">Ver partido</span></div>
+        </div>
+        <div class="card">
+          <div class="row"><span class="label">Tu día</span><span class="mut">3 de 5 qualys</span></div>
+          <div class="row" style="margin-top:8px">
+            <span style="display:flex;gap:6px"><span class="wl g">G</span><span class="wl p">P</span><span class="wl g">G</span></span>
+            <span><span class="big num" style="font-size:var(--fs4)">6.º</span> <span class="mut">rango 3–11</span></span>
+          </div>
+        </div>
+        <div class="mini">
+          <span class="label">Siguiendo</span>
+          <div class="li"><span><b class="num">23481</b> VOLTEC Vortex</span><span class="mut">2.º · Q15</span></div>
+          <div class="li"><span><b class="num">12887</b> Devolt Phobos</span><span class="mut">1.º · Q14</span></div>
+        </div>
+      </div>
+      <nav class="tabs" aria-label="Navegación de ejemplo">
+        <span class="tab on"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Hoy</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Evento</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>Capturar</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 20c0-2 1-4 4-4"/></svg>Equipos</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Más</span>
+      </nav>
+    </div><figcaption>Hoy: lo primero es tu próximo partido, con quién juegas, tu probabilidad y el botón para scoutearlo.</figcaption></figure>
+
+    <!-- 2. EVENTO -->
+    <figure class="phoneWrap"><div class="phone mock" data-dir="A" data-mode="dark">
+      <div class="top"><span class="word">MXMOQ</span><span class="ctx">Qualys <span class="num">12/35</span></span></div>
+      <div class="body">
+        <div class="segm"><span class="on">Partidos</span><span>Ranking</span><span>Alianzas</span></div>
+        <div class="card">
+          <div class="row"><span class="label" style="display:flex;align-items:center;gap:6px"><span class="live" aria-hidden="true"></span>En vivo · Q12</span><span class="mut">teleop 1:24</span></div>
+          <div class="row" style="margin-top:8px">
+            <span style="color:var(--red);font-weight:700"><span class="num">13531</span> · <span class="num">31928</span></span>
+            <span class="num" style="font-size:var(--fs4);font-weight:800"><span style="color:var(--red)">64</span> – <span style="color:var(--blue)">58</span></span>
+            <span style="color:var(--blue);font-weight:700"><span class="num">15909</span> · <span class="num">24831</span></span>
+          </div>
+        </div>
+        <span class="label">Siguientes</span>
+        <div class="m-row"><span class="q">Q13</span><span class="ts r"><a class="num">21802</a><a class="num">38937</a></span><span class="pr"><span class="num">71 %</span> rojo</span><span class="ts b"><a class="num">17614</a><a class="num">31793</a></span></div>
+        <div class="m-row mine"><span class="q">Q14</span><span class="ts r"><a class="num">30311</a><a class="num">23481</a></span><span class="pr"><span class="num">59 %</span> azul</span><span class="ts b"><a class="num">12887</a><a class="num">26034</a></span></div>
+        <span class="label">Jugados</span>
+        <div class="m-row"><span class="q">Q11</span><span class="ts r"><a class="num">28076</a><a class="num">37669</a></span><span class="sc"><span class="w" style="color:var(--red)">58</span> – <span style="color:var(--blue)">47</span></span><span class="ts b"><a class="num">22627</a><a class="num">38812</a></span></div>
+        <div class="m-row mine"><span class="q">Q9</span><span class="ts r"><a class="num">26255</a><a class="num">38908</a></span><span class="sc"><span style="color:var(--red)">39</span> – <span class="w" style="color:var(--blue)">66</span></span><span class="ts b"><a class="num">30311</a><a class="num">27788</a></span></div>
+        <div class="notice warn">Sin red · 3 capturas guardadas en el teléfono<u>Ver</u></div>
+      </div>
+      <nav class="tabs" aria-label="Navegación de ejemplo">
+        <span class="tab"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Hoy</span>
+        <span class="tab on"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Evento</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>Capturar</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 20c0-2 1-4 4-4"/></svg>Equipos</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Más</span>
+      </nav>
+    </div><figcaption>Evento: abre en el partido en vivo y los siguientes. Tus partidos llevan la marca de "tú" a la izquierda; cada número de equipo abre su perfil.</figcaption></figure>
+
+    <!-- 3. EQUIPO -->
+    <figure class="phoneWrap"><div class="phone mock" data-dir="A" data-mode="dark">
+      <div class="top"><span class="mut" style="font-weight:600">‹ MXMOQ</span><span class="follow">Seguir</span></div>
+      <div class="body">
+        <div><div class="big num" style="font-size:var(--fs6)">23481</div><div style="font-size:var(--fs3);font-weight:700">PrepaTec · VOLTEC Vortex</div><div class="mut">Monterrey, NL · 2.º de 28 · <span class="num">3–0</span></div></div>
+        <div class="stats">
+          <div class="stat"><div class="k">OPR <span class="q-mark" aria-hidden="true">?</span></div><div class="v">52</div><span class="pct">top 5 % mundial</span></div>
+          <div class="stat"><div class="k">TIPS por partido</div><div class="v">1.9</div></div>
+          <div class="stat"><div class="k">Sale y se estaciona</div><div class="v">92 %</div></div>
+          <div class="stat"><div class="k">En tu picklist</div><div class="v">#2</div></div>
+        </div>
+        <div class="explain"><b>OPR:</b> los puntos que este robot aporta en promedio a su alianza, sin contar faltas. Sirve para comparar robots aunque les hayan tocado compañeros distintos.</div>
+        <span class="label">En este evento</span>
+        <div class="li"><span style="display:flex;gap:8px;align-items:center"><span class="wl g">G</span><b class="num">Q10</b></span><span class="num">74 – 51</span></div>
+        <div class="li"><span style="display:flex;gap:8px;align-items:center"><span class="wl g">G</span><b class="num">Q6</b></span><span class="num">69 – 60</span></div>
+        <div class="li mine"><span style="display:flex;gap:8px;align-items:center"><span class="wl" style="border:1.5px solid var(--you);color:var(--you-tx)">→</span><b class="num">Q14</b></span><span class="mut">contigo, en ~2</span></div>
+      </div>
+      <nav class="tabs" aria-label="Navegación de ejemplo">
+        <span class="tab"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Hoy</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Evento</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>Capturar</span>
+        <span class="tab on"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 20c0-2 1-4 4-4"/></svg>Equipos</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Más</span>
+      </nav>
+    </div><figcaption>Equipo: cuatro números que deciden si es buen aliado, cada uno con su explicación al tocar el "?". Sin hero ni degradados.</figcaption></figure>
+
+    <!-- 4. CAPTURA -->
+    <figure class="phoneWrap"><div class="phone mock" data-dir="A" data-mode="dark">
+      <div class="top"><span class="mut" style="font-weight:600">‹ Capturar</span><span class="ctx"><span class="num">Q14</span> · ROJO 2</span></div>
+      <div class="body">
+        <div><div class="big num">23481</div><div class="mut">VOLTEC Vortex · partido y equipo ya puestos desde tu asignación</div></div>
+        <div class="segm"><span>Auto</span><span class="on">Teleop</span><span>Final</span></div>
+        <div class="counter"><span class="pm">−</span><div class="mid"><div class="v">2</div><div class="label">TIPS</div></div><span class="pm plus">+</span></div>
+        <div class="counter"><span class="pm">−</span><div class="mid"><div class="v">7</div><div class="label">A la CELL</div></div><span class="pm plus">+</span></div>
+        <div class="toggles"><span class="tg on"><span class="chk">✓</span>Defendió</span><span class="tg"><span class="chk"></span>Se descompuso</span></div>
+        <div class="notice ok">Guardado en el teléfono · se sube al haber red</div>
+        <span class="btn cta" style="min-height:52px;font-size:var(--fs3)">Siguiente: Final</span>
+      </div>
+      <nav class="tabs" aria-label="Navegación de ejemplo">
+        <span class="tab"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Hoy</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Evento</span>
+        <span class="tab on"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>Capturar</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 20c0-2 1-4 4-4"/></svg>Equipos</span>
+        <span class="tab"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Más</span>
+      </nav>
+    </div><figcaption>Captura: por fases, con contadores de 56 px para usar con el pulgar. El partido y el equipo llegan precargados.</figcaption></figure>
+  </div>
+
+  <h2>Qué significa cada color en esta dirección</h2>
+  <p class="lede">Contraste medido contra la superficie de las tarjetas (mínimo para texto: 4.5:1). Rojo y azul tienen casi la misma luminosidad entre sí; por eso siempre van con su palabra y en su lado.</p>
+  <div class="legendBox mock" id="legendBox" data-dir="A" data-mode="dark">
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <h2>El mapa de la app en el celular</h2>
+  <p>Cinco pestañas pensadas para el día del evento, y un solo evento activo para toda la app: se cambia tocando el chip de arriba. El escritorio y la tablet conservan todas las herramientas.</p>
+  <div class="ia">
+    <div class="node"><h3>Hoy</h3>Tu próximo partido con probabilidad, tu día (récord y lugar), equipos que sigues y avisos.</div>
+    <div class="node"><h3>Evento</h3>Partidos (en vivo primero), Ranking y Alianzas. Tres pestañas en lugar de seis.</div>
+    <div class="node"><h3>Capturar</h3>Tu cola de partidos asignados. Un toque y el formulario abre con partido y equipo puestos.</div>
+    <div class="node"><h3>Equipos</h3>Buscador por número o nombre, seguidos, y el perfil con los 4 números de aliado.</div>
+    <div class="node"><h3>Más</h3><ul><li>Estrategia y picklist (completo en tablet)</li><li>Taller y Préstamos</li><li>Trading Card y Precisión del modelo</li><li>Cuenta, tema e idioma</li></ul></div>
+  </div>
+
+  <h2>Toques por tarea en el celular</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Tarea</th><th>Hoy</th><th>Propuesta</th></tr></thead>
+    <tbody>
+      <tr><td>Ver mi próximo partido y la probabilidad de ganar</td><td>0, bajo un mensaje vacío; sin probabilidad si el evento no está en vivo</td><td class="n">0 · arriba en Hoy</td></tr>
+      <tr><td>Capturar el scouting de un partido</td><td>4–5 toques y teclear el número de partido</td><td class="n">1 desde Hoy · 2 desde Capturar</td></tr>
+      <tr><td>Ver a un rival desde el evento</td><td>No se puede: 3+ toques por Equipos y se pierde el evento</td><td class="n">1 · tocar su número</td></tr>
+      <tr><td>Activar avisos de mi partido</td><td>Panel de cuenta</td><td class="n">1 · desde la tarjeta del partido</td></tr>
+      <tr><td>Picklist en la selección de alianzas</td><td>1, pero arrastrar no funciona en pantalla táctil</td><td class="n">Tablet: arrastre táctil · celular: lista para consultar</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<script>
+(function () {
+  var notes = {
+    A: "<b>Oro.</b> Grises cálidos y dorado para \"tú\" y la acción principal. Se lee bien de lejos y no compite con rojo ni azul. El aviso pasa a naranja para no confundirse con el dorado.",
+    B: "<b>Cancha.</b> Grises fríos y verde para \"tú\" y la acción principal. Fresco y deportivo; a cambio, la marca y el estado \"bien\" comparten la familia verde.",
+    C: "<b>Señal.</b> Casi todo en blanco y negro, como la dirección actual, y un verde lima solo para marcar lo tuyo y lo que está en vivo. La más sobria; los botones principales son negros o blancos."
+  };
+  var ratios = {
+    "A-light": [16.0, 6.1, 5.5, 9.6, 5.5, 8.4, 6.1, 5.5, 6.7], "A-dark": [16.8, 6.6, 10.3, 10.8, 6.4, 5.2, 8.9, 8.2, 7.0],
+    "B-light": [16.5, 6.5, 6.2, 5.2, 5.5, 8.4, 6.1, 5.5, 6.7], "B-dark": [16.8, 6.6, 9.2, 10.0, 6.4, 5.2, 8.9, 8.3, 7.0],
+    "C-light": [16.8, 6.5, 6.7, 14.7, 5.5, 8.4, 6.1, 5.5, 6.7], "C-dark": [17.7, 6.5, 14.2, 14.7, 6.6, 5.4, 9.3, 8.5, 7.2]
+  };
+  var rows = [
+    ["--tx", "Texto", "todo lo que se lee"], ["--mu", "Texto secundario", "etiquetas y detalles"],
+    ["--you-tx", "Marca: \"tú\"", "tu equipo, tu partido, pestaña activa"], ["--cta", "Acción principal", "un botón por pantalla"],
+    ["--red", "Alianza roja", "solo alianzas, con la palabra ROJO"], ["--blue", "Alianza azul", "solo alianzas, con la palabra AZUL"],
+    ["--ok", "Bien", "guardado, ganó, sale y se estaciona"], ["--warn", "Aviso", "sin red, datos viejos"], ["--err", "Error", "algo falló; siempre con una acción"]
+  ];
+  var state = { dir: "A", mode: "dark" };
+  try { var s = JSON.parse(localStorage.getItem("pride-color-proto") || "{}"); if (s.dir) state.dir = s.dir; if (s.mode) state.mode = s.mode; } catch (e) {}
+  function render() {
+    document.querySelectorAll(".mock").forEach(function (el) { el.setAttribute("data-dir", state.dir); el.setAttribute("data-mode", state.mode); });
+    document.querySelectorAll("#dirSeg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.dir === state.dir)); });
+    document.querySelectorAll("#modeSeg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode)); });
+    document.getElementById("dirNote").innerHTML = notes[state.dir];
+    var r = ratios[state.dir + "-" + state.mode];
+    document.getElementById("legend").innerHTML = rows.map(function (row, i) {
+      var label = i === 3 ? (state.dir === "C" ? "botón principal" : "texto sobre el botón " + r[3] + ":1") : r[i] + ":1";
+      if (i === 3) label = "texto encima " + r[3] + ":1";
+      return '<div class="lg"><span class="s" style="background:var(' + row[0] + ')"></span><div><b>' + row[1] + '</b><span>' + row[2] + '</span></div><span class="r">' + label + '</span></div>';
+    }).join("") + '<div class="lg"><span class="s" style="background:var(--red-fill)"></span><div><b>Relleno rojo / azul</b><span>barras y bloques de alianza</span></div><span class="r">blanco 5.7 / 7.8:1</span></div>';
+    try { localStorage.setItem("pride-color-proto", JSON.stringify(state)); } catch (e) {}
+  }
+  document.getElementById("dirSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { state.dir = b.dataset.dir; render(); } });
+  document.getElementById("modeSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { state.mode = b.dataset.mode; render(); } });
+  render();
+})();
+</script>

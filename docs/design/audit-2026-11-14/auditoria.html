@@ -1,0 +1,273 @@
+<title>Auditoría de diseño PRIDE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one reading column; screenshots in cards with numbered highlighter marks; notes beside on wide screens, below on phones. */
+:root {
+  --bg: #f4f4f1; --surface: #ffffff; --ink: #16171a; --muted: #5f6168; --line: #dedfda;
+  --mark: #f2b705; --mark-ink: #16171a; --ok: #1f8a4c; --bad: #b4232c;
+  --red: #d6303a; --blue: #2457d6;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-num: "DIN Alternate", Bahnschrift, "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e0f11; --surface: #17181b; --ink: #ececea; --muted: #a2a4a9; --line: #2a2c30;
+  --mark: #ffc928; --mark-ink: #16171a; --ok: #45c47c; --bad: #ff6b72; --red: #ff4d57; --blue: #4d7dff; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e0f11; --surface: #17181b; --ink: #ececea; --muted: #a2a4a9; --line: #2a2c30;
+  --mark: #ffc928; --mark-ink: #16171a; --ok: #45c47c; --bad: #ff6b72; --red: #ff4d57; --blue: #4d7dff; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; margin: 0 }
+.wrap { max-width: 980px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px }
+h1 { font-size: 28px; line-height: 1.15; margin: 0 0 6px; text-wrap: balance }
+h2 { font-size: 20px; margin: 44px 0 10px; text-wrap: balance }
+h3 { font-size: 16px; margin: 0 0 6px }
+p { margin: 0 0 10px; max-width: 68ch }
+.lede { color: var(--muted); max-width: 68ch }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums }
+.score { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; margin: 20px 0 8px }
+.score .big { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; min-width: 150px }
+.score .big b { font-family: var(--font-num); font-size: 44px; line-height: 1; display: block }
+.score .verdict { flex: 1 1 280px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--mark); border-radius: 10px; padding: 14px 18px }
+table { border-collapse: collapse; width: 100%; font-size: 14px }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600 }
+tr:last-child td { border-bottom: 0 }
+.pips { display: inline-flex; gap: 3px; vertical-align: middle }
+.pips i { width: 10px; height: 10px; border-radius: 2px; background: var(--line); display: block }
+.pips i.on { background: var(--ink) }
+.bars { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px }
+.bar { display: grid; grid-template-columns: 150px 1fr 48px; gap: 10px; align-items: center; font-size: 14px }
+.bar .track { height: 12px; background: var(--bg); border-radius: 3px; overflow: hidden }
+.bar .fill { height: 100%; background: var(--muted) }
+.bar .fill.blue { background: var(--blue) } .bar .fill.red { background: var(--red) }
+.bar .n { text-align: right; font-family: var(--font-num) }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 }
+.sw { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px }
+.sw span { width: 22px; height: 22px; border-radius: 4px; display: block }
+.screens { display: grid; gap: 20px }
+.screen { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px }
+@media (max-width: 640px) { .screen { grid-template-columns: minmax(0, 1fr) } .shot { max-width: 300px; margin: 0 auto } .bar { grid-template-columns: 110px 1fr 40px } }
+.shot { position: relative; width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); align-self: start }
+.shot img { display: block; width: 100%; height: auto }
+.m { position: absolute; border: 2px solid var(--mark); border-radius: 4px; box-shadow: 0 0 0 1px rgba(0,0,0,.45) }
+.m.ok { border-style: dashed; border-color: var(--ok) }
+.m b { position: absolute; top: -10px; left: -10px; width: 20px; height: 20px; border-radius: 50%; background: var(--mark); color: var(--mark-ink); font: 700 12px/20px var(--font-ui); text-align: center; box-shadow: 0 0 0 1px rgba(0,0,0,.45) }
+.m.ok b { background: var(--ok); color: #fff }
+ol.notes { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; counter-reset: n }
+ol.notes li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; font-size: 14px; min-width: 0 }
+ol.notes li::before { counter-increment: n; content: counter(n); width: 20px; height: 20px; border-radius: 50%; background: var(--mark); color: var(--mark-ink); font: 700 12px/20px var(--font-ui); text-align: center }
+ol.notes li.ok::before { background: var(--ok); color: #fff }
+.tag { display: inline-block; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; margin-left: 6px; color: var(--muted); vertical-align: 1px }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0 }
+.card ul { margin: 6px 0 0; padding-left: 18px }
+.card li { margin-bottom: 4px }
+.tablets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px }
+.tablets figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px }
+.tablets img { width: 100%; height: auto; border-radius: 6px; display: block }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 6px }
+code { font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); margin: 6px 0 14px }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border: 2px solid var(--mark); border-radius: 3px; margin-right: 6px; vertical-align: -2px }
+.legend span.ok::before { border-style: dashed; border-color: var(--ok) }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">PRIDE · rama etapa1/foundations · 14 de noviembre de 2026</div>
+  <h1>Auditoría de diseño móvil</h1>
+  <p class="lede">Las 10 pantallas principales, en celular (390 px) y tablet (820 px), calificadas con los 10 principios de Dieter Rams. Cada número se midió en la app real o en el código; los informes completos están en <code>docs/design/audit-2026-11-14/</code>.</p>
+
+  <div class="score">
+    <div class="big"><span class="eyebrow">Calificación</span><b class="num">9/30</b></div>
+    <div class="verdict">
+      <h3>Veredicto: rediseñar la capa de interfaz</h3>
+      <p style="margin:0">Se rehacen la navegación móvil, los componentes base y el sistema de color. Los algoritmos, los datos, el modo sin red y los avisos funcionan y se quedan.</p>
+    </div>
+  </div>
+
+  <h2>Calificación por principio</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Principio</th><th>Nota</th><th>Lo que la bajó</th></tr></thead>
+    <tbody>
+      <tr><td>Estético</td><td><span class="pips"><i></i><i></i><i></i></span> <span class="num">0</span></td><td>Rojo y azul con 6+ significados cada uno; 12 tamaños de letra; 147 tarjetas hechas a mano; 5 estilos de título; 4 escalas de semáforo.</td></tr>
+      <tr><td>Útil</td><td><span class="pips"><i class="on"></i><i></i><i></i></span> <span class="num">1</span></td><td>Desde un evento no se abre el perfil de un equipo. Capturar un partido toma 4–5 toques y el número se teclea. Hoy abre con un mensaje vacío.</td></tr>
+      <tr><td>Comprensible</td><td><span class="pips"><i class="on"></i><i></i><i></i></span> <span class="num">1</span></td><td>OPR, RS, σ, Brier sin explicación al tocar. "Oracle" nombra 3 cosas. La pantalla Evento mezcla inglés y español.</td></tr>
+      <tr><td>Discreto</td><td><span class="pips"><i class="on"></i><i></i><i></i></span> <span class="num">1</span></td><td>Barra superior + barra inferior + botón de chat + banner de instalación tapan contenido en 5 pantallas.</td></tr>
+      <tr><td>Honesto</td><td><span class="pips"><i class="on"></i><i></i><i></i></span> <span class="num">1</span></td><td>"Predicción de alta precisión" con solo 4 capturas; un "OPR" que es el promedio de puntos; "proyección lineal" que es Monte Carlo; "Acceso exclusivo" sin candado.</td></tr>
+      <tr><td>Minucioso</td><td><span class="pips"><i class="on"></i><i></i><i></i></span> <span class="num">1</span></td><td>La mayoría de los botones mide menos de 44 px; casi no hay skeletons; el error de evento no ofrece ninguna salida.</td></tr>
+      <tr><td>Lo menos posible</td><td><span class="pips"><i class="on"></i><i></i><i></i></span> <span class="num">1</span></td><td>5 selectores de evento, 3 campos para seguir equipo, 6 pestañas más submodos.</td></tr>
+      <tr><td>Innovador</td><td><span class="pips"><i class="on"></i><i></i><i></i></span> <span class="num">1</span></td><td>Lo único de PRIDE (scouting federado, forma en playoffs) no tiene forma propia: parece un dashboard genérico.</td></tr>
+      <tr><td>Duradero</td><td><span class="pips"><i class="on"></i><i></i><i></i></span> <span class="num">1</span></td><td>Brillos difusos animados, hero con degradado, tarjetas muy redondeadas.</td></tr>
+      <tr><td>Ecológico</td><td><span class="pips"><i class="on"></i><i></i><i></i></span> <span class="num">1</span></td><td>Scouting carga 583 KB de JS; una animación infinita ignora "reducir movimiento"; la app no sigue el tema del sistema.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>El color: el problema está en la raíz</h2>
+  <p>En <code>app/globals.css</code> el color de los botones, enlaces y pestañas (<code>secondary</code>) es exactamente el azul de alianza, y el color de error (<code>danger</code>) es exactamente el rojo de alianza. Por eso el rojo y el azul aparecen por toda la app con significados que no son "alianza".</p>
+  <div class="swatches">
+    <div class="sw"><span style="background:var(--blue)"></span>azul = alianza azul = botón = enlace = empate = "Disponibles"</div>
+    <div class="sw"><span style="background:var(--red)"></span>rojo = alianza roja = error = derrota = "EN VIVO" = no elegir</div>
+  </div>
+  <div class="bars" role="img" aria-label="Usos en el código por token de color">
+    <div class="eyebrow" style="margin:0">Usos en el código, por token</div>
+    <div class="bar"><span>secondary (azul)</span><div class="track"><div class="fill blue" style="width:100%"></div></div><span class="n">283</span></div>
+    <div class="bar"><span>danger (rojo)</span><div class="track"><div class="fill red" style="width:86.6%"></div></div><span class="n">245</span></div>
+    <div class="bar"><span>warning</span><div class="track"><div class="fill" style="width:64%"></div></div><span class="n">181</span></div>
+    <div class="bar"><span>success</span><div class="track"><div class="fill" style="width:60.1%"></div></div><span class="n">170</span></div>
+    <div class="bar"><span>accent</span><div class="track"><div class="fill" style="width:3.5%"></div></div><span class="n">10</span></div>
+    <div class="bar"><span>tokens de alianza</span><div class="track"><div class="fill" style="width:2.8%"></div></div><span class="n">8</span></div>
+  </div>
+  <p style="margin-top:10px">Además, el rojo y el azul de alianza tienen casi la misma luminosidad (contraste entre ellos de 1.13:1 en oscuro), así que solo se distinguen por el tono: un daltónico no los separa. Y en tema claro hay texto negro sobre fondo rojo porque <code>text-white</code> está forzado con <code>!important</code>.</p>
+
+  <h2>Pantalla por pantalla</h2>
+  <div class="legend"><span>problema</span><span class="ok">uso correcto (se conserva)</span></div>
+  <div class="screens">
+
+    <section class="screen">
+      <div class="shot"><img src="shots/phone-dark-home.png" alt="Hoy en celular, tema oscuro" width="390" height="844">
+        <div class="m" style="left:2%;top:18%;width:96%;height:7.5%"><b>1</b></div>
+        <div class="m ok" style="left:4%;top:45%;width:52%;height:4.5%"><b>2</b></div>
+        <div class="m" style="left:2%;top:73%;width:76%;height:6%"><b>3</b></div>
+        <div class="m" style="left:4%;top:79.5%;width:72%;height:12%"><b>4</b></div>
+        <div class="m" style="left:81%;top:84%;width:15%;height:8%"><b>5</b></div>
+      </div>
+      <div><h3>Hoy <span class="tag">/</span></h3>
+        <ol class="notes">
+          <li>Lo primero que se lee es un mensaje vacío ("No events registered…"). El próximo partido y su probabilidad deberían ocupar este lugar.</li>
+          <li class="ok">"Last Final 205–122" en rojo y azul: aquí el color sí significa alianza. Es el uso correcto.</li>
+          <li>Tercer campo distinto para seguir un equipo (hay otros dos en la app).</li>
+          <li>Banner de instalación de 99 px fijo encima del contenido, en 5 pantallas.</li>
+          <li>Botón de chat azul fijo en las 10 pantallas: usa el azul de alianza como color de marca y mide 56 px sobre el contenido.</li>
+        </ol>
+        <p style="margin-top:10px;color:var(--muted);font-size:14px">20 de los 27 controles de esta pantalla miden menos de 44 px. La interfaz sale en inglés aunque el usuario es mexicano: el idioma por defecto es inglés.</p>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="shot"><img src="shots/phone-dark-event.png" alt="Evento en celular, tema oscuro" width="390" height="844">
+        <div class="m" style="left:3%;top:25%;width:94%;height:19.5%"><b>1</b></div>
+        <div class="m" style="left:6%;top:46%;width:16%;height:7.5%"><b>2</b></div>
+        <div class="m" style="left:2%;top:7%;width:96%;height:14%"><b>3</b></div>
+      </div>
+      <div><h3>Evento <span class="tag">/event/USMIRHQ</span></h3>
+        <ol class="notes">
+          <li>La pantalla abre con tarjetas de promedios. El partido en vivo o el próximo no aparece sin bajar varias pantallas (la página completa mide 9,126 px).</li>
+          <li>Icono decorativo pintado con el azul de alianza: el azul aquí no significa nada.</li>
+          <li>Títulos y textos de esta pantalla no pasan por las traducciones: mezclan inglés ("Avg Score", "Matches") y español.</li>
+        </ol>
+        <p style="margin-top:10px;color:var(--muted);font-size:14px">Más abajo: 6 pestañas más PRO, tablas de partidos de 900 px de ancho, ayudas de columna que solo aparecen con el mouse, y tocar un equipo filtra los partidos en lugar de abrir su perfil.</p>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="shot"><img src="shots/phone-dark-team.png" alt="Equipo 30311 en celular, tema oscuro" width="390" height="844">
+        <div class="m" style="left:3%;top:9%;width:94%;height:26%"><b>1</b></div>
+        <div class="m" style="left:6%;top:59%;width:38%;height:5%"><b>2</b></div>
+        <div class="m" style="left:4%;top:73%;width:92%;height:7%"><b>3</b></div>
+      </div>
+      <div><h3>Equipo <span class="tag">/team/30311</span></h3>
+        <ol class="notes">
+          <li>Hero con degradado y brillo animado que ocupa un tercio de la pantalla (la animación ignora "reducir movimiento").</li>
+          <li>Enlace pintado con el azul de alianza.</li>
+          <li>El nombre legal completo del patrocinio en letra grande antes de cualquier dato del robot.</li>
+        </ol>
+        <p style="margin-top:10px;color:var(--muted);font-size:14px">161 textos de 9 a 11 px. Los chips "#2/#5/#7/#8" tienen contraste de 3.1–3.4:1 (mínimo 4.5:1). Cifras negativas pintadas con el rojo de alianza.</p>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="shot"><img src="shots/phone-dark-events.png" alt="Eventos en celular, tema oscuro" width="390" height="844">
+        <div class="m" style="left:28%;top:24.5%;width:10%;height:7%"><b>1</b></div>
+        <div class="m" style="left:2%;top:38%;width:96%;height:52%"><b>2</b></div>
+      </div>
+      <div><h3>Eventos <span class="tag">/events</span></h3>
+        <ol class="notes">
+          <li>Un contador "0" pintado de azul: otra vez el azul de alianza como decoración.</li>
+          <li>Filtros de escritorio (fuente de datos, temporada, región, tipo, fechas) ocupando toda la primera pantalla del celular. La lista de eventos queda debajo.</li>
+        </ol>
+        <p style="margin-top:10px;color:var(--muted);font-size:14px">5 de los campos no tienen etiqueta accesible. Encabezados en español dentro de una interfaz en inglés.</p>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="shot"><img src="shots/phone-dark-scouting.png" alt="Scouting en celular, tema oscuro" width="390" height="844">
+        <div class="m" style="left:7%;top:14.5%;width:86%;height:6%"><b>1</b></div>
+        <div class="m" style="left:7%;top:38.5%;width:86%;height:6%"><b>2</b></div>
+      </div>
+      <div><h3>Scouting <span class="tag">/scouting</span></h3>
+        <ol class="notes">
+          <li>El evento por defecto es "Regional CDMX — Tec de Monterrey", aunque el equipo seguido (30311) compite en San Pedro. Cada pantalla tiene su propio selector de evento (hay 5).</li>
+          <li>Para capturar hay que buscar el equipo a mano. Con sesión: equipo → pestaña Match (la de inicio es Pit) → "Nuevo registro" → teclear el número de partido, que empieza en 1.</li>
+        </ol>
+        <p style="margin-top:10px;color:var(--muted);font-size:14px">El formulario de BIOBUZZ tiene unos 47 controles en una sola página.</p>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="shot"><img src="shots/phone-dark-strategy.png" alt="Estrategia en celular, tema oscuro" width="390" height="844">
+        <div class="m" style="left:3%;top:24.5%;width:94%;height:5%"><b>1</b></div>
+        <div class="m" style="left:3%;top:33%;width:96%;height:6.5%"><b>2</b></div>
+        <div class="m" style="left:3%;top:42%;width:94%;height:13%"><b>3</b></div>
+      </div>
+      <div><h3>Estrategia <span class="tag">/strategy</span></h3>
+        <ol class="notes">
+          <li>Otro selector de evento, también en Regional CDMX.</li>
+          <li>6 pestañas en una fila que se corta: "Match" queda a medias en el borde.</li>
+          <li>Recuadro de ayuda en azul de alianza. Promete "Weights" y reordenar arrastrando, pero en pantallas táctiles el arrastre no funciona.</li>
+        </ol>
+        <p style="margin-top:10px;color:var(--muted);font-size:14px">Fue la pantalla más lenta en mostrar su contenido principal: 2.75 s en un celular simulado (una sola medición).</p>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="shot"><img src="shots/phone-dark-state-badevent.png" alt="Error de evento no encontrado" width="390" height="844">
+        <div class="m" style="left:4%;top:27.5%;width:92%;height:17.5%"><b>1</b></div>
+      </div>
+      <div><h3>Estado de error <span class="tag">/event/ZZZZZZ</span></h3>
+        <ol class="notes">
+          <li>Título en inglés y explicación en español. No hay ningún botón para salir (buscar el evento, volver a Hoy), y la página responde 200 en lugar de 404.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="screen">
+      <div class="shot"><img src="shots/phone-light-event.png" alt="Evento en celular, tema claro" width="390" height="844">
+        <div class="m" style="left:4%;top:55%;width:16%;height:7.5%"><b>1</b></div>
+        <div class="m" style="left:2%;top:30%;width:96%;height:21%"><b>2</b></div>
+      </div>
+      <div><h3>Evento en tema claro</h3>
+        <ol class="notes">
+          <li>El mismo icono, ahora con degradado azul.</li>
+          <li>Tarjetas blancas muy redondeadas con sombra: cada bloque parece un objeto aparte, y la jerarquía se aplana.</li>
+        </ol>
+        <p style="margin-top:10px;color:var(--muted);font-size:14px">La app siempre abre en oscuro; el tema claro solo llega con el botón manual. Las 5 clases <code>dark:</code> del código siguen al sistema operativo, no a ese botón.</p>
+      </div>
+    </section>
+  </div>
+
+  <h2>Tablet (820 px)</h2>
+  <p>Riel fijo de 224 px a la izquierda y una columna de contenido de 596 px. Equipo usa rejillas de 2 a 4 columnas; Estrategia no aprovecha el ancho.</p>
+  <div class="tablets">
+    <figure><img src="shots/tablet-dark-home.png" alt="Hoy en tablet" width="820" height="1180" loading="lazy"><figcaption>Hoy</figcaption></figure>
+    <figure><img src="shots/tablet-dark-event.png" alt="Evento en tablet" width="820" height="1180" loading="lazy"><figcaption>Evento</figcaption></figure>
+    <figure><img src="shots/tablet-dark-team.png" alt="Equipo en tablet" width="820" height="1180" loading="lazy"><figcaption>Equipo</figcaption></figure>
+    <figure><img src="shots/tablet-dark-strategy.png" alt="Estrategia en tablet" width="820" height="1180" loading="lazy"><figcaption>Estrategia</figcaption></figure>
+  </div>
+
+  <h2>Lo que sí funciona y se queda</h2>
+  <div class="grid2">
+    <div class="card"><h3>Rendimiento y sin red</h3><ul><li>Sin fuentes descargadas, CSS de 18 KB, cero saltos de diseño.</li><li>El service worker recarga Hoy y Evento sin conexión.</li></ul></div>
+    <div class="card"><h3>Base de navegación</h3><ul><li>Barra inferior en celular y riel en escritorio, con la sección actual marcada.</li><li>Anillo de foco visible en todos los controles probados.</li><li>Sin scroll horizontal en ninguna pantalla.</li></ul></div>
+    <div class="card"><h3>Textos y honestidad</h3><ul><li>1,607 textos con versión en español e inglés.</li><li>Ningún patrón engañoso: sin precios ocultos ni presión.</li></ul></div>
+  </div>
+
+  <h2>Siguiente paso</h2>
+  <div class="grid2">
+    <div class="card"><h3>1 · Sistema de color</h3><p style="margin:0">Prototipos con un color de marca que no sea rojo ni azul, grises en 3 niveles, estados propios y rojo/azul solo para alianzas, siempre con etiqueta.</p></div>
+    <div class="card"><h3>2 · Mapa móvil</h3><p style="margin:0">La app del celular alrededor de 4 tareas del evento, cada una en 2 toques o menos, con un solo evento activo para toda la app.</p></div>
+    <div class="card"><h3>3 · Plan por etapas</h3><p style="margin:0">Tokens, luego navegación, luego Hoy → Evento → Captura → Equipo → Estrategia en tablet, midiendo rendimiento en cada paso.</p></div>
+  </div>
+</div>

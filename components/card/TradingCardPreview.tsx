@@ -83,7 +83,7 @@ export default function TradingCardPreview({
                     )}
                 </div>
                 {measured?.eventName && (
-                    <div className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                         {measured.eventName}
                     </div>
                 )}
@@ -105,7 +105,7 @@ export default function TradingCardPreview({
 
             {/* Measured strip (ground truth) */}
             <div className="mx-5 mb-4 rounded-2xl border border-secondary/25 bg-secondary/5 p-3">
-                <div className="text-[9px] font-black uppercase tracking-widest text-secondary mb-2">{t("measured")}</div>
+                <div className="text-xs font-black uppercase tracking-widest text-secondary mb-2">{t("measured")}</div>
                 {measured ? (
                     <div className="grid grid-cols-3 gap-2 text-center">
                         <MiniStat label={t("rank")} value={measured.rank != null ? `#${measured.rank}` : t("none")} />
@@ -116,14 +116,14 @@ export default function TradingCardPreview({
                         <MiniStat label={t("avgScore")} value={measured.avgScore != null ? String(measured.avgScore) : t("none")} />
                     </div>
                 ) : (
-                    <div className="text-[11px] text-muted-foreground italic">{t("noMeasured")}</div>
+                    <div className="text-xs text-muted-foreground italic">{t("noMeasured")}</div>
                 )}
             </div>
 
             {/* Claimed typical match, priced by the season's score() (#101) */}
             {typical && (
                 <div className="mx-5 mb-4">
-                    <div className="text-[9px] font-black uppercase tracking-widest text-primary mb-2">{t("typicalMatch")}</div>
+                    <div className="text-xs font-black uppercase tracking-widest text-primary mb-2">{t("typicalMatch")}</div>
                     <div className="grid grid-cols-3 gap-2">
                         <PhaseCell label={t("auto")} p={{ low: typical.auto, high: typical.auto }} />
                         <PhaseCell label={t("teleop")} p={{ low: typical.teleop, high: typical.teleop }} />
@@ -134,14 +134,14 @@ export default function TradingCardPreview({
             {answerChips.length > 0 && (
                 <div className="mx-5 mb-4 flex flex-wrap gap-1.5">
                     {answerChips.map(c => (
-                        <span key={c} className="rounded-full bg-primary/10 border border-primary/25 px-2.5 py-1 text-[10px] font-bold text-primary">{c}</span>
+                        <span key={c} className="rounded-full bg-primary/10 border border-primary/25 px-2.5 py-1 text-xs font-bold text-primary">{c}</span>
                     ))}
                 </div>
             )}
 
             {/* Self-reported points */}
             <div className="mx-5 mb-4">
-                <div className="text-[9px] font-black uppercase tracking-widest text-primary mb-2">{t("claimed")}</div>
+                <div className="text-xs font-black uppercase tracking-widest text-primary mb-2">{t("claimed")}</div>
                 <div className="grid grid-cols-3 gap-2">
                     <PhaseCell label={t("auto")} p={points.auto} />
                     <PhaseCell label={t("teleop")} p={points.teleop} />
@@ -153,12 +153,12 @@ export default function TradingCardPreview({
             {!answers && !profile.general && (capChips.length > 0 || cap.drivetrain) && (
                 <div className="mx-5 mb-4 flex flex-wrap gap-1.5">
                     {cap.drivetrain && (
-                        <span className="rounded-full bg-muted border border-border px-2.5 py-1 text-[10px] font-bold text-foreground">
+                        <span className="rounded-full bg-muted border border-border px-2.5 py-1 text-xs font-bold text-foreground">
                             {cap.drivetrain}
                         </span>
                     )}
                     {capChips.map(c => (
-                        <span key={c.label} className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/25 px-2.5 py-1 text-[10px] font-bold text-primary">
+                        <span key={c.label} className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/25 px-2.5 py-1 text-xs font-bold text-primary">
                             <c.icon size={11} /> {c.label}
                             {c.label === t("canClimb") && cap.climbLevel ? ` · ${cap.climbLevel}` : ""}
                         </span>
@@ -180,7 +180,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     return (
         <div>
             <div className="text-sm font-black text-foreground tabular-nums">{value}</div>
-            <div className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5">{label}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-0.5">{label}</div>
         </div>
     );
 }
@@ -192,7 +192,7 @@ function PhaseCell({ label, p }: { label: string; p: { low: number; high: number
             <div className="text-sm font-black text-foreground tabular-nums">
                 {empty ? "—" : p.low === p.high ? p.high : `${p.low}–${p.high}`}
             </div>
-            <div className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5">{label}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-0.5">{label}</div>
         </div>
     );
 }

@@ -1,0 +1,1086 @@
+{
+ "/": {
+  "route": "/",
+  "perf": {
+   "ttfb": 22.299999952316284,
+   "fcp": 540,
+   "lcp": 540,
+   "cls": 0,
+   "tbt": 129,
+   "loadEnd": 2551.9000000953674,
+   "lastLongTaskEnd": 2514,
+   "longTasks": 2,
+   "jsDecoded": 1256838,
+   "jsEncoded": 392564,
+   "jsCount": 27
+  },
+  "reqCount": 38,
+  "byType": {
+   "Document": {
+    "n": 1,
+    "kb": 39.59375
+   },
+   "Stylesheet": {
+    "n": 1,
+    "kb": 17.974609375
+   },
+   "Script": {
+    "n": 27,
+    "kb": 420.2548828125
+   },
+   "Other": {
+    "n": 1,
+    "kb": 1.8642578125
+   },
+   "Fetch": {
+    "n": 8,
+    "kb": 2.40625
+   }
+  },
+  "totalKB": 482.09375,
+  "fontKB": 0,
+  "imageKB": 0,
+  "fontFiles": [],
+  "imageFiles": [],
+  "nonOk": [],
+  "anim_no-preference": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 900
+  },
+  "anim_reduce": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 900
+  },
+  "theme_dark": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  },
+  "theme_light": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  }
+ },
+ "/events": {
+  "route": "/events",
+  "perf": {
+   "ttfb": 51.89999985694885,
+   "fcp": 608,
+   "lcp": 972,
+   "cls": 0,
+   "tbt": 150,
+   "loadEnd": 2658.5999999046326,
+   "lastLongTaskEnd": 2647.399999856949,
+   "longTasks": 2,
+   "jsDecoded": 1266084,
+   "jsEncoded": 394557,
+   "jsCount": 30
+  },
+  "reqCount": 45,
+  "byType": {
+   "Document": {
+    "n": 1,
+    "kb": 71.6591796875
+   },
+   "Stylesheet": {
+    "n": 1,
+    "kb": 17.974609375
+   },
+   "Script": {
+    "n": 30,
+    "kb": 426.2841796875
+   },
+   "Image": {
+    "n": 1,
+    "kb": 0
+   },
+   "Other": {
+    "n": 1,
+    "kb": 1.8642578125
+   },
+   "Fetch": {
+    "n": 11,
+    "kb": 0
+   }
+  },
+  "totalKB": 517.7822265625,
+  "fontKB": 0,
+  "imageKB": 0,
+  "fontFiles": [],
+  "imageFiles": [
+   "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNSIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJXaW5kb3dUZXh0IiBkPSJNMjAgM2gtMVYxaC0ydjJIN1YxSDV2Mkg0Yy0xLjEgMC0yIC45LTIgMnYxNmMwIDEuMS45IDIgMiAyaDE2YzEuMSAwIDItLjkgMi0yVjVjMC0xLjEtLjktMi0yLTJ6bTAgMThINFY4aDE2djEzeiIvPjxwYXRoIGZpbGw9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiLz48L3N2Zz4="
+  ],
+  "nonOk": [],
+  "anim_no-preference": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 3868
+  },
+  "anim_reduce": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 3868
+  },
+  "theme_dark": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  },
+  "theme_light": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  }
+ },
+ "/event/USMIRHQ": {
+  "route": "/event/USMIRHQ",
+  "perf": {
+   "ttfb": 18.600000143051147,
+   "fcp": 508,
+   "lcp": 924,
+   "cls": 0,
+   "tbt": 170,
+   "loadEnd": 3161,
+   "lastLongTaskEnd": 2588.100000143051,
+   "longTasks": 3,
+   "jsDecoded": 1468998,
+   "jsEncoded": 450587,
+   "jsCount": 30
+  },
+  "reqCount": 43,
+  "byType": {
+   "Document": {
+    "n": 1,
+    "kb": 57.6552734375
+   },
+   "Stylesheet": {
+    "n": 1,
+    "kb": 17.974609375
+   },
+   "Script": {
+    "n": 30,
+    "kb": 481.037109375
+   },
+   "Fetch": {
+    "n": 10,
+    "kb": 6.3212890625
+   },
+   "Other": {
+    "n": 1,
+    "kb": 1.8642578125
+   }
+  },
+  "totalKB": 564.8525390625,
+  "fontKB": 0,
+  "imageKB": 0,
+  "fontFiles": [],
+  "imageFiles": [],
+  "nonOk": [],
+  "anim_no-preference": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 9126
+  },
+  "anim_reduce": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 9126
+  },
+  "theme_dark": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  },
+  "theme_light": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  }
+ },
+ "/team/30311": {
+  "route": "/team/30311",
+  "perf": {
+   "ttfb": 30.40000009536743,
+   "fcp": 596,
+   "lcp": 1144,
+   "cls": 0,
+   "tbt": 152,
+   "loadEnd": 2663.2000000476837,
+   "lastLongTaskEnd": 2628.4000000953674,
+   "longTasks": 2,
+   "jsDecoded": 1276031,
+   "jsEncoded": 398712,
+   "jsCount": 27
+  },
+  "reqCount": 40,
+  "byType": {
+   "Document": {
+    "n": 1,
+    "kb": 77.1416015625
+   },
+   "Stylesheet": {
+    "n": 1,
+    "kb": 17.974609375
+   },
+   "Script": {
+    "n": 27,
+    "kb": 426.2646484375
+   },
+   "Other": {
+    "n": 1,
+    "kb": 1.8642578125
+   },
+   "Fetch": {
+    "n": 10,
+    "kb": 6.3193359375
+   }
+  },
+  "totalKB": 529.564453125,
+  "fontKB": 0,
+  "imageKB": 0,
+  "fontFiles": [],
+  "imageFiles": [],
+  "nonOk": [],
+  "anim_no-preference": {
+   "total": 1,
+   "running": 1,
+   "infinite": 1,
+   "infDetail": [
+    {
+     "n": "pulse",
+     "t": "CSSAnimation",
+     "state": "running",
+     "iter": null,
+     "el": "DIV.absolute top-10 right-10 w-64 h-64 bg-accent/20 ro"
+    }
+   ],
+   "anims": [
+    {
+     "n": "pulse",
+     "t": "CSSAnimation",
+     "state": "running",
+     "iter": null,
+     "el": "DIV.absolute top-10 right-10 w-64 h-64 bg-accent/20 ro"
+    }
+   ],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 15162
+  },
+  "anim_reduce": {
+   "total": 1,
+   "running": 1,
+   "infinite": 1,
+   "infDetail": [
+    {
+     "n": "pulse",
+     "t": "CSSAnimation",
+     "state": "running",
+     "iter": null,
+     "el": "DIV.absolute top-10 right-10 w-64 h-64 bg-accent/20 ro"
+    }
+   ],
+   "anims": [
+    {
+     "n": "pulse",
+     "t": "CSSAnimation",
+     "state": "running",
+     "iter": null,
+     "el": "DIV.absolute top-10 right-10 w-64 h-64 bg-accent/20 ro"
+    }
+   ],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 15162
+  },
+  "theme_dark": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  },
+  "theme_light": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  }
+ },
+ "/strategy": {
+  "route": "/strategy",
+  "perf": {
+   "ttfb": 20.5,
+   "fcp": 524,
+   "lcp": 2752,
+   "cls": 0,
+   "tbt": 165,
+   "loadEnd": 3271.2999999523163,
+   "lastLongTaskEnd": 2558.0999999046326,
+   "longTasks": 2,
+   "jsDecoded": 1439028,
+   "jsEncoded": 453736,
+   "jsCount": 33
+  },
+  "reqCount": 44,
+  "byType": {
+   "Document": {
+    "n": 1,
+    "kb": 39.8359375
+   },
+   "Stylesheet": {
+    "n": 1,
+    "kb": 17.974609375
+   },
+   "Script": {
+    "n": 33,
+    "kb": 488.173828125
+   },
+   "Fetch": {
+    "n": 8,
+    "kb": 0
+   },
+   "Other": {
+    "n": 1,
+    "kb": 1.8642578125
+   }
+  },
+  "totalKB": 547.8486328125,
+  "fontKB": 0,
+  "imageKB": 0,
+  "fontFiles": [],
+  "imageFiles": [],
+  "nonOk": [],
+  "anim_no-preference": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 900
+  },
+  "anim_reduce": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 900
+  },
+  "theme_dark": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  },
+  "theme_light": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  }
+ },
+ "/scouting": {
+  "route": "/scouting",
+  "perf": {
+   "ttfb": 22.399999856948853,
+   "fcp": 532,
+   "lcp": 860,
+   "cls": 0,
+   "tbt": 298,
+   "loadEnd": 3988.899999856949,
+   "lastLongTaskEnd": 3982.0999999046326,
+   "longTasks": 3,
+   "jsDecoded": 1978778,
+   "jsEncoded": 597480,
+   "jsCount": 34
+  },
+  "reqCount": 47,
+  "byType": {
+   "Document": {
+    "n": 1,
+    "kb": 39.943359375
+   },
+   "Stylesheet": {
+    "n": 1,
+    "kb": 17.974609375
+   },
+   "Script": {
+    "n": 34,
+    "kb": 630.02734375
+   },
+   "Fetch": {
+    "n": 10,
+    "kb": 0.44140625
+   },
+   "Other": {
+    "n": 1,
+    "kb": 1.8642578125
+   }
+  },
+  "totalKB": 690.2509765625,
+  "fontKB": 0,
+  "imageKB": 0,
+  "fontFiles": [],
+  "imageFiles": [],
+  "nonOk": [],
+  "anim_no-preference": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 956
+  },
+  "anim_reduce": {
+   "total": 0,
+   "running": 0,
+   "infinite": 0,
+   "infDetail": [],
+   "anims": [],
+   "ov": [
+    {
+     "tag": "SECTION",
+     "role": null,
+     "live": "polite",
+     "id": "",
+     "cls": "",
+     "text": "",
+     "vis": true
+    }
+   ],
+   "fixedEls": [
+    {
+     "tag": "HEADER",
+     "cls": "md:hidden sticky top-0 z-30 flex h-14 items-center",
+     "pos": "sticky",
+     "h": 56,
+     "text": "PRIDE"
+    },
+    {
+     "tag": "NAV",
+     "cls": "md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-",
+     "pos": "fixed",
+     "h": 57,
+     "text": "Today | Events | Teams | Scouting | Strategy"
+    },
+    {
+     "tag": "DIV",
+     "cls": "fixed bottom-[calc(var(--tabbar-h)+1rem)] right-4 ",
+     "pos": "fixed",
+     "h": 72,
+     "text": "Iron Lion AI | Strategic Advisor | Hi! I'm PRIDE's str"
+    },
+    {
+     "tag": "DIV",
+     "cls": "p-4 bg-muted border-b border-border flex justify-b",
+     "pos": "sticky",
+     "h": 61,
+     "text": "Iron Lion AI | Strategic Advisor"
+    }
+   ],
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "colorScheme": "normal",
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "scrollH": 956
+  },
+  "theme_dark": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  },
+  "theme_light": {
+   "htmlClass": "dark",
+   "dataTheme": null,
+   "bodyBg": "rgb(7, 8, 10)",
+   "bodyColor": "rgb(243, 244, 246)",
+   "metaTheme": "<meta name=\"theme-color\" content=\"#07080a\">",
+   "ls": []
+  }
+ },
+ "__sw": {
+  "/": {
+   "reg": {
+    "count": 1,
+    "scope": "http://localhost:3108/",
+    "active": true,
+    "ctrl": true
+   },
+   "off": {
+    "status": 200,
+    "title": "PRIDE — FTC Analytics by Iron Lion Robotics",
+    "bodyLen": 713,
+    "h1": "Follow your team",
+    "snippet": "PRIDE | Today | Events | Teams | Scouting | Strategy |  | SEASON 2026 · BIOBUZZ |  | Follow your team |  | Type your team number and PRIDE becomes your team's home: next match and it"
+   }
+  },
+  "/event/USMIRHQ": {
+   "reg": {
+    "count": 1,
+    "scope": "http://localhost:3108/",
+    "active": true,
+    "ctrl": true
+   },
+   "off": {
+    "status": 200,
+    "title": "PRIDE — FTC Analytics by Iron Lion Robotics",
+    "bodyLen": 2684,
+    "h1": "Rochester Qualifier",
+    "snippet": "PRIDE | Today | Events | Teams | Scouting | Strategy | SEASON 2026 | Rochester Qualifier | USMIRHQ | • Rochester High School | • Rochester Hills, |  | AVG SCORE |  | 74.2 |  | AVG AUTO |  | 24.5 |  | "
+   }
+  }
+ }
+}

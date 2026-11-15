@@ -220,7 +220,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
                             <Award className="text-warning" size={16} />
                             {t("scoutReliability")}
                         </h3>
-                        <p className="text-[10px] text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             {t("scoutReliabilityHint")}
                         </p>
                     </div>
@@ -229,7 +229,7 @@ export default function CalibrationDashboard({ initialEventCode }: CalibrationDa
                             <li key={s.scoutId} className="flex items-center justify-between px-4 py-2 text-sm">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <span className="text-foreground truncate">{s.displayName}</span>
-                                    <span className="text-[10px] text-muted-foreground">{t("obs", { count: s.matchesScouted })}</span>
+                                    <span className="text-xs text-muted-foreground">{t("obs", { count: s.matchesScouted })}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -284,12 +284,12 @@ function MetricCard({
     };
     return (
         <Card className={clsx("p-4", accentMap[accent])}>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <div className="text-xs uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1.5">
                 {icon}
                 {label}
             </div>
             <div className="text-2xl font-black font-mono text-foreground mt-1">{value}</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{sub}</div>
+            <div className="text-xs text-muted-foreground mt-0.5 leading-tight">{sub}</div>
         </Card>
     );
 }
@@ -317,7 +317,7 @@ function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
     return (
         <Card className="p-4 bg-muted/30 border-border">
             <h3 className="text-sm font-bold text-foreground mb-1">{t("diagramTitle")}</h3>
-            <p className="text-[10px] text-muted-foreground mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
                 {t("diagramHint")}
             </p>
             <div className="relative h-48 flex items-end gap-1 px-2 border-l border-b border-border">
@@ -343,14 +343,14 @@ function ReliabilityDiagram({ bins }: { bins: CalibrationSnapshot["bins"] }) {
                                     />
                                 )}
                             </div>
-                            <div className="text-[8px] text-muted-foreground font-mono">
+                            <div className="text-xs text-muted-foreground font-mono">
                                 {Math.round(b.binLow * 100)}
                             </div>
                         </div>
                     );
                 })}
             </div>
-            <div className="text-[10px] text-muted-foreground mt-2 flex items-center gap-3">
+            <div className="text-xs text-muted-foreground mt-2 flex items-center gap-3">
                 <span className="flex items-center gap-1">
                     <span className="w-3 h-2 bg-primary/40 rounded-sm" /> {t("empirical")}
                 </span>
@@ -391,10 +391,10 @@ function Explainer() {
             >
                 <HelpCircle size={12} />
                 {t("explainerTitle")}
-                <span className="ml-auto text-[10px]">{open ? "▼" : "▶"}</span>
+                <span className="ml-auto text-xs">{open ? "▼" : "▶"}</span>
             </button>
             {open && (
-                <div className="mt-3 space-y-2 text-[11px] text-muted-foreground leading-relaxed">
+                <div className="mt-3 space-y-2 text-xs text-muted-foreground leading-relaxed">
                     <p>
                         {t.rich("explainBrier", rich)}
                     </p>

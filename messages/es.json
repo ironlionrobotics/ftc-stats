@@ -306,7 +306,7 @@
     "noData": "Sin datos",
     "redAutoAdvantage": "Ventaja crítica: Alianza Roja domina en período Autónomo.",
     "blueAutoAdvantage": "Ventaja crítica: Alianza Azul tiene un mejor inicio autónomo.",
-    "highConfidence": "Predicción de alta precisión: Basada en abundantes datos de scouting.",
+    "highConfidence": "Con datos de scouting: los 4 robots tienen al menos 4 capturas.",
     "technicalTie": "Empate técnico: El match se decidirá por penalizaciones o endgame."
   },
   "AllianceUtils": {
@@ -717,7 +717,8 @@
     },
     "theme": {
       "light": "Claro",
-      "dark": "Oscuro"
+      "dark": "Oscuro",
+      "system": "Sistema"
     },
     "delete": {
       "open": "Eliminar mi cuenta",
@@ -763,8 +764,8 @@
     "tipSimBody": "Las predicciones combinan stats oficiales con scouting propio usando varianza inversa. La pill bajo cada equipo muestra cuántos scouts/orgs aportan el dato.",
     "tipBriefingTitle": "Hoja imprimible para drive coach",
     "tipBriefingBody": "Selecciona el match y las 4 alianzas. El briefing genera win probability, insights y un foco estratégico. <b>Imprimir</b> oculta toda la app y deja solo la hoja en formato carta.",
-    "tipRankingTitle": "Proyección lineal in-event",
-    "tipRankingBody": "Estima dónde terminarás en el ranking si mantienes tu RP/match actual. Útil para decidir si tirar un match buscando RPs vs. ir agresivo."
+    "tipRankingTitle": "Proyección del ranking final",
+    "tipRankingBody": "Simula 1,000 veces las qualys que faltan con la fuerza de cada equipo en este evento y muestra tu rango probable y tu probabilidad de ser capitán."
   },
   "Tip": {
     "dismiss": "No mostrar de nuevo"
@@ -1057,7 +1058,7 @@
     "bluePrediction": "Predicción Azul",
     "totalPoints": "Puntos estimados totales",
     "winProbability": "Probabilidad de Victoria",
-    "aiAnalysis": "Análisis del Predictor IA",
+    "aiAnalysis": "Análisis por reglas",
     "breakdown": "Desglose de Puntos Estimados",
     "rowAuto": "Período Autónomo",
     "rowTeleop": "TeleOp (Anotación)",
@@ -1105,7 +1106,7 @@
     "signIn": "Inicia sesión para usar el picklist editor.",
     "loading": "Cargando picklist...",
     "title": "Picklist Editor",
-    "hint": "Arrastra para reordenar · Click derecho/long-press para mover entre listas · Cambios sincronizan en vivo con tu equipo",
+    "hint": "Arrastra para reordenar · Usa los botones de cada equipo para moverlo entre listas · Los cambios se sincronizan en vivo con tu equipo",
     "teamLine": "Equipo #{org} · {event}",
     "weightsTitle": "Ajustar pesos del ranking",
     "weights": "Pesos",

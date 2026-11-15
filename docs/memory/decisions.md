@@ -1407,3 +1407,40 @@ El "95 %" es un hecho a toro pasado. Antes del partido, el OPR de puntos ya cont
   - 10136 (el pick de A2, campeona) queda 3.º por OPR y era 10.º por RS;
   - 7305 (el robot de A5 que despegó en playoffs) queda 4.º, y por RS ni siquiera estaba en el top 10.
 - **Pendiente:** validar el término de riesgo por fouls del Oracle (tope de 30 puntos). En BIOBUZZ los fouls solo deciden el 3 % de los partidos.
+
+## #116 · Rediseño móvil, dirección "Oro": rojo y azul solo para alianzas (2026-11-14)
+
+**Problema.** La auditoría de diseño contra los principios de Dieter Rams (`docs/design/audit-2026-11-14/`) dio **9/30**. La raíz del color estaba en los tokens:
+- `secondary` y `accent` eran el azul de alianza (283 usos: botones, enlaces, pestañas, empates…);
+- `danger` era el rojo de alianza (245 usos: errores, derrotas, "EN VIVO", DNP…).
+
+Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianza solo se distinguían por el tono (contraste entre ellos de 1.13:1).
+
+**Decisión de Héctor:** dirección **A · Oro**, elegida entre tres prototipos (`docs/design/direcciones-color-2026-11-14.html`).
+
+**Sistema de color:**
+- **Neutros:** grises cálidos.
+- **Dorado** (`brand` relleno, `brand-ink` texto): significa "tú / tu equipo / la acción principal / la pestaña activa".
+- **Rojo y azul:** solo alianzas, siempre con la palabra ROJO/AZUL. Hay tokens de texto, `-fill` (blanco encima ≥ 5.7:1) y `-tint`.
+- **Estados con un solo significado:** éxito verde, aviso **naranja** (para no confundirse con el dorado) y error **magenta** (nunca rojo de alianza).
+- **Ganar, perder y empatar:** sin rojo ni azul.
+
+**Fase 1 (este commit):**
+- **Tokens nuevos:** los nombres viejos se conservan como alias. `secondary` y `accent` apuntan a `brand-ink` y `danger` a `error`, así que los ~500 usos restantes siguen el sistema sin tocarlos.
+- **Usos de alianza migrados antes** de cambiar los valores: MatchList, MatchSimulator, MatchBriefingCard, TournamentSimulator, EventStats, Hoy, Siguiendo y el registro de pronósticos.
+- **Modo oscuro y tema:** `@custom-variant dark` (las clases `dark:` seguían al SO y no al botón de la app). Tema "Sistema" por defecto, que sigue `prefers-color-scheme`; el botón cicla Sistema → Claro → Oscuro.
+- **Movimiento:** "reducir movimiento" se respeta en toda la app.
+- **Texto:** ninguno de menos de 12 px, salvo la hoja imprimible.
+- **Etiquetas honestas:**
+  - "alta precisión" pasa a "con datos de scouting";
+  - "Predictor IA" pasa a "por reglas";
+  - "OPR" que en realidad era el promedio de puntos;
+  - "proyección lineal" pasa a "1,000 simulaciones";
+  - se quitó "Acceso exclusivo".
+- **Guardia:** `lib/design-tokens.test.ts` falla con texto de menos de 12 px, clases de paleta fijas o hex fuera de la lista de excepciones (hoja imprimible, cámara QR y error raíz).
+
+**Siguientes fases (plan aprobado):**
+- **Navegación móvil:** Hoy · Evento · Capturar · Equipos · Más, con un solo evento activo en la cookie `scouting_event`.
+- **Componentes base:** `AllianceSides`, `ProbabilityBar`, `TeamLink`, `ResultChip`, `Counter` y otros.
+- **Antes del 23-nov:** Hoy, Evento y Captura.
+- **Después del 28-nov:** Equipo y Estrategia en tablet.

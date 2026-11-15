@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
-import { Search, Moon, Sun, LogIn, LogOut, X, Star, User as UserIcon } from "lucide-react";
+import { Search, Moon, Sun, SunMoon, LogIn, LogOut, X, Star, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/lib/stores/theme-store";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
@@ -86,7 +86,7 @@ export default function AppShell({ followedTeam, follows }: { followedTeam: numb
                 <nav className="flex flex-col gap-0.5 px-3" aria-label={t("aria.primary")}>
                     {PRIMARY_NAV.map(item => <RailLink key={item.href} item={item} active={isActive(item, pathname)} label={t(item.labelKey)} />)}
                 </nav>
-                <p className="mt-5 mb-1 px-6 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("more.title")}</p>
+                <p className="mt-5 mb-1 px-6 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("more.title")}</p>
                 <nav className="flex flex-col gap-0.5 px-3" aria-label={t("aria.more")}>
                     {SECONDARY_NAV.map(item => <RailLink key={item.href} item={item} active={isActive(item, pathname)} label={t(item.labelKey)} small />)}
                 </nav>
@@ -115,7 +115,7 @@ export default function AppShell({ followedTeam, follows }: { followedTeam: numb
                             href={item.href}
                             aria-current={active ? "page" : undefined}
                             className={clsx(
-                                "flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-[11px]",
+                                "flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-xs",
                                 active ? "font-bold text-foreground" : "text-muted-foreground",
                             )}
                         >
@@ -241,7 +241,7 @@ function AccountPanel({ team, onClose }: { team: number | null; onClose: () => v
             <button className="absolute inset-0 bg-black/60" aria-label={t("account.close")} onClick={onClose} />
             <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-[8px] border-t border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-3 md:left-3 md:w-[360px] md:rounded-[6px] md:border">
                 <div className="mb-4 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("account.menu")}</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("account.menu")}</span>
                     <button onClick={onClose} aria-label={t("account.close")} className="p-1 text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
                 </div>
 
@@ -280,7 +280,7 @@ function AccountPanel({ team, onClose }: { team: number | null; onClose: () => v
 
                 {/* More tools (mobile only — the rail lists them on desktop) */}
                 <nav className="mb-5 md:hidden" aria-label={t("aria.more")}>
-                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("more.title")}</p>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("more.title")}</p>
                     {SECONDARY_NAV.map(item => {
                         const Icon = item.icon;
                         return (
@@ -299,8 +299,8 @@ function AccountPanel({ team, onClose }: { team: number | null; onClose: () => v
                         disabled={!hydrated}
                         className="flex h-9 items-center gap-2 rounded-[4px] border border-border px-3 text-sm text-foreground hover:bg-muted"
                     >
-                        {hydrated && theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                        {hydrated && theme === "light" ? t("theme.light") : t("theme.dark")}
+                        {!hydrated || theme === "system" ? <SunMoon className="h-4 w-4" /> : theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        {t(`theme.${hydrated ? theme : "system"}`)}
                     </button>
                     <div className="flex-1"><LocaleSwitcher /></div>
                 </section>
@@ -337,7 +337,7 @@ function AccountPanel({ team, onClose }: { team: number | null; onClose: () => v
                     )}
                 </section>
 
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                     {tAttr("prefix")}{" "}
                     <a href="https://www.firstinspires.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
                         {tAttr("linkLabel")}

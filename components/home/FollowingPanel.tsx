@@ -63,8 +63,7 @@ function PhaseLine({ phase, inDays }: { phase: string; inDays: number }) {
 
 function Teams({ ids, color }: { ids: number[]; color: "Red" | "Blue" }) {
     return (
-        <span className="rounded-[3px] px-1.5 py-0.5 font-mono text-xs font-bold tabular-nums text-white"
-            style={{ background: color === "Red" ? "var(--color-alliance-red)" : "var(--color-alliance-blue)" }}>
+        <span className={`rounded-[3px] px-1.5 py-0.5 font-mono text-xs font-bold tabular-nums text-white ${color === "Red" ? "bg-alliance-red-fill" : "bg-alliance-blue-fill"}`}>
             {ids.join(" · ") || "—"}
         </span>
     );

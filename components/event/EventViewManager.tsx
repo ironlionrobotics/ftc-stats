@@ -391,7 +391,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                 {activeTab !== "matches" && (
                     <div className="flex flex-col gap-1 w-full md:w-auto min-w-[240px]">
                         <div className="flex justify-between items-center px-1">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                                 <History size={12} /> Historia por Ronda
                             </label>
                             <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
@@ -399,7 +399,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                             </span>
                         </div>
                         <div className="flex items-center gap-3 bg-card p-2 rounded-xl border border-border shadow-sm">
-                            <span className="text-[10px] font-bold text-muted-foreground">R1</span>
+                            <span className="text-xs font-bold text-muted-foreground">R1</span>
                             <input
                                 type="range"
                                 min="1"
@@ -409,7 +409,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                                 onChange={(e) => setSelectedRound(parseInt(e.target.value))}
                                 className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                             />
-                            <span className="text-[10px] font-bold text-muted-foreground">Final</span>
+                            <span className="text-xs font-bold text-muted-foreground">Final</span>
                         </div>
                     </div>
                 )}
@@ -487,7 +487,7 @@ function SelectedAlliancesPanel({ alliances }: { alliances: FTCAllianceSelection
                     <span className="w-1.5 h-6 bg-primary rounded-full" />
                     Alianzas oficiales
                 </h3>
-                <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                <span className="font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
                     {alliances.length} alianzas · {isThreeRobot ? "3 robots (juegan 2 por match, §15.3)" : "2 robots"}
                 </span>
             </div>

@@ -164,7 +164,7 @@ export default function GameScoutingForm({ definition, team, eventCode, entries 
                     <Card className="p-6 bg-muted border-primary/20 animate-in slide-in-from-top duration-300 shadow-sm space-y-4">
                         <ContextPicker value={context} onChange={setContext} />
                         <div hidden={!contextHasMatchNumber(context)}>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">{t("matchNumber")}</label>
+                            <label className="block text-xs font-bold text-muted-foreground uppercase mb-2">{t("matchNumber")}</label>
                             <Controller
                                 name="matchNumber"
                                 control={control}
@@ -276,7 +276,7 @@ function EntriesList({
                             </div>
                             <ContextBadge entry={entry} />
                             {entry.orgId && (
-                                <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-[10px] font-black tracking-wider uppercase">
+                                <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-xs font-black tracking-wider uppercase">
                                     #{entry.orgId}
                                 </div>
                             )}
@@ -296,7 +296,7 @@ function EntriesList({
                                     .filter(f => f.kind !== "textarea" && f.kind !== "text")
                                     .map(field => (
                                         <div key={field.id} className="bg-muted p-3 rounded-xl border border-border">
-                                            <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">{gameLabel(field.label)}</span>
+                                            <span className="block text-xs text-muted-foreground font-bold uppercase mb-1">{gameLabel(field.label)}</span>
                                             <span className="text-sm font-black text-foreground">{formatFieldValue(field, record[field.id], gameLabel, t("yes"))}</span>
                                         </div>
                                     ))
@@ -338,7 +338,7 @@ function renderNotes(definition: GameDefinition, record: Record<string, unknown>
         .filter((v): v is string => typeof v === "string" && v.trim().length > 0);
     if (rendered.length === 0) return null;
     return (
-        <p className="text-[11px] text-muted-foreground mt-3 italic line-clamp-3 border-t border-border pt-3">
+        <p className="text-xs text-muted-foreground mt-3 italic line-clamp-3 border-t border-border pt-3">
             {rendered.join(" · ")}
         </p>
     );

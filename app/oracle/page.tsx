@@ -93,7 +93,7 @@ export default async function OracleCalibrationPage() {
                 <div className="mt-5 overflow-x-auto rounded-2xl border border-border">
                     <table className="w-full min-w-[620px] text-sm">
                         <thead>
-                            <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-widest">
+                            <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-widest">
                                 <Th className="text-left">{t("colWhenModelSays")}</Th>
                                 <Th>{t("colOriginal")}</Th>
                                 <Th>{t("colCorrected")}</Th>
@@ -122,7 +122,7 @@ export default async function OracleCalibrationPage() {
                         </tbody>
                     </table>
                 </div>
-                <p className="mt-3 text-[11px] text-muted-foreground max-w-3xl leading-snug">
+                <p className="mt-3 text-xs text-muted-foreground max-w-3xl leading-snug">
                     {t("relNote", { from: tr(C.reliability.raw[4].matches), to: tr(C.reliability.corrected[4].matches) })}
                 </p>
             </Section>
@@ -136,7 +136,7 @@ export default async function OracleCalibrationPage() {
                 <div className="overflow-x-auto rounded-2xl border border-border">
                     <table className="w-full min-w-[660px] text-sm">
                         <thead>
-                            <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-widest">
+                            <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-widest">
                                 <Th className="text-left">{t("colSeason")}</Th>
                                 <Th>{t("colEvents")}</Th>
                                 <Th>{t("colMatches")}</Th>
@@ -329,11 +329,11 @@ function GapCell({ realized, gap, matchesText }: { realized: number; gap: number
         <span className="inline-flex flex-col items-center leading-tight">
             <span className={clsx("font-bold", bad ? "text-danger" : "text-success")}>
                 {realized}%
-                <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
                     ({gap > 0 ? "+" : ""}{gap})
                 </span>
             </span>
-            <span className="text-[10px] font-normal text-muted-foreground mt-0.5">
+            <span className="text-xs font-normal text-muted-foreground mt-0.5">
                 {matchesText}
             </span>
         </span>
@@ -373,7 +373,7 @@ function Stat({ value, label, sub, accent }: { value: string; label: string; sub
                 {value}
             </div>
             <div className="text-xs font-bold text-foreground mt-1">{label}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{sub}</div>
+            <div className="text-xs text-muted-foreground mt-0.5 leading-snug">{sub}</div>
         </div>
     );
 }
@@ -381,7 +381,7 @@ function Stat({ value, label, sub, accent }: { value: string; label: string; sub
 function Badge({ children, tone }: { children: React.ReactNode; tone: "primary" | "muted" }) {
     return (
         <span className={clsx(
-            "text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border",
+            "text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full border",
             tone === "primary"
                 ? "bg-primary/10 border-primary/25 text-primary"
                 : "bg-muted border-border text-muted-foreground",

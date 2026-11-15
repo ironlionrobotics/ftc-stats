@@ -143,10 +143,10 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                             <span className="text-primary font-display text-2xl md:text-3xl shrink-0">{team.teamNumber}</span>
                             <span className="truncate">{team.teamName}</span>
                         </h2>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{t("season", { season, game: seasonRulesFor(season).gameName })}</span>
+                        <span className="text-xs text-muted-foreground uppercase tracking-widest font-bold">{t("season", { season, game: seasonRulesFor(season).gameName })}</span>
                     </div>
                     <span className={clsx(
-                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
+                        "px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider border",
                         !isEditing ? "bg-secondary/10 border-secondary/30 text-secondary" : "bg-success/10 border-success/30 text-success"
                     )}>
                         {!isEditing ? t("readOnly") : t("editing")}
@@ -224,7 +224,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                         <div className="flex items-center gap-2">
                             <Lock size={16} className="text-warning" />
                             <h3 className="text-lg font-bold text-warning">{t("privateNotes")}</h3>
-                            <span className="ml-auto px-2 py-0.5 bg-warning/20 text-warning rounded text-[10px] font-black uppercase tracking-wider border border-warning/30">
+                            <span className="ml-auto px-2 py-0.5 bg-warning/20 text-warning rounded text-xs font-black uppercase tracking-wider border border-warning/30">
                                 {t("onlyMyTeam")}
                             </span>
                         </div>
@@ -253,7 +253,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                         <div className="flex items-center gap-2">
                             <Share2 size={16} className="text-success" />
                             <h3 className="text-lg font-bold text-success">{t("publicSummary")}</h3>
-                            <span className="ml-auto px-2 py-0.5 bg-success/20 text-success rounded text-[10px] font-black uppercase tracking-wider border border-success/30 flex items-center gap-1.5">
+                            <span className="ml-auto px-2 py-0.5 bg-success/20 text-success rounded text-xs font-black uppercase tracking-wider border border-success/30 flex items-center gap-1.5">
                                 <Globe size={10} /> {t("visibleOthers")}
                             </span>
                         </div>
@@ -274,7 +274,7 @@ export default function ScoutingForm({ team, initialData, onSave }: ScoutingForm
                         />
                         {errors.publicSummary && <p className="text-xs text-danger">{zodMsg(errors.publicSummary.message)}</p>}
                         {initialData?.publicSummarySharedAt?.seconds && (
-                            <div className="text-[10px] text-success/60 font-medium">
+                            <div className="text-xs text-success/60 font-medium">
                                 {t("lastShared")}{" "}
                                 {format.dateTime(new Date(initialData.publicSummarySharedAt.seconds * 1000), { dateStyle: "medium", timeStyle: "short" })}
                             </div>

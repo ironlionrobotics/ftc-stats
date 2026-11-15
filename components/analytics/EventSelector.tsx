@@ -67,10 +67,10 @@ export default function EventSelector({ events, selectedCodes, onToggle, onToggl
                                     {event.name}
                                 </h3>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-[10px] font-mono bg-background/50 border border-border px-1.5 py-0.5 rounded text-muted-foreground">
+                                    <span className="text-xs font-mono bg-background/50 border border-border px-1.5 py-0.5 rounded text-muted-foreground">
                                         {event.code}
                                     </span>
-                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
                                         <Calendar size={10} /> {formatDate(event.dateStart)}
                                     </span>
                                 </div>

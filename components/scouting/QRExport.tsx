@@ -24,7 +24,7 @@ export default function QRExport({ data }: QRExportProps) {
             {/* Stays bg-white regardless of theme: the QRCode component renders dark
                 modules against a light backdrop, so this container's contrast is
                 functional (scannability), not decorative. */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-border">
                 <QRCode value={payload} size={256} className="h-auto max-w-full" />
             </div>
             <p className="text-sm font-medium text-muted-foreground mt-6 text-center max-w-xs">

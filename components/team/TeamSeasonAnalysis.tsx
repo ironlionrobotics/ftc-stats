@@ -37,7 +37,7 @@ export async function TeamSeasonAnalysis({ rankings, season }: { rankings: TeamS
 
             <ConsistencyTracker points={series.points} publicNumber={series.publicNumber} />
 
-            <p className="text-[11px] text-muted-foreground/80 leading-snug max-w-3xl">{t("methodology")}</p>
+            <p className="text-xs text-muted-foreground/80 leading-snug max-w-3xl">{t("methodology")}</p>
         </section>
     );
 }

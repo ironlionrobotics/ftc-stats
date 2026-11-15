@@ -61,7 +61,7 @@ export default function ParticipantList({ rankings, onTeamClick }: ParticipantLi
                                 <div className="bg-primary text-primary-foreground px-4 py-1.5 rounded-xl font-black text-xl shadow-sm group-hover:bg-primary/90 group-hover:scale-110 transition-all">
                                     {team.teamNumber}
                                 </div>
-                                <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest bg-muted px-2 py-1 rounded-md border border-border">
+                                <div className="text-xs font-black text-muted-foreground uppercase tracking-widest bg-muted px-2 py-1 rounded-md border border-border">
                                     {t("participant")}
                                 </div>
                             </div>
@@ -73,9 +73,9 @@ export default function ParticipantList({ rankings, onTeamClick }: ParticipantLi
                             <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
                                 <div className="flex items-center gap-1.5 text-muted-foreground">
                                     <MapPin size={12} />
-                                    <span className="text-[10px] font-bold uppercase tracking-tight">{t("country")}</span>
+                                    <span className="text-xs font-bold uppercase tracking-tight">{t("country")}</span>
                                 </div>
-                                <div className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                <div className="text-xs font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                                     {t("viewMatches")}
                                     <span className="text-lg leading-none">→</span>
                                 </div>

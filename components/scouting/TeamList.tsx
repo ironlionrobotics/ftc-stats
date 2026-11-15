@@ -43,7 +43,7 @@ export default function TeamList({ teams, selectedTeamId, onSelectTeam, onAddTea
                     <button
                         onClick={() => setShowAdvancedOnly(!showAdvancedOnly)}
                         className={clsx(
-                            "px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter transition-all border",
+                            "px-2 py-1 rounded text-xs font-bold uppercase tracking-tighter transition-all border",
                             showAdvancedOnly
                                 ? "bg-secondary text-secondary-foreground border-secondary"
                                 : "bg-muted border-border text-muted-foreground hover:text-foreground"

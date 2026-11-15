@@ -112,7 +112,6 @@ export default function MatchScoutingForm({ team, eventCode, entries }: MatchSco
         <div className="space-y-8">
             {program === "FRC" && (
                 <div className="flex flex-col gap-6 bg-card border border-border p-6 md:p-8 rounded-[2rem] relative overflow-hidden shadow-sm">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
 
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 z-10 relative">
                         <div className="flex items-center gap-5">

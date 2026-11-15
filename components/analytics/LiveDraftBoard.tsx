@@ -431,7 +431,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                             <div className="flex-1 grid gap-2" style={{ gridTemplateColumns: `repeat(${draft.allianceSize}, minmax(0, 1fr))` }}>
                                 {row.map((cell, s) => (
                                     <div key={s}>
-                                        <label className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5">{tD(SLOT_LABELS[s])}</label>
+                                        <label className="block font-mono text-xs uppercase tracking-wider text-muted-foreground mb-0.5">{tD(SLOT_LABELS[s])}</label>
                                         <select
                                             value={cell ?? ""}
                                             onChange={e => setSlot(a, s, e.target.value)}
@@ -459,7 +459,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                 if (members.length < 2) return null;
                                 const proj = boardProjection?.get(a);
                                 return (
-                                    <div className="shrink-0 text-right font-mono text-[10px] leading-tight w-14">
+                                    <div className="shrink-0 text-right font-mono text-xs leading-tight w-14">
                                         <span className="block font-bold text-foreground">≈{Math.round(bestFieldedPair(members).score)}</span>
                                         {proj && (
                                             <span className="block text-secondary" title={tD("finalsChamp")}>
@@ -476,7 +476,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                 {/* Declined (T702) */}
                 <div className="bg-card border border-border rounded-xl px-3 py-2.5">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                             <Ban size={12} /> {tD("declined")}
                         </span>
                         <select
@@ -530,7 +530,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
 
                     {myAlliance && myAlliance.members.length >= 2 && (
                         <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 font-mono text-xs">
-                            <span className="text-muted-foreground uppercase text-[9px] tracking-wider block mb-0.5">{tD("yourAlliance", { number: myAlliance.idx + 1 })}</span>
+                            <span className="text-muted-foreground uppercase text-xs tracking-wider block mb-0.5">{tD("yourAlliance", { number: myAlliance.idx + 1 })}</span>
                             <span className="text-foreground font-bold">{myAlliance.pair.map(t => t.teamNumber).join(" + ")}</span>
                             <span className="text-primary font-bold ml-2">≈ {Math.round(myAlliance.score)} pts</span>
                         </div>
@@ -541,7 +541,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                     <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
                         <Star size={15} className="text-warning" />
                         Mejor partner DISPONIBLE
-                        <span className="ml-auto font-mono text-[10px] text-muted-foreground">{tD("free", { count: available.length })}</span>
+                        <span className="ml-auto font-mono text-xs text-muted-foreground">{tD("free", { count: available.length })}</span>
                     </h3>
                     {!myTeamObj && (
                         <p className="text-xs text-muted-foreground">{tD("pickYourTeamRecs")}</p>
@@ -559,12 +559,12 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                 )}
                             >
                                 <div className="flex items-center gap-3">
-                                    <span className={clsx("font-mono text-[10px] font-bold w-4", i === 0 ? "text-warning" : "text-muted-foreground")}>#{i + 1}</span>
+                                    <span className={clsx("font-mono text-xs font-bold w-4", i === 0 ? "text-warning" : "text-muted-foreground")}>#{i + 1}</span>
                                     <div className="min-w-0 flex-1">
                                         <span className="font-mono text-sm font-bold text-foreground">{r.team.teamNumber}</span>
-                                        <span className="text-[10px] text-muted-foreground ml-2 truncate">{r.team.teamName}</span>
+                                        <span className="text-xs text-muted-foreground ml-2 truncate">{r.team.teamName}</span>
                                     </div>
-                                    <div className="font-mono text-[10px] text-muted-foreground text-right shrink-0">
+                                    <div className="font-mono text-xs text-muted-foreground text-right shrink-0">
                                         <div>OPR {Math.round(r.team.opr || 0)} · auto {Math.round(r.team.autoOPR || 0)}</div>
                                         <div className={clsx("font-bold", i === 0 ? "text-warning" : "text-foreground")}>score {Math.round(r.score)}</div>
                                     </div>
@@ -572,7 +572,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                 {/* Why: top pick shows its justification inline (it's the
                                     decision being made); the rest expand on demand. */}
                                 {i === 0 ? (
-                                    <ul className="mt-2 pt-2 border-t border-warning/20 space-y-1 text-[11px] text-muted-foreground leading-snug">
+                                    <ul className="mt-2 pt-2 border-t border-warning/20 space-y-1 text-xs text-muted-foreground leading-snug">
                                         {r.reasons.map((reason, j) => (
                                             <li key={j} className="flex gap-1.5">
                                                 <span className="text-warning shrink-0">▸</span>
@@ -582,10 +582,10 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                     </ul>
                                 ) : (
                                     <details className="mt-1 group/why">
-                                        <summary className="cursor-pointer list-none text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors select-none">
+                                        <summary className="cursor-pointer list-none text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors select-none">
                                             {tD("why")} <span className="group-open/why:hidden">＋</span><span className="hidden group-open/why:inline">−</span>
                                         </summary>
-                                        <ul className="mt-1.5 space-y-1 text-[11px] text-muted-foreground leading-snug">
+                                        <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground leading-snug">
                                             {r.reasons.map((reason, j) => (
                                                 <li key={j} className="flex gap-1.5">
                                                     <span className="text-secondary shrink-0">▸</span>
@@ -610,7 +610,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                     ) : (
                         <>
                             <label className="block mb-3">
-                                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{tD("whichCaptain")}</span>
+                                <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{tD("whichCaptain")}</span>
                                 <select
                                     value={inviterIdx ?? ""}
                                     onChange={e => { setInviterIdx(e.target.value === "" ? null : Number(e.target.value)); setStrategyOverride(null); }}
@@ -634,8 +634,8 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                     o.myMembers.filter(t => t.teamNumber !== draft.myTeam).map(t => t.teamNumber).join("+") || "—";
 
                                 const card = (title: string, o: ScenarioOutcome, tone: string) => (
-                                    <div className={clsx("rounded-lg border px-3 py-2 font-mono text-[11px] leading-relaxed", tone)}>
-                                        <span className="block font-bold uppercase tracking-wider text-[9px] opacity-80">{title}</span>
+                                    <div className={clsx("rounded-lg border px-3 py-2 font-mono text-xs leading-relaxed", tone)}>
+                                        <span className="block font-bold uppercase tracking-wider text-xs opacity-80">{title}</span>
                                         {o.myAllianceIdx < 0 ? (
                                             <span className="text-danger font-bold">{tD("outOfPlayoffs")}</span>
                                         ) : (
@@ -679,25 +679,25 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                     <div className="space-y-2">
                                         {/* Scouting-quality read on the inviter */}
                                         {invitedDespiteBetter ? (
-                                            <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-[11px] leading-relaxed text-foreground">
+                                            <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs leading-relaxed text-foreground">
                                                 {tD.rich("invitedDespiteBetter", { team: modelBest!.teamNumber, rank: modelBestRank ?? "", gap: gap.toFixed(0), myRank: myRank ?? "", mono: (chunks) => <span className="font-mono font-bold">{chunks}</span>, b: (chunks) => <span className="font-bold">{chunks}</span> })}
                                             </div>
                                         ) : modelBest && modelBest.teamNumber !== draft.myTeam ? null : (
-                                            <div className="rounded-lg border border-border bg-muted px-3 py-2 text-[11px] text-muted-foreground">
+                                            <div className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
                                                 {tD("youAreBest")}
                                             </div>
                                         )}
 
                                         {/* How do other captains pick if you decline? */}
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">{tD("othersPick")}</span>
+                                            <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{tD("othersPick")}</span>
                                             {([["rank", tD("byRank")], ["model", tD("byModel")]] as const).map(([key, label]) => (
                                                 <button
                                                     key={key}
                                                     type="button"
                                                     onClick={() => setStrategyOverride(key === inferredStrategy ? null : key)}
                                                     className={clsx(
-                                                        "px-2 py-0.5 rounded-md border font-mono text-[10px] font-bold transition-colors",
+                                                        "px-2 py-0.5 rounded-md border font-mono text-xs font-bold transition-colors",
                                                         strategy === key
                                                             ? "bg-primary/10 text-primary border-primary/30"
                                                             : "bg-muted text-muted-foreground border-border hover:text-foreground",
@@ -711,14 +711,14 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                         {card(tD("cardAccept"), accept, "bg-muted border-border")}
                                         {card(tD("cardDecline"), decline, "bg-muted border-border")}
                                         {!declineOut && decline.inviterTakes && (
-                                            <p className="font-mono text-[10px] text-muted-foreground">
+                                            <p className="font-mono text-xs text-muted-foreground">
                                                 {tD.rich("inviterTakes", { alliance: (inviterIdx ?? 0) + 1, team: decline.inviterTakes.teamNumber, name: decline.inviterTakes.teamName, b: (chunks) => <span className="font-bold text-foreground">{chunks}</span> })}
                                             </p>
                                         )}
                                         <div className={clsx("rounded-lg border px-3 py-2 text-xs leading-relaxed", verdict.cls)}>
                                             {verdict.text}
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
                                             {tD("modelNote")}
                                         </p>
                                     </div>

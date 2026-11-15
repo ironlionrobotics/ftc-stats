@@ -72,7 +72,7 @@ export default function EventAdvisor() {
             {/* Controls */}
             <div className="bg-card border border-border rounded-2xl p-4 md:p-5 flex flex-wrap items-end gap-4">
                 <label className="block">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("myOpr")}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("myOpr")}</span>
                     <input
                         type="number"
                         min={0}
@@ -83,20 +83,20 @@ export default function EventAdvisor() {
                     />
                 </label>
                 <label className="block">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("type")}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("type")}</span>
                     <select value={type} onChange={e => setType(e.target.value)} className="block mt-1 px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground">
                         <option value="all">{t("all")}</option>
                         {types.map(ty => <option key={ty} value={ty}>{ty}</option>)}
                     </select>
                 </label>
                 <label className="block">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("region")}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("region")}</span>
                     <select value={region} onChange={e => setRegion(e.target.value)} className="block mt-1 px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground">
                         <option value="all">{t("allRegions")}</option>
                         {regions.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                 </label>
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 ml-auto max-w-xs leading-snug">
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5 ml-auto max-w-xs leading-snug">
                     <Info size={13} className="shrink-0" />
                     {t("disclaimer")}
                 </p>
@@ -106,7 +106,7 @@ export default function EventAdvisor() {
             <div className="overflow-x-auto rounded-2xl border border-border">
                 <table className="w-full min-w-[760px] text-sm">
                     <thead>
-                        <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-widest">
+                        <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-widest">
                             <th className="p-3 text-left font-bold">{t("colEvent")}</th>
                             <th className="p-3 text-center font-bold">{t("colTeams")}</th>
                             <th className="p-3 text-center font-bold">{t("colOpr")}</th>
@@ -120,7 +120,7 @@ export default function EventAdvisor() {
                             <tr key={`${p.season}-${p.code}`} className="hover:bg-muted/40 transition-colors" title={proj ? tSelector(`strategy.${strategyNote(proj)}`) : undefined}>
                                 <td className="p-3">
                                     <div className="font-bold text-foreground leading-tight">{p.name}</div>
-                                    <div className="text-[10px] text-muted-foreground font-mono">{p.code} · {p.season} · {p.region ?? "—"}</div>
+                                    <div className="text-xs text-muted-foreground font-mono">{p.code} · {p.season} · {p.region ?? "—"}</div>
                                 </td>
                                 <td className="p-3 text-center font-mono text-muted-foreground">{p.teams}</td>
                                 <td className="p-3 text-center font-mono text-secondary">{p.oprMean.toFixed(0)} / {p.oprTop.toFixed(0)}</td>
@@ -130,7 +130,7 @@ export default function EventAdvisor() {
                                 {proj && (
                                     <td className="p-3 text-center font-mono text-foreground">
                                         #{proj.expectedSeed}<span className="text-muted-foreground text-xs">/{p.teams}</span>
-                                        <div className="text-[10px] text-muted-foreground">p{proj.percentile.toFixed(0)}</div>
+                                        <div className="text-xs text-muted-foreground">p{proj.percentile.toFixed(0)}</div>
                                     </td>
                                 )}
                                 {proj && (
@@ -142,7 +142,7 @@ export default function EventAdvisor() {
                 </table>
             </div>
 
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <Compass size={13} />
                 {t.rich("sigmaRule", { b: (chunks) => <b>{chunks}</b> })}
             </p>
@@ -161,7 +161,7 @@ function VolatilityChip({ sigma }: { sigma: number }) {
     // (the σ<=40/>=60 split), so the label is keyed off the same enum it returns.
     const volatilityKey = sigma <= 40 ? "ordenado" : sigma >= 60 ? "caotico" : "medio";
     return (
-        <span className={clsx("inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap", cls)}>
+        <span className={clsx("inline-block px-2 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap", cls)}>
             {tSelector(`volatility.${volatilityKey}`)} · {sigma.toFixed(0)}
         </span>
     );
@@ -176,7 +176,7 @@ function VerdictChip({ v }: { v: Verdict }) {
         fuera: "bg-muted text-muted-foreground border-border",
     };
     return (
-        <span className={clsx("inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap", cls[v])}>
+        <span className={clsx("inline-block px-2 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap", cls[v])}>
             {tSelector(`verdictChip.${v}`)}
         </span>
     );

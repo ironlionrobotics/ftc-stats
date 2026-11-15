@@ -13,14 +13,14 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
     }, [error]);
     return (
         <html lang="en">
-            <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#07080a", color: "#f3f4f6" }}>
+            <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#0f0e0c", color: "#f2efe8" }}>
                 <main style={{ maxWidth: 560, margin: "0 auto", padding: "64px 16px" }}>
                     <h1 style={{ fontSize: 28, margin: "0 0 12px" }}>Something went wrong · Algo salió mal</h1>
-                    <p style={{ color: "#8b92a1", margin: "0 0 20px" }}>
+                    <p style={{ color: "#a39e93", margin: "0 0 20px" }}>
                         PRIDE couldn&apos;t load. Try again in a moment. · PRIDE no pudo cargar. Intenta de nuevo en un momento.
                     </p>
-                    {error.digest && <p style={{ color: "#8b92a1", fontFamily: "monospace", fontSize: 12 }}>ref: {error.digest}</p>}
-                    <button onClick={() => reset()} style={{ background: "#f3f4f6", color: "#07080a", border: 0, borderRadius: 4, padding: "8px 16px", fontWeight: 600, cursor: "pointer" }}>
+                    {error.digest && <p style={{ color: "#a39e93", fontFamily: "monospace", fontSize: 12 }}>ref: {error.digest}</p>}
+                    <button onClick={() => reset()} style={{ background: "#f2efe8", color: "#0f0e0c", border: 0, borderRadius: 4, padding: "8px 16px", fontWeight: 600, cursor: "pointer" }}>
                         Retry · Reintentar
                     </button>
                 </main>

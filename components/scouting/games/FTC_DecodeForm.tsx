@@ -157,7 +157,7 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
                             {/* Config & Auto */}
                             <div className="space-y-6 lg:col-span-1 border-r border-border pr-6">
                                 <div className="pb-4 border-b border-border">
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Match Number</label>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-2">Match Number</label>
                                     <Controller
                                         name="matchNumber"
                                         control={control}
@@ -198,7 +198,7 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <BooleanCheckbox control={control} name="gatesUsed" label="Usó Gates (Limpieza Rampa)" />
                                     <div>
-                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Driver Skill (1-5)</label>
+                                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-2">Driver Skill (1-5)</label>
                                         <Controller
                                             name="driverSkill"
                                             control={control}
@@ -226,7 +226,7 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
                                 </div>
 
                                 <div className="mt-6">
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-2">Notas Críticas del Partido</label>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-2">Notas Críticas del Partido</label>
                                     <Controller
                                         name="notes"
                                         control={control}
@@ -246,7 +246,7 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
                                 <h4 className="text-xs font-bold text-primary uppercase tracking-widest">Endgame & Rankings</h4>
 
                                 <div className="space-y-3">
-                                    <label className="block text-[10px] font-bold text-muted-foreground uppercase">Base Parking</label>
+                                    <label className="block text-xs font-bold text-muted-foreground uppercase">Base Parking</label>
                                     <Controller
                                         name="endgameBaseParking"
                                         control={control}
@@ -258,7 +258,7 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
                                                         type="button"
                                                         onClick={() => field.onChange(p)}
                                                         className={clsx(
-                                                            "py-2 text-[10px] font-bold rounded border transition-all",
+                                                            "py-2 text-xs font-bold rounded border transition-all",
                                                             field.value === p
                                                                 ? "bg-primary text-primary-foreground border-primary"
                                                                 : "bg-muted border-border text-muted-foreground"
@@ -278,7 +278,7 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
                                 </div>
 
                                 <div className="pt-4 space-y-3 border-t border-border">
-                                    <label className="text-[10px] font-bold text-warning/70 uppercase">Potential RP Tracker</label>
+                                    <label className="text-xs font-bold text-warning/70 uppercase">Potential RP Tracker</label>
                                     <BooleanCheckbox control={control} name="goalRP" label="Possible Goal RP" />
                                     <BooleanCheckbox control={control} name="patternRP" label="Possible Pattern RP" />
                                 </div>
@@ -348,7 +348,7 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
                                                 MATCH #{entry.matchNumber}
                                             </div>
                                             {entry.orgId && (
-                                                <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-[10px] font-black tracking-wider uppercase">
+                                                <div className="px-2 py-0.5 bg-muted border border-border text-muted-foreground rounded text-xs font-black tracking-wider uppercase">
                                                     #{entry.orgId}
                                                 </div>
                                             )}
@@ -370,7 +370,7 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
                                                 if (otherEntries.length === 0) return null;
                                                 return (
                                                     <div
-                                                        className="px-2 py-0.5 bg-warning/15 text-warning border border-warning/30 rounded text-[10px] font-bold uppercase tracking-wider"
+                                                        className="px-2 py-0.5 bg-warning/15 text-warning border border-warning/30 rounded text-xs font-bold uppercase tracking-wider"
                                                         title={`Otra(s) ${otherEntries.length} observación(es) existen para este match-equipo`}
                                                     >
                                                         +{otherEntries.length} obs
@@ -381,31 +381,31 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
 
                                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                             <div className="bg-muted p-3 rounded-xl border border-border">
-                                                <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">Auto Pts (Est)</span>
+                                                <span className="block text-xs text-muted-foreground font-bold uppercase mb-1">Auto Pts (Est)</span>
                                                 <div className="flex items-baseline gap-1">
                                                     <span className="text-xl font-black text-foreground">{(entry.autoPurpleArtifacts ?? 0) + (entry.autoGreenArtifacts ?? 0) > 0 ? '✓' : '0'}</span>
-                                                    {entry.autoMotifStarted && <span className="text-[10px] text-primary font-bold">MOTIF</span>}
+                                                    {entry.autoMotifStarted && <span className="text-xs text-primary font-bold">MOTIF</span>}
                                                 </div>
                                             </div>
                                             <div className="bg-muted p-3 rounded-xl border border-border">
-                                                <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">Artifacts Total</span>
+                                                <span className="block text-xs text-muted-foreground font-bold uppercase mb-1">Artifacts Total</span>
                                                 <div className="flex items-end gap-2">
                                                     <span className="text-xl font-black text-foreground">{(entry.teleopPurpleArtifacts ?? 0) + (entry.teleopGreenArtifacts ?? 0)}</span>
-                                                    <span className="text-[10px] text-primary font-bold">P:{entry.teleopPurpleArtifacts ?? 0}</span>
-                                                    <span className="text-[10px] text-success font-bold">G:{entry.teleopGreenArtifacts ?? 0}</span>
+                                                    <span className="text-xs text-primary font-bold">P:{entry.teleopPurpleArtifacts ?? 0}</span>
+                                                    <span className="text-xs text-success font-bold">G:{entry.teleopGreenArtifacts ?? 0}</span>
                                                 </div>
                                             </div>
                                             <div className="bg-muted p-3 rounded-xl border border-border">
-                                                <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">Patterns</span>
+                                                <span className="block text-xs text-muted-foreground font-bold uppercase mb-1">Patterns</span>
                                                 <span className="text-xl font-black text-foreground">{entry.patternsCompleted ?? 0}</span>
                                             </div>
                                             <div className="bg-muted p-3 rounded-xl border border-border">
-                                                <span className="block text-[9px] text-muted-foreground font-bold uppercase mb-1">Endgame</span>
+                                                <span className="block text-xs text-muted-foreground font-bold uppercase mb-1">Endgame</span>
                                                 <div className="flex items-center gap-2">
                                                     <span className={clsx("text-xs font-bold", (entry.endgameBaseParking ?? 'None') !== 'None' ? "text-success" : "text-danger")}>
                                                         {entry.endgameBaseParking ?? 'None'}
                                                     </span>
-                                                    {entry.dualParking && <span className="px-1.5 py-0.5 bg-warning/20 text-warning rounded text-[8px] font-black">DUAL</span>}
+                                                    {entry.dualParking && <span className="px-1.5 py-0.5 bg-warning/20 text-warning rounded text-xs font-black">DUAL</span>}
                                                 </div>
                                             </div>
                                         </div>
@@ -413,7 +413,7 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
 
                                     <div className="md:w-64 flex flex-col gap-3">
                                         <div className="bg-muted rounded-xl p-4 border border-border flex-1">
-                                            <label className="block text-[9px] text-muted-foreground font-bold uppercase mb-2">Driver Performance</label>
+                                            <label className="block text-xs text-muted-foreground font-bold uppercase mb-2">Driver Performance</label>
                                             <div className="flex gap-1.5">
                                                 {[1, 2, 3, 4, 5].map(star => {
                                                     const skill = entry.driverSkill ?? 3;
@@ -430,14 +430,14 @@ export default function FTC_DecodeForm({ team, eventCode, entries }: MatchScouti
                                                     );
                                                 })}
                                             </div>
-                                            <p className="text-[10px] text-muted-foreground mt-2 italic line-clamp-3">
+                                            <p className="text-xs text-muted-foreground mt-2 italic line-clamp-3">
                                                 {entry.notes || "Sin notas adicionales."}
                                             </p>
                                         </div>
                                         <div className="flex gap-2">
-                                            {entry.movementRP && <div className="flex-1 bg-secondary/10 text-secondary text-[8px] font-black p-1 rounded text-center border border-secondary/20">MOVE RP</div>}
-                                            {entry.goalRP && <div className="flex-1 bg-primary/10 text-primary text-[8px] font-black p-1 rounded text-center border border-primary/20">GOAL RP</div>}
-                                            {entry.patternRP && <div className="flex-1 bg-warning/10 text-warning text-[8px] font-black p-1 rounded text-center border border-warning/20">PATT RP</div>}
+                                            {entry.movementRP && <div className="flex-1 bg-secondary/10 text-secondary text-xs font-black p-1 rounded text-center border border-secondary/20">MOVE RP</div>}
+                                            {entry.goalRP && <div className="flex-1 bg-primary/10 text-primary text-xs font-black p-1 rounded text-center border border-primary/20">GOAL RP</div>}
+                                            {entry.patternRP && <div className="flex-1 bg-warning/10 text-warning text-xs font-black p-1 rounded text-center border border-warning/20">PATT RP</div>}
                                         </div>
                                     </div>
                                 </div>
@@ -471,7 +471,7 @@ function Counter({
     const value = (field.value as number) ?? 0;
     return (
         <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase">{label}</label>
+            <label className="text-xs font-bold text-muted-foreground uppercase">{label}</label>
             <div className="flex items-center gap-3 bg-muted p-1 rounded-lg border border-border">
                 <button
                     type="button"

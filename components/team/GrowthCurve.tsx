@@ -123,7 +123,7 @@ export async function GrowthCurve() {
                 </div>
             </div>
 
-            <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 leading-snug">
+            <p className="text-xs text-muted-foreground flex items-start gap-1.5 leading-snug">
                 <Info size={12} className="shrink-0 mt-0.5" />
                 Percentil dentro de México y dentro de cada temporada — el OPR crudo no es comparable entre juegos
                 distintos, así que compararlo directamente inventaría una tendencia. {t("caveat", { windowStart: G.caveatWindowStart, windowEnd: G.caveatWindowEnd })} Datos: FTCScout,

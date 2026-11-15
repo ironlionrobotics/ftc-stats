@@ -52,7 +52,7 @@ function HeaderWithTooltip({ label, column, tooltip, sortConfig, handleSort }: H
                 {column && <SortIcon column={column} sortConfig={sortConfig} />}
                 <div className="group/tip relative inline-block ml-1">
                     <Info size={10} className="text-muted-foreground/50 hover:text-primary transition-colors cursor-help" />
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-card border border-border text-foreground text-[10px] rounded-lg shadow-sm opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 pointer-events-none text-left leading-relaxed font-normal normal-case tracking-normal">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 p-2 bg-card border border-border text-foreground text-xs rounded-lg shadow-sm opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 pointer-events-none text-left leading-relaxed font-normal normal-case tracking-normal">
                         {tooltip}
                     </div>
                 </div>
@@ -239,7 +239,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="text-muted-foreground border-b border-border text-[10px] uppercase tracking-widest bg-muted/30">
+                        <tr className="text-muted-foreground border-b border-border text-xs uppercase tracking-widest bg-muted/30">
                             <th className="p-4 font-bold cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('rank')}>
                                 <div className="flex items-center gap-1">Rank <SortIcon column="rank" sortConfig={sortConfig} /></div>
                             </th>
@@ -311,7 +311,7 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                                 <td className="p-4">
                                     <button onClick={() => onTeamClick?.(rank.teamNumber)} className="text-left w-full group-hover:text-primary transition-colors">
                                         <div className="font-bold text-foreground text-lg">{rank.teamNumber}</div>
-                                        <div className="text-[10px] text-muted-foreground font-medium truncate max-w-[150px]">{rank.teamName}</div>
+                                        <div className="text-xs text-muted-foreground font-medium truncate max-w-[150px]">{rank.teamName}</div>
                                     </button>
                                 </td>
                                 <td className="p-4 text-center text-sm font-bold">
@@ -347,12 +347,12 @@ export default function RankingTable({ rankings, matches = [], onTeamClick }: Ra
                                     </span>
                                 </td>
                                 <td className="p-4 text-center">
-                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted font-mono text-[10px]">
+                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted font-mono text-xs">
                                         <span className="text-success font-bold">{rank.wins}</span>
                                         <span className="text-muted-foreground/30">/</span>
-                                        <span className="text-danger font-bold">{rank.losses}</span>
+                                        <span className="text-muted-foreground font-bold">{rank.losses}</span>
                                         <span className="text-muted-foreground/30">/</span>
-                                        <span className="text-secondary font-bold">{rank.ties}</span>
+                                        <span className="text-muted-foreground font-bold">{rank.ties}</span>
                                     </div>
                                 </td>
                                 <td className="p-4 text-center text-sm text-muted-foreground">

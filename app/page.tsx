@@ -221,10 +221,9 @@ function LiveSection({ team, s, t, pct, format }: { team: number; s: TodayAtEven
 function AllianceBox({ color, teams, label }: { color: "Red" | "Blue"; teams: number[]; label: string }) {
     return (
         <div
-            className="rounded-[3px] px-3 py-2 text-white"
-            style={{ background: color === "Red" ? "var(--color-alliance-red)" : "var(--color-alliance-blue)" }}
+            className={`rounded-[3px] px-3 py-2 text-white ${color === "Red" ? "bg-alliance-red-fill" : "bg-alliance-blue-fill"}`}
         >
-            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] opacity-80">{label}</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.06em] opacity-80">{label}</div>
             <div className="font-mono text-lg font-black tabular-nums">{teams.join(" · ") || "—"}</div>
         </div>
     );

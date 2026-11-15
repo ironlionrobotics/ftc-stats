@@ -156,7 +156,7 @@ export default function AssistantChat() {
                                 <div className="font-bold text-foreground text-sm flex items-center gap-1.5">
                                     {t("brand")} <Sparkles size={12} className="text-warning fill-warning" />
                                 </div>
-                                <div className="text-[10px] text-muted-foreground font-medium tracking-wide">{t("subtitle")}</div>
+                                <div className="text-xs text-muted-foreground font-medium tracking-wide">{t("subtitle")}</div>
                             </div>
                         </div>
                         <button

@@ -93,7 +93,7 @@ export default function ProScoutingDashboard({ eventCode, season }: ProScoutingD
         <div className="space-y-6">
             {/* Comparison Overlay */}
             {selectedOpponent && teamStats[HERO_TEAM] && teamStats[selectedOpponent] && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" onClick={() => setSelectedOpponent(null)}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedOpponent(null)}>
                     <div className="bg-card rounded-2xl shadow-sm max-w-2xl w-full p-6 animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-black text-foreground">{t("headToHead")}</h3>

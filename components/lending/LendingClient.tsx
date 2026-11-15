@@ -175,7 +175,7 @@ function FindTab({ lendable, presence, orgId, onBorrow }: {
                         <li key={`${item.orgId}_${item.name}_${i}`} className="flex flex-wrap items-center justify-between gap-2 p-3">
                             <div>
                                 <div className="font-semibold">{item.name} <span className="text-xs text-muted-foreground">×{item.qty}</span>
-                                    {item.giveaway && <span className="ml-2 rounded bg-success/15 px-1.5 text-[11px] text-success">{t("giveaway")}</span>}</div>
+                                    {item.giveaway && <span className="ml-2 rounded bg-success/15 px-1.5 text-xs text-success">{t("giveaway")}</span>}</div>
                                 <div className="text-xs text-muted-foreground">{t("teamPit", { team: p.teamNumber, name: p.teamName, pit: p.pit || "—" })}</div>
                             </div>
                             <button type="button" onClick={() => onBorrow(p.teamNumber, item.name)} className="min-h-[40px] rounded-lg border border-border px-3 text-sm">{t("theyLentMe")}</button>
