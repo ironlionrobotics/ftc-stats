@@ -33,6 +33,10 @@ export interface CachedEventPayload {
     season: number;
     /** Per-robot starting points (#117); absent in payloads cached before it. */
     startingPoints?: StartingPoints | null;
+    /** Official bonus RP per qual alliance, for the round slider; absent in older payloads. */
+    matchBonusRp?: Record<string, number>;
+    /** FRC payloads (#118) are cached under `frc-event:<CODE>`; absent = FTC. */
+    program?: "FTC" | "FRC";
 }
 
 export default function CachedEventView({ payload }: { payload: CachedEventPayload }) {
@@ -45,7 +49,7 @@ export default function CachedEventView({ payload }: { payload: CachedEventPaylo
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground font-mono tracking-[0.2em] text-xs uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                        {t("season", { season })}
+                        {payload.program === "FRC" && "FRC · "}{t("season", { season })}
                     </div>
                     <h1 className="text-4xl md:text-5xl font-bold font-display text-foreground">
                         {event.name}
@@ -69,6 +73,8 @@ export default function CachedEventView({ payload }: { payload: CachedEventPaylo
                 eventCode={event.code}
                 season={season}
                 startingPoints={payload.startingPoints}
+                matchBonusRp={payload.matchBonusRp}
+                program={payload.program ?? "FTC"}
             />
         </>
     );

@@ -21,7 +21,7 @@
 
 import { readFileSync, appendFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { archivedEvents, EVENT_TYPE, isPlayed, np, side, type FMatch } from "./first-archive";
+import { archivedEvents, EVENT_TYPE, isPlayed, isPlayoffLevel, np, side, type FMatch } from "./first-archive";
 
 const OUT_DIR = join(process.cwd(), "data", "oracle-backtest-first");
 
@@ -50,7 +50,7 @@ function seasonEvents(season: number): EventRow[] {
     return archivedEvents(season)
         .map(a => ({
             code: a.event.code, name: a.event.name ?? "", type: EVENT_TYPE[String(a.event.type)] ?? `type${a.event.type}`, region: a.event.regionCode ?? "",
-            matches: a.matches.filter(m => (m.tournamentLevel === "QUALIFICATION" || m.tournamentLevel === "PLAYOFF") && isPlayed(m)).map(toOMatch),
+            matches: a.matches.filter(m => (m.tournamentLevel === "QUALIFICATION" || isPlayoffLevel(m.tournamentLevel)) && isPlayed(m)).map(toOMatch),
         }))
         .sort((x, y) => x.code.localeCompare(y.code));
 }

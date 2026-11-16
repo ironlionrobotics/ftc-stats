@@ -1588,3 +1588,25 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
   - **faltas invertidas**, porque FRC reporta los puntos *otorgados a* cada alianza y PRIDE lee los *recibidos* (#48). Esto falta verificarlo con la primera respuesta real.
   - Necesita `FRC_API_USERNAME` / `FRC_API_KEY`, que requieren registro de Héctor. Sin ellas devuelve vacío.
   - Términos: no comercial y con atribución.
+
+**Segunda tanda (16-nov, madrugada):**
+- **Archivo 2019–2021:** se lee con tres ajustes en `scripts/first-archive.ts`.
+  - En 2019 FIRST no registró `onField`: todos los equipos vienen `false`. Si en un partido nadie aparece en cancha, cuentan todos los listados. En 2023–2025 eso movió 26 de 10,747 valores de la tabla de historial, con un máximo de 0.09 en z.
+  - Playoffs `SEMIFINAL`/`FINAL` del bracket antiguo (`isPlayoffLevel`).
+  - Eventos remotos (2020/21): cada "partido" es un robot solo. Su valor es el promedio de sus puntajes, como lo reportaba FTCScout.
+  - Algunas *league meets* de 2020/21 hacen fallar siempre `/rankings`. El evento se guarda sin ranking (`rankingsError`), porque nuestros modelos no lo necesitan.
+  - Con esto, el Oracle en 2019 da 71.3 % (FTCScout 71.4 %).
+- **`lib/reports/draft-priors.ts` con datos de FIRST:** 622 eventos y 15,511 observaciones de 2025 (antes 606 / 15,186), generado con `scripts/build-draft-priors.mjs`. Cambia la probabilidad de ser seleccionado de `draft-odds`:
+  - seed 8: 86.7 % → 91.8 %;
+  - seed 12: 46.3 % → 43.7 %;
+  - el efecto del OPR en seeds 7–12 se mantiene (odds ratio p90 6.9 contra 6.2).
+- **`lib/reports/oracle-calibration.ts`:** `scripts/build-oracle-calibration.mjs` reproduce exactamente las cifras publicadas a partir de la salida vieja y las recalcula con el archivo de FIRST.
+- **`team-30311-decode`:** cotejado con FIRST.
+  - Coinciden ranks, récords, RP y premios.
+  - FPEMX tenía 29 equipos, no 68; se corrigió.
+  - Los OPR de temporada de FTCScout mezclan valores de un solo evento, así que se dejan como se publicaron. Reconstruir el reporte solo con FIRST es una decisión editorial pendiente.
+- **FRC:**
+  - **RP extra por partido** (`lib/frc-rp.ts`): usa los booleanos de REBUILT si vienen en el desglose, o `rp` menos los RP del resultado. Sin ninguno de los dos no hay observación, que no es lo mismo que cero.
+  - **Programa como parámetro:** `rpThresholdsFor(season, code, program, eventType)` aplica umbrales por nivel (Tabla 6-5) y `allianceRpObs(..., program)` también recibe el programa.
+  - **Vista sin red FRC:** clave propia `frc-event:<CODE>`, porque los códigos FRC y FTC pueden coincidir. El payload FTC ahora también guarda `matchBonusRp`.
+- **Clave de org compuesta `FRC-<n>`: diferida.** Las reglas comparan `isMyOrg(string(teamNumber))` en `team_media`, perfiles y préstamos. Cambiarla exige desplegar reglas, y nada de FRC la necesita mientras FRC sea solo lectura (sin scouting FRC).

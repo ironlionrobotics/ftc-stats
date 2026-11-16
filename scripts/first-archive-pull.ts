@@ -77,18 +77,21 @@ async function season(s: number) {
             const f = join(dir, `${e.code}.json.gz`);
             if (existsSync(f) && Date.parse(e.dateEnd) + 3 * 86400_000 < load<{ pulledAt: number }>(f).pulledAt) { done++; return; }
             const matches = (await get<{ matches: { tournamentLevel: string }[] }>(`/${s}/matches/${e.code}`))?.matches ?? [];
-            const hasPlayoff = matches.some(m => m.tournamentLevel === "PLAYOFF");
+            const hasPlayoff = matches.some(m => ["PLAYOFF", "SEMIFINAL", "FINAL"].includes(m.tournamentLevel)); // SEMIFINAL/FINAL = 2019–2021 bracket
             const out: Record<string, unknown> = { event: e, matches, pulledAt: Date.now() };
             if (matches.length) {
                 withMatches++;
                 const [sq, sp, rk, al, aw] = await Promise.all([
                     get<{ matchScores: unknown[] }>(`/${s}/scores/${e.code}/qual`),
                     hasPlayoff ? get<{ matchScores: unknown[] }>(`/${s}/scores/${e.code}/playoff`) : Promise.resolve(null),
-                    get<{ rankings: unknown[] }>(`/${s}/rankings/${e.code}`),
+                    // Some 2020/21 league meets make /rankings fail persistently (5xx); rankings
+                    // are optional for our models (computed from matches), so keep the event.
+                    get<{ rankings: unknown[] }>(`/${s}/rankings/${e.code}`).catch(() => ({ rankings: [], rankingsError: true })),
                     hasPlayoff ? get<{ alliances: unknown[] }>(`/${s}/alliances/${e.code}`) : Promise.resolve(null),
                     get<{ awards: unknown[] }>(`/${s}/awards/${e.code}`),
                 ]);
                 Object.assign(out, { scores: [...(sq?.matchScores ?? []), ...(sp?.matchScores ?? [])], rankings: rk?.rankings ?? [], alliances: al?.alliances ?? [], awards: aw?.awards ?? [] });
+                if (rk && "rankingsError" in rk) out.rankingsError = true;
             }
             save(f, out);
             done++;

@@ -4,7 +4,7 @@
  * `lib/event-selector.ts` answers this with a verdict label (capitán / pick /
  * burbuja / fuera) derived from seed thresholds that were eyeballed from a few
  * events (decisions.md #58). This module answers it with a probability taken
- * from 606 events of measured selection outcomes (lib/reports/draft-priors.ts).
+ * from 622 events of measured selection outcomes (official FIRST data) (lib/reports/draft-priors.ts).
  *
  * The two coexist deliberately: the verdict is the thing to SAY, the
  * probability is the thing to DECIDE on. A verdict of "burbuja" reads the same
@@ -44,7 +44,7 @@ export interface DraftOdds {
  * Selection rate at a seed, linearly interpolated between measured seeds.
  *
  * Reads `pickRateSmoothed`, not the raw rate: the raw series wiggles at the
- * thin end (seed 14 measured above seed 13) and a curve implying that seeding
+ * thin end (seed 20 measured above seed 19) and a curve implying that seeding
  * worse helps would be noise presented as advice.
  */
 export function seedPickRate(seed: number): number {

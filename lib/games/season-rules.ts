@@ -166,16 +166,29 @@ export function seasonRulesFor(season: number, program: "FTC" | "FRC" = "FTC"): 
  * Per-event RP threshold overrides. Premier Events may set their own
  * thresholds (Table 10-3 note); Regional Championship and FIRST
  * Championship thresholds are TBA in TU09. Add entries here as they're
- * published: `"2026:EVENTCODE": { swarm: 18, pollinator1: 5 }`.
+ * published: `"2026:EVENTCODE": { swarm: 18, pollinator1: 5 }` (FRC: `"FRC:2026:CODE"`).
  */
 export const RP_THRESHOLD_OVERRIDES: Record<string, Record<string, number>> = {};
 
-/** Effective thresholds (target id → threshold) for one event. */
-export function rpThresholdsFor(season: number, eventCode?: string): Record<string, number> {
+/** FRC event type (FIRST `type`, e.g. "Regional", "DistrictChampionshipDivision", "ChampionshipSubdivision") → its bonus-RP threshold level. */
+export function frcThresholdLevel(eventType: string | undefined): keyof typeof FRC_RP_THRESHOLDS_BY_LEVEL {
+    const t = eventType ?? "";
+    if (t.startsWith("DistrictChampionship")) return "districtChampionship";
+    if (t.startsWith("Championship")) return "championship";
+    return "event";
+}
+
+/**
+ * Effective thresholds (target id → threshold) for one event. FRC thresholds
+ * depend on the event level (Table 6-5): pass the FIRST event type.
+ */
+export function rpThresholdsFor(season: number, eventCode?: string, program: "FTC" | "FRC" = "FTC", eventType?: string): Record<string, number> {
     const out: Record<string, number> = {};
-    for (const t of seasonRulesFor(season).rpTargets) {
+    for (const t of seasonRulesFor(season, program).rpTargets) {
         if (t.defaultThreshold != null) out[t.id] = t.defaultThreshold;
     }
-    const override = eventCode ? RP_THRESHOLD_OVERRIDES[`${season}:${eventCode.toUpperCase()}`] : undefined;
+    if (program === "FRC") Object.assign(out, FRC_RP_THRESHOLDS_BY_LEVEL[frcThresholdLevel(eventType)]);
+    const key = `${program === "FRC" ? "FRC:" : ""}${season}:${eventCode?.toUpperCase()}`;
+    const override = eventCode ? RP_THRESHOLD_OVERRIDES[key] : undefined;
     return { ...out, ...(override ?? {}) };
 }

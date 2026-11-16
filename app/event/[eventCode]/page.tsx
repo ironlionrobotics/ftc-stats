@@ -188,7 +188,7 @@ export default async function EventPage(props: EventPageProps) {
                         city: event.city, stateProv: event.stateProv,
                     },
                     matches, rankings, advancement, awards, advancementPoints,
-                    schedule, alliances, season, startingPoints,
+                    schedule, alliances, season, startingPoints, matchBonusRp,
                 }}
             />
 

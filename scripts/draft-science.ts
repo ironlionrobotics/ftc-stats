@@ -36,7 +36,7 @@
 
 import { readFileSync, appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { archivedEvents, EVENT_TYPE, isPlayed, side, toScoutEvent, type FMatch } from "./first-archive";
+import { archivedEvents, EVENT_TYPE, isPlayed, isPlayoffLevel, side, toScoutEvent, type FMatch } from "./first-archive";
 
 const OUT_DIR = join(process.cwd(), "data", "draft-science-first");
 
@@ -67,7 +67,7 @@ const season = Number(process.argv[2] || 2025);
 const limitIdx = process.argv.indexOf("--limit");
 const limit = limitIdx > -1 ? Number(process.argv[limitIdx + 1]) : Infinity;
 
-const events = archivedEvents(season).filter(a => a.matches.filter(m => m.tournamentLevel === "PLAYOFF" && isPlayed(m)).length >= 2);
+const events = archivedEvents(season).filter(a => a.matches.filter(m => isPlayoffLevel(m.tournamentLevel) && isPlayed(m)).length >= 2);
 
 mkdirSync(OUT_DIR, { recursive: true });
 const outFile = join(OUT_DIR, `teams-${season}.jsonl`);
@@ -92,7 +92,7 @@ for (const [i, a] of todo.entries()) {
         const scout = toScoutEvent(a);
         const teams = scout.teams.filter(t => Number.isFinite(t.stats?.rank) && (a.rankings ?? []).some(r => r.teamNumber === t.teamNumber))
             .map(t => ({ teamNumber: t.teamNumber, stats: t.stats! }));
-        const playoffs = a.matches.filter(m => m.tournamentLevel === "PLAYOFF" && isPlayed(m)).map(asPMatch);
+        const playoffs = a.matches.filter(m => isPlayoffLevel(m.tournamentLevel) && isPlayed(m)).map(asPMatch);
         if (teams.length < 12 || playoffs.length < 2) { skipped++; continue; }
 
         const alliances = reconstructAlliances(playoffs);

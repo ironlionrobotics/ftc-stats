@@ -8,6 +8,13 @@
  * static data is deliberate: it is fast, print-friendly for sponsor decks, and
  * every figure is defensible.
  *
+ * Checked against the official FIRST archive on 16-nov-2026 (decision #118):
+ * every event's rank, record, RP and awards match; FPEMX's field size was
+ * wrong (68 → 29) and is corrected. The OPR figures stay as FTCScout published
+ * them — its season "skills" mix single-event values (tot = MXCMP, dc = MXMOQ,
+ * auto = FPEMX), which our ridge OPR does not reproduce one-to-one; a FIRST-only
+ * rebuild of this report is a separate, editorial decision.
+ *
  * Scope: intentionally 30311-only for now (see docs/PENDING / team profile page).
  * The shape is generic enough to extend to other teams later if we wire a live
  * FTCScout integration, but that is out of scope today.
@@ -196,7 +203,7 @@ export const TEAM_30311_DECODE = {
             code: "FPEMX",
             type: "Premier",
             dates: "23-25 jul 2026",
-            fieldSize: 68,
+            fieldSize: 29, // official FIRST rankings (29 teams, 44 quals); FTCScout-era curation said 68
             rank: 7,
             record: "4-2-0",
             rp: 2.5,
@@ -300,7 +307,7 @@ export const TEAM_30311_DECODE = {
         { key: "worldStanding", totTopPct: 19, activeTeams: "8,866", worldRank: "1,686", teleopEndgameTopPct: "13-14" },
         { key: "inspireDebut" },
         { key: "champRecord", record: "5-0", fieldSize: 52, rank: 5 },
-        { key: "premierPick", fieldSize: 68, captain: 31546, reachPlace: 2 },
+        { key: "premierPick", fieldSize: 29, captain: 31546, reachPlace: 2 },
         { key: "growthArc", oprArc: "50.9 → 68.9 → 63.4 → 80.8" },
         { key: "soleNationalInspire", nationalTotal: 31, otherCount: 30 },
         { key: "soleWorldInspire", worldPct: 3, inspireCohort: 36, inspireTotal: "1,319" },

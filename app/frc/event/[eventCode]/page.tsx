@@ -1,13 +1,16 @@
 // FRC event view (decision #118): the same EventViewManager as FTC with
-// program="FRC" — no advancement, no BIOBUZZ RP, no starting points yet.
+// program="FRC" — no advancement, no BIOBUZZ RP models, no starting points yet;
+// bonus RP from the official breakdowns (lib/frc-rp.ts).
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { fetchFrcEvents, fetchFrcMatches, fetchFrcRankings, fetchFrcHybridSchedule, fetchFrcAlliances, fetchFrcAwards, hasFrcCredentials } from "@/lib/frc-api";
+import { fetchFrcEvents, fetchFrcMatches, fetchFrcRankings, fetchFrcHybridSchedule, fetchFrcAlliances, fetchFrcAwards, fetchFrcScores, hasFrcCredentials } from "@/lib/frc-api";
+import { frcMatchBonusRp } from "@/lib/frc-rp";
 import { getCurrentSeason } from "@/lib/constants";
 import { parseSeason } from "@/lib/input-guards";
 import EventViewManager from "@/components/event/EventViewManager";
 import AutoRefresh from "@/components/AutoRefresh";
 import { Notice } from "@/components/ui/Status";
+import { CacheWriter, OfflineFallback } from "@/components/HydrateAndCache";
 import { eventWindow } from "@/lib/today-summary";
 import type { FTCAward } from "@/types/scouting";
 
@@ -34,25 +37,31 @@ export default async function FrcEventPage(props: PageProps) {
     const season = parseSeason(searchParams?.season, current) ?? current;
     const events = await fetchFrcEvents(season);
     const event = events.find(e => e.code.toLowerCase() === (eventCode || "").toLowerCase());
+    // Own key space: FRC and FTC event codes can collide.
+    const cacheKey = `frc-event:${(eventCode || "").toUpperCase()}`;
     if (!event) {
-        // Empty list = the FIRST API is unreachable, not a wrong code.
+        // Empty list = the FIRST API is unreachable, not a wrong code: show what this device cached last time.
         if (events.length === 0) {
             return (
-                <div className="container mx-auto px-4 md:px-8 py-8 md:py-12">
+                <div className="container mx-auto px-4 md:px-8 py-8 md:py-12 space-y-4">
                     <Notice tone="error">{tFrc("unreachable")}</Notice>
+                    <OfflineFallback cacheKey={cacheKey} render="event-stats" />
                 </div>
             );
         }
         notFound();
     }
 
-    const [matches, rankings, schedule, alliances, frcAwards] = await Promise.all([
+    const [matches, rankings, schedule, alliances, frcAwards, scores] = await Promise.all([
         fetchFrcMatches(season, event.code),
         fetchFrcRankings(season, event.code),
         fetchFrcHybridSchedule(season, event.code),
         fetchFrcAlliances(season, event.code),
         fetchFrcAwards(season, event.code),
+        fetchFrcScores(season, event.code),
     ]);
+    // Official bonus RPs per qual alliance, so the round slider rebuilds past rankings with the real Ranking Score.
+    const matchBonusRp = frcMatchBonusRp(season, matches, scores);
 
     // FRC awards -> the FTC shape AwardList reads; person-only awards (no team) are skipped.
     const awards: FTCAward[] = frcAwards
@@ -80,6 +89,15 @@ export default async function FrcEventPage(props: PageProps) {
                 </div>
             </header>
 
+            <CacheWriter
+                cacheKey={cacheKey}
+                payload={{
+                    event: { name: event.name, code: event.code, venue: event.venue, city: event.city, stateProv: event.stateProv },
+                    matches, rankings, advancement: null, awards, advancementPoints: [],
+                    schedule, alliances, season, startingPoints: null, matchBonusRp, program: "FRC",
+                }}
+            />
+
             <EventViewManager
                 matches={matches}
                 rankings={rankings}
@@ -90,7 +108,7 @@ export default async function FrcEventPage(props: PageProps) {
                 selectedAlliances={alliances}
                 eventCode={event.code}
                 season={season}
-                matchBonusRp={{}}
+                matchBonusRp={matchBonusRp}
                 startingPoints={null}
                 program="FRC"
             />

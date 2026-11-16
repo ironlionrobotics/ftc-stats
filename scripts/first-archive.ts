@@ -67,7 +67,20 @@ export function archivedTeams(seasons: number[]): Map<number, { rookieYear: numb
     return out;
 }
 
-export const side = (m: FMatch, c: "Red" | "Blue") => m.teams.filter(t => t.station.startsWith(c) && t.onField !== false).map(t => t.teamNumber);
+/**
+ * Robots that played for one side. FIRST did not record `onField` in 2019
+ * (every team comes back `false`, and only the fielded robots are listed), so a
+ * match where nobody is marked on the field counts every listed team.
+ */
+export const side = (m: FMatch, c: "Red" | "Blue") => {
+    const anyOn = m.teams.some(t => t.onField !== false);
+    return m.teams.filter(t => t.station.startsWith(c) && (!anyOn || t.onField !== false)).map(t => t.teamNumber);
+};
+/** Playoff levels: PLAYOFF (2022+ double elimination) or SEMIFINAL/FINAL (the 2019–2021 bracket). */
+export const isPlayoffLevel = (level: string) => level === "PLAYOFF" || level === "SEMIFINAL" || level === "FINAL";
+const LEVEL_ORDER: Record<string, number> = { PLAYOFF: 0, SEMIFINAL: 1, FINAL: 2 };
+/** Remote events (2020/21): each "match" is one robot alone (station "1"), its score on the blue fields. */
+const isSolo = (m: FMatch) => m.teams.length === 1 && !/^(Red|Blue)/.test(m.teams[0].station);
 const dq = (m: FMatch, c: "Red" | "Blue") => m.teams.some(t => t.station.startsWith(c) && t.dq === true);
 /** Final minus the foul points the alliance RECEIVED (reported on the opponent's field, decision #48). */
 export const np = (m: FMatch, c: "Red" | "Blue") => (c === "Red" ? m.scoreRedFinal - m.scoreBlueFoul : m.scoreBlueFinal - m.scoreRedFoul);
@@ -76,10 +89,14 @@ export const isPlayed = (m: FMatch) => (m.postResultTime?.length ?? 0) > 0 || (m
 /** One archived event in FTCScout's eventsSearch shape, OPR = our ridge (λ = 1, non-penalty). */
 export function toScoutEvent(a: ArchivedEvent): ScoutEvent {
     const quals = a.matches.filter(m => m.tournamentLevel === "QUALIFICATION" && isPlayed(m));
-    const rows = quals.flatMap(m => (["Red", "Blue"] as const).filter(c => !dq(m, c)).map(c => ({ teams: side(m, c), value: np(m, c) }))).filter(r => r.teams.length > 0);
+    const rows = quals.filter(m => !isSolo(m)).flatMap(m => (["Red", "Blue"] as const).filter(c => !dq(m, c)).map(c => ({ teams: side(m, c), value: np(m, c) }))).filter(r => r.teams.length > 0);
     const opr = rows.length ? componentOpr(rows, { lambda: 1 }) : new Map<number, number>();
     const played = new Map<number, number>();
     for (const m of quals) for (const t of [...side(m, "Red"), ...side(m, "Blue")]) played.set(t, (played.get(t) ?? 0) + 1);
+    // Remote (solo) runs: the robot's value is its mean score, as FTCScout reported for 2020/21.
+    const solo = new Map<number, number[]>();
+    for (const m of quals) if (isSolo(m)) solo.set(m.teams[0].teamNumber, [...(solo.get(m.teams[0].teamNumber) ?? []), m.scoreBlueFinal]);
+    for (const [t, xs] of solo) if (!played.has(t)) { played.set(t, xs.length); opr.set(t, xs.reduce((x, y) => x + y, 0) / xs.length); }
     const rank = new Map((a.rankings ?? []).map(r => [r.teamNumber, r.rank]));
     const teams = new Set<number>([...played.keys(), ...rank.keys()]);
     return {
@@ -102,7 +119,7 @@ export interface ArchEv { code: string; type: string; start: string; region: str
 
 const toM = (m: FMatch, playoff: boolean): ArchM => ({
     t: Date.parse(m.actualStartTime ?? "") || 0,
-    s: playoff ? (m.series ?? 0) * 1000 + m.matchNumber : m.matchNumber,
+    s: playoff ? ((LEVEL_ORDER[m.tournamentLevel] ?? 0) * 100 + (m.series ?? 0)) * 1000 + m.matchNumber : m.matchNumber,
     red: side(m, "Red"), blue: side(m, "Blue"),
     redNp: np(m, "Red"), blueNp: np(m, "Blue"), redTot: m.scoreRedFinal, blueTot: m.scoreBlueFinal,
 });
@@ -115,6 +132,6 @@ export function archiveMatchEvents(season: number): ArchEv[] {
         start: a.event.dateStart,
         region: a.event.regionCode ?? "",
         quals: a.matches.filter(m => m.tournamentLevel === "QUALIFICATION" && isPlayed(m)).map(m => toM(m, false)).sort((x, y) => x.s - y.s),
-        playoffs: a.matches.filter(m => m.tournamentLevel === "PLAYOFF" && isPlayed(m)).map(m => toM(m, true)).sort((x, y) => (x.t - y.t) || (x.s - y.s)),
+        playoffs: a.matches.filter(m => isPlayoffLevel(m.tournamentLevel) && isPlayed(m)).map(m => toM(m, true)).sort((x, y) => (x.t - y.t) || (x.s - y.s)),
     }));
 }

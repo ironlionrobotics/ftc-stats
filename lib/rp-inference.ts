@@ -57,12 +57,16 @@ export function allianceRpObs(
     b: AllianceScoreBreakdown | undefined,
     match: Pick<FTCMatch, "teams">,
     alliance: "Red" | "Blue",
+    program: "FTC" | "FRC" = "FTC",
 ): AllianceRpObs | undefined {
     if (!b || Object.keys(b).length === 0) return undefined;
     const raw = b as Record<string, unknown>;
+    const targets = seasonRulesFor(season, program).rpTargets;
+    // FRC breakdown keys are unverified until a live response is seen: no key ⇒ no observation, never "all missed".
+    if (program === "FRC" && !targets.some(t => t.breakdownKey in raw)) return undefined;
     const rp: Record<string, boolean> = {};
-    for (const t of seasonRulesFor(season).rpTargets) rp[t.id] = raw[t.breakdownKey] === true;
-    if (season < 2026) return { rp };
+    for (const t of targets) rp[t.id] = raw[t.breakdownKey] === true;
+    if (program === "FRC" || season < 2026) return { rp };
     const slots = robotSlotsFor(match.teams ?? [], alliance);
     const robots: RobotOutcome[] = [];
     slots.forEach((team, i) => {

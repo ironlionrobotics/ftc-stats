@@ -102,7 +102,7 @@ describe("seedNeededFor", () => {
     });
 
     it("puts the 90% threshold in the single digits", () => {
-        // Sanity against the measured table: seed 7 is ~92%, seed 9 ~76%.
+        // Sanity against the measured table: seed 7 is ~95%, seed 9 ~82%.
         expect(seedNeededFor(0.9)).toBeLessThanOrEqual(9);
         expect(seedNeededFor(0.9)).toBeGreaterThanOrEqual(4);
     });
