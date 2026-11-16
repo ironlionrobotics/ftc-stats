@@ -292,6 +292,7 @@ function AccountButton({ team, onClick, wide }: { team: number | null; onClick: 
 function AccountPanel({ team, aiAssistant, onClose }: { team: number | null; aiAssistant: boolean; onClose: () => void }) {
     const t = useTranslations("Shell");
     const tAttr = useTranslations("Attribution");
+    const pathname = usePathname();
     const { user, userDoc, signInWithGoogle, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const hydrated = useHydrated();
@@ -396,9 +397,15 @@ function AccountPanel({ team, aiAssistant, onClose }: { team: number | null; aiA
 
                 <p className="text-xs text-muted-foreground">
                     {tAttr("prefix")}{" "}
-                    <a href="https://www.firstinspires.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
-                        {tAttr("linkLabel")}
-                    </a>
+                    {pathname.startsWith("/frc") ? (
+                        <a href="https://frc-events.firstinspires.org/services/API" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                            {tAttr("linkLabelFrc")}
+                        </a>
+                    ) : (
+                        <a href="https://www.firstinspires.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                            {tAttr("linkLabel")}
+                        </a>
+                    )}
                 </p>
             </div>
         </div>

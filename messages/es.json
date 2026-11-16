@@ -642,7 +642,8 @@
   },
   "Attribution": {
     "prefix": "Datos de eventos proporcionados por FIRST® —",
-    "linkLabel": "firstinspires.org"
+    "linkLabel": "firstinspires.org",
+    "linkLabelFrc": "frc-events.firstinspires.org"
   },
   "Onboarding": {
     "title": "Bienvenido a PRIDE",
@@ -695,7 +696,8 @@
       "lending": "Préstamos de pits",
       "workshop": "Taller",
       "allEvents": "Todos los eventos",
-      "about": "Acerca de PRIDE"
+      "about": "Acerca de PRIDE",
+      "frc": "FRC"
     },
     "aria": {
       "primary": "Navegación principal",
@@ -2309,5 +2311,13 @@
       "source": "Las estadísticas vienen de la API oficial de FIRST."
     },
     "madeBy": "Hecho por Iron Lion Robotics · FTC #30311, Monterrey, México."
+  },
+  "FrcPages": {
+    "season": "Temporada {season}",
+    "eventsTitle": "Eventos FRC",
+    "eventsSubtitle": "Calendario y resultados de los eventos FRC de la temporada.",
+    "notConfigured": "Los datos de FRC todavía no están configurados en este servidor. Cuando se activen, los eventos aparecerán aquí.",
+    "noEvents": "No hay eventos FRC publicados para esta temporada.",
+    "unreachable": "No se pudo contactar la API de FIRST para FRC. Inténtalo de nuevo en un momento."
   }
 }

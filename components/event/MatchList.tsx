@@ -774,14 +774,20 @@ function MatchRow({ match, rankings, teamNamesMap, onTeamClick, filterTeam, scou
                     <TeamInfo team={redTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
                 </td>
                 <td className={clsx("p-4 border-r border-border/20", redWin ? "bg-alliance-red/10" : "border-transparent")}>
-                    <TeamInfo team={redTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
+                    <div className="space-y-2">
+                        <TeamInfo team={redTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
+                        {redTeams[2] && <TeamInfo team={redTeams[2]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />}
+                    </div>
                 </td>
 
                 <td className={clsx("p-4", blueWin ? "bg-alliance-blue/10" : "border-transparent")}>
                     <TeamInfo team={blueTeams[0]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
                 </td>
                 <td className={clsx("p-4 border-r-4", blueWin ? "border-alliance-blue bg-alliance-blue/10" : "border-transparent")}>
-                    <TeamInfo team={blueTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
+                    <div className="space-y-2">
+                        <TeamInfo team={blueTeams[1]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />
+                        {blueTeams[2] && <TeamInfo team={blueTeams[2]} teamNamesMap={teamNamesMap} onTeamClick={(id) => { onTeamClick(id); }} filterTeam={filterTeam} eventCode={eventCode} />}
+                    </div>
                 </td>
 
                 <td className="p-4 text-center min-w-[200px]">

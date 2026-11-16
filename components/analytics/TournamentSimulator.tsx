@@ -7,6 +7,7 @@ import { Play, RotateCcw, Trophy, Shield, Edit2, Save, FolderOpen, PieChart, Dow
 import clsx from "clsx";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { programCapabilities, type Program } from "@/lib/program";
 
 import type { FTCAllianceSelection } from "@/types/scouting";
 
@@ -16,14 +17,25 @@ interface TournamentSimulatorProps {
     official?: FTCAllianceSelection[];
     /** Real playoff matches from the API — enables one-click reality import. */
     playoffMatches?: FTCMatch[];
+    /** FTC (default) or FRC: alliance size, fielded robots and finals format. */
+    program?: Program;
 }
 
-export default function TournamentSimulator({ teams, official, playoffMatches }: TournamentSimulatorProps) {
+/** FRC playoff series number → bracket game id (M1…M13, finals M14 best of 3). */
+function frcGameId(series: number): string | null {
+    if (series >= 1 && series <= 14) return `M${series}`;
+    if (series === 15) return "M14-2";
+    if (series === 16) return "M14-3";
+    return null;
+}
+
+export default function TournamentSimulator({ teams, official, playoffMatches, program = "FTC" }: TournamentSimulatorProps) {
+    const caps = programCapabilities(program);
     const [step, setStep] = useState<'config' | 'building' | 'bracket'>('config');
-    const [allianceCount, setAllianceCount] = useState<2 | 4 | 6 | 8>(4);
+    const [allianceCount, setAllianceCount] = useState<2 | 4 | 6 | 8>(program === "FRC" ? 8 : 4);
     // 2 = formato estándar (§13.7.1); 3 = Championship/Premier (§15.3):
     // segunda ronda serpentina y solo 2 de los 3 robots juegan cada match.
-    const [allianceSize, setAllianceSize] = useState<2 | 3>(2);
+    const [allianceSize, setAllianceSize] = useState<2 | 3>(caps.allianceSize);
     const [alliances, setAlliances] = useState<Alliance[]>([]);
     const [overrides, setOverrides] = useState<Record<string, number>>({});
     // Per-match reality layer: real scores + incidents (robot failure, major
@@ -66,8 +78,8 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
     // so it recomputes itself whenever a result is imported or a winner forced.
     const simResults = useMemo(() => {
         if (step !== 'bracket' || alliances.length < 2) return null;
-        return runMonteCarloSimulation(alliances, allianceCount, 2000, { adjustments: matchData, overrides, random: seededRandom(2026) });
-    }, [step, alliances, allianceCount, matchData, overrides]);
+        return runMonteCarloSimulation(alliances, allianceCount, 2000, { adjustments: matchData, overrides, random: seededRandom(2026), finalsBestOf: caps.finalsBestOf });
+    }, [step, alliances, allianceCount, matchData, overrides, caps.finalsBestOf]);
     const form = useMemo(() => playoffForm(bracket, alliances, matchData), [bracket, alliances, matchData]);
     const playedCount = useMemo(
         () => Object.values(matchData).filter(a => a.realRed != null && a.realBlue != null).length,
@@ -147,7 +159,7 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
         setOverrides({});
         setMatchData({});
         setSelectedMatchId(null); // Reset overrides on new generation
-        const newAlliances = generateAlliances(teams, allianceCount, allianceSize);
+        const newAlliances = generateAlliances(teams, allianceCount, allianceSize, caps.fieldSize);
         setAlliances(newAlliances);
         setStep('building');
     };
@@ -157,9 +169,9 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
         setOverrides({});
         setMatchData({});
         setSelectedMatchId(null);
-        const officialAlliances = alliancesFromOfficial(official, teams);
+        const officialAlliances = alliancesFromOfficial(official, teams, caps.fieldSize);
         const count = ([2, 4, 6, 8].includes(officialAlliances.length) ? officialAlliances.length : 6) as 2 | 4 | 6 | 8;
-        const size: 2 | 3 = official.some(a => a.round2 != null) ? 3 : 2;
+        const size: 2 | 3 = program === "FRC" ? caps.allianceSize : official.some(a => a.round2 != null) ? 3 : 2;
         setAllianceCount(count);
         setAllianceSize(size);
         setAlliances(officialAlliances);
@@ -257,16 +269,25 @@ export default function TournamentSimulator({ teams, official, playoffMatches }:
                 const blueAl = alliances.find(a => blueTeams.some(n => rosterOf(a).has(n)));
                 if (!redAl || !blueAl) continue;
 
+                // FRC: the series number says which bracket game this is, and
+                // the three finals games are M14, M14-2, M14-3. FTC: match the
+                // pairing against open bracket slots (series repeat there).
+                const frcTarget = program === "FRC" ? frcGameId(pm.series ?? pm.matchNumber) : null;
+                if (program === "FRC" && !frcTarget) continue;
+                const slotId = frcTarget ? frcTarget.replace(/-\d+$/, "") : null;
                 const candidates = current.filter(b =>
                     (b.redAllianceId === redAl.id && b.blueAllianceId === blueAl.id) ||
                     (b.redAllianceId === blueAl.id && b.blueAllianceId === redAl.id),
                 );
-                const slot = candidates.find(b => next[b.id]?.realRed == null);
+                const slot = frcTarget
+                    ? candidates.find(b => b.id === slotId && next[frcTarget]?.realRed == null)
+                    : candidates.find(b => next[b.id]?.realRed == null);
                 if (!slot) continue;
+                const targetId = frcTarget ?? slot.id;
 
                 const sameOrientation = slot.redAllianceId === redAl.id;
-                next[slot.id] = {
-                    ...next[slot.id],
+                next[targetId] = {
+                    ...next[targetId],
                     realRed: sameOrientation ? pm.scoreRedFinal : pm.scoreBlueFinal,
                     realBlue: sameOrientation ? pm.scoreBlueFinal : pm.scoreRedFinal,
                     // scoreXFoul = penalty points COMMITTED by X (verified

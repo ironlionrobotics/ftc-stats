@@ -32,6 +32,7 @@ import Link from "next/link";
 // itself stays behind the dynamic import in the effect below).
 import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import type { Program } from "@/lib/program";
 
 /** Server-computed RP probabilities for one team (BIOBUZZ count models). */
 export interface EventTeamRp {
@@ -56,6 +57,8 @@ interface EventViewManagerProps {
     teamRp?: Record<number, EventTeamRp>;
     /** Per-robot starting points for every forecast (#117), computed on the server. */
     startingPoints?: StartingPoints | null;
+    /** FTC (default) or FRC (decision #118): no advancement tab, no PRO page, 3-robot alliances. */
+    program?: Program;
 }
 
 type TabKey = "matches" | "rankings" | "alliances" | "teams" | "advancement" | "awards";
@@ -71,16 +74,21 @@ const MORE_TABS = [
     { key: "awards", icon: Medal },
 ] as const;
 
-export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, schedule, selectedAlliances, eventCode, season, matchBonusRp, teamRp, startingPoints }: EventViewManagerProps) {
+export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, schedule, selectedAlliances, eventCode, season, matchBonusRp, teamRp, startingPoints, program = "FTC" }: EventViewManagerProps) {
     const t = useTranslations("EventView");
     const tShell = useTranslations("Shell");
     const router = useRouter();
     // Partidos first: the live / next match is what people open an event for (#116).
     const [activeTab, setActiveTab] = useState<TabKey>("matches");
     const [moreOpen, setMoreOpen] = useState(false);
-    const openTeam = (teamNumber: number) => router.push(`/team/${teamNumber}?event=${eventCode}`);
+    const isFrc = program === "FRC";
     const [scoutingData, setScoutingData] = useState<MatchScouting[]>([]);
     const [filterTeam, setFilterTeam] = useState<number | null>(null);
+    // The team pages are FTC-only: on FRC a team click filters the match list instead.
+    const openTeam = (teamNumber: number) => {
+        if (isFrc) { setFilterTeam(teamNumber); setActiveTab("matches"); return; }
+        router.push(`/team/${teamNumber}?event=${eventCode}`);
+    };
     const { orgId } = useAuth();
     const effectiveOrgId = orgId ?? DEFAULT_ORG_ID;
 
@@ -156,7 +164,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
 
         // Win/tie RP of the season (3/1 in DECODE and BIOBUZZ) plus the
         // official bonus RPs of each alliance — RS is their average.
-        const { winRp, tieRp } = seasonRulesFor(season);
+        const { winRp, tieRp } = seasonRulesFor(season, program);
         validMatches.forEach(m => {
             const processTeam = (teamNumber: number, alliance: 'Red' | 'Blue', myScore: number, oppScore: number, myAuto: number, myFoulGiven: number) => {
                 const s = stats.get(teamNumber);
@@ -205,7 +213,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
 
         calculated.forEach((item, index) => { item.rank = index + 1; });
         return calculated;
-    }, [matches, rankings, selectedRound, totalRounds, matchesPerRound, season, matchBonusRp]);
+    }, [matches, rankings, selectedRound, totalRounds, matchesPerRound, season, matchBonusRp, program]);
 
     // MAP TO TEAM EVOLUTION FOR ORACLE
     const oracleTeams = useMemo(() => {
@@ -396,14 +404,16 @@ export default function EventViewManager({ matches, rankings, advancement, award
             <Icon size={16} aria-hidden className="hidden sm:block" /> {t(`tabs.${key}`)}
         </button>
     );
-    const moreActive = MORE_TABS.some(x => x.key === activeTab);
+    // FRC has no FTC advancement points: drop that tab.
+    const moreTabs = MORE_TABS.filter(x => !(isFrc && x.key === "advancement"));
+    const moreActive = moreTabs.some(x => x.key === activeTab);
 
     return (
         <div className="space-y-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div role="tablist" aria-label={t("moreTitle")} className="flex w-full gap-1 rounded-xl bg-muted p-1 md:w-fit">
                     {PRIMARY_TABS.map(x => tabButton(x.key, x.icon, "flex-1 md:flex-none"))}
-                    {MORE_TABS.map(x => tabButton(x.key, x.icon, "hidden md:flex"))}
+                    {moreTabs.map(x => tabButton(x.key, x.icon, "hidden md:flex"))}
                     <button
                         type="button"
                         onClick={() => setMoreOpen(true)}
@@ -412,12 +422,14 @@ export default function EventViewManager({ matches, rankings, advancement, award
                     >
                         <MoreHorizontal size={16} aria-hidden /> {moreActive ? t(`tabs.${activeTab}`) : t("tabs.more")}
                     </button>
-                    <Link
-                        href={`/event/${eventCode}/pro`}
-                        className="hidden min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold text-brand-ink hover:bg-card md:flex"
-                    >
-                        <LucideZap size={16} aria-hidden /> PRO
-                    </Link>
+                    {!isFrc && (
+                        <Link
+                            href={`/event/${eventCode}/pro`}
+                            className="hidden min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold text-brand-ink hover:bg-card md:flex"
+                        >
+                            <LucideZap size={16} aria-hidden /> PRO
+                        </Link>
+                    )}
                 </div>
 
                 {activeTab === "rankings" && (
@@ -450,15 +462,17 @@ export default function EventViewManager({ matches, rankings, advancement, award
 
             <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title={t("moreTitle")} closeLabel={tShell("account.close")}>
                 <div className="divide-y divide-border">
-                    {MORE_TABS.map(x => (
+                    {moreTabs.map(x => (
                         <button key={x.key} type="button" onClick={() => { setActiveTab(x.key); setMoreOpen(false); }}
                             className="flex min-h-[52px] w-full items-center gap-3 px-1 text-left text-base text-foreground">
                             <x.icon size={18} className="text-muted-foreground" aria-hidden /> {t(`tabs.${x.key}`)}
                         </button>
                     ))}
-                    <Link href={`/event/${eventCode}/pro`} onClick={() => setMoreOpen(false)} className="flex min-h-[52px] items-center gap-3 px-1 text-base text-foreground">
-                        <LucideZap size={18} className="text-muted-foreground" aria-hidden /> PRO
-                    </Link>
+                    {!isFrc && (
+                        <Link href={`/event/${eventCode}/pro`} onClick={() => setMoreOpen(false)} className="flex min-h-[52px] items-center gap-3 px-1 text-base text-foreground">
+                            <LucideZap size={18} className="text-muted-foreground" aria-hidden /> PRO
+                        </Link>
+                    )}
                 </div>
             </Sheet>
 
@@ -505,10 +519,12 @@ export default function EventViewManager({ matches, rankings, advancement, award
                             officialAlliances={selectedAlliances}
                             eventCode={eventCode}
                             playoffMatches={matches.filter(m => m.tournamentLevel !== "QUALIFICATION" && m.tournamentLevel !== "PRACTICE")}
+                            program={program}
+                            season={season}
                         />
                     </div>
                 )}
-                {activeTab === "advancement" && (
+                {activeTab === "advancement" && !isFrc && (
                     <AdvancementList advancement={advancement} points={advancementPoints} rankings={rankings} />
                 )}
                 {activeTab === "awards" && (
@@ -548,6 +564,9 @@ function SelectedAlliancesPanel({ alliances }: { alliances: FTCAllianceSelection
                             {a.captain && <span className="font-bold" title={a.captain.teamName ?? undefined}>{a.captain.teamNumber}</span>}
                             {a.round1 && <span title={a.round1.teamName ?? undefined}>· {a.round1.teamNumber}</span>}
                             {a.round2 && <span className="text-muted-foreground" title={a.round2.teamName ?? undefined}>· {a.round2.teamNumber}</span>}
+                            {(a as { round3?: { teamNumber: number; teamName?: string | null } | null }).round3 && (
+                                <span className="text-muted-foreground" title={(a as { round3?: { teamName?: string | null } }).round3?.teamName ?? undefined}>· {(a as { round3?: { teamNumber: number } }).round3?.teamNumber}</span>
+                            )}
                         </div>
                     </div>
                 ))}

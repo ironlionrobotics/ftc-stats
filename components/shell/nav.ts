@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarRange, ClipboardList, Home, Swords, Users, BarChart2, Target, IdCard, Wrench, Timer, Info, type LucideIcon } from "lucide-react";
+import { CalendarDays, CalendarRange, ClipboardList, Home, Swords, Users, BarChart2, Target, IdCard, Wrench, Timer, Info, Bot, type LucideIcon } from "lucide-react";
 
 /**
  * Navigation model of the app shell (decision #116, direction "Oro").
@@ -23,6 +23,9 @@ const TEAMS: NavItem = { href: "/teams", labelKey: "nav.teams", icon: Users, mat
 const STRATEGY: NavItem = { href: "/strategy", labelKey: "nav.strategy", icon: Swords, match: ["/strategy"] };
 const ALL_EVENTS: NavItem = { href: "/events", labelKey: "more.allEvents", icon: CalendarRange, match: ["/events"] };
 
+/** FRC events (decision #118): its own destination, under "Más" only. */
+const FRC: NavItem = { href: "/frc/events", labelKey: "more.frc", icon: Bot, match: ["/frc/"] };
+
 /** Phone bottom bar: four tasks + a "Más" button (rendered by the shell). */
 export const MOBILE_TABS: NavItem[] = [TODAY, EVENT, CAPTURE, TEAMS];
 /** Tablet/desktop rail. */
@@ -40,7 +43,7 @@ const TOOLS: NavItem[] = [
 /** Rail "more" list. */
 export const SECONDARY_NAV: NavItem[] = [ALL_EVENTS, ...TOOLS];
 /** Phone "Más" sheet: strategy first, then the rest. */
-export const MORE_NAV: NavItem[] = [STRATEGY, ALL_EVENTS, ...TOOLS];
+export const MORE_NAV: NavItem[] = [STRATEGY, ALL_EVENTS, FRC, ...TOOLS];
 
 export function isActive(item: NavItem, pathname: string): boolean {
     if (pathname === item.href) return true;

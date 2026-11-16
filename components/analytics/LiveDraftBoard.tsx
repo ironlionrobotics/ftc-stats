@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import type { TeamEvolution } from "@/app/actions/analytics";
 import type { FTCAllianceSelection } from "@/types/scouting";
-import { calculateSynergyScore, explainSynergyScore, bestFieldedPair, computeTeamSigma, combineSigmas, runMonteCarloSimulation, type SynergyReason } from "@/lib/alliance-utils";
+import { programCapabilities, type Program } from "@/lib/program";
+import { calculateSynergyScore, explainSynergyScore, bestFieldedLineup, computeTeamSigma, combineSigmas, runMonteCarloSimulation, type SynergyReason } from "@/lib/alliance-utils";
 import type { Alliance } from "@/types/oracle";
 import { Crown, RotateCcw, Star, Ban, Download, Users, Handshake } from "lucide-react";
 import clsx from "clsx";
@@ -33,11 +34,13 @@ function emptySlots(count: number, size: number): (number | null)[][] {
     return Array.from({ length: count }, () => Array.from({ length: size }, () => null));
 }
 
-function loadDraft(storageKey: string, teams: TeamEvolution[]): DraftState {
+function loadDraft(storageKey: string, teams: TeamEvolution[], program: Program): DraftState {
+    const caps = programCapabilities(program);
+    const count = program === "FRC" ? 8 : 6;
     const fallback: DraftState = {
-        allianceCount: 6,
-        allianceSize: 2,
-        slots: emptySlots(6, 2),
+        allianceCount: count,
+        allianceSize: caps.allianceSize,
+        slots: emptySlots(count, caps.allianceSize),
         declined: [],
         myTeam: teams.some(t => t.teamNumber === 30311) ? 30311 : null,
     };
@@ -55,8 +58,8 @@ function loadDraft(storageKey: string, teams: TeamEvolution[]): DraftState {
 
 
 /** Builds an Alliance object (fielded-pair semantics) for simulation. */
-function toAlliance(id: number, members: TeamEvolution[]): Alliance {
-    const fielded = members.length >= 2 ? bestFieldedPair(members).pair : members;
+function toAlliance(id: number, members: TeamEvolution[], fieldSize: 2 | 3 = 2): Alliance {
+    const fielded = members.length >= 2 ? bestFieldedLineup(members, fieldSize).pair : members;
     const totalOPR = fielded.reduce((s, t) => s + (t.opr || 0), 0);
     const totalAuto = fielded.reduce((s, t) => s + (t.autoOPR || 0), 0);
     return {
@@ -109,7 +112,9 @@ function simulateInvitationScenario(
      * My own picks are always greedy — we DO have scouting.
      */
     captainStrategy: "model" | "rank" = "model",
+    program: Program = "FTC",
 ): ScenarioOutcome {
+    const caps = programCapabilities(program);
     const byNum = new Map(teams.map(t => [t.teamNumber, t]));
     const rankOf = (t: TeamEvolution) => t.events[t.events.length - 1]?.rank ?? 999;
     const slots = Array.from({ length: allianceCount }, (_, a) =>
@@ -176,7 +181,7 @@ function simulateInvitationScenario(
             if (iAmHere || captainStrategy === "model") {
                 let bestScore = -Infinity;
                 for (const c of pool) {
-                    const score = bestFieldedPair([...members, c]).score;
+                    const score = bestFieldedLineup([...members, c], caps.fieldSize).score;
                     if (score > bestScore) { bestScore = score; best = c; }
                 }
             } else {
@@ -190,7 +195,7 @@ function simulateInvitationScenario(
     const alliances = slots
         .map((row, i) => {
             const members = row.filter((n): n is number => n != null).map(n => byNum.get(n)!).filter(Boolean);
-            return members.length > 0 ? toAlliance(i + 1, members) : null;
+            return members.length > 0 ? toAlliance(i + 1, members, caps.fieldSize) : null;
         })
         .filter((a): a is Alliance => a !== null);
 
@@ -199,25 +204,28 @@ function simulateInvitationScenario(
     let strength = 0;
     let myMembers: TeamEvolution[] = [];
     if (myAllianceIdx >= 0 && (allianceCount === 2 || allianceCount === 4 || allianceCount === 6 || allianceCount === 8) && alliances.length === allianceCount) {
-        const results = runMonteCarloSimulation(alliances, allianceCount, 1500);
+        const results = runMonteCarloSimulation(alliances, allianceCount, 1500, { finalsBestOf: caps.finalsBestOf });
         const mine = results.find(r => r.allianceId === myAllianceIdx + 1);
         championP = mine?.championProbability ?? 0;
         finalsP = mine?.finalsProbability ?? 0;
         myMembers = slots[myAllianceIdx].filter((n): n is number => n != null).map(n => byNum.get(n)!).filter(Boolean);
-        strength = myMembers.length >= 2 ? bestFieldedPair(myMembers).score : (myMembers[0]?.opr ?? 0);
+        strength = myMembers.length >= 2 ? bestFieldedLineup(myMembers, caps.fieldSize).score : (myMembers[0]?.opr ?? 0);
     }
     return { myAllianceIdx, myMembers, inviterTakes, strength, championP, finalsP };
 }
 
 const SLOT_LABELS = ["slotCaptain", "slotPick1", "slotPick2"] as const;
 
-export default function LiveDraftBoard({ teams, official, storageKey = "live-draft" }: {
+export default function LiveDraftBoard({ teams, official, storageKey = "live-draft", program = "FTC" }: {
     teams: TeamEvolution[];
     /** Official selection from the API, for one-click import once published. */
     official?: FTCAllianceSelection[];
     storageKey?: string;
+    /** FTC (default) or FRC: 3 robots per alliance, all three fielded. */
+    program?: Program;
 }) {
-    const [draft, setDraft] = useState<DraftState>(() => loadDraft(storageKey, teams));
+    const caps = programCapabilities(program);
+    const [draft, setDraft] = useState<DraftState>(() => loadDraft(storageKey, teams, program));
     const tSynergy = useTranslations("AllianceUtils");
     const tD = useTranslations("LiveDraftBoard");
     // explainSynergyScore returns each reason as a translation key + params
@@ -276,9 +284,9 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
             .map(n => teamByNumber.get(n))
             .filter((t): t is TeamEvolution => !!t);
         if (members.length < 2) return { idx, members, pair: members, score: members[0]?.opr ?? 0 };
-        const { pair, score } = bestFieldedPair(members);
+        const { pair, score } = bestFieldedLineup(members, caps.fieldSize);
         return { idx, members, pair, score };
-    }, [draft.slots, draft.myTeam, teamByNumber]);
+    }, [draft.slots, draft.myTeam, teamByNumber, caps.fieldSize]);
 
     // Full-board projection: once every alliance has captain + pick1, Monte
     // Carlo the tournament so each row shows its finals/championship odds.
@@ -289,11 +297,11 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
         if (!complete) return null;
         const alliances = draft.slots.map((row, i) => {
             const members = row.filter((n): n is number => n != null).map(n => teamByNumber.get(n)!).filter(Boolean);
-            return toAlliance(i + 1, members);
+            return toAlliance(i + 1, members, caps.fieldSize);
         });
-        const res = runMonteCarloSimulation(alliances, count, 1500);
+        const res = runMonteCarloSimulation(alliances, count, 1500, { finalsBestOf: caps.finalsBestOf });
         return new Map(res.map(r => [r.allianceId - 1, r]));
-    }, [draft.slots, draft.allianceCount, teamByNumber]);
+    }, [draft.slots, draft.allianceCount, teamByNumber, caps.fieldSize, caps.finalsBestOf]);
 
     // Invitation advisor: compare "accept" vs "decline & captain" branches.
     const [inviterIdx, setInviterIdx] = useState<number | null>(null);
@@ -323,8 +331,8 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
         const inferredStrategy: "model" | "rank" = gap > 8 ? "rank" : "model";
         const strategy = strategyOverride ?? inferredStrategy;
 
-        const accept = simulateInvitationScenario(teams, draft.slots, draft.allianceCount, draft.allianceSize, draft.declined, draft.myTeam, inviterIdx, true, strategy);
-        const decline = simulateInvitationScenario(teams, draft.slots, draft.allianceCount, draft.allianceSize, draft.declined, draft.myTeam, inviterIdx, false, strategy);
+        const accept = simulateInvitationScenario(teams, draft.slots, draft.allianceCount, draft.allianceSize, draft.declined, draft.myTeam, inviterIdx, true, strategy, program);
+        const decline = simulateInvitationScenario(teams, draft.slots, draft.allianceCount, draft.allianceSize, draft.declined, draft.myTeam, inviterIdx, false, strategy, program);
         return {
             accept,
             decline,
@@ -338,7 +346,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
             modelBestRank: modelBest ? rankOf(modelBest) : null,
             myRank: myTeamObj ? rankOf(myTeamObj) : null,
         };
-    }, [inviterIdx, draft, teams, teamByNumber, available, myTeamObj, strategyOverride]);
+    }, [inviterIdx, draft, teams, teamByNumber, available, myTeamObj, strategyOverride, program]);
 
     const setSlot = (allianceIdx: number, slotIdx: number, value: string) => {
         const teamNumber = value === "" ? null : Number(value);
@@ -358,7 +366,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
 
     const importOfficial = () => {
         if (!official || official.length === 0) return;
-        const size: 2 | 3 = official.some(a => a.round2 != null) ? 3 : 2;
+        const size: 2 | 3 = program === "FRC" ? caps.allianceSize : official.some(a => a.round2 != null) ? 3 : 2;
         const count = (official.length === 4 || official.length === 6 || official.length === 8 ? official.length : 6) as 4 | 6 | 8;
         const slots = emptySlots(count, size);
         official.forEach((a, i) => {
@@ -397,6 +405,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                         <select
                             value={draft.allianceSize}
                             onChange={e => setConfig(draft.allianceCount, Number(e.target.value) as 2 | 3)}
+                            disabled={program === "FRC"}
                             className="px-2.5 py-1.5 bg-card border border-border rounded-lg text-xs font-mono text-foreground"
                         >
                             <option value={2}>{tD("robots2")}</option>
@@ -460,7 +469,7 @@ export default function LiveDraftBoard({ teams, official, storageKey = "live-dra
                                 const proj = boardProjection?.get(a);
                                 return (
                                     <div className="shrink-0 text-right font-mono text-xs leading-tight w-14">
-                                        <span className="block font-bold text-foreground">≈{Math.round(bestFieldedPair(members).score)}</span>
+                                        <span className="block font-bold text-foreground">≈{Math.round(bestFieldedLineup(members, caps.fieldSize).score)}</span>
                                         {proj && (
                                             <span className="block text-secondary" title={tD("finalsChamp")}>
                                                 F {(proj.finalsProbability * 100).toFixed(0)}% · C {(proj.championProbability * 100).toFixed(0)}%

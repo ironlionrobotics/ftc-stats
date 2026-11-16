@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import clsx from "clsx";
 import { TeamEvolution } from "@/app/actions/analytics";
 import { MatchScouting, FTCMatchScouting, FTCAllianceSelection, FTCMatch } from "@/types/scouting";
+import { type Program } from "@/lib/program";
 import TournamentSimulator from "./TournamentSimulator";
 import LiveDraftBoard from "./LiveDraftBoard";
 import { useTranslations } from "next-intl";
@@ -23,6 +24,10 @@ interface AlliancePredictorProps {
     eventCode?: string;
     /** Real playoff matches (API) for the tournament reality import. */
     playoffMatches?: FTCMatch[];
+    /** FTC (default) or FRC; threads to the draft board and the simulator. */
+    program?: Program;
+    /** Event season; overrides the stored (FTC) season — FRC pages pass theirs. */
+    season?: number;
 }
 
 interface ScoutedMetrics {
@@ -36,11 +41,12 @@ interface ScoutedMetrics {
 const RP_COLORS = ["text-success", "text-primary", "text-secondary"];
 const RP_BADGES = ["text-success bg-success/10", "text-primary bg-primary/10", "text-secondary bg-secondary/10"];
 
-export default function AlliancePredictor({ teams, scoutingData = [], initialTeam, onTeamSelect, officialAlliances, eventCode, playoffMatches }: AlliancePredictorProps) {
-    const { season } = useProgram();
+export default function AlliancePredictor({ teams, scoutingData = [], initialTeam, onTeamSelect, officialAlliances, eventCode, playoffMatches, program = "FTC", season: seasonProp }: AlliancePredictorProps) {
+    const { season: storeSeason } = useProgram();
+    const season = seasonProp ?? storeSeason;
     const tGames = useTranslations("Games");
-    const rules = seasonRulesFor(season);
-    const isBiobuzz = season >= 2026;
+    const rules = seasonRulesFor(season, program);
+    const isBiobuzz = program === "FTC" && season >= 2026;
     const LEGACY_RP_SHORT: Record<string, string> = { movement: "MOV", goal: "ART", pattern: "PAT" };
     const rpShort = (id: string) => LEGACY_RP_SHORT[id] ?? tGames(`rp.${id}`);
     const [unavailableTeams, setUnavailableTeams] = useState<number[]>([]);
@@ -388,10 +394,11 @@ export default function AlliancePredictor({ teams, scoutingData = [], initialTea
                     <LiveDraftBoard
                         teams={teams}
                         official={officialAlliances}
+                        program={program}
                         storageKey={`live-draft:${eventCode ?? "default"}`}
                     />
                 ) : mode === "simulator" ? (
-                    <TournamentSimulator teams={teams} official={officialAlliances} playoffMatches={playoffMatches} />
+                    <TournamentSimulator teams={teams} official={officialAlliances} playoffMatches={playoffMatches} program={program} />
                 ) : (
                     <>
                         {/* Selection Area (Same as before) */}
