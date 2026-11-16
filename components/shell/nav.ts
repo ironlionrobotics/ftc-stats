@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarRange, ClipboardList, Home, Swords, Users, BarChart2, Target, IdCard, Wrench, Timer, Info, Bot, type LucideIcon } from "lucide-react";
+import { CalendarDays, CalendarRange, ClipboardList, Home, Swords, Users, BarChart2, Target, IdCard, Wrench, Timer, Info, Bot, Activity, type LucideIcon } from "lucide-react";
 
 /**
  * Navigation model of the app shell (decision #116, direction "Oro").
@@ -32,9 +32,13 @@ export const MOBILE_TABS: NavItem[] = [TODAY, EVENT, CAPTURE, TEAMS];
 /** Tablet/desktop rail. */
 export const RAIL_NAV: NavItem[] = [TODAY, EVENT, CAPTURE, TEAMS, STRATEGY];
 
+/** Robot health (decision #120): under "Más" only, behind the `robotHealth` flag. */
+export const ROBOT_HREF = "/robot";
+
 const TOOLS: NavItem[] = [
     { href: "/lending", labelKey: "more.lending", icon: Wrench, match: ["/lending"] },
     { href: "/workshop", labelKey: "more.workshop", icon: Timer, match: ["/workshop"] },
+    { href: ROBOT_HREF, labelKey: "more.robot", icon: Activity, match: ["/robot"] },
     { href: "/card", labelKey: "more.card", icon: IdCard, match: ["/card"] },
     { href: "/analytics", labelKey: "more.dataLab", icon: BarChart2, match: ["/analytics"] },
     { href: "/oracle", labelKey: "more.oracle", icon: Target, match: ["/oracle"] },
@@ -46,8 +50,15 @@ export const SECONDARY_NAV: NavItem[] = [ALL_EVENTS, ...TOOLS];
 /** Phone "Más" sheet: strategy first, then the rest. */
 export const MORE_NAV: NavItem[] = [STRATEGY, ALL_EVENTS, FRC, ...TOOLS];
 
-/** "Más" sheet with the FRC entry only when the `frc` flag is on (#119). */
-export const moreNavFor = (frc: boolean): NavItem[] => (frc ? MORE_NAV : MORE_NAV.filter(i => i.href !== FRC_HREF));
+export interface NavFlags { frc: boolean; robotHealth: boolean }
+
+const visible = (items: NavItem[], flags: NavFlags): NavItem[] =>
+    items.filter(i => (i.href !== FRC_HREF || flags.frc) && (i.href !== ROBOT_HREF || flags.robotHealth));
+
+/** "Más" sheet hiding the entries whose feature flag is off (#119, #120). */
+export const moreNavFor = (flags: NavFlags): NavItem[] => visible(MORE_NAV, flags);
+/** Rail "more" list hiding the entries whose feature flag is off. */
+export const secondaryNavFor = (flags: NavFlags): NavItem[] => visible(SECONDARY_NAV, flags);
 
 export function isActive(item: NavItem, pathname: string): boolean {
     if (pathname === item.href) return true;

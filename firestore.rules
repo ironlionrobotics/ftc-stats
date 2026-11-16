@@ -351,6 +351,47 @@ service cloud.firestore {
                 && (resource.data.createdBy == request.auth.uid || isOrgAdminOrLead());
         }
 
+        // Robot logs (#120, "Salud del robot"): metadata + computed summary of
+        // a CSV the team uploaded to Storage (robot_logs/{season}/{team}/{id}/).
+        // Private to the team, never shared. Only the labels/links can change
+        // after upload; the summary and the file list are immutable.
+        function robotLogLabelsOk(d) {
+            return d.kind in ['match', 'practice', 'test']
+                && d.label is string && d.label.size() <= 60
+                && (d.eventCode == null || (d.eventCode is string && d.eventCode.size() <= 16))
+                && (d.match == null || (d.match is map && d.match.number is int))
+                && (d.practiceRunId == null || (d.practiceRunId is string && d.practiceRunId.size() <= 64));
+        }
+
+        match /robot_logs/{logId} {
+            allow read: if isAuthed() && isMyOrg(resource.data.orgId);
+            allow create: if isAuthed()
+                && isMyOrg(request.resource.data.orgId)
+                && request.resource.data.createdBy == request.auth.uid
+                && request.resource.data.id == logId
+                && request.resource.data.keys().hasOnly(['id', 'orgId', 'season', 'teamNumber', 'createdBy',
+                    'uploadedAt', 'recordedAt', 'kind', 'eventCode', 'match', 'practiceRunId', 'label',
+                    'format', 'files', 'channels', 'summary'])
+                && string(request.resource.data.teamNumber) == request.resource.data.orgId
+                && request.resource.data.season is int
+                && request.resource.data.kind in ['match', 'practice', 'test']
+                && request.resource.data.teamNumber is int
+                && request.resource.data.files is list
+                && request.resource.data.files.size() >= 1
+                && request.resource.data.files.size() <= 8
+                && request.resource.data.channels is list
+                && request.resource.data.channels.size() <= 64
+                && request.resource.data.summary is map
+                && robotLogLabelsOk(request.resource.data);
+            allow update: if isAuthed() && isMyOrg(resource.data.orgId)
+                && request.resource.data.diff(resource.data).affectedKeys()
+                    .hasOnly(['label', 'kind', 'eventCode', 'match', 'practiceRunId'])
+                && robotLogLabelsOk(request.resource.data);
+            // Any member, like the Storage files: deleting must never leave a
+            // doc whose CSV is gone (or the reverse) because the two rules disagree.
+            allow delete: if isAuthed() && isMyOrg(resource.data.orgId);
+        }
+
         // ---- Pit lending (#104) ------------------------------------------
         // Inventory: a team sees its whole inventory; other approved teams see
         // only lendable items (queries must filter lendable == true). Writes

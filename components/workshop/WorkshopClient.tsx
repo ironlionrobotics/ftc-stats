@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useTranslations, useFormatter } from "next-intl";
 import { useForm, useWatch, type Control } from "react-hook-form";
 import { toast } from "sonner";
@@ -48,7 +49,7 @@ function loadMeta(): Meta {
  * with the season's own rules, and a private log of progress. Nothing here is
  * shared with other teams.
  */
-export default function WorkshopClient({ season }: { season: number }) {
+export default function WorkshopClient({ season, robotHealth = true }: { season: number; robotHealth?: boolean }) {
     const t = useTranslations("Workshop");
     const { user, orgId, loading } = useAuth();
     const def = gameDefinitionFor("FTC", season);
@@ -57,14 +58,14 @@ export default function WorkshopClient({ season }: { season: number }) {
     if (!user) return <Notice>{t("signIn")}</Notice>;
     if (!orgId) return <Notice>{t("needTeam")}</Notice>;
     if (!def) return <Notice>{t("noGame")}</Notice>;
-    return <Workshop season={season} orgId={orgId} uid={user.uid} def={def} />;
+    return <Workshop season={season} orgId={orgId} uid={user.uid} def={def} robotHealth={robotHealth} />;
 }
 
 function Notice({ children }: { children: React.ReactNode }) {
     return <p className="rounded-xl border border-border bg-muted p-6 text-muted-foreground">{children}</p>;
 }
 
-function Workshop({ season, orgId, uid, def }: { season: number; orgId: string; uid: string; def: GameDefinition }) {
+function Workshop({ season, orgId, uid, def, robotHealth }: { season: number; orgId: string; uid: string; def: GameDefinition; robotHealth: boolean }) {
     const t = useTranslations("Workshop");
     const timing = seasonRulesFor(season).matchTiming;
     const [cloudRuns, setCloudRuns] = useState<PracticeRun[]>([]);
@@ -94,6 +95,13 @@ function Workshop({ season, orgId, uid, def }: { season: number; orgId: string; 
     const pendingIds = useMemo(() => new Set(localRuns.map(r => r.id).filter(id => !cloudRuns.some(c => c.id === id))), [localRuns, cloudRuns]);
 
     return (
+        <div className="space-y-4">
+        {robotHealth && (
+            <Link href="/robot" className="block rounded-xl border border-border bg-card p-3 text-sm hover:bg-muted">
+                <span className="font-semibold text-primary">{t("robotLink")}</span>
+                <span className="block text-xs text-muted-foreground">{t("robotLinkHint")}</span>
+            </Link>
+        )}
         <Tabs defaultValue="match" className="space-y-4">
             <TabsList className="flex w-full gap-1 border border-border bg-muted p-1 md:w-fit">
                 <TabsTrigger value="match">{t("tabMatch")}</TabsTrigger>
@@ -111,6 +119,7 @@ function Workshop({ season, orgId, uid, def }: { season: number; orgId: string; 
                 <Progress runs={runs} />
             </TabsContent>
         </Tabs>
+        </div>
     );
 }
 

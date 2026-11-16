@@ -5,6 +5,7 @@ import { getCurrentSeason } from "@/lib/constants";
 import { parseSeason } from "@/lib/input-guards";
 import WorkshopClient from "@/components/workshop/WorkshopClient";
 import PastSeasonBanner from "@/components/shell/PastSeasonBanner";
+import { flagOn } from "@/lib/app-config";
 
 /** Workshop (#105): private practice with a match clock, scoring and progress. */
 export default async function WorkshopPage() {
@@ -19,7 +20,7 @@ export default async function WorkshopPage() {
                 <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
             </header>
             <PastSeasonBanner season={season} current={current} />
-            <WorkshopClient season={season} />
+            <WorkshopClient season={season} robotHealth={await flagOn("robotHealth")} />
         </div>
     );
 }

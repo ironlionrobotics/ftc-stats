@@ -118,7 +118,7 @@ export default async function RootLayout({
           <QueryProvider>
             <AuthProvider>
               <ConfirmProvider>
-                <AppShell followedTeam={followedTeam} follows={follows} activeEvent={activeEvent} eventOptions={eventOptions} aiAssistant={appConfig.features.aiAssistant} frc={flags.frc.value} />
+                <AppShell followedTeam={followedTeam} follows={follows} activeEvent={activeEvent} eventOptions={eventOptions} aiAssistant={appConfig.features.aiAssistant} frc={flags.frc.value} robotHealth={flags.robotHealth.value} />
                 <main id="main" tabIndex={-1} className="md:ml-56 min-h-screen pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0 outline-none">
                   {banner && (
                     <div role="status" className="border-b border-primary/30 bg-primary/10 px-4 py-2 text-center text-sm font-semibold text-foreground">

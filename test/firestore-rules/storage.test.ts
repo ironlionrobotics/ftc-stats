@@ -118,3 +118,64 @@ describe("media hardening (#106 review)", () => {
         await assertFails(uploadBytes(ref(st, "team_media/2026/111/short/original"), img, { contentType: "image/jpeg" }));
     });
 });
+
+describe("robot logs (#120)", () => {
+    const id = "LLLLLLLLLLLLLLLLLLL1";
+    const csvPath = `robot_logs/2026/111/${id}/motor_diag_20261116_101503.csv`;
+    const csv = new TextEncoder().encode("time_s,battery_volts\n0,12.5\n");
+    const st = (uid: string) => env.authenticatedContext(uid).storage();
+    const db = (uid: string) => env.authenticatedContext(uid).firestore();
+    const docData = (by: string) => ({
+        id, orgId: "111", season: 2026, teamNumber: 111, createdBy: by, uploadedAt: 1, recordedAt: 1,
+        kind: "practice", eventCode: null, match: null, practiceRunId: null, label: "", format: "motor-diag",
+        files: ["motor_diag_20261116_101503.csv"], channels: [], summary: {},
+    });
+
+    it("storage: any member of the team uploads CSV; others and wrong names/types can't", async () => {
+        await assertSucceeds(uploadBytes(ref(st("sc"), csvPath), csv, { contentType: "text/csv" }));
+        await assertFails(uploadBytes(ref(st("oth"), `robot_logs/2026/111/${id}/b.csv`), csv, { contentType: "text/csv" }));
+        await assertFails(uploadBytes(ref(st("none"), `robot_logs/2026/111/${id}/c.csv`), csv, { contentType: "text/csv" }));
+        await assertFails(uploadBytes(ref(st("sc"), `robot_logs/2026/111/${id}/x.html`), csv, { contentType: "text/csv" }));
+        await assertFails(uploadBytes(ref(st("sc"), `robot_logs/2026/111/${id}/d.csv`), csv, { contentType: "text/html" }));
+        await assertFails(uploadBytes(ref(st("sc"), `robot_logs/2026/111/short/e.csv`), csv, { contentType: "text/csv" }));
+        await assertFails(uploadBytes(ref(st("sc"), `robot_logs/2026/111/${id}/big.csv`), new Uint8Array(5 * 1024 * 1024 + 1), { contentType: "text/csv" }));
+        await assertSucceeds(uploadBytes(ref(st("sc"), `robot_logs/2026/111/${id}/meta.json`), csv, { contentType: "application/json" }));
+        await assertFails(uploadBytes(ref(st("sc"), `robot_logs/2026/111/${id}/f.csv`), csv, { contentType: "application/json" }));
+    });
+    it("storage: private to the team — other approved teams can't read or delete", async () => {
+        await assertSucceeds(uploadBytes(ref(st("sc"), csvPath), csv, { contentType: "text/csv" }));
+        await assertSucceeds(getBytes(ref(st("adm"), csvPath)));
+        await assertFails(getBytes(ref(st("oth"), csvPath)));
+        await assertFails(getBytes(ref(env.unauthenticatedContext().storage(), csvPath)));
+        // Re-uploading the same path is evaluated as a create by the emulator, so
+        // it can't be blocked reliably; it stays within the team anyway.
+        await assertFails(deleteObject(ref(st("oth"), csvPath)));
+        await assertSucceeds(deleteObject(ref(st("sc"), csvPath)));
+    });
+    it("firestore: own team, own uid, fixed keys; private; only labels change", async () => {
+        await assertSucceeds(setDoc(doc(db("sc"), `robot_logs/${id}`), docData("sc")));
+        await assertFails(setDoc(doc(db("sc"), "robot_logs/LLLLLLLLLLLLLLLLLLL2"), { ...docData("adm"), id: "LLLLLLLLLLLLLLLLLLL2" }));
+        await assertFails(setDoc(doc(db("oth"), "robot_logs/LLLLLLLLLLLLLLLLLLL3"), { ...docData("oth"), id: "LLLLLLLLLLLLLLLLLLL3" }));
+        await assertFails(setDoc(doc(db("sc"), "robot_logs/LLLLLLLLLLLLLLLLLLL4"), { ...docData("sc"), id: "LLLLLLLLLLLLLLLLLLL4", teamNumber: 222 }));
+        await assertFails(setDoc(doc(db("sc"), "robot_logs/LLLLLLLLLLLLLLLLLLL5"), { ...docData("sc"), id: "LLLLLLLLLLLLLLLLLLL5", junk: 1 }));
+        await assertFails(setDoc(doc(db("sc"), "robot_logs/LLLLLLLLLLLLLLLLLLL6"), { ...docData("sc"), id: "LLLLLLLLLLLLLLLLLLL6", kind: "other" }));
+        await assertSucceeds(getDoc(doc(db("adm"), `robot_logs/${id}`)));
+        await assertFails(getDoc(doc(db("oth"), `robot_logs/${id}`)));
+        await assertSucceeds(updateDoc(doc(db("adm"), `robot_logs/${id}`), { label: "Q12", kind: "match", match: { level: "QUALIFICATION", number: 12 } }));
+        await assertFails(updateDoc(doc(db("adm"), `robot_logs/${id}`), { summary: { fake: true } }));
+        await assertFails(updateDoc(doc(db("adm"), `robot_logs/${id}`), { label: "x".repeat(61) }));
+        await assertFails(updateDoc(doc(db("adm"), `robot_logs/${id}`), { match: "junk" }));
+        await assertFails(deleteDoc(doc(db("oth"), `robot_logs/${id}`)));
+        // Any member (not only the uploader) deletes, same as the Storage files.
+        await assertSucceeds(deleteDoc(doc(db("adm"), `robot_logs/${id}`)));
+    });
+    it("firestore: rejects wrong types on create", async () => {
+        const bad = (patch: Record<string, unknown>) => setDoc(doc(db("sc"), "robot_logs/LLLLLLLLLLLLLLLLLLL7"), { ...docData("sc"), id: "LLLLLLLLLLLLLLLLLLL7", ...patch });
+        await assertFails(bad({ teamNumber: "111" }));
+        await assertFails(bad({ summary: "x" }));
+        await assertFails(bad({ channels: "x" }));
+        await assertFails(bad({ files: [] }));
+        await assertFails(bad({ label: "x".repeat(61) }));
+        await assertSucceeds(bad({}));
+    });
+});

@@ -35,6 +35,8 @@ export interface AppConfig {
         frc: boolean;
         /** Live push notifications (cron tick). Off = the tick answers "paused" and sends nothing. */
         liveNotifications: boolean;
+        /** Robot health: team log uploads and analysis (/robot, #120). */
+        robotHealth: boolean;
         /** Site-wide notice (event day, maintenance). */
         maintenanceBanner: MaintenanceBanner;
     };
@@ -47,8 +49,8 @@ export interface AppConfig {
 }
 
 /** Boolean feature flags (the banner is configured separately). */
-export type BooleanFlag = "aiAssistant" | "startingPoints" | "frc" | "liveNotifications";
-export const BOOLEAN_FLAGS: readonly BooleanFlag[] = ["aiAssistant", "startingPoints", "frc", "liveNotifications"];
+export type BooleanFlag = "aiAssistant" | "startingPoints" | "frc" | "liveNotifications" | "robotHealth";
+export const BOOLEAN_FLAGS: readonly BooleanFlag[] = ["aiAssistant", "startingPoints", "frc", "liveNotifications", "robotHealth"];
 
 export const BANNER_MAX = 200;
 
@@ -58,6 +60,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
         startingPoints: true,
         frc: true,
         liveNotifications: true,
+        robotHealth: true,
         maintenanceBanner: { enabled: false, es: "", en: "" },
     },
     ai: {
@@ -80,6 +83,7 @@ function applyOver(base: AppConfig, input: Loose): AppConfig {
             startingPoints: bool("startingPoints"),
             frc: bool("frc"),
             liveNotifications: bool("liveNotifications"),
+            robotHealth: bool("robotHealth"),
             maintenanceBanner: {
                 enabled: typeof b.enabled === "boolean" ? b.enabled : bb.enabled,
                 es: typeof b.es === "string" ? cleanText(b.es) : bb.es,

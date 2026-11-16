@@ -121,7 +121,11 @@ App shell `components/shell/` with 5 destinations — **Hoy** (`/`, the followed
 
 ### Superadmin console (`/admin`, decision #119)
 
-Gate: verified ID-token email in `SUPERADMIN_EMAILS` (env, not editable from the app). Runtime config in Firestore `app_config/global` (`lib/app-config.ts`, 60 s per-instance cache; schema + sanitization in `lib/app-config-schema.ts`): feature flags `aiAssistant`, `startingPoints`, `frc`, `liveNotifications` and a plain-text `maintenanceBanner`. Precedence env kill switch (`=off`) > config > default (`resolveFlag`); read with `flagOn()` / `getEffectiveFlags()`. Every write appends to `admin_audit` (server-only by default-deny rules). **Credentials are never stored or edited in the app**: `lib/admin-integrations.ts` reports presence, an 8-hex SHA-256 fingerprint, a live ping (`{ok,status,ms}` only) and the Secret Manager rotation commands.
+Gate: verified ID-token email in `SUPERADMIN_EMAILS` (env, not editable from the app). Runtime config in Firestore `app_config/global` (`lib/app-config.ts`, 60 s per-instance cache; schema + sanitization in `lib/app-config-schema.ts`): feature flags `aiAssistant`, `startingPoints`, `frc`, `liveNotifications`, `robotHealth` and a plain-text `maintenanceBanner`. Precedence env kill switch (`=off`) > config > default (`resolveFlag`); read with `flagOn()` / `getEffectiveFlags()`. Every write appends to `admin_audit` (server-only by default-deny rules). **Credentials are never stored or edited in the app**: `lib/admin-integrations.ts` reports presence, an 8-hex SHA-256 fingerprint, a live ping (`{ok,status,ms}` only) and the Secret Manager rotation commands.
+
+### Robot health (`/robot`, decision #120)
+
+Teams upload CSV logs exported from their robot (laptop, after the match — E301: the Hub never uploads). Parsed and analyzed in the browser by pure `lib/robot-logs/` (formats `motor-diag`, `pride-v1`, `decode-match`; spec `docs/architecture/pride-log-v1.md`); raw CSV in Storage `robot_logs/{season}/{team}/{id}/`, summary in Firestore `robot_logs/{id}` — **both private to the team** (rules + tests in `test/firestore-rules/storage.test.ts`). Flag `robotHealth`.
 
 ### Auth + Orgs
 

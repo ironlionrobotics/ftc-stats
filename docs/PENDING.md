@@ -3,6 +3,20 @@
 **Última actualización:** 13 nov 2026 (sesión 21 — temporada BIOBUZZ, caché Firestore, plan de apertura pública; decisiones #86–#98)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
 
+## 🩺 Salud del robot (#120, 16-nov-2026) — `/robot`, spec `docs/architecture/pride-log-v1.md`
+
+- **Hecho en `etapa1/foundations`:** análisis en navegador (`lib/robot-logs/`), reglas privadas por equipo (Firestore + Storage, con tests), UI (subir, detalle, tendencias), flag `robotHealth`.
+- **Para desplegar (con OK):** primero `firebase deploy --only firestore:rules,storage`, después App Hosting.
+- **Piloto 30311 antes de MXMOQ (27–28 nov):** pedir un `motor_diag_*.csv` real de una práctica y calibrar umbrales.
+- **Librería `pride-telemetry`** (MIT, alumnos + Héctor): repo aparte; leer `meta.json` en PRIDE cuando exista.
+- **Seguimiento de la revisión:**
+  - un lote de archivos comparte etiqueta (se editan uno por uno después);
+  - `chartRows` solo conserva picos del primer canal;
+  - el service worker podría cachear CSVs de Storage (igual que el media del Trading Card): evaluar NetworkOnly para `firebasestorage.googleapis.com`;
+  - `channels` se guarda y no se usa;
+  - claves i18n sin uso;
+  - sin deduplicación ni tope de logs por equipo.
+
 ## 🧭 Plan FIRST-only + FRC (#118, 16-nov-2026) — ver `docs/plan-first-api-y-frc.md`
 
 - **Hecho:**

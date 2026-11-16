@@ -697,7 +697,8 @@
       "workshop": "Taller",
       "allEvents": "Todos los eventos",
       "about": "Acerca de PRIDE",
-      "frc": "FRC"
+      "frc": "FRC",
+      "robot": "Salud del robot"
     },
     "aria": {
       "primary": "Navegación principal",
@@ -1080,6 +1081,10 @@
       "liveNotifications": {
         "title": "Avisos en vivo (push)",
         "hint": "Apagado, el cron responde «pausado» y no envía nada."
+      },
+      "robotHealth": {
+        "title": "Salud del robot",
+        "hint": "Muestra u oculta /robot (logs del robot de cada equipo) y su entrada en «Más»."
       }
     },
     "banner": {
@@ -1901,7 +1906,9 @@
     "allRuns": "Todas las prácticas",
     "best": "mejor {best}",
     "progressLegend": "Promedio ± dispersión (consistencia) por fase. El total cuenta solo partidos completos.",
-    "chartNeedsTwo": "Registra al menos dos partidos completos para ver la tendencia."
+    "chartNeedsTwo": "Registra al menos dos partidos completos para ver la tendencia.",
+    "robotLink": "Salud del robot: sube los logs de esta práctica",
+    "robotLinkHint": "Revisa batería, motores y encoders del robot."
   },
   "CardMedia": {
     "consent": "Confirmo que no se identifica el rostro de ningún integrante, o que tenemos su permiso. Lo mejor: solo el robot, con su número visible.",
@@ -2372,5 +2379,149 @@
     "notConfigured": "Los datos de FRC todavía no están configurados en este servidor. Cuando se activen, los eventos aparecerán aquí.",
     "noEvents": "No hay eventos FRC publicados para esta temporada.",
     "unreachable": "No se pudo contactar la API de FIRST para FRC. Inténtalo de nuevo en un momento."
+  },
+  "RobotHealth": {
+    "title": "Salud del robot",
+    "subtitle": "Sube los logs CSV de tu robot y PRIDE los analiza en tu navegador: baterías, motores atascados, encoders y tendencias entre corridas. Privado: solo tu equipo los ve.",
+    "signIn": "Inicia sesión con tu equipo para subir logs del robot.",
+    "needTeam": "Registra tu equipo (o únete con un código) para usar Salud del robot.",
+    "notSupported": "Salud del robot solo está disponible para equipos FTC con número de equipo.",
+    "loading": "Cargando…",
+    "tabRuns": "Corridas ({n})",
+    "tabTrends": "Tendencias",
+    "tabUpload": "Subir",
+    "kinds": {
+      "match": "Partido",
+      "practice": "Práctica",
+      "test": "Prueba"
+    },
+    "levels": {
+      "QUALIFICATION": "Q",
+      "PLAYOFF": "P"
+    },
+    "matchBadge": "Partido {code}",
+    "findingsNone": "Sin hallazgos",
+    "findingsCritical": "{n} críticos",
+    "findingsWarn": "{n} avisos",
+    "vminShort": "Vmín {v} V",
+    "emptyTitle": "Aún no hay logs de tu robot",
+    "emptyBody": "Descarga los CSV del Control Hub y súbelos desde tu laptop, después de un partido o una práctica.",
+    "emptyHow": "Cómo exportarlos: saca la microSD o conecta el Hub por USB y copia los archivos, o usa «adb pull /sdcard/FIRST/motor_logs» para traerlos a tu laptop.",
+    "emptyFormat": "Formato esperado: PRIDE Log v1 (también se entienden los logs de motor_diag y el match_log de DECODE).",
+    "emptyCta": "Subir logs",
+    "uploadDropTitle": "Arrastra aquí tus archivos CSV",
+    "uploadDropHint": "o toca para elegirlos (hasta 5 MB cada uno)",
+    "uploadChoose": "Elegir archivos",
+    "uploadTooBig": "Supera el límite de 5 MB.",
+    "uploadUnreadable": "No se pudo leer el archivo.",
+    "uploadErrors": {
+      "empty": "El archivo está vacío.",
+      "tooManyColumns": "Tiene demasiadas columnas.",
+        "tooManyRows": "Tiene más de 20 000 filas: graba a menor frecuencia (5 Hz basta) o divide el archivo.",
+      "noRows": "No tiene filas de datos.",
+      "unknownFormat": "Formato no reconocido: usa PRIDE Log v1, motor_diag o el match_log de DECODE.",
+      "noTime": "No se encontró la columna de tiempo."
+    },
+    "formats": {
+      "motor-diag": "Motor diag",
+      "decode-match": "DECODE match_log",
+      "pride-v1": "PRIDE Log v1"
+    },
+    "previewLine": "{duration} · {samples} muestras a {hz} Hz",
+    "previewVmin": "Vmín {v} V",
+    "previewFindings": "{n, plural, =0 {sin hallazgos} one {# hallazgo} other {# hallazgos}}",
+    "previewRemove": "Quitar",
+    "formKind": "Tipo de corrida",
+    "formMatch": "Partido",
+    "formMatchPick": "Elige el partido…",
+    "formMatchNumber": "Número de partido",
+    "formMatchLevel": "Fase",
+    "formMatchLevels": {
+      "QUALIFICATION": "Clasificatoria",
+      "PLAYOFF": "Playoffs"
+    },
+    "formEvent": "Evento: {code}",
+    "formPractice": "Práctica del Taller (opcional)",
+    "formPracticeNone": "Ninguna",
+    "formPracticeOption": "{date} · {version} · {total} pts",
+    "formPracticeNoVersion": "sin versión",
+    "formLabel": "Etiqueta (opcional)",
+    "formLabelPh": "p. ej. «con intake nuevo»",
+    "uploadN": "{n, plural, one {Subir # archivo} other {Subir # archivos}}",
+    "uploadStatus": {
+      "pending": "Listo para subir",
+      "uploading": "Subiendo…",
+      "done": "Subido",
+      "error": "Error"
+    },
+    "uploadFailed": {
+      "offline": "Sin conexión: súbelo cuando tengas internet; el archivo sigue en tu laptop.",
+      "upload": "No se pudo subir el archivo. Inténtalo de nuevo.",
+      "save": "El archivo subió pero no se pudo guardar el registro. Inténtalo de nuevo."
+    },
+    "uploadDone": "{n, plural, one {# corrida subida} other {# corridas subidas}}",
+    "privacy": "Tus logs son privados: solo los ve tu equipo y nunca se comparten.",
+    "open": "Abrir",
+    "back": "Volver a las corridas",
+    "notFound": "No encontramos esta corrida o no tienes acceso.",
+    "tileDuration": "Duración",
+    "tileVmin": "Voltaje mínimo",
+    "tilePeak": "Pico total",
+    "tileLoop": "Loop prom / máx",
+    "chartBattery": "Batería y corriente total",
+    "chartMotors": "Corriente por motor",
+    "chartVelocity": "Velocidad por motor",
+    "axisVoltage": "Voltaje (V)",
+    "axisCurrent": "Corriente (A)",
+    "axisVelocity": "Velocidad",
+    "seriesVoltage": "Batería",
+    "seriesTotal": "Corriente total",
+    "refLow": "10.5 V",
+    "refBrownout": "9.15 V",
+    "chartError": "No se pudo leer el archivo de esta corrida.",
+    "chartLoading": "Cargando gráficas…",
+    "motorsTitle": "Motores",
+    "motorDevice": "Motor",
+    "motorPeak": "Pico A",
+    "motorMean": "Media A",
+    "motorP95": "P95 A",
+    "motorEncoder": "Encoder",
+    "encoderYes": "Sí",
+    "encoderNo": "No",
+    "encoderStill": "Sin movimiento",
+    "findingsTitle": "Hallazgos",
+    "findingsEmpty": "Sin hallazgos: la corrida se ve sana.",
+    "findings": {
+      "brownout": "Batería bajó a {value} V en t={at} s ({dur} s): riesgo de reinicio del Control Hub (brownout). Revisa la batería y conexiones.",
+      "lowVoltage": "Batería bajo 10.5 V por {dur} s desde t={at} s (mínimo {value} V). Cambia la batería antes del siguiente partido.",
+      "sustainedCurrent": "{device}: {value} A sostenidos {dur} s en t={at} s. Posible atasco, fricción o motor forzado.",
+      "encoderSilent": "{device}: consumió corriente ({value} A pico) pero su encoder nunca cambió. Si ese motor tiene encoder conectado, revisa el cable.",
+      "slowLoop": "Loop lento: {value} ms en t={at} s. Revisa código bloqueante o lecturas de hardware de más."
+    },
+    "edit": "Editar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "saved": "Cambios guardados",
+    "saveError": "No se pudieron guardar los cambios.",
+    "delete": "Eliminar corrida",
+    "deleteTitle": "¿Eliminar esta corrida?",
+    "deleteBody": "Se borran el archivo y el análisis. No se puede deshacer.",
+    "deleteConfirm": "Eliminar",
+    "deleteError": "No se pudo eliminar la corrida.",
+    "deleted": "Corrida eliminada",
+    "trendsFilter": "Filtrar por tipo",
+    "filterAll": "Todas",
+    "trendsNeedFour": "Las tendencias necesitan al menos 4 corridas. Llevas {n}.",
+    "trendsPeakTitle": "Corriente pico por motor",
+    "trendsVminTitle": "Voltaje mínimo por corrida",
+    "trendsFlagsTitle": "Alertas de la última corrida",
+    "trendsNoFlags": "Sin alertas: la última corrida se parece a las anteriores.",
+    "trendFlags": {
+      "currentRise": "{device}: pico de {value} A, {pct}% sobre su mediana ({baseline} A). Revisa fricción, atasco o caja de engranes.",
+      "voltageDrop": "Voltaje mínimo {value} V, {delta} V bajo la mediana ({baseline} V): batería o cableado envejeciendo.",
+      "loopRise": "Loop máximo {value} ms, más del doble de lo normal ({baseline} ms).",
+      "encoderLost": "{device}: su encoder dejó de responder (en corridas anteriores sí se movía). Revisa el cable del encoder."
+    },
+    "runIndex": "Corrida"
   }
 }

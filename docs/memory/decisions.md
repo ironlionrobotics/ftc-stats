@@ -1700,3 +1700,24 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
   - La consola se niega a mostrar o guardar mientras no pueda leer la configuración, para no pisarla con los defaults.
 - **`writeAppConfig` es una transacción:** el diff de la bitácora se calcula contra el documento leído dentro de la transacción. Así ningún cambio se escapa aunque otra instancia tenga una copia vieja en memoria.
 - **Pruebas:** `starting-points-server.test.ts` mockea `@/lib/app-config` para no consultar Firestore real.
+
+## #120 · Salud del robot: logs del robot subidos y analizados por equipo (2026-11-16)
+
+**Pedido de Héctor:** llevar a PRIDE lo que FTC 30311 hizo con RobotHealth y su logging CSV. Cada equipo graba logs en su robot, los sube a su sección (ligados a un partido o a una práctica de Taller) y PRIDE le ayuda a entender y mejorar su robot.
+
+**Decisiones:**
+- **Librería `pride-telemetry`:** repo aparte, licencia MIT, escrita por los alumnos y Héctor con apoyo de Claude. Contrato en `docs/architecture/pride-log-v1.md`.
+- **Formato del piloto:** el CSV que ya escribe el robot BIOBUZZ de los alumnos, `MotorDiagnosticsLogger`.
+  - PRIDE Log v1 es su generalización: `time_s`, `battery_volts` y `<dispositivo>_<magnitud>_<unidad>`. Así no cambian código antes de MXMOQ.
+  - El `match_log.csv` de DECODE entra con un adaptador.
+- **Subida offline:** por la regla E301 el Hub no sube nada. Se sube desde una laptop y el análisis corre en el navegador (`lib/robot-logs/`).
+  - El CSV crudo va a Storage `robot_logs/{season}/{team}/{id}/` y el resumen a Firestore `robot_logs/{id}`.
+- **Privado del equipo:** más estricto que el media del Trading Card, ningún otro equipo lee. Compartir sería opt-in más adelante.
+  - Del doc solo se pueden editar etiquetas y vínculos; el resumen es inmutable.
+- **Diagnóstico por corrida:** brownout (< 9.15 V), voltaje bajo (< 10.5 V por ≥ 2 s), esfuerzo sostenido (≥ 6 A por ≥ 1 s), encoder mudo y loop lento (≥ 50 ms). Los umbrales vienen de los scripts y el logger de 30311.
+  - **Encoder mudo:** solo cuando el encoder **nunca** cambió en toda la corrida. Un motor atascado o sosteniendo posición sí movió su encoder en algún momento, y un falso positivo es peor que no avisar.
+  - **Tendencias:** la versión precisa es `encoderLost`, cuando un encoder se movía en corridas anteriores y ahora no.
+- **Tendencias entre corridas:** port de `build-season-report.py`, contra la mediana de al menos 3 corridas previas.
+  - Marca: pico por motor > 1.3× (ignora motores bajo 1 A), voltaje mínimo 0.5 V abajo y loop > 2×.
+- **Flag `robotHealth`** (default on): kill switch de `/robot` y de su entrada en "Más".
+- **Storage no impide resubir el mismo path:** el emulador evalúa la sobreescritura como `create`. Queda dentro del equipo, así que se acepta.

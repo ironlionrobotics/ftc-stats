@@ -17,7 +17,7 @@ import { mergeFollows, normalizeFollows, sameFollows, type Follows } from "@/lib
 import { mirrorFollows } from "@/lib/follows-sync";
 import { syncPushFollows } from "@/lib/push-client";
 import { deleteMyAccountAction } from "@/app/actions/delete-account";
-import { MOBILE_TABS, RAIL_NAV, SECONDARY_NAV, moreNavFor, isActive, type NavItem } from "./nav";
+import { MOBILE_TABS, RAIL_NAV, moreNavFor, secondaryNavFor, isActive, type NavItem } from "./nav";
 import EventSwitcher from "./EventSwitcher";
 import { Sheet } from "@/components/ui/Sheet";
 import { useAssistantPref } from "@/lib/stores/assistant-pref";
@@ -46,7 +46,7 @@ function useHydrated(): boolean {
  * `followedTeam` comes from the `pride_team` cookie and `activeEvent` from
  * lib/active-event-server.ts (both read in the root layout).
  */
-export default function AppShell({ followedTeam, follows, activeEvent, eventOptions, aiAssistant, frc = true }: {
+export default function AppShell({ followedTeam, follows, activeEvent, eventOptions, aiAssistant, frc = true, robotHealth = true }: {
     followedTeam: number | null;
     follows: Follows;
     activeEvent: EventSummary | null;
@@ -54,13 +54,16 @@ export default function AppShell({ followedTeam, follows, activeEvent, eventOpti
     aiAssistant: boolean;
     /** `frc` feature flag (#119): hides the FRC entry of "Más". */
     frc?: boolean;
+    /** `robotHealth` feature flag (#120): hides /robot from the nav. */
+    robotHealth?: boolean;
 }) {
     const pathname = usePathname();
     const t = useTranslations("Shell");
     const [panelOpen, setPanelOpen] = useState(false);
     const [moreOpen, setMoreOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
-    const MORE_NAV = moreNavFor(frc);
+    const MORE_NAV = moreNavFor({ frc, robotHealth });
+    const SECONDARY_NAV = secondaryNavFor({ frc, robotHealth });
     const moreActive = MORE_NAV.some(item => isActive(item, pathname)) && !MOBILE_TABS.some(item => isActive(item, pathname));
     const { user, userDoc } = useAuth();
     const team = followedTeam ?? (userDoc?.orgId ? Number(userDoc.orgId) : null);

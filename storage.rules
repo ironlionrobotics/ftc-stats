@@ -1,7 +1,8 @@
 rules_version = '2';
 
-// Cloud Storage rules (decision #106). Only robot media of the Trading Card
-// lives here: team_media/{season}/{team}/{mediaId}/{original|thumb}.
+// Cloud Storage rules. Robot media of the Trading Card (decision #106) lives
+// at team_media/{season}/{team}/{mediaId}/{original|thumb}; robot logs (#120)
+// at robot_logs/… (block at the end).
 //   - Readable only by members of an approved team (never public; the app
 //     reads with the SDK under these rules, not with public download URLs).
 //   - Written/deleted only by an admin or lead of that team.
@@ -43,6 +44,26 @@ service firebase.storage {
                 && (okImage() || okClip(variant));
             allow update: if false;
             allow delete: if managesTeam(team);
+        }
+
+        // Robot logs (#120): CSVs a team exported from its robot. Private to
+        // that team (stricter than media: other approved teams can't read).
+        // Any member uploads (the laptop at the pit may be a scout's); any
+        // member deletes — same as the Firestore doc that lists the files.
+        function memberOf(team) {
+            return hasTeam() && me().orgId == team;
+        }
+
+        match /robot_logs/{season}/{team}/{logId}/{file} {
+            allow read: if memberOf(team);
+            allow create: if memberOf(team)
+                && season.matches('^20[0-9]{2}$')
+                && logId.matches('^[A-Za-z0-9]{20}$')
+                && ((file.matches('^[a-z0-9_]{1,48}[.]csv$') && request.resource.contentType == 'text/csv')
+                    || (file == 'meta.json' && request.resource.contentType == 'application/json'))
+                && request.resource.size <= 5 * 1024 * 1024;
+            allow update: if false;
+            allow delete: if memberOf(team);
         }
 
         // Everything else in the bucket is closed.

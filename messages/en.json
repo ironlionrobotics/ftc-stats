@@ -697,7 +697,8 @@
       "workshop": "Workshop",
       "allEvents": "All events",
       "about": "About PRIDE",
-      "frc": "FRC"
+      "frc": "FRC",
+      "robot": "Robot health"
     },
     "aria": {
       "primary": "Main navigation",
@@ -1080,6 +1081,10 @@
       "liveNotifications": {
         "title": "Live notices (push)",
         "hint": "When off, the cron answers \"paused\" and sends nothing."
+      },
+      "robotHealth": {
+        "title": "Robot health",
+        "hint": "Shows or hides /robot (each team's robot logs) and its \"More\" entry."
       }
     },
     "banner": {
@@ -1901,7 +1906,9 @@
     "allRuns": "All practice",
     "best": "best {best}",
     "progressLegend": "Average ± spread (consistency) per phase. Totals count full matches only.",
-    "chartNeedsTwo": "Log at least two full matches to see the trend."
+    "chartNeedsTwo": "Log at least two full matches to see the trend.",
+    "robotLink": "Robot health: upload the logs of this practice",
+    "robotLinkHint": "Check the robot's battery, motors and encoders."
   },
   "CardMedia": {
     "consent": "I confirm no team member's face is identifiable, or we have their permission. Best: just the robot, with its number visible.",
@@ -2372,5 +2379,149 @@
     "notConfigured": "FRC data is not configured on this server yet. Once it is, events will show up here.",
     "noEvents": "No FRC events are published for this season yet.",
     "unreachable": "Could not reach FIRST's FRC API. Try again in a moment."
+  },
+  "RobotHealth": {
+    "title": "Robot health",
+    "subtitle": "Upload your robot's CSV logs and PRIDE analyzes them in your browser: battery, jammed motors, encoders and trends across runs. Private: only your team sees them.",
+    "signIn": "Sign in with your team to upload robot logs.",
+    "needTeam": "Register your team (or join with a code) to use Robot health.",
+    "notSupported": "Robot health is only available for FTC teams with a team number.",
+    "loading": "Loading…",
+    "tabRuns": "Runs ({n})",
+    "tabTrends": "Trends",
+    "tabUpload": "Upload",
+    "kinds": {
+      "match": "Match",
+      "practice": "Practice",
+      "test": "Test"
+    },
+    "levels": {
+      "QUALIFICATION": "Q",
+      "PLAYOFF": "P"
+    },
+    "matchBadge": "Match {code}",
+    "findingsNone": "No findings",
+    "findingsCritical": "{n} critical",
+    "findingsWarn": "{n} warnings",
+    "vminShort": "Vmin {v} V",
+    "emptyTitle": "No robot logs yet",
+    "emptyBody": "Download the CSV files from the Control Hub and upload them from your laptop, after a match or a practice.",
+    "emptyHow": "How to export them: pull the microSD or plug the Hub in over USB and copy the files, or run \"adb pull /sdcard/FIRST/motor_logs\" to bring them to your laptop.",
+    "emptyFormat": "Expected format: PRIDE Log v1 (motor_diag logs and the DECODE match_log are understood too).",
+    "emptyCta": "Upload logs",
+    "uploadDropTitle": "Drop your CSV files here",
+    "uploadDropHint": "or tap to choose them (up to 5 MB each)",
+    "uploadChoose": "Choose files",
+    "uploadTooBig": "Over the 5 MB limit.",
+    "uploadUnreadable": "The file could not be read.",
+    "uploadErrors": {
+      "empty": "The file is empty.",
+      "tooManyColumns": "It has too many columns.",
+        "tooManyRows": "It has more than 20,000 rows: log at a lower rate (5 Hz is enough) or split the file.",
+      "noRows": "It has no data rows.",
+      "unknownFormat": "Unrecognized format: use PRIDE Log v1, motor_diag or the DECODE match_log.",
+      "noTime": "The time column was not found."
+    },
+    "formats": {
+      "motor-diag": "Motor diag",
+      "decode-match": "DECODE match_log",
+      "pride-v1": "PRIDE Log v1"
+    },
+    "previewLine": "{duration} · {samples} samples at {hz} Hz",
+    "previewVmin": "Vmin {v} V",
+    "previewFindings": "{n, plural, =0 {no findings} one {# finding} other {# findings}}",
+    "previewRemove": "Remove",
+    "formKind": "Run type",
+    "formMatch": "Match",
+    "formMatchPick": "Pick the match…",
+    "formMatchNumber": "Match number",
+    "formMatchLevel": "Phase",
+    "formMatchLevels": {
+      "QUALIFICATION": "Qualification",
+      "PLAYOFF": "Playoffs"
+    },
+    "formEvent": "Event: {code}",
+    "formPractice": "Workshop practice (optional)",
+    "formPracticeNone": "None",
+    "formPracticeOption": "{date} · {version} · {total} pts",
+    "formPracticeNoVersion": "no version",
+    "formLabel": "Label (optional)",
+    "formLabelPh": "e.g. \"with the new intake\"",
+    "uploadN": "{n, plural, one {Upload # file} other {Upload # files}}",
+    "uploadStatus": {
+      "pending": "Ready to upload",
+      "uploading": "Uploading…",
+      "done": "Uploaded",
+      "error": "Error"
+    },
+    "uploadFailed": {
+      "offline": "No connection: upload it when you have internet; the file is still on your laptop.",
+      "upload": "The file could not be uploaded. Try again.",
+      "save": "The file uploaded but the record could not be saved. Try again."
+    },
+    "uploadDone": "{n, plural, one {# run uploaded} other {# runs uploaded}}",
+    "privacy": "Your logs are private: only your team sees them and they are never shared.",
+    "open": "Open",
+    "back": "Back to runs",
+    "notFound": "We could not find this run or you do not have access.",
+    "tileDuration": "Duration",
+    "tileVmin": "Minimum voltage",
+    "tilePeak": "Total peak",
+    "tileLoop": "Loop avg / max",
+    "chartBattery": "Battery and total current",
+    "chartMotors": "Current per motor",
+    "chartVelocity": "Velocity per motor",
+    "axisVoltage": "Voltage (V)",
+    "axisCurrent": "Current (A)",
+    "axisVelocity": "Velocity",
+    "seriesVoltage": "Battery",
+    "seriesTotal": "Total current",
+    "refLow": "10.5 V",
+    "refBrownout": "9.15 V",
+    "chartError": "The file of this run could not be read.",
+    "chartLoading": "Loading charts…",
+    "motorsTitle": "Motors",
+    "motorDevice": "Motor",
+    "motorPeak": "Peak A",
+    "motorMean": "Mean A",
+    "motorP95": "P95 A",
+    "motorEncoder": "Encoder",
+    "encoderYes": "Yes",
+    "encoderNo": "No",
+    "encoderStill": "Not moving",
+    "findingsTitle": "Findings",
+    "findingsEmpty": "No findings: the run looks healthy.",
+    "findings": {
+      "brownout": "Battery dropped to {value} V at t={at} s ({dur} s): risk of a Control Hub reset (brownout). Check the battery and connections.",
+      "lowVoltage": "Battery under 10.5 V for {dur} s from t={at} s (minimum {value} V). Swap the battery before the next match.",
+      "sustainedCurrent": "{device}: {value} A sustained for {dur} s at t={at} s. Possible jam, friction or a forced motor.",
+      "encoderSilent": "{device}: drew current ({value} A peak) but its encoder never changed. If that motor has an encoder plugged in, check the cable.",
+      "slowLoop": "Slow loop: {value} ms at t={at} s. Look for blocking code or extra hardware reads."
+    },
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "Changes saved",
+    "saveError": "Changes could not be saved.",
+    "delete": "Delete run",
+    "deleteTitle": "Delete this run?",
+    "deleteBody": "The file and its analysis are removed. This cannot be undone.",
+    "deleteConfirm": "Delete",
+    "deleteError": "The run could not be deleted.",
+    "deleted": "Run deleted",
+    "trendsFilter": "Filter by type",
+    "filterAll": "All",
+    "trendsNeedFour": "Trends need at least 4 runs. You have {n}.",
+    "trendsPeakTitle": "Peak current per motor",
+    "trendsVminTitle": "Minimum voltage per run",
+    "trendsFlagsTitle": "Alerts of the latest run",
+    "trendsNoFlags": "No alerts: the latest run looks like the previous ones.",
+    "trendFlags": {
+      "currentRise": "{device}: peak of {value} A, {pct}% above its median ({baseline} A). Check friction, jams or the gearbox.",
+      "voltageDrop": "Minimum voltage {value} V, {delta} V below the median ({baseline} V): battery or wiring aging.",
+      "loopRise": "Maximum loop {value} ms, more than double the usual ({baseline} ms).",
+      "encoderLost": "{device}: its encoder stopped responding (it moved in earlier runs). Check the encoder cable."
+    },
+    "runIndex": "Run"
   }
 }
