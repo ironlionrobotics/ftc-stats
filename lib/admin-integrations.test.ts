@@ -22,6 +22,11 @@ describe("integration status (#119)", () => {
         expect(integrationStatuses({}).find(r => r.key === "frc")!.configured).toBe(false);
     });
 
+    it("Firebase Admin counts gcloud ADC (local dev) as configured", () => {
+        expect(integrationStatuses({}, () => true).find(r => r.key === "firebaseAdmin")!.configured).toBe(true);
+        expect(integrationStatuses({}, () => false).find(r => r.key === "firebaseAdmin")!.configured).toBe(false);
+    });
+
     it("rotation hints name secrets, never values", () => {
         const frc = integrationStatuses(ENV).find(r => r.key === "frc")!;
         expect(frc.rotate.join("\n")).toContain("firebase apphosting:secrets:set FRC_API_KEY");

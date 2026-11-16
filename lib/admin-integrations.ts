@@ -14,6 +14,9 @@
  * is unit-testable. Callers pass `process.env`.
  */
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export type IntegrationKey = "ftc" | "frc" | "gemini" | "vapid" | "cron" | "firebaseAdmin" | "serverCache" | "sentry" | "superadmin";
 
@@ -47,8 +50,13 @@ const secretSteps = (...names: string[]) => [
     `# local: edita .env.local (${names.join(", ")}) y reinicia el servidor`,
 ];
 
-export function integrationStatuses(env: Env): IntegrationStatus[] {
-    const adminCreds = has(env.FIREBASE_SERVICE_ACCOUNT_KEY) || has(env.GOOGLE_APPLICATION_CREDENTIALS) || has(env.FIREBASE_WEBAPP_CONFIG);
+/** gcloud's Application Default Credentials file (local dev: `gcloud auth application-default login`). */
+const gcloudAdc = () => {
+    try { return existsSync(join(homedir(), ".config", "gcloud", "application_default_credentials.json")); } catch { return false; }
+};
+
+export function integrationStatuses(env: Env, hasAdcFile: () => boolean = gcloudAdc): IntegrationStatus[] {
+    const adminCreds = has(env.FIREBASE_SERVICE_ACCOUNT_KEY) || has(env.GOOGLE_APPLICATION_CREDENTIALS) || has(env.FIREBASE_WEBAPP_CONFIG) || hasAdcFile();
     return [
         {
             key: "ftc", label: "FIRST FTC Events API",
@@ -90,7 +98,7 @@ export function integrationStatuses(env: Env): IntegrationStatus[] {
         {
             key: "firebaseAdmin", label: "Firebase Admin (servidor)",
             configured: adminCreds, fingerprint: null,
-            managedIn: "Application Default Credentials (App Hosting) / FIREBASE_SERVICE_ACCOUNT_KEY local",
+            managedIn: "Application Default Credentials (App Hosting, o gcloud en local) / FIREBASE_SERVICE_ACCOUNT_KEY",
             rotate: [], testable: false,
         },
         {
