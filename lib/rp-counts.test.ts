@@ -29,7 +29,7 @@ describe("Negative Binomial tail", () => {
         expect(pAtLeastNegBin(7, 3)).toBeLessThan(pAtLeastNegBin(4, 3));
     });
     it("season dispersion from mean 1.16 / var 1.61 is ≈ 2.99", () => {
-        expect(BIOBUZZ_TIPS_DISPERSION).toBeCloseTo(2.99, 2);
+        expect(BIOBUZZ_TIPS_DISPERSION).toBeGreaterThan(1e5); // Poisson given μ (#118)
         expect(nbDispersion(2, 1.5)).toBeGreaterThan(1e5); // under-dispersed → Poisson
     });
     it("reproduces the season base rate of POLLINATOR 1 to the right order", () => {
@@ -115,10 +115,13 @@ describe("decayedUpdate (SWARM recency)", () => {
     });
 });
 
-describe("calibrateSwarm (decision #96)", () => {
-    it("lifts mid-range probabilities and keeps the extremes", () => {
-        expect(calibrateSwarm(0.5)).toBeGreaterThan(0.6);
-        expect(calibrateSwarm(0.5)).toBeLessThan(0.7);
+describe("calibrateSwarm (decisions #96, #118)", () => {
+    it("spreads the uncalibrated model (b > 1) and keeps the extremes", () => {
+        // Refit on 282 FIRST events: a ≈ 0.23, b ≈ 2.05 — the raw model is too timid.
+        expect(calibrateSwarm(0.5)).toBeGreaterThan(0.5);
+        expect(calibrateSwarm(0.5)).toBeLessThan(0.6);
+        expect(calibrateSwarm(0.7)).toBeGreaterThan(0.85);
+        expect(calibrateSwarm(0.3)).toBeLessThan(0.2);
         expect(calibrateSwarm(1)).toBe(1);
         expect(calibrateSwarm(0)).toBe(0);
     });

@@ -1630,3 +1630,19 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
   - Iron Lion pasa del percentil 79.2 (28.º de 131) al **87.2 (15.º de 110)**. Antes se usaba el OPR "de temporada" de FTCScout, 63.4, que era solo MXCMP. Ahora es el promedio ponderado de sus eventos de 2025, 57.5, medido contra el mismo universo que la curva.
   - La mediana nunca alcanza ese nivel, así que `GrowthCurve` ahora dice "ni en su temporada 7" en lugar de ocultar el recuadro.
   - El salto de la temporada 1 a la 2 (+9.0) ya no es el mayor de toda la curva: el tramo 5→6 da +12.7, pero está sesgado por supervivencia. El texto se ajustó.
+- **Modelos de conteo de RP de BIOBUZZ, recalibrados con FIRST.**
+  - **Datos:** 282 eventos con al menos 10 qualys con desglose; 4,848 alianzas de prueba. Se entrenó con el 60 % inicial de cada evento y se probó en el resto. Se usó validación cruzada de 2 mitades, partidas tanto por paridad como por fecha.
+  - **Script:** `scripts/rp-counts-backtest.ts`.
+  - **POLLINATOR:** se pasa a Poisson (`BIOBUZZ_TIPS_DISPERSION = 1e6`). Dado el μ de cada alianza, la verosimilitud de la NB lleva r → ∞ en todos los pliegues. El r = 2.99 sobredispersaba.
+
+    | RP | Brier antes | Brier ahora | Media predicha | Observada |
+    |---|---|---|---|---|
+    | POLLINATOR 1 | 0.0405 | 0.0362 | 0.087 | 0.076 |
+    | POLLINATOR 2 | 0.0079 | 0.0072 | 0.012 | 0.012 |
+
+    Platt sobre POLLINATOR 1 bajaría 0.003 más, pero sus coeficientes no son estables entre mitades por fecha (a 0.73 / 0.42), así que no se aplica.
+  - **SWARM:** Platt reajustado a `{ a: 0.23, b: 2.05 }`; antes era 0.65 / 1.05.
+    - Coeficientes por mitad: a 0.15–0.31, b 1.95–2.17.
+    - Brier 0.1638 → **0.151**; media 0.709 contra 0.709 observada.
+    - Las constantes viejas sobrepredecían el tramo 40–60 %: decían 0.52 y ocurría 0.26.
+  - **Caché:** el análisis pasa a `analytics_v5_` para no mezclar regímenes.

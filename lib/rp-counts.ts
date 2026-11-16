@@ -5,9 +5,11 @@
  * Tables 10-2/10-3), so we model the counts directly instead of running a
  * logistic regression over phase points:
  *
- *  - POLLINATOR k: alliance HIVE TIPS >= k. TIPS are over-dispersed (season
- *    sample at 2026-11-13: mean 1.16, var 1.61), so a Negative Binomial with
- *    mean μ = tipsOPR(A) + tipsOPR(B) and season dispersion r.
+ *  - POLLINATOR k: alliance HIVE TIPS >= k, with mean μ = tipsOPR(A) + tipsOPR(B).
+ *    The season marginal is over-dispersed (mean 1.30, var 2.01), but that is
+ *    mostly μ varying between alliances: GIVEN μ, the NB likelihood fit goes to
+ *    r → ∞ (Poisson) on every fold of 282 FIRST events (decision #118), so the
+ *    default is Poisson.
  *  - SWARM: alliance LEAVE (3) + AUTO PARK (5) + final PARK (5) per robot,
  *    summed over both robots, >= threshold (16). Exact enumeration of the
  *    2^6 outcomes of per-robot Bernoullis.
@@ -16,16 +18,22 @@
  * official /scores breakdowns (lib/score-breakdown.ts).
  */
 
-/** Season defaults (FTCScout sample, 203 events, 2026-11-13). */
-export const BIOBUZZ_TIPS_MEAN = 1.16;
-export const BIOBUZZ_TIPS_VAR = 1.61;
+/** Season marginal of alliance TIPS (FIRST archive, 301 events, 2026-11-16). Descriptive only. */
+export const BIOBUZZ_TIPS_MEAN = 1.295;
+export const BIOBUZZ_TIPS_VAR = 2.014;
 
 /** NB size parameter from mean/variance; large (≈ Poisson) when not over-dispersed. */
 export function nbDispersion(mean: number, variance: number): number {
     return variance > mean + 1e-9 ? (mean * mean) / (variance - mean) : 1e6;
 }
 
-export const BIOBUZZ_TIPS_DISPERSION = nbDispersion(BIOBUZZ_TIPS_MEAN, BIOBUZZ_TIPS_VAR);
+/**
+ * Conditional dispersion given μ: Poisson. Backtest (scripts/rp-counts-backtest.ts,
+ * train first 60% of quals, predict the rest, 4,848 alliances): the marginal-moment
+ * r = 2.99 over-dispersed; Poisson moves Brier 0.0405 → 0.0362 (POLLINATOR 1) and
+ * 0.0079 → 0.0072 (POLLINATOR 2), mean prediction 0.087 / 0.012 vs observed 0.076 / 0.012.
+ */
+export const BIOBUZZ_TIPS_DISPERSION = 1e6;
 
 /** P(X >= k) for X ~ NegBin(mean mu, size r). */
 export function pAtLeastNegBin(k: number, mu: number, r: number = BIOBUZZ_TIPS_DISPERSION): number {
@@ -140,11 +148,14 @@ export interface BiobuzzRpInputs {
  * Platt calibration of the SWARM probability (decision #96):
  * p' = σ(a + b · logit p). The independent-Bernoulli model under-predicts
  * SWARM (teams improve within an event, and LEAVE/PARK are not independent).
- * Fitted on 2,960 test alliances from 201 events (2026-11-13), 2-fold by
- * event: a = 0.637 / 0.654, b = 1.108 / 1.010 → Brier 0.177/0.173 → 0.161/0.158,
- * mean prediction 0.68–0.69 vs observed 0.68–0.69 (was ~0.57).
+ * First fit (2,960 test alliances, 201 events, 2026-11-13): a 0.65, b 1.05.
+ * Refit on the FIRST archive (4,848 test alliances, 282 events, 2026-11-16,
+ * scripts/rp-counts-backtest.ts), 2-fold by event: a = 0.27 / 0.19 (date
+ * halves), 0.15 / 0.31 (parity), b ≈ 2.0–2.2 → Brier 0.1638 (old constants,
+ * which over-predicted the 40-60% bin: 0.52 said, 0.26 happened) → 0.151,
+ * mean prediction 0.709 vs observed 0.709.
  */
-export const SWARM_CALIBRATION = { a: 0.65, b: 1.05 };
+export const SWARM_CALIBRATION = { a: 0.23, b: 2.05 };
 
 export function calibrateSwarm(p: number, c = SWARM_CALIBRATION): number {
     if (p >= 1 - 1e-12) return 1;   // certain (both robots always score) stays certain

@@ -103,7 +103,7 @@ export async function analyzeMultipleEvents(season: number, eventCodes: string[]
     // 20 events * 10 chars = 200 chars. Totally fine.
     // v3: real /scores breakdowns (fetchMatchScores fix) change tele/end splits.
     // v4: SWARM probabilities are calibrated (decision #96).
-    const cacheKey = `analytics_v4_${season}_${sortedCodes}_${maxMatchesPerTeam || 'all'}`;
+    const cacheKey = `analytics_v5_${season}_${sortedCodes}_${maxMatchesPerTeam || 'all'}`;
 
     const allEvents = await getAvailableEvents(season);
 
