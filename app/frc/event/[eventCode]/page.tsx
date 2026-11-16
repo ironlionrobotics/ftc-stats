@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { fetchFrcEvents, fetchFrcMatches, fetchFrcRankings, fetchFrcHybridSchedule, fetchFrcAlliances, fetchFrcAwards, fetchFrcScores, hasFrcCredentials } from "@/lib/frc-api";
 import { frcMatchBonusRp } from "@/lib/frc-rp";
 import { getCurrentSeason } from "@/lib/constants";
+import { flagOn } from "@/lib/app-config";
 import { parseSeason } from "@/lib/input-guards";
 import EventViewManager from "@/components/event/EventViewManager";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -20,6 +21,7 @@ interface PageProps {
 }
 
 export default async function FrcEventPage(props: PageProps) {
+    if (!(await flagOn("frc"))) notFound(); // superadmin switch (#119)
     const { eventCode } = await props.params;
     const searchParams = await props.searchParams;
     const t = await getTranslations("EventPage");

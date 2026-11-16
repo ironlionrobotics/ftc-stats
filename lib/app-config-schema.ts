@@ -18,10 +18,25 @@
 
 import { MODELS, type ModelTier } from "@/lib/ai-guards";
 
+export interface MaintenanceBanner {
+    enabled: boolean;
+    /** Plain text (rendered escaped), ≤ BANNER_MAX chars per locale. */
+    es: string;
+    en: string;
+}
+
 export interface AppConfig {
     features: {
         /** Master switch for the AI assistant (chat FAB + server action). */
         aiAssistant: boolean;
+        /** Per-robot starting points of the forecast (#117). Env STARTING_POINTS=off wins. */
+        startingPoints: boolean;
+        /** FRC section (/frc/*, "More" entry). */
+        frc: boolean;
+        /** Live push notifications (cron tick). Off = the tick answers "paused" and sends nothing. */
+        liveNotifications: boolean;
+        /** Site-wide notice (event day, maintenance). */
+        maintenanceBanner: MaintenanceBanner;
     };
     ai: {
         /** Requests per user per rate window (overrides AI_LIMITS default). */
@@ -31,9 +46,19 @@ export interface AppConfig {
     };
 }
 
+/** Boolean feature flags (the banner is configured separately). */
+export type BooleanFlag = "aiAssistant" | "startingPoints" | "frc" | "liveNotifications";
+export const BOOLEAN_FLAGS: readonly BooleanFlag[] = ["aiAssistant", "startingPoints", "frc", "liveNotifications"];
+
+export const BANNER_MAX = 200;
+
 export const DEFAULT_APP_CONFIG: AppConfig = {
     features: {
         aiAssistant: true,
+        startingPoints: true,
+        frc: true,
+        liveNotifications: true,
+        maintenanceBanner: { enabled: false, es: "", en: "" },
     },
     ai: {
         rateMaxPerWindow: 15,
@@ -41,29 +66,40 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
     },
 };
 
-/** Deep-merges a stored partial over the defaults. Unknown keys are dropped. */
-export function mergeAppConfig(stored: unknown): AppConfig {
-    const s = (stored ?? {}) as Partial<Record<keyof AppConfig, Record<string, unknown>>>;
+type Loose = Partial<Record<keyof AppConfig, Record<string, unknown>>>;
+
+/** Field-by-field validation of `input` over `base`; anything invalid keeps the base value. */
+function applyOver(base: AppConfig, input: Loose): AppConfig {
+    const f = input.features ?? {};
+    const bool = (k: BooleanFlag) => (typeof f[k] === "boolean" ? (f[k] as boolean) : base.features[k]);
+    const b = (f.maintenanceBanner ?? {}) as Record<string, unknown>;
+    const bb = base.features.maintenanceBanner;
     return {
         features: {
-            aiAssistant:
-                typeof s.features?.aiAssistant === "boolean"
-                    ? s.features.aiAssistant
-                    : DEFAULT_APP_CONFIG.features.aiAssistant,
+            aiAssistant: bool("aiAssistant"),
+            startingPoints: bool("startingPoints"),
+            frc: bool("frc"),
+            liveNotifications: bool("liveNotifications"),
+            maintenanceBanner: {
+                enabled: typeof b.enabled === "boolean" ? b.enabled : bb.enabled,
+                es: typeof b.es === "string" ? cleanText(b.es) : bb.es,
+                en: typeof b.en === "string" ? cleanText(b.en) : bb.en,
+            },
         },
         ai: {
-            rateMaxPerWindow: clampInt(
-                s.ai?.rateMaxPerWindow,
-                1,
-                120,
-                DEFAULT_APP_CONFIG.ai.rateMaxPerWindow,
-            ),
+            rateMaxPerWindow: clampInt(input.ai?.rateMaxPerWindow, 1, 120, base.ai.rateMaxPerWindow),
             modelTier:
-                typeof s.ai?.modelTier === "string" && s.ai.modelTier in MODELS
-                    ? (s.ai.modelTier as ModelTier)
-                    : DEFAULT_APP_CONFIG.ai.modelTier,
+                typeof input.ai?.modelTier === "string" && input.ai.modelTier in MODELS
+                    ? (input.ai.modelTier as ModelTier)
+                    : base.ai.modelTier,
         },
     };
+}
+
+/** Deep-merges a stored partial over the defaults. Unknown keys are dropped. */
+export function mergeAppConfig(stored: unknown): AppConfig {
+    const s = stored !== null && typeof stored === "object" && !Array.isArray(stored) ? (stored as Loose) : {};
+    return applyOver(DEFAULT_APP_CONFIG, s);
 }
 
 /**
@@ -75,22 +111,40 @@ export function sanitizeConfigPatch(current: AppConfig, patch: unknown): AppConf
     if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
         throw new Error("Config patch must be an object");
     }
-    const p = patch as Partial<Record<keyof AppConfig, Record<string, unknown>>>;
-    return {
-        features: {
-            aiAssistant:
-                typeof p.features?.aiAssistant === "boolean"
-                    ? p.features.aiAssistant
-                    : current.features.aiAssistant,
-        },
-        ai: {
-            rateMaxPerWindow: clampInt(p.ai?.rateMaxPerWindow, 1, 120, current.ai.rateMaxPerWindow),
-            modelTier:
-                typeof p.ai?.modelTier === "string" && p.ai.modelTier in MODELS
-                    ? (p.ai.modelTier as ModelTier)
-                    : current.ai.modelTier,
-        },
-    };
+    return applyOver(current, patch as Loose);
+}
+
+/** Banner text: no control characters, collapsed whitespace, capped. Rendered escaped, never as HTML. */
+export function cleanText(v: string): string {
+    return v.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, BANNER_MAX);
+}
+
+/** The banner text to show for a locale, or null when off/empty (falls back to the other locale). */
+export function bannerText(b: MaintenanceBanner, locale: string): string | null {
+    if (!b.enabled) return null;
+    const primary = locale.startsWith("en") ? b.en : b.es;
+    return primary || b.es || b.en || null;
+}
+
+export type FlagSource = "env" | "config" | "default";
+
+/**
+ * Effective value of a boolean flag. Precedence: env kill switch (`=off`) >
+ * stored config > default. Only flags with an env kill switch list one here.
+ */
+export const ENV_KILL_SWITCH: Partial<Record<BooleanFlag, string>> = { startingPoints: "STARTING_POINTS" };
+
+export function resolveFlag(
+    flag: BooleanFlag,
+    config: AppConfig,
+    stored: unknown,
+    env: Record<string, string | undefined>,
+): { value: boolean; source: FlagSource } {
+    const envName = ENV_KILL_SWITCH[flag];
+    if (envName && env[envName] === "off") return { value: false, source: "env" };
+    const s = (stored as Loose | undefined)?.features?.[flag];
+    if (typeof s === "boolean") return { value: config.features[flag], source: "config" };
+    return { value: config.features[flag], source: "default" };
 }
 
 /** Parses the SUPERADMIN_EMAILS env value into a normalized set. */
@@ -113,3 +167,16 @@ function clampInt(v: unknown, min: number, max: number, fallback: number): numbe
     if (Number.isNaN(n)) return fallback;
     return Math.min(max, Math.max(min, n));
 }
+
+export interface ConfigChange { path: string; before: unknown; after: unknown }
+
+/** Dotted-path diff of two plain configs (leaves only). */
+export function diffConfig(before: unknown, after: unknown, prefix = ""): ConfigChange[] {
+    const isObj = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
+    if (!isObj(before) || !isObj(after)) {
+        return JSON.stringify(before) === JSON.stringify(after) ? [] : [{ path: prefix || "(root)", before, after }];
+    }
+    const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
+    return keys.flatMap(k => diffConfig(before[k], after[k], prefix ? `${prefix}.${k}` : k));
+}
+

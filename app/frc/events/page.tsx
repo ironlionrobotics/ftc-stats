@@ -1,10 +1,12 @@
 // FRC events of a season (decision #118). Same idioms as /events: server
 // component, season from ?season=, links to the event view.
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Calendar, MapPin, ChevronRight } from "lucide-react";
 import { getTranslations, getLocale } from "next-intl/server";
 import { fetchFrcEvents, hasFrcCredentials } from "@/lib/frc-api";
 import { getCurrentSeason } from "@/lib/constants";
+import { flagOn } from "@/lib/app-config";
 import { parseSeason } from "@/lib/input-guards";
 import { Notice } from "@/components/ui/Status";
 
@@ -13,6 +15,7 @@ interface PageProps {
 }
 
 export default async function FrcEventsPage({ searchParams }: PageProps) {
+    if (!(await flagOn("frc"))) notFound(); // superadmin switch (#119)
     const t = await getTranslations("FrcPages");
     const locale = await getLocale();
     const resolved = await searchParams;

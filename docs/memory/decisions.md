@@ -1655,3 +1655,48 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
   - **FRC (`lib/frc-rp.ts`):** si el desglose trae el total oficial `rp`, se usa `rp − RP del resultado`. Los booleanos solo cubren el caso sin `rp`, porque una clave mal nombrada se leería como `false` y contaría de menos sin aviso.
   - **Copy de `/oracle` y de la portada:** se quitó el "76 %" (el total es 74.4 %). Power Play pasa a ser "de las temporadas de menor precisión", porque 2019 y 2021 están por debajo.
   - **`GrowthCurve`:** la frase sin "catch-up" ya no confunde la mediana con el percentil de Iron Lion.
+
+## #119 · Consola de superadmin: integraciones, feature flags y bitácora (2026-11-16)
+
+**Pedido:** una vista para configurar APIs, tokens y feature flags "de la manera más segura".
+
+**Decisión sobre credenciales: ningún valor pasa por la app.** Siguen en Secret Manager (App Hosting) y en `.env.local`.
+- **Por qué no editarlas desde la UI:**
+  - habría que dar a la cuenta de servicio del backend permiso para crear versiones de secretos, y una sesión de superadmin robada podría cambiar las llaves de FIRST;
+  - el valor viajaría por la red y podría quedar en Firestore o en logs;
+  - App Hosting solo toma una versión nueva al hacer un rollout, así que tampoco se ahorra el redeploy.
+- **Qué muestra la consola** (`lib/admin-integrations.ts`):
+  - estado (presente o falta);
+  - **huella**: 8 hex del SHA-256, para confirmar que una rotación llegó sin exponer nada;
+  - los **comandos de rotación**;
+  - **"Probar"**: una llamada autenticada barata que devuelve solo `{ok, status, ms}`.
+- **Prueba por integración** (`testIntegration`, 10 por minuto por superadmin):
+  - **FTC:** `/v2.0/<season>`;
+  - **FRC:** `/v3.0/<season>`;
+  - **Gemini:** la lista de modelos, con la llave en un header y no en la URL;
+  - **VAPID:** validación local de la longitud de las llaves P-256.
+
+**Feature flags** (en `app_config/global`; el schema descarta cualquier tipo inválido):
+
+| Flag | Qué controla | Efecto al apagarlo |
+|---|---|---|
+| `aiAssistant` | Asistente de IA (ya existía) | Se oculta el asistente |
+| `startingPoints` | Punto de partida del pronóstico | `getStartingPoints` devuelve null |
+| `frc` | Sección FRC | Sale de "Más" y `/frc/*` da 404 |
+| `liveNotifications` | Avisos en vivo | El tick del cron responde `{ paused: true }` |
+
+- **Precedencia:** kill switch de env (`STARTING_POINTS=off`) > config > default. La consola muestra la fuente de cada valor.
+- **`SERVER_CACHE` se queda solo en env:** el caché vive en Firestore, así que un flag ahí sería circular.
+- **`maintenanceBanner`:** `{enabled, es, en}`, texto plano de una línea con un máximo de 200 caracteres. React lo escapa (nunca se renderiza como HTML) y se muestra arriba de todas las páginas.
+
+**Bitácora:** cada escritura agrega `admin_audit/{auto}` = `{at, by, changes[path, before, after]}` en el mismo batch. No hace falta cambiar las reglas: el deny por defecto la deja solo para el servidor, y hay un test en `test:rules`.
+
+**FRC:** `apphosting.yaml` ya declara `FRC_API_USERNAME` y `FRC_API_KEY` como secretos. Deben existir en Secret Manager antes del siguiente rollout. Para el chequeo estructural de la API está `scripts/frc-verify.mjs` (inversión de faltas y llaves de RP de REBUILT).
+
+
+**Ajustes tras la revisión independiente (mismo día):**
+- **Lectura de la configuración con timeout de 1.5 s.**
+  - Si falla, se sirve la última copia buena de la instancia y el fallo se memoiza 30 s, así que los kill switches no vuelven a sus valores por defecto.
+  - La consola se niega a mostrar o guardar mientras no pueda leer la configuración, para no pisarla con los defaults.
+- **`writeAppConfig` es una transacción:** el diff de la bitácora se calcula contra el documento leído dentro de la transacción. Así ningún cambio se escapa aunque otra instancia tenga una copia vieja en memoria.
+- **Pruebas:** `starting-points-server.test.ts` mockea `@/lib/app-config` para no consultar Firestore real.

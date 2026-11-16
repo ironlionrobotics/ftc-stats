@@ -1,4 +1,5 @@
 import "server-only";
+import { flagOn } from "@/lib/app-config";
 import history2026 from "@/lib/data/starting-history-2026.json";
 import { fetchMatches, fetchTeamEvents } from "@/lib/ftc-api";
 import { componentOpr } from "@/lib/component-opr";
@@ -145,6 +146,7 @@ export interface StartingPointsOptions {
 
 export async function getStartingPoints(season: number, eventStart: string | null | undefined, teams: number[], opts: StartingPointsOptions = {}): Promise<StartingPoints | null> {
     if (process.env.STARTING_POINTS === "off" || teams.length === 0) return null;
+    if (!(await flagOn("startingPoints"))) return null; // superadmin switch (#119)
     const table = TABLES[season];
     const inS = eventStart ? await cachedInSeason(season, opts.eventCode, eventStart, teams, opts.fetch ?? true) : null;
     if (!table && !inS?.byTeam.size) return null;

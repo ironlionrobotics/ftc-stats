@@ -24,7 +24,8 @@ const STRATEGY: NavItem = { href: "/strategy", labelKey: "nav.strategy", icon: S
 const ALL_EVENTS: NavItem = { href: "/events", labelKey: "more.allEvents", icon: CalendarRange, match: ["/events"] };
 
 /** FRC events (decision #118): its own destination, under "Más" only. */
-const FRC: NavItem = { href: "/frc/events", labelKey: "more.frc", icon: Bot, match: ["/frc/"] };
+export const FRC_HREF = "/frc/events";
+const FRC: NavItem = { href: FRC_HREF, labelKey: "more.frc", icon: Bot, match: ["/frc/"] };
 
 /** Phone bottom bar: four tasks + a "Más" button (rendered by the shell). */
 export const MOBILE_TABS: NavItem[] = [TODAY, EVENT, CAPTURE, TEAMS];
@@ -44,6 +45,9 @@ const TOOLS: NavItem[] = [
 export const SECONDARY_NAV: NavItem[] = [ALL_EVENTS, ...TOOLS];
 /** Phone "Más" sheet: strategy first, then the rest. */
 export const MORE_NAV: NavItem[] = [STRATEGY, ALL_EVENTS, FRC, ...TOOLS];
+
+/** "Más" sheet with the FRC entry only when the `frc` flag is on (#119). */
+export const moreNavFor = (frc: boolean): NavItem[] => (frc ? MORE_NAV : MORE_NAV.filter(i => i.href !== FRC_HREF));
 
 export function isActive(item: NavItem, pathname: string): boolean {
     if (pathname === item.href) return true;

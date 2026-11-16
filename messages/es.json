@@ -1041,7 +1041,60 @@
     "rateLimitHint": "Por ventana de 60s (1–120). Protege el presupuesto de Gemini.",
     "saveChanges": "Guardar cambios",
     "superadmins": "Superadmins (env, solo lectura):",
-    "accessHint": "El acceso se define en la variable de entorno SUPERADMIN_EMAILS."
+    "accessHint": "El acceso se define en la variable de entorno SUPERADMIN_EMAILS.",
+    "testFailed": "No se pudo ejecutar la prueba.",
+    "copied": "Comandos copiados.",
+    "copyFailed": "No se pudo copiar.",
+    "fingerprint": "huella {value}",
+    "test": "Probar",
+    "howToRotate": "Cómo rotar",
+    "copy": "Copiar comandos",
+    "reason": {
+      "missing": "Falta la credencial",
+      "unauthorized": "No autorizado",
+      "timeout": "Tiempo agotado",
+      "network": "Error de red",
+      "http": "Error HTTP",
+      "invalidKey": "Llave inválida",
+      "notTestable": "No se puede probar"
+    },
+    "flagsTitle": "Funciones y avisos",
+    "source": {
+      "env": "forzado por env",
+      "config": "configurado",
+      "default": "por defecto"
+    },
+    "flag": {
+      "aiAssistant": {
+        "title": "Asistente de IA",
+        "hint": "Apaga el chat y la acción del servidor (corta el gasto de Gemini)."
+      },
+      "startingPoints": {
+        "title": "Punto de partida del pronóstico (#117)",
+        "hint": "Los pronósticos arrancan con el historial de cada robot en vez de cero."
+      },
+      "frc": {
+        "title": "Sección FRC",
+        "hint": "Muestra u oculta las páginas /frc y su entrada en «Más»."
+      },
+      "liveNotifications": {
+        "title": "Avisos en vivo (push)",
+        "hint": "Apagado, el cron responde «pausado» y no envía nada."
+      }
+    },
+    "banner": {
+      "title": "Aviso del sitio",
+      "hint": "Texto plano visible para todos (día de evento, mantenimiento).",
+      "es": "Texto (ES)",
+      "en": "Texto (EN)",
+      "preview": "Vista previa:"
+    },
+    "propagationNote": "Los cambios tardan hasta 60 s en llegar a todas las instancias.",
+    "auditTitle": "Bitácora de cambios",
+    "auditHint": "Últimos 20 cambios de configuración.",
+    "auditLoading": "Cargando bitácora…",
+    "auditEmpty": "Aún no hay cambios registrados.",
+    "auditError": "No se pudo leer la bitácora."
   },
   "AssistantChat": {
     "greeting": "¡Hola! Soy el asistente de estrategia de PRIDE. Mi especialidad: sintetizar las notas de scouting del evento (\"¿qué dicen las notas del 12887?\") y responder dudas de estrategia. En páginas de evento leo las notas automáticamente.",

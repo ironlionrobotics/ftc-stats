@@ -43,6 +43,13 @@ env:
     secret: FTC_API_KEY
   - variable: GOOGLE_GENERATIVE_AI_API_KEY
     secret: GOOGLE_GENERATIVE_AI_API_KEY
+  # FRC Events API v3 (decision #118). The secrets must exist in Secret Manager
+  # BEFORE a rollout with these lines, or the rollout fails:
+  #   firebase apphosting:secrets:set FRC_API_USERNAME   (and FRC_API_KEY)
+  - variable: FRC_API_USERNAME
+    secret: FRC_API_USERNAME
+  - variable: FRC_API_KEY
+    secret: FRC_API_KEY
   # Superadmin allow-list (comma-separated emails). Not a secret — it's the
   # access-control list for /admin; the root of trust stays in env by design.
   - variable: SUPERADMIN_EMAILS

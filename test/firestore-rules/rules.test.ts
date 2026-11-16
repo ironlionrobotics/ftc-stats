@@ -74,6 +74,15 @@ describe("orgs and team claims (decision #90)", () => {
         await assertFails(getDoc(doc(db, "server_cache/x")));
         await assertFails(getDoc(doc(db, "server_counters/x")));
     });
+    it("superadmin config and its audit log are server-only (#119)", async () => {
+        await seed("app_config/global", { features: { frc: true } });
+        await seed("admin_audit/a1", { at: 1, by: "x@y.z", changes: [] });
+        const db = env.authenticatedContext("u1", { email: "x@y.z", email_verified: true }).firestore();
+        await assertFails(getDoc(doc(db, "app_config/global")));
+        await assertFails(setDoc(doc(db, "app_config/global"), { features: { frc: false } }));
+        await assertFails(getDoc(doc(db, "admin_audit/a1")));
+        await assertFails(setDoc(doc(db, "admin_audit/a2"), { at: 2 }));
+    });
     it("invite usage counters are server-only", async () => {
         await seed("org_invites/ABC234", { orgId: "30311", uses: 0, createdBy: "admin1" });
         const db = env.authenticatedContext("u1").firestore();

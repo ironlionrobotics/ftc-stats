@@ -5,7 +5,8 @@ import { cookies } from "next/headers";
 import { FOLLOW_TEAM_COOKIE, parseFollowedTeam } from "@/lib/follow-team";
 import { FOLLOWS_COOKIE, parseFollows } from "@/lib/follows";
 import { AuthProvider } from "@/context/AuthContext";
-import { getAppConfig } from "@/lib/app-config";
+import { getAppConfig, getEffectiveFlags } from "@/lib/app-config";
+import { bannerText } from "@/lib/app-config-schema";
 import ThemeSync from "@/components/ThemeSync";
 import QueryProvider from "@/components/QueryProvider";
 // OnboardingModal + OnlineSync, deferred so the Firebase client SDK they pull
@@ -88,8 +89,9 @@ export default async function RootLayout({
   // Runtime config (superadmin console, server-cached; degrades to defaults),
   // active locale (cookie/Accept-Language) and the app-wide active event for
   // the shell chip (#116; capped at 1.5 s, never throws) — in parallel.
-  const [appConfig, locale, { active: activeEvent, options: eventOptions }] = await Promise.all([
+  const [appConfig, flags, locale, { active: activeEvent, options: eventOptions }] = await Promise.all([
     getAppConfig(),
+    getEffectiveFlags(),
     getLocale(),
     activeEventForShell(),
   ]);
@@ -98,6 +100,8 @@ export default async function RootLayout({
   const followedTeam = parseFollowedTeam(cookieStore.get(FOLLOW_TEAM_COOKIE)?.value);
   // Followed events/teams (decision #110), merged with the account's list on sign-in.
   const follows = parseFollows(cookieStore.get(FOLLOWS_COOKIE)?.value);
+  // Site-wide notice from the superadmin console (#119); plain text, React-escaped.
+  const banner = bannerText(appConfig.features.maintenanceBanner, locale);
   return (
     // suppressHydrationWarning: the themeInitScript below sets the `dark` class
     // on <html> before hydration, which intentionally differs from the server
@@ -114,8 +118,13 @@ export default async function RootLayout({
           <QueryProvider>
             <AuthProvider>
               <ConfirmProvider>
-                <AppShell followedTeam={followedTeam} follows={follows} activeEvent={activeEvent} eventOptions={eventOptions} aiAssistant={appConfig.features.aiAssistant} />
+                <AppShell followedTeam={followedTeam} follows={follows} activeEvent={activeEvent} eventOptions={eventOptions} aiAssistant={appConfig.features.aiAssistant} frc={flags.frc.value} />
                 <main id="main" tabIndex={-1} className="md:ml-56 min-h-screen pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0 outline-none">
+                  {banner && (
+                    <div role="status" className="border-b border-primary/30 bg-primary/10 px-4 py-2 text-center text-sm font-semibold text-foreground">
+                      {banner}
+                    </div>
+                  )}
                   {children}
                 </main>
                 <DeferredGlobals aiAssistant={appConfig.features.aiAssistant} />

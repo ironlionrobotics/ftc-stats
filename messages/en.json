@@ -1041,7 +1041,60 @@
     "rateLimitHint": "Per 60s window (1–120). Protects the Gemini budget.",
     "saveChanges": "Save changes",
     "superadmins": "Superadmins (env, read-only):",
-    "accessHint": "Access is defined by the SUPERADMIN_EMAILS environment variable."
+    "accessHint": "Access is defined by the SUPERADMIN_EMAILS environment variable.",
+    "testFailed": "Could not run the test.",
+    "copied": "Commands copied.",
+    "copyFailed": "Could not copy.",
+    "fingerprint": "fingerprint {value}",
+    "test": "Test",
+    "howToRotate": "How to rotate",
+    "copy": "Copy commands",
+    "reason": {
+      "missing": "Credential missing",
+      "unauthorized": "Unauthorized",
+      "timeout": "Timed out",
+      "network": "Network error",
+      "http": "HTTP error",
+      "invalidKey": "Invalid key",
+      "notTestable": "Cannot be tested"
+    },
+    "flagsTitle": "Features and notices",
+    "source": {
+      "env": "forced by env",
+      "config": "configured",
+      "default": "default"
+    },
+    "flag": {
+      "aiAssistant": {
+        "title": "AI assistant",
+        "hint": "Turns off the chat and the server action (cuts Gemini spend)."
+      },
+      "startingPoints": {
+        "title": "Forecast starting point (#117)",
+        "hint": "Forecasts start from each robot's history instead of zero."
+      },
+      "frc": {
+        "title": "FRC section",
+        "hint": "Shows or hides the /frc pages and their \"More\" entry."
+      },
+      "liveNotifications": {
+        "title": "Live notices (push)",
+        "hint": "When off, the cron answers \"paused\" and sends nothing."
+      }
+    },
+    "banner": {
+      "title": "Site notice",
+      "hint": "Plain text shown to everyone (event day, maintenance).",
+      "es": "Text (ES)",
+      "en": "Text (EN)",
+      "preview": "Preview:"
+    },
+    "propagationNote": "Changes take up to 60 s to reach all instances.",
+    "auditTitle": "Change log",
+    "auditHint": "Last 20 configuration changes.",
+    "auditLoading": "Loading log…",
+    "auditEmpty": "No changes recorded yet.",
+    "auditError": "Could not read the log."
   },
   "AssistantChat": {
     "greeting": "Hi! I'm PRIDE's strategy assistant. My specialty: synthesizing the event's scouting notes (\"what do the notes on 12887 say?\") and answering strategy questions. On event pages I read the notes automatically.",

@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getAdminOverview, updateAppConfig, AdminOverview } from "@/app/actions/admin-config";
-import { CheckCircle2, XCircle, Lock, Save, Bot, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { getAdminOverview, AdminOverview } from "@/app/actions/admin-config";
+import { Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
-import clsx from "clsx";
 import TeamClaimsReview from "./TeamClaimsReview";
 import MediaReportsReview from "./MediaReportsReview";
+import IntegrationsPanel from "./IntegrationsPanel";
+import FeatureFlagsPanel from "./FeatureFlagsPanel";
+import AuditLogPanel from "./AuditLogPanel";
 
 /**
  * Superadmin console body. All data + writes go through the superadmin server
@@ -21,11 +22,7 @@ export default function AdminConsole() {
     const [overview, setOverview] = useState<AdminOverview | null>(null);
     const [denied, setDenied] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-
-    // Editable fields (mirrors of overview.config)
-    const [aiEnabled, setAiEnabled] = useState(true);
-    const [rateMax, setRateMax] = useState(15);
+    const [auditKey, setAuditKey] = useState(0);
 
     const load = useCallback(async () => {
         if (!user) return;
@@ -36,8 +33,6 @@ export default function AdminConsole() {
             if (res.ok) {
                 setOverview(res);
                 setDenied(null);
-                setAiEnabled(res.config.features.aiAssistant);
-                setRateMax(res.config.ai.rateMaxPerWindow);
             } else {
                 setDenied(res.error);
             }
@@ -52,27 +47,10 @@ export default function AdminConsole() {
     // synchronously in the effect body.
     useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
-    const save = async () => {
-        if (!user) return;
-        setSaving(true);
-        try {
-            const idToken = await user.getIdToken();
-            const res = await updateAppConfig(idToken, {
-                features: { aiAssistant: aiEnabled },
-                ai: { rateMaxPerWindow: rateMax },
-            });
-            if (res.ok) {
-                setOverview(res);
-                toast.success(t("saved"));
-            } else {
-                toast.error(res.error);
-            }
-        } catch {
-            toast.error(t("saveFailed"));
-        } finally {
-            setSaving(false);
-        }
-    };
+    const getToken = useCallback(async () => {
+        if (!user) throw new Error("no user");
+        return user.getIdToken();
+    }, [user]);
 
     if (!user) {
         return <Denied msg={t("signIn")} hint={t("accessHint")} />;
@@ -91,88 +69,15 @@ export default function AdminConsole() {
             <TeamClaimsReview />
             <MediaReportsReview />
 
-            {/* Integrations status */}
-            <section>
-                <h2 className="text-lg font-bold text-foreground mb-1">{t("integrations")}</h2>
-                <p className="text-xs text-muted-foreground mb-4">
-                    {t("integrationsHint")}
-                </p>
-                <div className="grid sm:grid-cols-2 gap-2.5">
-                    {overview.integrations.map((i) => (
-                        <div key={i.key} className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3">
-                            {i.configured
-                                ? <CheckCircle2 size={18} className="text-success shrink-0" />
-                                : <XCircle size={18} className="text-danger shrink-0" />}
-                            <div className="min-w-0">
-                                <div className="text-sm font-bold text-foreground">{i.label}</div>
-                                <div className="text-xs text-muted-foreground font-mono truncate">{i.managedIn}</div>
-                            </div>
-                            <span className={clsx(
-                                "ml-auto text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0",
-                                i.configured ? "bg-success/10 text-success" : "bg-danger/10 text-danger",
-                            )}>
-                                {i.configured ? t("ok") : t("missing")}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </section>
+            <IntegrationsPanel integrations={overview.integrations} getToken={getToken} />
 
-            {/* Runtime config */}
-            <section className="bg-card border border-border rounded-2xl p-5 md:p-6">
-                <h2 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
-                    <Bot size={18} className="text-primary" /> {t("aiAssistant")}
-                </h2>
-                <p className="text-xs text-muted-foreground mb-5">
-                    {t.rich("aiConfigHint", { code: (chunks) => <code className="font-mono">{chunks}</code> })}
-                </p>
+            <FeatureFlagsPanel
+                overview={overview}
+                getToken={getToken}
+                onSaved={(o) => { setOverview(o); setAuditKey(k => k + 1); }}
+            />
 
-                <div className="space-y-5 max-w-md">
-                    <label className="flex items-center justify-between gap-4 cursor-pointer">
-                        <div>
-                            <div className="text-sm font-bold text-foreground">{t("assistantEnabled")}</div>
-                            <div className="text-xs text-muted-foreground">{t("assistantEnabledHint")}</div>
-                        </div>
-                        <button
-                            type="button"
-                            role="switch"
-                            aria-checked={aiEnabled}
-                            onClick={() => setAiEnabled(v => !v)}
-                            className={clsx(
-                                "w-11 h-6 rounded-full transition-colors relative shrink-0",
-                                aiEnabled ? "bg-primary" : "bg-muted border border-border",
-                            )}
-                        >
-                            <span className={clsx(
-                                "absolute top-0.5 w-5 h-5 rounded-full bg-card shadow transition-transform",
-                                aiEnabled ? "translate-x-[22px]" : "translate-x-0.5",
-                            )} />
-                        </button>
-                    </label>
-
-                    <label className="block">
-                        <div className="text-sm font-bold text-foreground">{t("rateLimit")}</div>
-                        <div className="text-xs text-muted-foreground mb-1.5">{t("rateLimitHint")}</div>
-                        <input
-                            type="number"
-                            min={1}
-                            max={120}
-                            value={rateMax}
-                            onChange={(e) => setRateMax(Number(e.target.value))}
-                            className="w-28 px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm text-foreground"
-                        />
-                    </label>
-
-                    <button
-                        onClick={save}
-                        disabled={saving}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-                    >
-                        {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                        {t("saveChanges")}
-                    </button>
-                </div>
-            </section>
+            <AuditLogPanel getToken={getToken} refreshKey={auditKey} />
 
             {/* Superadmins (read-only) */}
             <section className="text-xs text-muted-foreground">

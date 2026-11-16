@@ -4,6 +4,8 @@ import table from "@/lib/data/starting-history-2026.json";
 import { HISTORY_COEFS } from "./starting-points";
 
 // Memory-only server cache and a fake FIRST API (no network in unit tests).
+// The superadmin flag (#119) reads Firestore; tests run with it on.
+vi.mock("@/lib/app-config", () => ({ flagOn: async () => true }));
 vi.mock("@/lib/server-cache", () => {
     const m = new Map<string, unknown>();
     return { serverCache: { get: async (k: string) => m.get(k) ?? null, set: async (k: string, v: unknown) => { m.set(k, v); return true; } } };

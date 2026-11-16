@@ -27,7 +27,7 @@ npm run generate:pwa-assets   # Regenerate /public/icons/* from public/icon.png
 | `FTC_API_USERNAME` / `FTC_API_KEY` | FIRST API access (server-only) | App fetches return empty arrays; offline cache fallback kicks in |
 | `NEXT_PUBLIC_FIREBASE_*` (or `FIREBASE_WEBAPP_CONFIG`) | Firebase Web SDK init | Client crashes on auth/Firestore use |
 | `FRC_API_USERNAME` / `FRC_API_KEY` | FRC Events API v3 (`lib/frc-api.ts`, server-only; separate registration from FTC) | FRC data returns empty arrays |
-| `STARTING_POINTS` (optional) | `off` = kill switch for per-robot starting points (#117) | Default on; forecasts then start from zero as before |
+| `STARTING_POINTS` (optional) | `off` = kill switch for per-robot starting points (#117); wins over the `/admin` flag | Default on; forecasts then start from zero as before |
 | `SERVER_CACHE` (optional) | `off` = kill switch for the Firestore-backed server cache | Default on; the cache also self-disables for 30 s after any failure |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | firebase-admin SDK (server actions) | Calibration log, ground-truth validation, RP model training all silently fail |
 | `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_ORG` + `SENTRY_PROJECT` + `SENTRY_AUTH_TOKEN` | Production error tracking | Sentry no-ops in dev anyway (gated on `NODE_ENV === "production"`) |
@@ -118,6 +118,10 @@ Game schemas are declarative and **routed by season** (`lib/games/registry.ts` �
 ### Navigation (branch `etapa1/foundations`, not yet in production)
 
 App shell `components/shell/` with 5 destinations — **Hoy** (`/`, the followed team's day), **Eventos** (`/events`, season view), **Equipos** (`/teams`), **Scouting**, **Estrategia** — bottom tab bar on mobile, rail on desktop; "Más" holds Data Lab, model accuracy and Trading Card; account panel holds followed team, theme, language, session, team-admin panels and account deletion. Following a team needs no account (`pride_team` cookie). Production (`main`) still has the old `components/Sidebar.tsx` until Etapa 1 deploys. Plan and status: `docs/PENDING.md` § RETOMAR AQUÍ.
+
+### Superadmin console (`/admin`, decision #119)
+
+Gate: verified ID-token email in `SUPERADMIN_EMAILS` (env, not editable from the app). Runtime config in Firestore `app_config/global` (`lib/app-config.ts`, 60 s per-instance cache; schema + sanitization in `lib/app-config-schema.ts`): feature flags `aiAssistant`, `startingPoints`, `frc`, `liveNotifications` and a plain-text `maintenanceBanner`. Precedence env kill switch (`=off`) > config > default (`resolveFlag`); read with `flagOn()` / `getEffectiveFlags()`. Every write appends to `admin_audit` (server-only by default-deny rules). **Credentials are never stored or edited in the app**: `lib/admin-integrations.ts` reports presence, an 8-hex SHA-256 fingerprint, a live ping (`{ok,status,ms}` only) and the Secret Manager rotation commands.
 
 ### Auth + Orgs
 

@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { runLiveNotify } from "@/lib/notify/run";
+import { flagOn } from "@/lib/app-config";
 
 /**
  * Notification tick (decision #110). Cloud Scheduler POSTs here every minute
@@ -19,6 +20,8 @@ function authorized(req: Request): boolean {
 
 export async function POST(req: Request): Promise<Response> {
     if (!authorized(req)) return new Response("Not found", { status: 404 });
+    // Superadmin pause (#119): the tick still answers so Cloud Scheduler sees no error.
+    if (!(await flagOn("liveNotifications"))) return Response.json({ paused: true });
     try {
         const summary = await runLiveNotify(Date.now() + 45_000);
         if (summary.notices) console.log("[cron/live]", JSON.stringify(summary));

@@ -5,6 +5,10 @@ import {
     sanitizeConfigPatch,
     parseSuperadminEmails,
     isSuperadminEmail,
+    bannerText,
+    resolveFlag,
+    BANNER_MAX,
+    diffConfig,
 } from "./app-config-schema";
 
 describe("mergeAppConfig", () => {
@@ -82,5 +86,56 @@ describe("superadmin allow-list", () => {
     it("empty env means nobody is superadmin (fail closed)", () => {
         expect(parseSuperadminEmails("").size).toBe(0);
         expect(parseSuperadminEmails(undefined).size).toBe(0);
+    });
+});
+
+describe("feature flags and banner (#119)", () => {
+    it("new flags default on, banner off; garbage keeps defaults", () => {
+        const c = mergeAppConfig({ features: { frc: "no", startingPoints: 0, liveNotifications: null, maintenanceBanner: "x" } });
+        expect(c.features).toEqual(DEFAULT_APP_CONFIG.features);
+    });
+
+    it("a patch can flip one flag without touching the others", () => {
+        const next = sanitizeConfigPatch(DEFAULT_APP_CONFIG, { features: { frc: false } });
+        expect(next.features.frc).toBe(false);
+        expect(next.features.startingPoints).toBe(true);
+        expect(next.features.aiAssistant).toBe(true);
+    });
+
+    it("banner text is plain, single-line and capped; HTML stays literal text", () => {
+        const next = sanitizeConfigPatch(DEFAULT_APP_CONFIG, {
+            features: { maintenanceBanner: { enabled: true, es: "  <b>hola</b>\n\tmundo\u0000 ", en: "x".repeat(500) } },
+        });
+        expect(next.features.maintenanceBanner.es).toBe("<b>hola</b> mundo");
+        expect(next.features.maintenanceBanner.en).toHaveLength(BANNER_MAX);
+        expect(bannerText(next.features.maintenanceBanner, "es")).toBe("<b>hola</b> mundo");
+    });
+
+    it("bannerText: null when off or empty, falls back across locales", () => {
+        expect(bannerText({ enabled: false, es: "a", en: "b" }, "es")).toBeNull();
+        expect(bannerText({ enabled: true, es: "", en: "" }, "es")).toBeNull();
+        expect(bannerText({ enabled: true, es: "solo es", en: "" }, "en")).toBe("solo es");
+        expect(bannerText({ enabled: true, es: "es", en: "en" }, "en-US")).toBe("en");
+    });
+
+    it("precedence: env kill switch > stored config > default", () => {
+        const off = mergeAppConfig({ features: { startingPoints: false } });
+        expect(resolveFlag("startingPoints", DEFAULT_APP_CONFIG, null, {})).toEqual({ value: true, source: "default" });
+        expect(resolveFlag("startingPoints", off, { features: { startingPoints: false } }, {})).toEqual({ value: false, source: "config" });
+        expect(resolveFlag("startingPoints", DEFAULT_APP_CONFIG, { features: { startingPoints: true } }, { STARTING_POINTS: "off" })).toEqual({ value: false, source: "env" });
+        // A flag without an env switch ignores env entirely.
+        expect(resolveFlag("frc", DEFAULT_APP_CONFIG, null, { FRC: "off" })).toEqual({ value: true, source: "default" });
+    });
+});
+
+describe("diffConfig (audit log)", () => {
+    it("lists only changed leaves as dotted paths", () => {
+        const next = sanitizeConfigPatch(DEFAULT_APP_CONFIG, { features: { frc: false, maintenanceBanner: { enabled: true, es: "Hola" } } });
+        expect(diffConfig(DEFAULT_APP_CONFIG, next)).toEqual([
+            { path: "features.frc", before: true, after: false },
+            { path: "features.maintenanceBanner.enabled", before: false, after: true },
+            { path: "features.maintenanceBanner.es", before: "", after: "Hola" },
+        ]);
+        expect(diffConfig(next, next)).toEqual([]);
     });
 });
