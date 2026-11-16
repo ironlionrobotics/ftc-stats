@@ -93,7 +93,7 @@ export async function GrowthCurve() {
                     {catchUp ? (
                         <> — y no alcanza el nivel actual de Iron Lion hasta su <strong className="text-primary">temporada {catchUp.year}</strong>.</>
                     ) : (
-                        <> — y ni en su <strong className="text-primary">temporada {G.all.length}</strong> llega al nivel actual de Iron Lion (percentil {G.all[G.all.length - 1].median}).</>
+                        <> — y ni en su <strong className="text-primary">temporada {G.all.length}</strong> llega al nivel actual de Iron Lion (la mediana llega al percentil {G.all[G.all.length - 1].median}; Iron Lion está en {G.self.percentile}).</>
                     )}
                 </p>
             </div>

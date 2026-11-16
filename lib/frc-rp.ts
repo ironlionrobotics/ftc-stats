@@ -4,9 +4,10 @@
  * so rebuilding past rankings (round slider) uses the real Ranking Score.
  *
  * Two readings, in order:
- *  1. the bonus booleans of the season's rpTargets (REBUILT: energized,
- *     supercharged, traversal) when the breakdown carries them;
- *  2. otherwise the alliance's total `rp` minus the result RP (win 3, tie 1).
+ *  1. the alliance's total `rp` minus the result RP (win 3, tie 1) when the
+ *     breakdown carries `rp` — the official total, robust to a renamed key;
+ *  2. otherwise the bonus booleans of the season's rpTargets (REBUILT:
+ *     energized, supercharged, traversal).
  * An alliance with neither is left out (unknown ≠ zero bonus).
  */
 import { allianceRpObs } from "@/lib/rp-inference";
@@ -27,13 +28,15 @@ export function frcMatchBonusRp(season: number, matches: FTCMatch[], scores: Frc
         for (const a of s.alliances ?? []) {
             const side = /^red/i.test(a.alliance) ? "Red" : /^blue/i.test(a.alliance) ? "Blue" : null;
             if (!side) continue;
-            const obs = allianceRpObs(season, a as unknown as AllianceScoreBreakdown, m, side, "FRC");
-            let bonus: number | null = obs ? Object.values(obs.rp).filter(Boolean).length : null;
-            if (bonus === null && typeof a.rp === "number") {
+            let bonus: number | null = null;
+            if (typeof a.rp === "number") {
                 const mine = side === "Red" ? m.scoreRedFinal : m.scoreBlueFinal;
                 const theirs = side === "Red" ? m.scoreBlueFinal : m.scoreRedFinal;
                 const result = mine > theirs ? rules.winRp : mine === theirs ? rules.tieRp : 0;
                 bonus = Math.max(0, a.rp - result);
+            } else {
+                const obs = allianceRpObs(season, a as unknown as AllianceScoreBreakdown, m, side, "FRC");
+                if (obs) bonus = Object.values(obs.rp).filter(Boolean).length;
             }
             if (bonus !== null) out[`${s.matchNumber}-${side}`] = bonus;
         }

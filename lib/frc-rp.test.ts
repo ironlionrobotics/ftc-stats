@@ -21,6 +21,15 @@ describe("FRC bonus RP (#118)", () => {
         expect(out).toEqual({ "1-Red": 2, "1-Blue": 0 });
     });
 
+    it("prefers the official rp total over the booleans when both exist", () => {
+        // Booleans say 0 bonus (a renamed key would read as false), rp says 2 bonus on a win.
+        const out = frcMatchBonusRp(2026, [qual(4, 120, 90)], [{
+            matchLevel: "Qualification", matchNumber: 4,
+            alliances: [{ alliance: "Red", rp: 5, energizedAchieved: false, superchargedAchieved: false, traversalAchieved: false }],
+        }]);
+        expect(out).toEqual({ "4-Red": 2 });
+    });
+
     it("falls back to total rp minus the result RP, and skips alliances with neither", () => {
         const out = frcMatchBonusRp(2026, [qual(2, 100, 100), qual(3, 50, 80)], [
             { matchLevel: "Qualification", matchNumber: 2, alliances: [{ alliance: "Red", rp: 2 }, { alliance: "Blue", rp: 1 }] },

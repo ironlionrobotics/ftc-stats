@@ -1591,9 +1591,13 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
 
 **Segunda tanda (16-nov, madrugada):**
 - **Archivo 2019–2021:** se lee con tres ajustes en `scripts/first-archive.ts`.
-  - En 2019 FIRST no registró `onField`: todos los equipos vienen `false`. Si en un partido nadie aparece en cancha, cuentan todos los listados. En 2023–2025 eso movió 26 de 10,747 valores de la tabla de historial, con un máximo de 0.09 en z.
-  - Playoffs `SEMIFINAL`/`FINAL` del bracket antiguo (`isPlayoffLevel`).
-  - Eventos remotos (2020/21): cada "partido" es un robot solo. Su valor es el promedio de sus puntajes, como lo reportaba FTCScout.
+  - En 2019 FIRST no registró `onField`: todos los equipos vienen `false`. Si en un partido nadie aparece en cancha, cuentan todos los listados, salvo que todos estén descalificados (un 0-0 por forfeit), en cuyo caso los lados quedan vacíos.
+  - Esto y los robots solos (abajo) movieron 26 de 10,747 valores de la tabla de historial, con un máximo de 0.09 en z. Según la revisión, 22 se deben a los robots solos remotos de 2023 y 4 a este ajuste.
+  - Playoffs `SEMIFINAL`/`FINAL` del bracket antiguo (`isPlayoffLevel`). En el archivo los usan 2019–**2023**, no solo 2019–2021. Por eso los playoffs de 2022–23 entran por primera vez a `oracle-backtest`, `draft-science` y `archiveMatchEvents`. 2024+ no cambia, porque `PLAYOFF` conserva la clave `series·1000 + match`.
+  - En 2019–2023 el archivo no tiene alianzas ni scores de playoff: la API no los devuelve para esos eventos. Hoy nada los usa.
+  - Eventos remotos (2020/21, y algunos de 2022–23): cada "partido" es un robot solo. Su valor es el promedio de sus puntajes, como lo reportaba FTCScout.
+    - Advertencia: un robot solo juega todo el campo, así que esa escala no es la de un OPR por robot de un evento normal.
+    - Es consistente en 2020, que fue casi todo remoto, pero en 2021 se mezclan las dos escalas.
   - Algunas *league meets* de 2020/21 hacen fallar siempre `/rankings`. El evento se guarda sin ranking (`rankingsError`), porque nuestros modelos no lo necesitan.
   - Con esto, el Oracle en 2019 da 71.3 % (FTCScout 71.4 %).
 - **`lib/reports/draft-priors.ts` con datos de FIRST:** 622 eventos y 15,511 observaciones de 2025 (antes 606 / 15,186), generado con `scripts/build-draft-priors.mjs`. Cambia la probabilidad de ser seleccionado de `draft-odds`:
@@ -1646,3 +1650,8 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
     - Brier 0.1638 → **0.151**; media 0.709 contra 0.709 observada.
     - Las constantes viejas sobrepredecían el tramo 40–60 %: decían 0.52 y ocurría 0.26.
   - **Caché:** el análisis pasa a `analytics_v5_` para no mezclar regímenes.
+- **Ajustes tras la revisión independiente (16-nov):**
+  - `side()` ya no aplica la regla de 2019 a partidos donde todos están descalificados. La tabla de historial cambió en 4 valores (máximo 0.02 en z). Se re-corrieron los backtests de 2021 y 2025 del Oracle y salen cifras idénticas a las publicadas; las curvas también salen idénticas.
+  - **FRC (`lib/frc-rp.ts`):** si el desglose trae el total oficial `rp`, se usa `rp − RP del resultado`. Los booleanos solo cubren el caso sin `rp`, porque una clave mal nombrada se leería como `false` y contaría de menos sin aviso.
+  - **Copy de `/oracle` y de la portada:** se quitó el "76 %" (el total es 74.4 %). Power Play pasa a ser "de las temporadas de menor precisión", porque 2019 y 2021 están por debajo.
+  - **`GrowthCurve`:** la frase sin "catch-up" ya no confunde la mediana con el percentil de Iron Lion.

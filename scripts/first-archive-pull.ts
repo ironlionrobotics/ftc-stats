@@ -77,7 +77,7 @@ async function season(s: number) {
             const f = join(dir, `${e.code}.json.gz`);
             if (existsSync(f) && Date.parse(e.dateEnd) + 3 * 86400_000 < load<{ pulledAt: number }>(f).pulledAt) { done++; return; }
             const matches = (await get<{ matches: { tournamentLevel: string }[] }>(`/${s}/matches/${e.code}`))?.matches ?? [];
-            const hasPlayoff = matches.some(m => ["PLAYOFF", "SEMIFINAL", "FINAL"].includes(m.tournamentLevel)); // SEMIFINAL/FINAL = 2019–2021 bracket
+            const hasPlayoff = matches.some(m => ["PLAYOFF", "SEMIFINAL", "FINAL"].includes(m.tournamentLevel)); // SEMIFINAL/FINAL = older bracket (2019–2023)
             const out: Record<string, unknown> = { event: e, matches, pulledAt: Date.now() };
             if (matches.length) {
                 withMatches++;

@@ -70,13 +70,14 @@ export function archivedTeams(seasons: number[]): Map<number, { rookieYear: numb
 /**
  * Robots that played for one side. FIRST did not record `onField` in 2019
  * (every team comes back `false`, and only the fielded robots are listed), so a
- * match where nobody is marked on the field counts every listed team.
+ * match where nobody is marked on the field counts every listed team — unless
+ * every listed team is DQ (a forfeited 0-0), which stays empty as before.
  */
 export const side = (m: FMatch, c: "Red" | "Blue") => {
-    const anyOn = m.teams.some(t => t.onField !== false);
-    return m.teams.filter(t => t.station.startsWith(c) && (!anyOn || t.onField !== false)).map(t => t.teamNumber);
+    const allOff = !m.teams.some(t => t.onField !== false) && m.teams.some(t => t.dq !== true);
+    return m.teams.filter(t => t.station.startsWith(c) && (allOff || t.onField !== false)).map(t => t.teamNumber);
 };
-/** Playoff levels: PLAYOFF (2022+ double elimination) or SEMIFINAL/FINAL (the 2019–2021 bracket). */
+/** Playoff levels: PLAYOFF (2024+ double elimination) or SEMIFINAL/FINAL (the older bracket, 2019–2023 in the archive). */
 export const isPlayoffLevel = (level: string) => level === "PLAYOFF" || level === "SEMIFINAL" || level === "FINAL";
 const LEVEL_ORDER: Record<string, number> = { PLAYOFF: 0, SEMIFINAL: 1, FINAL: 2 };
 /** Remote events (2020/21): each "match" is one robot alone (station "1"), its score on the blue fields. */
