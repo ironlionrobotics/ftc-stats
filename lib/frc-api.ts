@@ -2,6 +2,7 @@ import "server-only";
 import type { FTCAllianceSelection, FTCEvent, FTCHybridScheduleMatch, FTCMatch, TeamRanking } from "@/types/scouting";
 import { getCachedData, setCachedData } from "@/lib/ftc-api";
 import { singleFlight } from "@/lib/single-flight";
+import { CircuitBreaker } from "@/lib/tiered-cache";
 
 /**
  * FRC Events API v3 (official FIRST) — server-only client, normalized to the
@@ -36,17 +37,32 @@ function authHeader(): string | null {
 
 export const hasFrcCredentials = () => authHeader() !== null;
 
+/**
+ * Network-level failures (timeout, refused) open this breaker for 2 min, so an
+ * FRC API outage costs one 8 s wait per instance per 2 min instead of ~45 s
+ * on every page view (seen 16-nov-2026: frc-api.firstinspires.org refusing
+ * connections). HTTP errors don't count: the server answered.
+ */
+const breaker = new CircuitBreaker(120_000, Date.now);
+
 async function get<T>(path: string): Promise<T | null> {
     const auth = authHeader();
     if (!auth) return null;
     for (let attempt = 0; attempt < 3; attempt++) {
+        const epoch = breaker.tryAcquire();
+        if (epoch === null) return null;
         const r = await fetch(`${BASE_URL}${path}`, {
             headers: { Authorization: auth, Accept: "application/json" },
             cache: "no-store",
-            signal: AbortSignal.timeout(15_000),
+            signal: AbortSignal.timeout(8_000),
         }).catch(() => null);
-        if (r?.ok) return (await r.json().catch(() => null)) as T | null;
-        if (r && r.status < 500 && r.status !== 429) return null; // 400/401/404/501: no retry
+        if (!r) {
+            if (breaker.failure(epoch)) console.warn("[frc-api] unreachable, pausing calls for 2 min");
+            return null; // network failure: don't retry into a dead host
+        }
+        breaker.success(epoch);
+        if (r.ok) return (await r.json().catch(() => null)) as T | null;
+        if (r.status < 500 && r.status !== 429) return null; // 400/401/404/501: no retry
         if (attempt < 2) await new Promise(res => setTimeout(res, 800 * 2 ** attempt));
     }
     return null;
