@@ -1,4 +1,5 @@
 import type { FTCMatch } from "@/types/scouting";
+import { hasStartingPoints, type StartingPoints } from "@/lib/starting-points";
 import { eventStrengthModel } from "@/lib/live-projection";
 import { componentOpr } from "@/lib/component-opr";
 import { biobuzzRobotOutcomes, biobuzzTips, robotSlotsFor, type MatchScoreEntry } from "@/lib/score-breakdown";
@@ -35,10 +36,11 @@ export interface PickMetrics {
 
 const played = (m: FTCMatch) => (m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0;
 
-export function eventPickMetrics(season: number, matches: FTCMatch[], scores: MatchScoreEntry[]): Record<number, PickMetrics> {
+export function eventPickMetrics(season: number, matches: FTCMatch[], scores: MatchScoreEntry[], start?: StartingPoints | null): Record<number, PickMetrics> {
     const quals = matches.filter(m => m.tournamentLevel === "QUALIFICATION" && played(m));
-    if (quals.length < 2) return {};
-    const model = eventStrengthModel(quals);
+    // Per-robot starting points (#117) allow a model from the first qual.
+    if (quals.length < 2 && !hasStartingPoints(start)) return {};
+    const model = eventStrengthModel(quals, start);
     const count = new Map<number, number>();
     for (const m of quals) for (const t of m.teams) if (t.onField !== false) count.set(t.teamNumber, (count.get(t.teamNumber) ?? 0) + 1);
 

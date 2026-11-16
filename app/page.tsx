@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { eventTeamNumbers } from "@/lib/starting-points";
+import { getStartingPoints } from "@/lib/starting-points-server";
 import { cookies } from "next/headers";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { fetchTeam, fetchTeamEvents, fetchRankings, fetchMatches, fetchHybridSchedule, fetchTeamRankingsInSeason } from "@/lib/ftc-api";
@@ -171,7 +173,9 @@ async function loadToday(team: number, season: number) {
             fetchHybridSchedule(season, pick.event.code),
         ]);
         const rules = seasonRulesFor(season);
-        atEvent = summarizeAtEvent(team, rankings, matches, schedule, pick.event.code, { winRp: rules.winRp, tieRp: rules.tieRp });
+        // Each robot's starting point (#117; null = as before).
+        const start = await getStartingPoints(season, pick.event.dateStart, eventTeamNumbers(matches, schedule, rankings)).catch(() => null);
+        atEvent = summarizeAtEvent(team, rankings, matches, schedule, pick.event.code, { winRp: rules.winRp, tieRp: rules.tieRp }, start);
     }
     // Season results for the "upcoming" and "between events" states.
     const seasonResults = pick && pick.phase !== "live" ? await fetchTeamRankingsInSeason(season, team) : [];

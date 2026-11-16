@@ -8,6 +8,7 @@ import { FTCMatch, TeamRanking, FTCMatchTeam, MatchScouting, FTCMatchScouting, F
 import { winProbabilityFromNormalModel } from "@/lib/win-probability";
 import { playoffForecaster } from "@/lib/playoff-form";
 import { eventStrengthModel } from "@/lib/live-projection";
+import { hasStartingPoints, type StartingPoints } from "@/lib/starting-points";
 import { predictionLedger, scorecard, type LedgerRow } from "@/lib/prediction-ledger";
 import PredictionCell, { LedgerSummary, PredictionBar } from "@/components/event/PredictionLedger";
 import clsx from "clsx";
@@ -29,12 +30,14 @@ interface MatchListProps {
     selectedAlliances?: FTCAllianceSelection[];
     /** Event code, so team links carry the event to the team page. */
     eventCode?: string;
+    /** Per-robot starting points (#117): forecasts from the first qual. */
+    startingPoints?: StartingPoints | null;
 }
 
 /** Translator signature shared with module-level helpers. */
 type Tr = (key: string, values?: Record<string, string | number>) => string;
 
-export default function MatchList({ matches, rankings, filterTeam, setFilterTeam, scoutingData, schedule, awards, selectedAlliances, eventCode }: MatchListProps) {
+export default function MatchList({ matches, rankings, filterTeam, setFilterTeam, scoutingData, schedule, awards, selectedAlliances, eventCode, startingPoints }: MatchListProps) {
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
     const tLedger = useTranslations("PredictionLedger");
     const tA = useTranslations("Alliance");
@@ -50,7 +53,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
 
     // What PRIDE said BEFORE each played match vs who won (decision #111). Built
     // from the full match list (the model only ever sees earlier matches).
-    const ledger = useMemo(() => predictionLedger(matches), [matches]);
+    const ledger = useMemo(() => predictionLedger(matches, startingPoints), [matches, startingPoints]);
     const ledgerByKey = useMemo(() => new Map(ledger.map(r => [`${r.level}:${r.series}:${r.matchNumber}`, r])), [ledger]);
     const ledgerCard = useMemo(
         () => scorecard(filterTeam ? ledger.filter(r => r.red.includes(filterTeam) || r.blue.includes(filterTeam)) : ledger),
@@ -179,7 +182,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
         // the hand-rolled OPR above only explains the split (auto/tele/fouls).
         const playedQuals = matches.filter(m => m.tournamentLevel === "QUALIFICATION"
             && (!!m.postResultTime || m.scoreRedFinal + m.scoreBlueFinal > 0));
-        const model = playedQuals.length >= 2 ? eventStrengthModel(playedQuals) : null;
+        const model = playedQuals.length >= 2 || hasStartingPoints(startingPoints) ? eventStrengthModel(playedQuals, startingPoints) : null;
         // Upcoming playoffs also learn from the playoff results so far (#113).
         const fc = model ? playoffForecaster(model, matches.filter(m => m.tournamentLevel === "PLAYOFF"
             && (!!m.postResultTime || m.scoreRedFinal + m.scoreBlueFinal > 0))) : null;
@@ -232,7 +235,7 @@ export default function MatchList({ matches, rankings, filterTeam, setFilterTeam
                     sigmaDiff,
                 };
             });
-    }, [schedule, matches, oprData, filterTeam]);
+    }, [schedule, matches, oprData, filterTeam, startingPoints]);
 
     // Pre-match win probability of the still-unplayed matches (same numbers as
     // the upcoming cards above) so the phone rows can show it without recomputing.

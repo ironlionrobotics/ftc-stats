@@ -3,6 +3,8 @@ import { serverCache } from "@/lib/server-cache";
 import { fetchEvents, fetchMatches } from "@/lib/ftc-api";
 import { eventWindow } from "@/lib/today-summary";
 import { NON_COMPETITIVE } from "@/lib/event-windows";
+import { eventTeamNumbers } from "@/lib/starting-points";
+import { getStartingPoints } from "@/lib/starting-points-server";
 import { predictionLedger, scorecard, type LedgerRow, type Scorecard } from "@/lib/prediction-ledger";
 
 /**
@@ -37,7 +39,7 @@ const CONCURRENCY = 8;
 const label = (r: LedgerRow) => (r.level === "QUALIFICATION" ? `Q${r.matchNumber}` : `M${r.series || r.matchNumber}`);
 
 export async function loadLiveScoreboard(season: number, now = Date.now()): Promise<LiveScoreboard> {
-    const key = `live_scoreboard_v1_${season}`;
+    const key = `live_scoreboard_v2_${season}`;
     const cached = await serverCache.get<LiveScoreboard>(key).catch(() => null);
     if (cached && now - cached.at < TTL_S * 1000) return cached;
 
@@ -50,7 +52,9 @@ export async function loadLiveScoreboard(season: number, now = Date.now()): Prom
     for (let i = 0; i < events.length; i += CONCURRENCY) {
         await Promise.all(events.slice(i, i + CONCURRENCY).map(async e => {
             const matches = await fetchMatches(season, e.code).catch(() => []);
-            const rows = predictionLedger(matches);
+            // Each robot's starting point (#117; null = as before).
+            const start = await getStartingPoints(season, e.dateStart, eventTeamNumbers(matches)).catch(() => null);
+            const rows = predictionLedger(matches, start);
             if (rows.filter(r => r.level === "QUALIFICATION").length < MIN_QUALS) return;
             all.push(...rows);
             cards.push({

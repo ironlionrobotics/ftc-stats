@@ -26,6 +26,7 @@ npm run generate:pwa-assets   # Regenerate /public/icons/* from public/icon.png
 |---|---|---|
 | `FTC_API_USERNAME` / `FTC_API_KEY` | FIRST API access (server-only) | App fetches return empty arrays; offline cache fallback kicks in |
 | `NEXT_PUBLIC_FIREBASE_*` (or `FIREBASE_WEBAPP_CONFIG`) | Firebase Web SDK init | Client crashes on auth/Firestore use |
+| `STARTING_POINTS` (optional) | `off` = kill switch for per-robot starting points (#117) | Default on; forecasts then start from zero as before |
 | `SERVER_CACHE` (optional) | `off` = kill switch for the Firestore-backed server cache | Default on; the cache also self-disables for 30 s after any failure |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | firebase-admin SDK (server actions) | Calibration log, ground-truth validation, RP model training all silently fail |
 | `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_ORG` + `SENTRY_PROJECT` + `SENTRY_AUTH_TOKEN` | Production error tracking | Sentry no-ops in dev anyway (gated on `NODE_ENV === "production"`) |
@@ -77,6 +78,7 @@ Ground-truth validation (`lib/ground-truth-validation.ts`) uses **leave-one-out 
 - `lib/live-projection.ts` — final-ranking projection: Monte Carlo of the remaining quals on event OPR (`eventStrengthModel`, non-penalty = final − fouls RECEIVED, #48), sampled bonus RP and strength uncertainty, official tiebreakers in API order. **Ranking Score is an AVERAGE** (decision #95)
 - `lib/rp-inference.ts` + `lib/logistic-regression.ts` — DECODE per-RP logistic models; `lib/rp-counts.ts` — BIOBUZZ count models (POLLINATOR = Negative Binomial on tips OPR; SWARM = exact enumeration + Platt calibration, #88/#96). Labels come from the official `/scores` breakdowns (`lib/score-breakdown.ts`)
 - `lib/today-summary.ts` — "Hoy" assembly for a followed team (next match odds, projected rank, alliance odds), decision #98
+- `lib/starting-points.ts` (+ `-server.ts`) — per-robot starting points for `eventStrengthModel`: 3-season history table built offline (`scripts/build-history-table.ts` → `lib/data/starting-history-<S>.json`); in-season prior pending; null ⇒ old behavior, decision #117
 
 ### Scouting subsystem
 

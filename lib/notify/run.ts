@@ -1,4 +1,6 @@
 import "server-only";
+import { eventTeamNumbers } from "@/lib/starting-points";
+import { getStartingPoints } from "@/lib/starting-points-server";
 import { FieldValue, type DocumentData, type QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { createTranslator } from "next-intl";
 import es from "@/messages/es.json";
@@ -143,11 +145,14 @@ export async function runLiveNotify(deadline: number, now = Date.now()): Promise
         if (schedule.length === 0) continue;
         const playedMatches = matches.filter(m => (m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0);
 
+        // Each robot's starting point (#117; null = as before).
+        const start = await getStartingPoints(season, byCode.get(code)?.dateStart, eventTeamNumbers(matches, schedule, rankings)).catch(() => null);
+
         const stateRef = db.collection("notify_state").doc(`${season}_${code}`);
         const { events, requestsSince } = await db.runTransaction(async tx => {
             const snap = await tx.get(stateRef);
             const prev = snap.exists ? (snap.data() as StateDoc) : null;
-            const r = diffEvent(prev?.state ?? null, { eventCode: code, schedule, matches: playedMatches, rankings, alliances });
+            const r = diffEvent(prev?.state ?? null, { eventCode: code, schedule, matches: playedMatches, rankings, alliances, start });
             const since = prev?.requestsSince ?? now; // first sight: only requests from now on
             tx.set(stateRef, { state: r.next, requestsSince: now, updatedAt: FieldValue.serverTimestamp() });
             return { events: r.events, requestsSince: since };

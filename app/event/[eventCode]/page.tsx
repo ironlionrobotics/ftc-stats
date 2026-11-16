@@ -12,6 +12,8 @@ import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import AutoRefresh from "@/components/AutoRefresh";
 import { eventWindow } from "@/lib/today-summary";
+import { eventTeamNumbers } from "@/lib/starting-points";
+import { getStartingPoints } from "@/lib/starting-points-server";
 
 interface EventPageProps {
     params: Promise<{ eventCode: string }>;
@@ -111,16 +113,17 @@ export default async function EventPage(props: EventPageProps) {
     }
 
     // BIOBUZZ RP probabilities per team (count models, decision #88) — the
-    // same analysis Data Lab runs, cached server-side.
+    // same analysis Data Lab runs, cached server-side. In parallel: each
+    // robot's starting point for the forecasts (#117; null = as before).
     let teamRp: Record<number, EventTeamRp> | undefined;
-    if (season >= 2026) {
-        try {
-            const analysis = await analyzeMultipleEvents(season, [event.code]);
-            teamRp = Object.fromEntries(analysis.teamEvolution.map(t => [t.teamNumber, { rp: t.rp, rpInputs: t.rpInputs }]));
-        } catch (e) {
-            console.warn("[event] RP analysis unavailable:", e instanceof Error ? e.message : e);
-        }
-    }
+    const [, startingPoints] = await Promise.all([
+        season >= 2026
+            ? analyzeMultipleEvents(season, [event.code])
+                .then(analysis => { teamRp = Object.fromEntries(analysis.teamEvolution.map(t => [t.teamNumber, { rp: t.rp, rpInputs: t.rpInputs }])); })
+                .catch(e => console.warn("[event] RP analysis unavailable:", e instanceof Error ? e.message : e))
+            : Promise.resolve(),
+        getStartingPoints(season, event.dateStart, eventTeamNumbers(matches, schedule, rankings)).catch(() => null),
+    ]);
 
     return (
         <div className="container mx-auto px-4 md:px-8 py-8 md:py-12">
@@ -185,7 +188,7 @@ export default async function EventPage(props: EventPageProps) {
                         city: event.city, stateProv: event.stateProv,
                     },
                     matches, rankings, advancement, awards, advancementPoints,
-                    schedule, alliances, season,
+                    schedule, alliances, season, startingPoints,
                 }}
             />
 
@@ -201,6 +204,7 @@ export default async function EventPage(props: EventPageProps) {
                 season={season}
                 matchBonusRp={matchBonusRp}
                 teamRp={teamRp}
+                startingPoints={startingPoints}
             />
         </div>
     );

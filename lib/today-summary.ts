@@ -3,6 +3,7 @@ import { pickNextMatch, type NextMatchInfo } from "@/lib/today";
 import { eventStrengthModel, projectFinalRankings } from "@/lib/live-projection";
 import { draftOdds } from "@/lib/draft-odds";
 import { estimateAlliances } from "@/lib/event-selector";
+import { hasStartingPoints, type StartingPoints } from "@/lib/starting-points";
 
 /**
  * "Hoy" (plan "PRIDE abierta al público" §1): what a followed team needs to
@@ -94,6 +95,8 @@ export function summarizeAtEvent(
     schedule: FTCHybridScheduleMatch[],
     eventCode: string,
     rp: { winRp: number; tieRp: number },
+    /** Per-robot starting points (#117); null/undefined = as before. */
+    start?: StartingPoints | null,
 ): TodayAtEvent {
     const quals = matches.filter(m => m.tournamentLevel === "QUALIFICATION");
     const playedQuals = quals.filter(m => (m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0);
@@ -107,7 +110,7 @@ export function summarizeAtEvent(
             rs: me.sortOrder1 ?? 0,
             record: { wins: me.wins ?? 0, losses: me.losses ?? 0, ties: me.ties ?? 0 },
         };
-        const projection = projectFinalRankings(rankings, matches, eventCode, rp);
+        const projection = projectFinalRankings(rankings, matches, eventCode, { ...rp, start });
         const row = projection.teamProjections.find(p => p.teamNumber === team);
         if (row && row.matchesRemaining > 0) {
             ranking.projected = {
@@ -119,7 +122,7 @@ export function summarizeAtEvent(
         }
     }
 
-    const model = playedQuals.length >= 2 ? eventStrengthModel(playedQuals) : null;
+    const model = playedQuals.length >= 2 || hasStartingPoints(start) ? eventStrengthModel(playedQuals, start) : null;
     const next = pickNextMatch(schedule, team);
     let nextMatch: TodayNextMatch | null = null;
     if (next) {

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { projectFinalRankings, eventStrengthModel } from "./live-projection";
 import { winProbabilityFromNormalModel } from "./win-probability";
 import type { TeamRanking, FTCMatch } from "@/types/scouting";
+import type { StartingPoints } from "./starting-points";
 
 function ranking(overrides: Partial<TeamRanking> & Pick<TeamRanking, "rank" | "teamNumber">): TeamRanking {
     return {
@@ -254,6 +255,42 @@ describe("eventStrengthModel", () => {
         const shrinkFew = (few.pRed([1], [2]) - 0.5) / (raw(few) - 0.5);
         const shrinkMany = (many.pRed([1], [2]) - 0.5) / (raw(many) - 0.5);
         expect(shrinkFew).toBeLessThan(shrinkMany);
+    });
+});
+
+describe("eventStrengthModel with starting points (#117)", () => {
+    const start = { v: 1 as const, inSeason: { 1: 20, 2: -20 }, history: { 3: 1, 4: -1 }, mu0Hint: 40 };
+    const m = (n: number, red: number[], blue: number[], rs: number, bs: number) =>
+        ({ ...match({ matchNumber: n, redTeams: red, blueTeams: blue, played: true }), scoreRedFinal: rs, scoreBlueFinal: bs, scoreRedFoul: 0, scoreBlueFoul: 0 }) as FTCMatch;
+
+    it("forecasts before any match is played, favoring the better starting point", () => {
+        const model = eventStrengthModel([], start);
+        expect(model.pRed([1], [2])).toBeGreaterThan(0.6);
+        expect(model.pRed([3], [4])).toBeGreaterThan(0.5);
+        expect(model.strength(1)).toBe(60);
+        expect(model.strength(9)).toBe(40); // unknown robot = average robot
+        // Without starting points nothing is known yet.
+        expect(eventStrengthModel([]).pRed([1], [2])).toBeCloseTo(0.5, 6);
+    });
+
+    it("the event's own results take over as quals are played", () => {
+        // Robot 2 started worse but keeps beating robot 1 by 40.
+        const played = Array.from({ length: 12 }, (_, i) => m(i + 1, [2], [1], 80, 40));
+        const model = eventStrengthModel(played, start);
+        expect(model.strength(2)).toBeGreaterThan(model.strength(1));
+        expect(model.pRed([2], [1])).toBeGreaterThan(0.6);
+    });
+
+    it("null or empty starting points behave exactly as before", () => {
+        const played = [m(1, [1], [2], 80, 40), m(2, [1], [3], 70, 50), m(3, [2], [3], 60, 55)];
+        const base = eventStrengthModel(played);
+        const variants: (StartingPoints | null | undefined)[] = [null, undefined, { v: 1, inSeason: {}, history: {}, mu0Hint: 40 }, { v: 1, inSeason: { 1: 5 }, history: {}, mu0Hint: 0 }];
+        for (const s of variants) {
+            const other = eventStrengthModel(played, s);
+            for (const t of [1, 2, 3, 99]) expect(other.strength(t)).toBe(base.strength(t));
+            for (const [r, b] of [[[1], [2]], [[2], [3]], [[1, 99], [3, 2]]]) expect(other.pRed(r, b)).toBe(base.pRed(r, b));
+            expect(other.sigmaDiff).toBe(base.sigmaDiff);
+        }
     });
 });
 

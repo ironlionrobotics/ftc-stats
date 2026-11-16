@@ -1346,7 +1346,7 @@ El óptimo de K es 2–3 en las tres temporadas.
 - **USMIRHQ con el Oracle unificado:** 8/10 en playoffs y final A2 76 %. Como campeón favorecía a A2 desde M5 (44 %) y con 73 % tras M7; antes del cambio decía A1 o A3.
 - **Fuera de alcance:** el Oracle del Data Lab (comparación de varios eventos) sigue usando promedios de temporada.
 
-## #114 · Punto de partida con eventos anteriores de la temporada: validado, pendiente de implementar (2026-11-14)
+## #114 · Punto de partida con eventos anteriores de la temporada: validado; implementado en #117 (2026-11-14)
 
 **Problema:** cada evento arranca de cero. En los 94 eventos del 12 al 14 de noviembre, el primer tercio de qualys acertó 73 % contra 80 % del último. 67 de esos 94 eventos son league meets, cuyos equipos ya jugaron meets anteriores.
 
@@ -1460,3 +1460,84 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
   - Estrategia en tablet con arrastre táctil;
   - uso de `ResultChip`;
   - re-auditoría Rams.
+
+## #117 · Punto de partida de cada robot: eventos previos de la temporada + historial de temporadas pasadas (2026-11-15)
+
+**Problema:** cada evento arrancaba de cero. Hasta la 3.ª qualy el pronóstico era 50/50, y en el primer tercio casi azar:
+- 2025: 48 % de aciertos;
+- 2026: 43 %.
+
+**Modelo** (`lib/starting-points.ts`, puro):
+- **Punto de partida de cada robot:**
+  1. Si jugó antes en la temporada: su OPR sin penalizaciones en esos eventos, relativo a los demás robots del evento que también tienen uno (#114).
+  2. Si no: su **historial**. Es una regresión del z de OPR que tendrá en su primer evento, con estas variables:
+     - z medio dentro de cada evento en las 3 temporadas anteriores;
+     - Worlds, campeonato estatal o regional, Premier o super;
+     - campeón, finalista, Inspire, top 4;
+     - novato, o regresa tras un año sin eventos.
+  - El historial se lleva a puntos con `STRENGTH_CV = 0.48` (DE/media típica de la fuerza dentro de un evento).
+- **Ajuste en el modelo:** `eventStrengthModel(played, start)` encoge cada robot hacia su punto de partida con λ = 2 partidos.
+  - La incertidumbre de #109 cuenta el prior como 2 partidos jugados.
+  - Con 0 partidos usa `mu0Hint`.
+  - Sin `start`, el comportamiento es idéntico al anterior (probado).
+- **Coeficientes del historial** (OLS con los primeros eventos de 2024 y 2025, 15,558 equipo-temporada; R² en temporada no vista 0.20–0.24):
+  - año pasado 0.37, hace 2 años 0.16, hace 3 años 0.04;
+  - Worlds +0.38, estatal +0.15, Premier o super +0.13, Inspire +0.10;
+  - novato −0.15, regresa tras un año sin competir −0.10.
+
+**Hallazgos:**
+- **"Decadencia" al revés.** Un equipo fuerte con un mal año rinde +0.30 DE sobre lo que predice solo su año pasado: rebota hacia su nivel de varios años. Un equipo débil con un buen año rinde −0.25. Pesa el nivel sostenido, no la tendencia.
+- **Cierre de temporada:** cerrar fuerte o débil no predice nada; es un artefacto de que los últimos eventos tienen campos más fuertes.
+- **Premios de juicio, probados el 15-nov a pedido de Héctor; no se agregaron:**
+  - **Premios de robot** (Design, Innovate, Control): quien los ganó rinde +0.06 a +0.08 DE sobre lo que predice el modelo. Su coeficiente es ≈ 0.08 cada uno.
+  - **Think:** rinde +0.05.
+  - **Premios de equipo** (Connect, Reach, Sustain, Motivate, Promote, Compass, Judges' Choice): no aportan nada (coeficiente ≈ 0).
+  - **Inspire 1.er lugar:** después del nivel, tampoco aporta (residuo 0). El modelo ya lo incluye.
+  - **Por qué no se agregan:** casi todo lo que dicen ya lo captura el nivel. Los ganadores de premios de robot tenían z ≈ +0.30 ese año.
+    - R² en temporada no vista: +0.002.
+    - Backtest de partidos 2025: log loss 0.5443 → 0.5442.
+    - Backtest de partidos 2026: 0.5228 → 0.5230.
+    - Con ese cambio no vale la pena agregar variables.
+- **Novatos:** su primer evento está en z −0.26 a −0.31 de media, con una dispersión de 0.8. Solo el 5–7 % termina en el 10 % superior de su evento.
+
+**Backtest** (`scripts/starting-points-backtest.ts`, código de producción, eventos de prueba impares por fecha):
+
+| | Partidos | Hoy | #114 (ridge propio) | #114 + historial (modelo completo; la parte de temporada sigue pendiente) |
+|---|---|---|---|---|
+| **2025**, total | 19,265 | 64.8 % · ll 0.566 | 72.0 % · 0.528 | **73.7 % · 0.521** |
+| 2025, primer tercio | | 48.4 % · ll 0.643 | 67.1 % · 0.565 | **71.1 % · 0.552** |
+| **2026**, total | 2,986 | 63.7 % · ll 0.551 | 69.1 % · 0.535 | **73.4 % · 0.518** |
+| 2026, primer tercio | | 42.9 % · ll 0.649 | 57.3 % · 0.602 | **69.4 % · 0.566** |
+
+- El acierto cuenta los 50/50 como fallo.
+- **Playoffs por partido:** +0.5 pp (2025: 76.6 % → 77.1 %).
+- **Oracle de torneo:** no se toca. En 2025 (623 torneos) está calibrado: con ≥ 90 % pronosticado, ganó el 96 %. Ampliar σ o agregar "forma de alianza" no mejoró. El exceso de confianza visto en los 46 torneos de 2026 era ruido.
+
+**Qué quedó implementado (15-nov): solo el historial.**
+- FTCScout en vivo no sirve:
+  - la consulta masiva de una temporada tardó de 12 a 70 s (medido el 15-nov);
+  - las consultas por equipo terminaron en una página de bloqueo.
+- **Historial:** se precalcula fuera de línea con `scripts/build-history-table.ts` (fuente FTCScout, según la decisión de Héctor) en `lib/data/starting-history-<S>.json`.
+  - Pesa 150 KB, solo en el servidor, y cubre 11,082 equipos.
+  - Se regenera una vez por temporada o si cambian los coeficientes.
+  - En tiempo de petición no hay red: no puede fallar ni hacer lenta la página.
+- **Eventos previos de la temporada: pendiente.** La alternativa es OPR ridge propio desde `/matches` de FIRST para los eventos previos de los robots del evento. Es más llamadas a la API y necesita el OK de Héctor.
+  - Para MXMOQ no cambia nada: es el primer evento de México en 2026 y ningún robot tiene eventos previos.
+- **Backtest solo con historial** (código de producción):
+
+  | | Partidos | Acierto | Log loss | Primer tercio |
+  |---|---|---|---|---|
+  | 2025 | 19,265 | 64.8 % → **71.5 %** | 0.566 → 0.543 | 48.4 % → 66.3 % |
+  | 2026 | 2,986 | 63.7 % → **72.5 %** | 0.551 → 0.524 | 42.9 % → 67.9 % |
+
+- **Sin fuga de información futura:** usa solo temporadas pasadas, así que el registro de pronósticos (#111) sigue siendo una repetición honesta.
+- **Apagado:** `STARTING_POINTS=off`.
+
+**Dónde se usa:**
+- Evento: lista de partidos, registro de pronósticos, Oracle y vista sin red (payload de Dexie).
+- Hoy y proyección del ranking.
+- Siguiendo.
+- Avisos.
+- Estrategia (`pick-metrics`).
+- Marcador de `/oracle` (clave `live_scoreboard_v2_`).
+

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import EventViewManager from "@/components/event/EventViewManager";
+import type { StartingPoints } from "@/lib/starting-points";
 import type {
     FTCEvent, FTCMatch, TeamRanking, AdvancementResponse, FTCAward,
     AdvancementPoints, FTCHybridScheduleMatch, FTCAllianceSelection,
@@ -30,6 +31,8 @@ export interface CachedEventPayload {
     schedule: FTCHybridScheduleMatch[];
     alliances: FTCAllianceSelection[];
     season: number;
+    /** Per-robot starting points (#117); absent in payloads cached before it. */
+    startingPoints?: StartingPoints | null;
 }
 
 export default function CachedEventView({ payload }: { payload: CachedEventPayload }) {
@@ -65,6 +68,7 @@ export default function CachedEventView({ payload }: { payload: CachedEventPaylo
                 selectedAlliances={payload.alliances}
                 eventCode={event.code}
                 season={season}
+                startingPoints={payload.startingPoints}
             />
         </>
     );

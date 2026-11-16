@@ -5,6 +5,8 @@ import { isValidSeason, normalizeEventCode } from "@/lib/input-guards";
 import { getCurrentSeason } from "@/lib/constants";
 import { fetchRankings, fetchMatches } from "@/lib/ftc-api";
 import { projectFinalRankings, type LiveProjectionResult } from "@/lib/live-projection";
+import { eventTeamNumbers } from "@/lib/starting-points";
+import { getStartingPoints } from "@/lib/starting-points-server";
 import { seasonRulesFor } from "@/lib/games/season-rules";
 
 /**
@@ -32,7 +34,9 @@ export async function fetchLiveProjectionAction(input: {
             fetchMatches(season, eventCode),
         ]);
         const rules = seasonRulesFor(season);
-        const result = projectFinalRankings(rankings, matches, eventCode, { winRp: rules.winRp, tieRp: rules.tieRp });
+        // Each robot's starting point (#117; null = as before).
+        const start = await getStartingPoints(season, null, eventTeamNumbers(matches, rankings)).catch(() => null);
+        const result = projectFinalRankings(rankings, matches, eventCode, { winRp: rules.winRp, tieRp: rules.tieRp, start });
         return { ok: true, result };
     } catch (e) {
         const message = e instanceof Error ? e.message : "Error desconocido";

@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 import { getAggregatedStats } from "@/lib/aggregation";
+import { eventTeamNumbers } from "@/lib/starting-points";
+import { getStartingPoints } from "@/lib/starting-points-server";
 import { fetchMatches, fetchMatchScores } from "@/lib/ftc-api";
 import { eventPickMetrics } from "@/lib/pick-metrics";
 import StrategyClient from "@/components/strategy/StrategyClient";
@@ -27,7 +29,9 @@ export default async function StrategyPage({ searchParams }: { searchParams: Pro
             fetchMatches(season, selected.code).catch(() => []),
             season >= 2026 ? fetchMatchScores(season, selected.code).catch(() => []) : Promise.resolve([]),
         ]);
-        const pick = eventPickMetrics(season, matches, scores);
+        // Each robot's starting point (#117; null = as before).
+        const start = await getStartingPoints(season, selected.dateStart, eventTeamNumbers(matches)).catch(() => null);
+        const pick = eventPickMetrics(season, matches, scores, start);
         if (Object.keys(pick).length) teams = teamStats.map(t => (pick[t.teamNumber] ? { ...t, pick: pick[t.teamNumber] } : t));
     }
 

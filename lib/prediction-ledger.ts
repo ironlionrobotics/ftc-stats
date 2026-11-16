@@ -1,6 +1,7 @@
 import type { FTCMatch } from "@/types/scouting";
 import { eventStrengthModel } from "@/lib/live-projection";
 import { playoffForecaster } from "@/lib/playoff-form";
+import { hasStartingPoints, type StartingPoints } from "@/lib/starting-points";
 
 /**
  * "Who did PRIDE pick, and who won?" (decision #111). Pure replay of the
@@ -20,7 +21,7 @@ export interface LedgerRow {
     series: number;
     red: number[];
     blue: number[];
-    /** P(red wins) before the match; null when the model had < 2 quals. */
+    /** P(red wins) before the match; null when the model had < 2 quals and no starting points. */
     pRed: number | null;
     /** Projected non-penalty points of each alliance before the match (null without a model). */
     muRed: number | null;
@@ -57,7 +58,12 @@ const order = (a: FTCMatch, b: FTCMatch) => {
     return t(a) - t(b) || (a.series ?? 0) - (b.series ?? 0) || a.matchNumber - b.matchNumber;
 };
 
-export function predictionLedger(matches: FTCMatch[]): LedgerRow[] {
+/**
+ * `start` (decision #117): per-robot starting points built only from data
+ * before the event, so quals get a forecast from Q1 and the replay stays honest.
+ */
+export function predictionLedger(matches: FTCMatch[], start?: StartingPoints | null): LedgerRow[] {
+    const withStart = hasStartingPoints(start);
     const quals = matches.filter(m => m.tournamentLevel === "QUALIFICATION" && isPlayed(m)).sort((a, b) => a.matchNumber - b.matchNumber);
     const playoffs = matches.filter(m => m.tournamentLevel === "PLAYOFF" && isPlayed(m)).sort(order);
     const rows: LedgerRow[] = [];
@@ -75,14 +81,14 @@ export function predictionLedger(matches: FTCMatch[]): LedgerRow[] {
     };
     quals.forEach((m, k) => {
         const before = quals.slice(0, k);
-        if (before.length < 2) { push(m, null, null); return; }
-        const model = eventStrengthModel(before);
+        if (before.length < 2 && !withStart) { push(m, null, null); return; }
+        const model = eventStrengthModel(before, start);
         const red = sideOf(m, "Red"), blue = sideOf(m, "Blue");
         const mu = (a: number[]) => a.reduce((s, t) => s + model.strength(t), 0);
         push(m, model.pRed(red, blue), [mu(red), mu(blue)]);
     });
     if (playoffs.length) {
-        const model = quals.length >= 2 ? eventStrengthModel(quals) : null;
+        const model = quals.length >= 2 || withStart ? eventStrengthModel(quals, start) : null;
         const fc = model ? playoffForecaster(model) : null;
         for (const m of playoffs) {
             const red = sideOf(m, "Red"), blue = sideOf(m, "Blue");

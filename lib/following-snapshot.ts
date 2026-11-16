@@ -4,6 +4,8 @@ import { fetchEvents, fetchMatches, fetchHybridSchedule, fetchRankings, fetchTea
 import { eventWindow, pickRelevantEvent, type EventPhase } from "@/lib/today-summary";
 import { summarizeEvent, shortMatchLabel, type EventLive, type PlayedLine } from "@/lib/following-summary";
 import { eventStrengthModel } from "@/lib/live-projection";
+import { eventTeamNumbers, hasStartingPoints } from "@/lib/starting-points";
+import { getStartingPoints } from "@/lib/starting-points-server";
 import { pickNextMatch, type NextMatchInfo } from "@/lib/today";
 import type { Follows } from "@/lib/follows";
 
@@ -71,7 +73,11 @@ export async function loadFollowingSnapshot(follows: Follows, season: number, no
         let live: EventLive | null = null;
         if (phase !== "upcoming") {
             const d = await eventData(code);
-            if (d.schedule.length || d.rankings.length) live = summarizeEvent(d.rankings, d.matches, d.schedule);
+            if (d.schedule.length || d.rankings.length) {
+                // Each robot's starting point (#117; null = as before).
+                const start = await getStartingPoints(season, e.dateStart, eventTeamNumbers(d.matches, d.schedule, d.rankings)).catch(() => null);
+                live = summarizeEvent(d.rankings, d.matches, d.schedule, undefined, start);
+            }
         }
         return { code, name: e.name, place, phase, dateStart: e.dateStart, inDays: phase === "upcoming" ? inDays(Date.parse(e.dateStart), now) : 0, live };
     }));
@@ -87,7 +93,8 @@ export async function loadFollowingSnapshot(follows: Follows, season: number, no
         const d = await eventData(pick.event.code);
         const playedQuals = d.matches.filter(m => m.tournamentLevel === "QUALIFICATION"
             && ((m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0));
-        const model = playedQuals.length >= 2 ? eventStrengthModel(playedQuals) : null;
+        const start = await getStartingPoints(season, pick.event.dateStart, eventTeamNumbers(d.matches, d.schedule, d.rankings)).catch(() => null);
+        const model = playedQuals.length >= 2 || hasStartingPoints(start) ? eventStrengthModel(playedQuals, start) : null;
         const next = pick.phase === "live" ? pickNextMatch(d.schedule, n) : null;
         if (next) {
             const mine = [n, ...next.partners.map(p => p.teamNumber)], theirs = next.opponents.map(p => p.teamNumber);

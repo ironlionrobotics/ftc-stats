@@ -9,6 +9,7 @@ import MatchList from "./MatchList";
 import RankingTable from "./RankingTable";
 import ParticipantList from "./ParticipantList";
 import AlliancePredictor from "../analytics/AlliancePredictor";
+import type { StartingPoints } from "@/lib/starting-points";
 import { FTCMatch, TeamRanking, MatchScouting, AdvancementResponse, FTCAward, AdvancementPoints, FTCMatchScouting, FTCHybridScheduleMatch, FTCAllianceSelection } from "@/types/scouting";
 import type { TeamEvolution } from "@/app/actions/analytics";
 import type { BiobuzzRpInputs } from "@/lib/rp-counts";
@@ -53,6 +54,8 @@ interface EventViewManagerProps {
     matchBonusRp?: Record<string, number>;
     /** BIOBUZZ RP probabilities per team, computed on the server. */
     teamRp?: Record<number, EventTeamRp>;
+    /** Per-robot starting points for every forecast (#117), computed on the server. */
+    startingPoints?: StartingPoints | null;
 }
 
 type TabKey = "matches" | "rankings" | "alliances" | "teams" | "advancement" | "awards";
@@ -68,7 +71,7 @@ const MORE_TABS = [
     { key: "awards", icon: Medal },
 ] as const;
 
-export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, schedule, selectedAlliances, eventCode, season, matchBonusRp, teamRp }: EventViewManagerProps) {
+export default function EventViewManager({ matches, rankings, advancement, awards, advancementPoints, schedule, selectedAlliances, eventCode, season, matchBonusRp, teamRp, startingPoints }: EventViewManagerProps) {
     const t = useTranslations("EventView");
     const tShell = useTranslations("Shell");
     const router = useRouter();
@@ -250,7 +253,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
         // Strength + σ = the calibrated live model (#109/#113), the same numbers
         // the ledger, "Hoy" and the match list use. (Was an unregularized OPR,
         // noisy with ~5 quals per robot, and a σ from a one-event fallback.)
-        const model = eventStrengthModel(validMatches.filter(m => !!m.postResultTime || m.scoreRedFinal + m.scoreBlueFinal > 0));
+        const model = eventStrengthModel(validMatches.filter(m => !!m.postResultTime || m.scoreRedFinal + m.scoreBlueFinal > 0), startingPoints);
         const robotSigma = oracleRobotSigma(model);
         const overallOPR = new Map(simulatedRankings.map(r => [r.teamNumber, model.strength(r.teamNumber)]));
         const autoOPR = calculateComponentOPR((m, alliance) => alliance === 'Red' ? m.scoreRedAuto : m.scoreBlueAuto);
@@ -375,7 +378,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                     : { rp: teamRp?.[rank.teamNumber]?.rp, rpInputs: teamRp?.[rank.teamNumber]?.rpInputs })
             } as TeamEvolution;
         });
-    }, [simulatedRankings, matches, selectedRound, matchesPerRound, scoutingData, season, teamRp]);
+    }, [simulatedRankings, matches, selectedRound, matchesPerRound, scoutingData, season, teamRp, startingPoints]);
 
     const tabButton = (key: TabKey, Icon: typeof Trophy, extra?: string) => (
         <button
@@ -488,6 +491,7 @@ export default function EventViewManager({ matches, rankings, advancement, award
                         awards={awards}
                         selectedAlliances={selectedAlliances}
                         eventCode={eventCode}
+                        startingPoints={startingPoints}
                     />
                 )}
                 {activeTab === "alliances" && (

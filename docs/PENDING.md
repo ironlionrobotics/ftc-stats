@@ -3,6 +3,24 @@
 **Última actualización:** 13 nov 2026 (sesión 21 — temporada BIOBUZZ, caché Firestore, plan de apertura pública; decisiones #86–#98)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
 
+## 🎯 Punto de partida del pronóstico (decisión #117, 15-nov-2026)
+
+- **Hecho, en el árbol de trabajo:** historial de 3 temporadas como tabla precalculada (`lib/data/starting-history-2026.json`). Da pronóstico desde la Q1.
+- **Pendiente: eventos previos de la temporada (#114).**
+  - FTCScout en vivo es demasiado lento (de 12 a 70 s por consulta).
+  - Propuesta: ridge propio desde `/matches` de FIRST.
+  - Necesita el OK de Héctor.
+- **Cada temporada nueva (antes del 1-sep):**
+  1. Correr `node scripts/run-ts.mjs scripts/build-history-table.ts <S> --pull`.
+  2. Agregar la tabla a `TABLES` en `lib/starting-points-server.ts`.
+  3. Commit y despliegue.
+  - Sin ese paso, el pronóstico vuelve en silencio a arrancar de cero.
+- **Antes de la tabla de 2027:** decidir si los eventos `NonAdvancement` (nuevos en 2026, ~25 % de los eventos con stats) cuentan como oficiales en `teamSeasonProfiles`. Los coeficientes se ajustaron sin ellos.
+- **Sin validar con solo historial:**
+  - la proyección del ranking (su incertidumbre ignora el prior, lo que la deja conservadora);
+  - el OPR del picklist;
+  - el +0.5 pp en playoffs, que salió del modelo completo.
+
 ## ▶️ RETOMAR AQUÍ — federación, Taller y Préstamos para MXTLQ (13-nov-2026, sesión 21)
 
 Plan aprobado (13-nov): `~/.claude/plans/replicated-cooking-elephant.md`. Héctor pidió las tres funciones **listas y completas antes de MXTLQ (27-nov)** para invitar a otros equipos. Decisiones: el pool lo ve **quien aporta en el evento**, con **atribución seudónima**. Todo se construyó sobre `etapa1/foundations`, que se despliega **antes** de MXTLQ (se adelanta la Aprobación B).

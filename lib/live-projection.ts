@@ -2,6 +2,7 @@ import type { TeamRanking, FTCMatch } from "@/types/scouting";
 import { componentOpr } from "@/lib/component-opr";
 import { winProbabilityFromNormalModel } from "@/lib/win-probability";
 import { estimateAlliances } from "@/lib/event-selector";
+import { hasStartingPoints, priorOf, STARTING_LAMBDA, type StartingPoints } from "@/lib/starting-points";
 
 /**
  * Live ranking projection during an event (v2, decision #95).
@@ -83,6 +84,8 @@ export interface ProjectionOptions {
     tieRp?: number;
     simulations?: number;
     seed?: number;
+    /** Per-robot starting points (decision #117). */
+    start?: StartingPoints | null;
 }
 
 /** Bonus RPs available per match (BIOBUZZ: SWARM + 2 POLLINATOR; DECODE: 3). */
@@ -159,35 +162,50 @@ export interface StrengthModel {
  */
 export const LIVE_QUAL_UNCERTAINTY = 4;
 
-export function eventStrengthModel(playedQuals: FTCMatch[]): StrengthModel {
+export function eventStrengthModel(playedQuals: FTCMatch[], start?: StartingPoints | null): StrengthModel {
     const rows = playedQuals.flatMap(m => (["Red", "Blue"] as const)
         .filter(color => !sideDisqualified(m, color))
         .map(color => ({
             teams: allianceOf(m, color),
             value: npScore(m, color),
         }))).filter(r => r.teams.length > 0);
-    const opr = componentOpr(rows, { lambda: 1 });
     // Teams with no counted match yet: the "average robot" prior, not 0.
     const meanSize = rows.length ? rows.reduce((s, r) => s + r.teams.length, 0) / rows.length : 2;
-    const priorStrength = rows.length ? rows.reduce((s, r) => s + r.value, 0) / rows.length / meanSize : 0;
-    const strength = (t: number) => opr.get(t) ?? priorStrength;
+    const withStart = hasStartingPoints(start);
+    let strength: (t: number) => number;
+    // Weight of a robot's prior in "matches played" for the #109 uncertainty.
+    let priorWeight: (t: number) => number = () => 0;
+    if (withStart) {
+        // Decision #117: shrink every robot toward ITS starting point (earlier
+        // events this season, else its history) instead of the average robot.
+        const mu0 = rows.length ? rows.reduce((s, r) => s + r.value, 0) / rows.reduce((s, r) => s + r.teams.length, 0) : start.mu0Hint;
+        const prior = priorOf(start, mu0);
+        const resid = rows.map(r => ({ teams: r.teams, value: r.value - r.teams.reduce((s, t) => s + prior(t), 0) }));
+        const delta = componentOpr(resid, { lambda: STARTING_LAMBDA, prior: 0 });
+        strength = t => prior(t) + (delta.get(t) ?? 0);
+        priorWeight = t => (start.inSeason[t] !== undefined || start.history[t] !== undefined ? STARTING_LAMBDA : 0);
+    } else {
+        const opr = componentOpr(rows, { lambda: 1 });
+        const priorStrength = rows.length ? rows.reduce((s, r) => s + r.value, 0) / rows.length / meanSize : 0;
+        strength = t => opr.get(t) ?? priorStrength;
+    }
     const residuals = rows.map(r => r.value - r.teams.reduce((s, t) => s + strength(t), 0));
     const rms = residuals.length ? Math.sqrt(residuals.reduce((s, x) => s + x * x, 0) / residuals.length) : 0;
-    const meanScore = rows.length ? rows.reduce((s, r) => s + r.value, 0) / rows.length : 0;
+    const meanScore = rows.length ? rows.reduce((s, r) => s + r.value, 0) / rows.length : withStart ? 2 * start.mu0Hint : 0;
     const sigmaDiff = Math.SQRT2 * Math.max(rms, 0.2 * meanScore, 1);
     const mu = (a: number[]) => a.reduce((s, t) => s + strength(t), 0);
     const played = new Map<number, number>();
     for (const r of rows) for (const t of r.teams) played.set(t, (played.get(t) ?? 0) + 1);
     // Each played qual adds one Red row and one Blue row, so a robot's count is its matches played.
     const sigmaFor = (robots: number[]) => {
-        const nbar = robots.length ? robots.reduce((s, t) => s + (played.get(t) ?? 0), 0) / robots.length : 0;
+        const nbar = robots.length ? robots.reduce((s, t) => s + (played.get(t) ?? 0) + priorWeight(t), 0) / robots.length : 0;
         return sigmaDiff * Math.sqrt(1 + LIVE_QUAL_UNCERTAINTY / Math.max(nbar, 0.5));
     };
     return {
         strength,
         sigmaDiff,
         pRed: (red, blue) => winProbabilityFromNormalModel(mu(red), mu(blue), sigmaFor([...red, ...blue])),
-        teams: [...opr.keys()],
+        teams: [...played.keys()],
         sigmaAlliance: sigmaDiff / Math.SQRT2,
     };
 }
@@ -224,7 +242,7 @@ export function projectFinalRankings(
     for (const m of remaining) for (const t of m.teams) toPlay.set(t.teamNumber, (toPlay.get(t.teamNumber) ?? 0) + 1);
 
     // --- Team strength from the played quals ---------------------------------
-    const { strength, sigmaDiff, sigmaAlliance } = eventStrengthModel(played);
+    const { strength, sigmaDiff, sigmaAlliance } = eventStrengthModel(played, opts.start);
 
     // --- Per-team state -------------------------------------------------------
     interface TeamState { r: TeamRanking; played: number; scheduledN: number; rpTotal: number; bonusRate: number; tb: number[] }

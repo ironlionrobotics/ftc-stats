@@ -1,5 +1,6 @@
 import type { FTCAllianceSelection, FTCHybridScheduleMatch, FTCMatch, TeamRanking } from "@/types/scouting";
 import { eventStrengthModel } from "@/lib/live-projection";
+import { hasStartingPoints, type StartingPoints } from "@/lib/starting-points";
 import { playoffForecaster } from "@/lib/playoff-form";
 import { matchKey, playOrder, shortMatchLabel } from "@/lib/following-summary";
 
@@ -25,6 +26,8 @@ export interface EventSnapshot {
     matches: FTCMatch[];
     rankings: TeamRanking[];
     alliances: FTCAllianceSelection[];
+    /** Per-robot starting points (#117); null/undefined = as before. */
+    start?: StartingPoints | null;
 }
 
 export interface EventNotifyState {
@@ -103,7 +106,7 @@ export function diffEvent(prev: EventNotifyState | null, snap: EventSnapshot): {
     seq.forEach((m, i) => { if (played(m)) lastPlayed = i; });
     if (lastPlayed >= 0) {
         const playedQuals = snap.matches.filter(m => m.tournamentLevel === "QUALIFICATION");
-        const model = playedQuals.length >= 2 ? eventStrengthModel(playedQuals) : null;
+        const model = playedQuals.length >= 2 || hasStartingPoints(snap.start) ? eventStrengthModel(playedQuals, snap.start) : null;
         const fc = model ? playoffForecaster(model, snap.matches.filter(m => m.tournamentLevel === "PLAYOFF")) : null;
         for (let i = lastPlayed + 1; i < seq.length && i <= lastPlayed + SOON_AHEAD; i++) {
             const m = seq[i];

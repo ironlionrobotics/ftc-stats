@@ -1,6 +1,7 @@
 import type { FTCHybridScheduleMatch, FTCMatch, TeamRanking } from "@/types/scouting";
 import { eventStrengthModel } from "@/lib/live-projection";
 import { playoffForecaster } from "@/lib/playoff-form";
+import { hasStartingPoints, type StartingPoints } from "@/lib/starting-points";
 
 /**
  * Live state of a FOLLOWED event for "Hoy" (decision #110). Pure: the server
@@ -81,12 +82,14 @@ export function summarizeEvent(
     matches: FTCMatch[],
     schedule: FTCHybridScheduleMatch[],
     nextCount = 3,
+    /** Per-robot starting points (#117); null/undefined = as before. */
+    start?: StartingPoints | null,
 ): EventLive {
     const quals = schedule.filter(m => m.tournamentLevel === "QUALIFICATION");
     const playoffs = schedule.filter(m => m.tournamentLevel !== "QUALIFICATION");
     const playedQuals = matches.filter(m => m.tournamentLevel === "QUALIFICATION"
         && ((m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0));
-    const model = playedQuals.length >= 2 ? eventStrengthModel(playedQuals) : null;
+    const model = playedQuals.length >= 2 || hasStartingPoints(start) ? eventStrengthModel(playedQuals, start) : null;
     const playedPlayoffs = matches.filter(m => m.tournamentLevel === "PLAYOFF"
         && ((m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0));
     const fc = model ? playoffForecaster(model, playedPlayoffs) : null;

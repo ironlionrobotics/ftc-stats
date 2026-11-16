@@ -36,3 +36,19 @@ describe("predictionLedger (#111)", () => {
         expect(card.brier!).toBeLessThan(0.25); // better than a coin flip on a real event
     });
 });
+
+describe("predictionLedger with starting points (#117)", () => {
+    const teams = [...new Set(quals.flatMap(m => m.teams.map(t => t.teamNumber)))];
+    const start = { v: 1 as const, inSeason: {}, history: Object.fromEntries(teams.map((t, i) => [t, (i % 5) / 5 - 0.4])), mu0Hint: 50 };
+    const rows = predictionLedger(fx.matches, start);
+
+    it("forecasts from the first qual", () => {
+        expect(rows[0].pRed).not.toBeNull();
+        expect(rows[1].pRed).not.toBeNull();
+    });
+
+    it("stays a replay: a later result never changes an earlier forecast", () => {
+        const truncated = predictionLedger(quals.slice(0, 25), start);
+        expect(truncated.map(r => r.pRed)).toEqual(rows.slice(0, 25).map(r => r.pRed));
+    });
+});
