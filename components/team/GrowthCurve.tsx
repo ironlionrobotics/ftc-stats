@@ -84,17 +84,19 @@ export async function GrowthCurve() {
                 </div>
             </div>
 
-            {catchUp && (
-                <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
-                    <p className="text-foreground leading-relaxed">
-                        En su <strong>primera temporada</strong>, Iron Lion está en el{" "}
-                        <strong className="text-primary">percentil {G.self.percentile}</strong> de México
-                        ({G.self.rank}º de {G.self.of} equipos con datos). La mediana de un programa mexicano
-                        en su temporada rookie es el percentil {G.all[0].median} — y no alcanza el nivel actual
-                        de Iron Lion hasta su <strong className="text-primary">temporada {catchUp.year}</strong>.
-                    </p>
-                </div>
-            )}
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
+                <p className="text-foreground leading-relaxed">
+                    En su <strong>primera temporada</strong>, Iron Lion está en el{" "}
+                    <strong className="text-primary">percentil {G.self.percentile}</strong> de México
+                    ({G.self.rank}º de {G.self.of} equipos con datos). La mediana de un programa mexicano
+                    en su temporada rookie es el percentil {G.all[0].median}
+                    {catchUp ? (
+                        <> — y no alcanza el nivel actual de Iron Lion hasta su <strong className="text-primary">temporada {catchUp.year}</strong>.</>
+                    ) : (
+                        <> — y ni en su <strong className="text-primary">temporada {G.all.length}</strong> llega al nivel actual de Iron Lion (percentil {G.all[G.all.length - 1].median}).</>
+                    )}
+                </p>
+            </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-border bg-card p-5">
@@ -104,9 +106,10 @@ export async function GrowthCurve() {
                         <strong className="text-foreground">
                             {(G.all[1].median - G.all[0].median).toFixed(1)} puntos de percentil
                         </strong>{" "}
-                        ({G.all[0].median} → {G.all[1].median}), el mayor movimiento de toda la curva y el
-                        mejor medido ({G.all[0].teams} y {G.all[1].teams} equipos). Después viene una meseta:
-                        temporadas 3 a 5 se mueven poco.
+                        ({G.all[0].median} → {G.all[1].median}), el mayor movimiento del tramo bien medido
+                        ({G.all[0].teams} y {G.all[1].teams} equipos). Después viene una meseta:
+                        temporadas 3 a 5 se mueven poco. Los saltos de las temporadas 6-7 son más grandes,
+                        pero ahí pesa la supervivencia (ver al lado).
                     </p>
                 </div>
                 <div className="rounded-2xl border border-border bg-card p-5">
@@ -126,7 +129,7 @@ export async function GrowthCurve() {
             <p className="text-xs text-muted-foreground flex items-start gap-1.5 leading-snug">
                 <Info size={12} className="shrink-0 mt-0.5" />
                 Percentil dentro de México y dentro de cada temporada — el OPR crudo no es comparable entre juegos
-                distintos, así que compararlo directamente inventaría una tendencia. {t("caveat", { windowStart: G.caveatWindowStart, windowEnd: G.caveatWindowEnd })} Datos: FTCScout,
+                distintos, así que compararlo directamente inventaría una tendencia. {t("caveat", { windowStart: G.caveatWindowStart, windowEnd: G.caveatWindowEnd })} Datos: API oficial de FIRST (datos de eventos proporcionados por FIRST®),
                 {" "}{G.teamsTotal} equipos mexicanos con año rookie conocido; regenerables con{" "}
                 <code className="font-mono">scripts/growth-curves.ts</code>.
             </p>

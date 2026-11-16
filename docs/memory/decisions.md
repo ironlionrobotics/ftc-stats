@@ -1610,3 +1610,23 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
   - **Programa como parámetro:** `rpThresholdsFor(season, code, program, eventType)` aplica umbrales por nivel (Tabla 6-5) y `allianceRpObs(..., program)` también recibe el programa.
   - **Vista sin red FRC:** clave propia `frc-event:<CODE>`, porque los códigos FRC y FTC pueden coincidir. El payload FTC ahora también guarda `matchBonusRp`.
 - **Clave de org compuesta `FRC-<n>`: diferida.** Las reglas comparan `isMyOrg(string(teamNumber))` en `team_media`, perfiles y préstamos. Cambiarla exige desplegar reglas, y nada de FRC la necesita mientras FRC sea solo lectura (sin scouting FRC).
+
+**Tercera tanda (16-nov, madrugada): página del Oracle y curvas con FIRST 2019–2025**
+- **Descarga:** 2020 y 2021 completas, sin fallos (806 y 922 eventos).
+- **`lib/reports/oracle-calibration.ts`:** ya es solo FIRST (`data/oracle-backtest-first`).
+
+  | | FTCScout | FIRST |
+  |---|---|---|
+  | Total | 2,793 eventos · 21,436 partidos · 74.8 % | 2,808 · 21,368 · **74.4 %** |
+  | 2020 | 83.6 % | 81.1 % (48 eventos, antes 54) |
+  | 2021 | 73.3 % | 72.1 % |
+
+  - El resto de las temporadas cambia ±0.3 pp.
+  - Fiabilidad corregida: todos los tramos quedan dentro de 2.1 pp.
+  - `reproduce`: apunta a la API de FTC Events, con los pasos `first-archive-pull` → `oracle-backtest` → `build-oracle-calibration.mjs`.
+  - Copy (`limit4Body`, `dataSource`): se cambió a FIRST, con la atribución.
+- **`lib/reports/growth-curves.ts` (MX):** se regeneró desde el archivo, con OPR ridge propio.
+  - Cohorte fija: 18 programas (antes 20).
+  - Iron Lion pasa del percentil 79.2 (28.º de 131) al **87.2 (15.º de 110)**. Antes se usaba el OPR "de temporada" de FTCScout, 63.4, que era solo MXCMP. Ahora es el promedio ponderado de sus eventos de 2025, 57.5, medido contra el mismo universo que la curva.
+  - La mediana nunca alcanza ese nivel, así que `GrowthCurve` ahora dice "ni en su temporada 7" en lugar de ocultar el recuadro.
+  - El salto de la temporada 1 a la 2 (+9.0) ya no es el mayor de toda la curva: el tramo 5→6 da +12.7, pero está sesgado por supervivencia. El texto se ajustó.

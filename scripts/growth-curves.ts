@@ -24,15 +24,15 @@
  * official team directory (`homeRegion`, `rookieYear`); a team's season value is the
  * match-weighted mean of its ridge OPR (λ=1, non-penalty) over that season's events —
  * OUR OPR, not FTCScout's quickStats. No FTCScout. Seasons = those present in the archive
- * (2022–2025 today; 2019–2021 were FTCScout-only), so the "veteran" cohort needs
- * min(5, seasons available) seasons instead of a fixed 5.
+ * (2019–2025 since Nov 2026), so the "veteran" cohort needs min(5, seasons
+ * available) seasons instead of a fixed 5.
  *
  * Usage:
  *   node scripts/run-ts.mjs scripts/growth-curves.ts                # default regions
  *   node scripts/run-ts.mjs scripts/growth-curves.ts MX USTXHO USCALS   # explicit FIRST homeRegion codes
  *
- * Writes data/growth-curves-first/<REGION>.json (separate from the old FTCScout-based
- * data/growth-curves/ that lib/reports/growth-curves.ts was curated from) and prints a summary.
+ * Writes data/growth-curves-first/<REGION>.json (lib/reports/growth-curves.ts is curated
+ * from it; the old FTCScout-based data/growth-curves/ is obsolete) and prints a summary.
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
