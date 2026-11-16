@@ -30,7 +30,7 @@ export default async function StrategyPage({ searchParams }: { searchParams: Pro
             season >= 2026 ? fetchMatchScores(season, selected.code).catch(() => []) : Promise.resolve([]),
         ]);
         // Each robot's starting point (#117; null = as before).
-        const start = await getStartingPoints(season, selected.dateStart, eventTeamNumbers(matches)).catch(() => null);
+        const start = await getStartingPoints(season, selected.dateStart, eventTeamNumbers(matches), { eventCode: selected.code }).catch(() => null);
         const pick = eventPickMetrics(season, matches, scores, start);
         if (Object.keys(pick).length) teams = teamStats.map(t => (pick[t.teamNumber] ? { ...t, pick: pick[t.teamNumber] } : t));
     }

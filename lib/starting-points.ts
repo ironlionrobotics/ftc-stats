@@ -8,19 +8,18 @@
  * Each robot now starts from what we already know, and the event's own
  * quals take over as they're played (ridge shrink toward the prior,
  * weight STARTING_LAMBDA matches):
- *  1. In-season (#114, NOT wired yet — see lib/starting-points-server.ts):
- *     its non-penalty OPR at this season's earlier events, relative to the
- *     other robots here that have one, in points.
+ *  1. In-season (#114): its non-penalty ridge OPR at this season's earlier
+ *     events (official FIRST data, lib/starting-points-server.ts), relative
+ *     to the other robots here that have one, in points.
  *  2. Otherwise its history (cross-season): a regression on the last three
  *     seasons — level (within-event OPR z), achievements (Worlds, state
  *     championship, Premier, Inspire, event wins), rookie / returning after a
  *     gap — predicting its z at its first event. Relative to the robots here,
  *     scaled to points with the typical spread of robot strength in an event.
  *
- * Backtest (held-out events, scripts/starting-points-backtest.ts), history
- * only (what ships): 2025 accuracy 64.8 → 71.5 %, log loss 0.566 → 0.543;
- * 2026 63.7 → 72.5 %, 0.551 → 0.524. With the in-season part too:
- * 73.7 % / 0.521 and 73.4 % / 0.518.
+ * Backtest (held-out events, scripts/starting-points-backtest.ts on the
+ * official FIRST archive): log loss 2025 0.564 → 0.519 (history only 0.543),
+ * 2024 → 0.494, 2026 → 0.514.
  *
  * Pure (no I/O, client-safe): the server (lib/starting-points-server.ts)
  * builds a StartingPoints per event and passes it, serialized, to every
@@ -166,7 +165,7 @@ export const HISTORY_COEFS = [
     0.056, // top 4 seed somewhere
 ] as const;
 
-function historyFeatures(t: number, s1?: TeamSeason, s2?: TeamSeason, s3?: TeamSeason, rookieAbove = Infinity): number[] {
+export function historyFeatures(t: number, s1?: TeamSeason, s2?: TeamSeason, s3?: TeamSeason, rookieAbove = Infinity): number[] {
     const e1 = s1?.zMean != null, e2 = s2?.zMean != null, e3 = s3?.zMean != null;
     const rookie = !e1 && !e2 && !e3 && t > rookieAbove;
     const b = (x?: boolean) => (x ? 1 : 0);

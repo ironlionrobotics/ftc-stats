@@ -21,8 +21,10 @@ export interface FoulValues {
  *  - "tip-count": alliance HIVE TIPS >= threshold (BIOBUZZ POLLINATOR).
  *    Modeled as a Negative Binomial count (lib/rp-counts.ts pTipsAtLeast).
  *  - "logistic": legacy logistic regression on (auto, tele, end) averages.
+ *  - "count-threshold": an alliance total (FRC REBUILT: FUEL in an active HUB,
+ *    TOWER points) >= threshold; `countKey` names the breakdown total.
  */
-export type RpModelKind = "leave-park-sum" | "tip-count" | "logistic";
+export type RpModelKind = "leave-park-sum" | "tip-count" | "logistic" | "count-threshold";
 
 export interface RpTargetSpec {
     /** Stable id used as model/cache key and in team RP maps. */
@@ -35,9 +37,11 @@ export interface RpTargetSpec {
     /** Default threshold for normal events. Premier / Regional / CMP events
      *  may override it (see rpThresholdsFor). */
     defaultThreshold?: number;
+    /** "count-threshold": path of the alliance total in the /scores breakdown. */
+    countKey?: string;
 }
 
-export type Tiebreaker = "rs" | "npAvg" | "tipsAvg" | "autoAvg" | "random";
+export type Tiebreaker = "rs" | "npAvg" | "tipsAvg" | "autoAvg" | "autoFuelAvg" | "towerAvg" | "random";
 
 export interface SeasonRules {
     season: number;
@@ -108,9 +112,54 @@ const BIOBUZZ_2026: SeasonRules = {
 
 const RULES_BY_SEASON: SeasonRules[] = [BIOBUZZ_2026, DECODE_2025];
 
+/**
+ * FRC 2026 REBUILT (Game Manual TU22, 21-apr-2026; research in
+ * docs/plan-first-api-y-frc.md): FUEL in an active HUB 1 pt, TOWER L1 15 (auto)
+ * / 10, L2 20, L3 30. Fouls minor 5 / major 15. Bonus RP thresholds for
+ * Regional/District events (Table 6-5); District Championship and FIRST
+ * Championship values in FRC_RP_THRESHOLDS_BY_LEVEL. Tiebreakers §10.5.3
+ * Table 10-1. Breakdown keys from the FRC API 2026 /scores model.
+ */
+const REBUILT_2026: SeasonRules = {
+    season: 2026,
+    gameName: "REBUILT",
+    fouls: { minor: 5, major: 15 },
+    rpTargets: [
+        { id: "energized", labelKey: "rp.energized", breakdownKey: "energizedAchieved", kind: "count-threshold", defaultThreshold: 100, countKey: "hubScore.totalCount" },
+        { id: "supercharged", labelKey: "rp.supercharged", breakdownKey: "superchargedAchieved", kind: "count-threshold", defaultThreshold: 360, countKey: "hubScore.totalCount" },
+        { id: "traversal", labelKey: "rp.traversal", breakdownKey: "traversalAchieved", kind: "count-threshold", defaultThreshold: 50, countKey: "totalTowerPoints" },
+    ],
+    winRp: 3,
+    tieRp: 1,
+    tiebreakers: ["rs", "npAvg", "autoFuelAvg", "towerAvg", "random"],
+    // §6.4 Table 6-2: AUTO 0:20, TELEOP 2:20 (transition shift 10 s, 4 shifts of 25 s, END GAME 30 s).
+    matchTiming: {
+        autoS: 20,
+        transitionS: 0,
+        teleopS: 140,
+        cues: [
+            { id: "shift1", secondsLeft: 130 },
+            { id: "shift2", secondsLeft: 105 },
+            { id: "shift3", secondsLeft: 80 },
+            { id: "shift4", secondsLeft: 55 },
+            { id: "endGame", secondsLeft: 30 },
+        ],
+    },
+};
+
+const FRC_RULES_BY_SEASON: SeasonRules[] = [REBUILT_2026];
+
+/** FRC 2026 bonus-RP thresholds by event level (Table 6-5, TU22). */
+export const FRC_RP_THRESHOLDS_BY_LEVEL: Record<"event" | "districtChampionship" | "championship", Record<string, number>> = {
+    event: { energized: 100, supercharged: 360, traversal: 50 },
+    districtChampionship: { energized: 240, supercharged: 360, traversal: 50 },
+    championship: { energized: 360, supercharged: 500, traversal: 50 },
+};
+
 /** Rules for `season`; seasons older than the oldest modeled fall back to it. */
-export function seasonRulesFor(season: number): SeasonRules {
-    return RULES_BY_SEASON.find(r => season >= r.season) ?? RULES_BY_SEASON[RULES_BY_SEASON.length - 1];
+export function seasonRulesFor(season: number, program: "FTC" | "FRC" = "FTC"): SeasonRules {
+    const list = program === "FRC" ? FRC_RULES_BY_SEASON : RULES_BY_SEASON;
+    return list.find(r => season >= r.season) ?? list[list.length - 1];
 }
 
 /**

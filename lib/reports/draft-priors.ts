@@ -5,7 +5,7 @@
  * handful of events (decisions.md #58: "captain ≈ top `alliances`, pickable ≈
  * top 2×"). These numbers replace that guess with the observed rates from
  * **606 events and 15,186 team-event observations** of the 2025 season,
- * reconstructed by `scripts/draft-science.mjs` and summarized by
+ * reconstructed by `scripts/draft-science.ts` and summarized by
  * `scripts/draft-analysis.mjs`.
  *
  * One season on purpose: OPR is only comparable within a season, and the OPR

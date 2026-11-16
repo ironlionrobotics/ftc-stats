@@ -75,7 +75,7 @@ export async function loadFollowingSnapshot(follows: Follows, season: number, no
             const d = await eventData(code);
             if (d.schedule.length || d.rankings.length) {
                 // Each robot's starting point (#117; null = as before).
-                const start = await getStartingPoints(season, e.dateStart, eventTeamNumbers(d.matches, d.schedule, d.rankings)).catch(() => null);
+                const start = await getStartingPoints(season, e.dateStart, eventTeamNumbers(d.matches, d.schedule, d.rankings), { eventCode: code }).catch(() => null);
                 live = summarizeEvent(d.rankings, d.matches, d.schedule, undefined, start);
             }
         }
@@ -93,7 +93,7 @@ export async function loadFollowingSnapshot(follows: Follows, season: number, no
         const d = await eventData(pick.event.code);
         const playedQuals = d.matches.filter(m => m.tournamentLevel === "QUALIFICATION"
             && ((m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0));
-        const start = await getStartingPoints(season, pick.event.dateStart, eventTeamNumbers(d.matches, d.schedule, d.rankings)).catch(() => null);
+        const start = await getStartingPoints(season, pick.event.dateStart, eventTeamNumbers(d.matches, d.schedule, d.rankings), { eventCode: pick.event.code }).catch(() => null);
         const model = playedQuals.length >= 2 || hasStartingPoints(start) ? eventStrengthModel(playedQuals, start) : null;
         const next = pick.phase === "live" ? pickNextMatch(d.schedule, n) : null;
         if (next) {

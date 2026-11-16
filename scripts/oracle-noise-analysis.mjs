@@ -17,14 +17,14 @@
  *      residual signal, accuracy should fall monotonically across quartiles.
  *
  * Usage:  node scripts/oracle-noise-analysis.mjs
- * Needs:  data/oracle-backtest/season-*.jsonl  (and profiles-*.jsonl for test 2)
- *         regenerate with `node scripts/oracle-backtest.mjs run <season>`
+ * Needs:  data/oracle-backtest-first/season-*.jsonl  (and profiles-*.jsonl for test 2)
+ *         regenerate with `node scripts/run-ts.mjs scripts/oracle-backtest.ts run <season>`
  */
 
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
-const DIR = join(process.cwd(), "data", "oracle-backtest");
+const DIR = join(process.cwd(), "data", "oracle-backtest-first");
 const read = (f) =>
     readFileSync(join(DIR, f), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
 

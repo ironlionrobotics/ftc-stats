@@ -85,6 +85,23 @@ function clamp(x: number, lo: number, hi: number): number {
 // --- Alliance Generation Logic ---
 
 /**
+ * Strongest lineup an alliance can field. FTC fields 2 robots (best pair of a
+ * 3-robot alliance); FRC fields 3 (decision #118: any 3 of captain + 2 picks
+ * + backup / round-3 pick), scored by summed OPR.
+ */
+export function bestFieldedLineup(members: TeamEvolution[], fieldSize: 2 | 3 = 2): { pair: TeamEvolution[]; score: number } {
+    if (fieldSize === 2) return bestFieldedPair(members);
+    if (members.length <= 3) return { pair: members, score: members.reduce((s, t) => s + (t.opr || 0), 0) };
+    let best: { pair: TeamEvolution[]; score: number } | null = null;
+    for (let a = 0; a < members.length; a++) for (let b = a + 1; b < members.length; b++) for (let c = b + 1; c < members.length; c++) {
+        const trio = [members[a], members[b], members[c]];
+        const score = trio.reduce((s, t) => s + (t.opr || 0), 0);
+        if (!best || score > best.score) best = { pair: trio, score };
+    }
+    return best!;
+}
+
+/**
  * Best fieldable pair of an alliance. In 3-robot alliances (Championship /
  * some Premier Events, Competition Manual §15.3) only 2 of the 3 robots play
  * each match, at the captain's discretion — so the alliance's projected
@@ -119,7 +136,7 @@ export function bestFieldedPair(members: TeamEvolution[]): { pair: TeamEvolution
  *    serpentine), and projections use the best fieldable pair since only
  *    2 of the 3 robots play each match.
  */
-export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, allianceSize: 2 | 3 = 2): Alliance[] {
+export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, allianceSize: 2 | 3 = 2, fieldSize: 2 | 3 = 2): Alliance[] {
     const availableTeams = [...teams];
 
     // Sort by Rank to determine Initial Captain order
@@ -166,7 +183,7 @@ export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, 
             let bestScore2 = -Infinity;
             for (const candidate of sortedByRank) {
                 if (usedTeamNumbers.has(candidate.teamNumber)) continue;
-                const score = bestFieldedPair([...current, candidate]).score;
+                const score = bestFieldedLineup([...current, candidate], fieldSize).score;
                 if (score > bestScore2) {
                     bestScore2 = score;
                     bestPick2 = candidate;
@@ -182,8 +199,8 @@ export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, 
     return drafts.map(draft => {
         const members = [draft.captain, draft.pick1, draft.pick2].filter(Boolean) as TeamEvolution[];
         // Projection always reflects the robots actually on the field: the
-        // whole alliance for size 2, the strongest pair for size 3.
-        const fielded = bestFieldedPair(members).pair;
+        // whole alliance for size 2, the strongest pair for size 3 (FTC), all 3 (FRC).
+        const fielded = bestFieldedLineup(members, fieldSize).pair;
         const totalOPR = fielded.reduce((sum, t) => sum + (t.opr || 0), 0);
         const totalAuto = fielded.reduce((sum, t) => sum + (t.autoOPR || 0), 0);
         const totalTele = fielded.reduce((sum, t) => sum + ((t.opr || 0) - (t.autoOPR || 0)), 0);
@@ -217,8 +234,9 @@ export function generateAlliances(teams: TeamEvolution[], count: 2 | 4 | 6 | 8, 
  * Alliances whose captain isn't in `teams` (shouldn't happen) are dropped.
  */
 export function alliancesFromOfficial(
-    official: import("@/types/scouting").FTCAllianceSelection[],
+    official: (import("@/types/scouting").FTCAllianceSelection & { round3?: { teamNumber: number } | null })[],
     teams: TeamEvolution[],
+    fieldSize: 2 | 3 = 2,
 ): Alliance[] {
     const byNumber = new Map(teams.map(t => [t.teamNumber, t]));
     const resolve = (m: { teamNumber: number } | null | undefined) =>
@@ -230,8 +248,9 @@ export function alliancesFromOfficial(
             if (!captain) return null;
             const pick1 = resolve(a.round1);
             const pick2 = resolve(a.round2);
-            const members = [captain, pick1, pick2].filter(Boolean) as TeamEvolution[];
-            const fielded = bestFieldedPair(members).pair;
+            const pick3 = resolve(a.round3); // FRC Championship divisions: 4-robot alliances
+            const members = [captain, pick1, pick2, pick3].filter(Boolean) as TeamEvolution[];
+            const fielded = bestFieldedLineup(members, fieldSize).pair;
             const totalOPR = fielded.reduce((s, t) => s + (t.opr || 0), 0);
             const totalAuto = fielded.reduce((s, t) => s + (t.autoOPR || 0), 0);
             return {
@@ -740,6 +759,12 @@ export interface MonteCarloOptions {
     overrides?: Record<string, number>;
     /** Uniform [0, 1) source. Seed it (seededRandom) to make the result a pure function of its inputs. */
     random?: () => number;
+    /**
+     * Grand final format. 1 = single match (FTC model as calibrated, #59/#113).
+     * 3 = best of 3 (FRC 2026 manual §10.6.2: finals M14–M16): the final
+     * pairing plays up to 3 matches unless a real result already fixed it.
+     */
+    finalsBestOf?: 1 | 3;
 }
 
 /**
@@ -819,6 +844,23 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 |
 
         const finalMatchId = type === 4 ? 'M6' : type === 6 ? 'M10' : 'M14';
         const finalMatch = matchMap.get(finalMatchId);
+        if (opts.finalsBestOf === 3 && finalMatch?.redAllianceId && finalMatch.blueAllianceId && overrides?.[finalMatch.id] === undefined) {
+            // Best of 3: real games already played (ids FINAL, FINAL-2, FINAL-3) count; only the rest is sampled.
+            const red = allianceMap.get(finalMatch.redAllianceId)!, blue = allianceMap.get(finalMatch.blueAllianceId)!;
+            const { r, b } = adjustedPredictions(red, blue, adjustments?.[finalMatch.id]);
+            const consAdj = consistencyMarginAdjustment(consistencyOf(red, blue));
+            let redWins = 0, blueWins = 0;
+            for (const gameId of finalsGameIds(finalMatch.id)) {
+                if (redWins === 2 || blueWins === 2) break;
+                const real = realWinnerOf(finalMatch, adjustments?.[gameId]);
+                if (real === red.id) { redWins++; continue; }
+                if (real === blue.id) { blueWins++; continue; }
+                const rs = getSimulatedScore(r + offset(red.id) + consAdj, (red.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION, random);
+                const bs = getSimulatedScore(b + offset(blue.id), (blue.totalSigma || SIGMA_FALLBACK) * PLAYOFF_SIGMA_INFLATION, random);
+                if (rs > bs) redWins++; else blueWins++;
+            }
+            finalMatch.winnerId = redWins === 2 ? red.id : blue.id;
+        }
         if (finalMatch?.winnerId) championCounts[finalMatch.winnerId]++;
         if (finalMatch?.redAllianceId) finalsCounts[finalMatch.redAllianceId]++;
         if (finalMatch?.blueAllianceId) finalsCounts[finalMatch.blueAllianceId]++;
@@ -830,6 +872,9 @@ export function runMonteCarloSimulation(alliances: Alliance[], type: 2 | 4 | 6 |
         finalsProbability: finalsCounts[a.id] / iterations
     })).sort((a, b) => b.championProbability - a.championProbability);
 }
+
+/** Adjustment ids of a best-of-3 final's games: the bracket's final match is game 1. */
+export const finalsGameIds = (finalId: string) => [finalId, `${finalId}-2`, `${finalId}-3`];
 
 /** Deterministic uniform [0, 1) generator (mulberry32) — same seed, same simulation. */
 export function seededRandom(seed: number): () => number {

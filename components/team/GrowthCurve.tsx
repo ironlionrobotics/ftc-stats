@@ -128,7 +128,7 @@ export async function GrowthCurve() {
                 Percentil dentro de México y dentro de cada temporada — el OPR crudo no es comparable entre juegos
                 distintos, así que compararlo directamente inventaría una tendencia. {t("caveat", { windowStart: G.caveatWindowStart, windowEnd: G.caveatWindowEnd })} Datos: FTCScout,
                 {" "}{G.teamsTotal} equipos mexicanos con año rookie conocido; regenerables con{" "}
-                <code className="font-mono">scripts/growth-curves.mjs</code>.
+                <code className="font-mono">scripts/growth-curves.ts</code>.
             </p>
         </div>
     );

@@ -111,7 +111,7 @@ export function winProbabilityFromNormalModel(
  * Playoff-specific σ inflation — learned, not assumed.
  *
  * Fit on 10,800 real playoff matches (seasons 2024-2025, every region, via
- * scripts/oracle-backtest.mjs `matches` + `fit`, decisions.md #59): a logistic
+ * scripts/oracle-backtest.ts `matches` + `fit`, decisions.md #59): a logistic
  * regression over [z, consistency-diff, field level] against the quals-derived
  * baseline Φ(z) improved held-out log-loss 0.685 → 0.500 (−27%) with the
  * dominant learned effect being SHRINKAGE of z (weight 0.666 vs the ≈1.7

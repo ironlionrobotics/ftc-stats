@@ -174,7 +174,7 @@ async function loadToday(team: number, season: number) {
         ]);
         const rules = seasonRulesFor(season);
         // Each robot's starting point (#117; null = as before).
-        const start = await getStartingPoints(season, pick.event.dateStart, eventTeamNumbers(matches, schedule, rankings)).catch(() => null);
+        const start = await getStartingPoints(season, pick.event.dateStart, eventTeamNumbers(matches, schedule, rankings), { eventCode: pick.event.code }).catch(() => null);
         atEvent = summarizeAtEvent(team, rankings, matches, schedule, pick.event.code, { winRp: rules.winRp, tieRp: rules.tieRp }, start);
     }
     // Season results for the "upcoming" and "between events" states.

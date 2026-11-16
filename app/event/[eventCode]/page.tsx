@@ -122,7 +122,7 @@ export default async function EventPage(props: EventPageProps) {
                 .then(analysis => { teamRp = Object.fromEntries(analysis.teamEvolution.map(t => [t.teamNumber, { rp: t.rp, rpInputs: t.rpInputs }])); })
                 .catch(e => console.warn("[event] RP analysis unavailable:", e instanceof Error ? e.message : e))
             : Promise.resolve(),
-        getStartingPoints(season, event.dateStart, eventTeamNumbers(matches, schedule, rankings)).catch(() => null),
+        getStartingPoints(season, event.dateStart, eventTeamNumbers(matches, schedule, rankings), { eventCode: event.code }).catch(() => null),
     ]);
 
     return (

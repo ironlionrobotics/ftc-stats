@@ -26,6 +26,7 @@ npm run generate:pwa-assets   # Regenerate /public/icons/* from public/icon.png
 |---|---|---|
 | `FTC_API_USERNAME` / `FTC_API_KEY` | FIRST API access (server-only) | App fetches return empty arrays; offline cache fallback kicks in |
 | `NEXT_PUBLIC_FIREBASE_*` (or `FIREBASE_WEBAPP_CONFIG`) | Firebase Web SDK init | Client crashes on auth/Firestore use |
+| `FRC_API_USERNAME` / `FRC_API_KEY` | FRC Events API v3 (`lib/frc-api.ts`, server-only; separate registration from FTC) | FRC data returns empty arrays |
 | `STARTING_POINTS` (optional) | `off` = kill switch for per-robot starting points (#117) | Default on; forecasts then start from zero as before |
 | `SERVER_CACHE` (optional) | `off` = kill switch for the Firestore-backed server cache | Default on; the cache also self-disables for 30 s after any failure |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | firebase-admin SDK (server actions) | Calibration log, ground-truth validation, RP model training all silently fail |

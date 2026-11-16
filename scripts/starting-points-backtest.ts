@@ -5,19 +5,19 @@
  *
  * Variants of the in-season prior (earlier events this season):
  *  - ridge:        our own ridge OPR (λ=1) from those events' matches — what #114 validated
- *  - ftcscout:     FTCScout's event OPR as-is (candidate source; too slow at request time, #117)
- *  - ftcscout-shr: FTCScout's OPR shrunk n/(n+1) toward the event mean (≈ ridge λ=1)
+ *  - ftcscout:     the per-event OPR from the profile table as-is (now OUR ridge λ=1 over the
+ *                  archive, so it equals "ridge" at event level; kept for comparability)
+ *  - ftcscout-shr: that OPR shrunk n/(n+1) toward the event mean
  * History prior: lib/starting-points.ts historyZ on the three previous seasons.
  * Reported on odd-indexed events by start date (the 15-nov exploration fitted
  * λ/ρ on even ones), so numbers are comparable to it.
  *
- * Data (gitignored, see docs/memory/decisions.md #117):
- *   data/season-pull/history/season-<S>.json   FTCScout eventsSearch with team stats + awards
- *   data/playoff-backtest/season-<S>.json      FTCScout matches (seasons ≤ 2025)
- *   data/season-pull/2026/*.json               FIRST matches (2026)
+ * Data: the OFFICIAL FIRST season archive (data/first-archive/ftc/<S>/, built with
+ * scripts/first-archive-pull.ts; gitignored). Profiles come from scoutSeasonFromArchive(S)
+ * (ridge OPR, official awards); matches from the same archive. 2026 is read from
+ * data/season-pull/2026/ (FIRST layout) until it is archived. No FTCScout.
  * Run: node scripts/run-ts.mjs scripts/starting-points-backtest.ts 2025 [2026]
  */
-import { readFileSync, readdirSync } from "node:fs";
 import { componentOpr, type OprRow } from "@/lib/component-opr";
 import { eventStrengthModel } from "@/lib/live-projection";
 import {
@@ -25,32 +25,15 @@ import {
     type ScoutEvent, type SeasonEventOpr, type StartingPoints,
 } from "@/lib/starting-points";
 import type { FTCMatch } from "@/types/scouting";
+import { archiveMatchEvents, scoutSeasonFromArchive, type ArchM } from "./first-archive";
 
-interface M { s: number; red: number[]; blue: number[]; redNp: number; blueNp: number; redTot: number; blueTot: number }
+type M = ArchM;
 interface Ev { code: string; quals: M[]; start: string; type: string }
-const H = "data/season-pull/history";
-const scout = (s: number): ScoutEvent[] => JSON.parse(readFileSync(`${H}/season-${s}.json`, "utf8"));
+const scout = (s: number): ScoutEvent[] => scoutSeasonFromArchive(s);
 
 function loadMatches(season: number, meta: Map<string, ScoutEvent>): Ev[] {
-    let raw: { code: string; quals: M[] }[];
-    if (season >= 2026) {
-        const dir = `data/season-pull/${season}`;
-        raw = readdirSync(dir).filter(f => f[0] !== "_").map(f => {
-            const j = JSON.parse(readFileSync(`${dir}/${f}`, "utf8"));
-            type FT = { teamNumber: number; station: string; onField?: boolean };
-            type FM = { tournamentLevel: string; matchNumber: number; teams: FT[]; scoreRedFinal: number; scoreBlueFinal: number; scoreRedFoul: number; scoreBlueFoul: number; postResultTime: string | null };
-            const side = (m: FM, c: string) => m.teams.filter(t => t.station.startsWith(c) && t.onField !== false).map(t => t.teamNumber);
-            return {
-                code: j.event.code,
-                quals: (j.matches as FM[]).filter(m => m.tournamentLevel === "QUALIFICATION" && m.postResultTime).map(m => ({
-                    s: m.matchNumber, red: side(m, "Red"), blue: side(m, "Blue"),
-                    redNp: m.scoreRedFinal - m.scoreBlueFoul, blueNp: m.scoreBlueFinal - m.scoreRedFoul, redTot: m.scoreRedFinal, blueTot: m.scoreBlueFinal,
-                })),
-            };
-        });
-    } else raw = JSON.parse(readFileSync(`data/playoff-backtest/season-${season}.json`, "utf8"));
     const ok = (m: M) => m.red.length > 0 && m.blue.length > 0 && [m.redNp, m.blueNp, m.redTot, m.blueTot].every(Number.isFinite);
-    return raw.map(e => ({ code: e.code, quals: e.quals.filter(ok).sort((a, b) => a.s - b.s), start: meta.get(e.code)?.start ?? "", type: meta.get(e.code)?.type ?? "" }))
+    return archiveMatchEvents(season).map(e => ({ code: e.code, quals: e.quals.filter(ok), start: meta.get(e.code)?.start ?? "", type: meta.get(e.code)?.type ?? "" }))
         .filter(e => e.quals.length >= 6 && e.start).sort((a, b) => a.start.localeCompare(b.start) || a.code.localeCompare(b.code));
 }
 

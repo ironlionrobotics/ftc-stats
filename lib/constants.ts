@@ -36,11 +36,13 @@ export const PREMIER_EVENTS_2025 = [
     { code: "FPECAR", abbr: "CAR", name: "Carolinas" },
 ];
 
-export function getCurrentSeason(): number {
-    const now = new Date();
-    // Similar to FIRST: Season is usually defined by the start year.
-    // E.g. 2024-2025 season is "2024". Season starts around Sept (month 8).
-    // If we are in Jan-Aug (months 0-7), the season started in the previous year.
+/**
+ * Current season per program (FIRST's season keys):
+ *  - FTC: the start year (2026-27 season = 2026); a new one starts in September.
+ *  - FRC: the calendar year (kickoff in January, Championship in April/May).
+ */
+export function getCurrentSeason(program: "FTC" | "FRC" = "FTC", now: Date = new Date()): number {
+    if (program === "FRC") return now.getFullYear();
     return now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
 }
 

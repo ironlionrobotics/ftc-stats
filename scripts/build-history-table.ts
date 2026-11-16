@@ -3,54 +3,40 @@
  * lib/data/starting-history-<S>.json = predicted first-event z (historyZ) for
  * every team with history in seasons S-1..S-3, plus the rookie threshold.
  *
- * Why a committed file and not a live query: FTCScout's bulk season query
- * takes 12–70 s (measured 15-nov-2026) and per-team queries got rate-limited,
- * so the app can't fetch history at request time. History only changes once
- * a season, so it is computed here once (re-run when a season ends or the
- * coefficients change) and shipped with the server code.
+ * Source: the OFFICIAL FIRST season archive (data/first-archive/ftc/<Y>/,
+ * built by scripts/first-archive-pull.ts), OPR computed in-house (ridge
+ * λ = 1, non-penalty). Replaced FTCScout on 16-nov-2026: the coefficients
+ * refit on FIRST data came out the same (scripts/fit-history-coefs.ts:
+ * last season 0.373 vs 0.371, Worlds 0.387 vs 0.383), so HISTORY_COEFS stay.
  *
- * Input: data/season-pull/history/season-<Y>.json (FTCScout eventsSearch with
- * team stats + awards; gitignored). `--pull` downloads missing seasons first
- * (one query per season, ~1 min each).
- * Run: node scripts/run-ts.mjs scripts/build-history-table.ts 2026 [--pull]
+ * Why a committed file and not a live query: history only changes once a
+ * season, and per-request work must fit a page budget. Re-run when a season
+ * ends or the coefficients change (a test checks the coefficient fingerprint).
+ *
+ * Run: node scripts/run-ts.mjs scripts/build-history-table.ts 2026
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { HISTORY_COEFS, historyZ, maxTeamWithEvents, teamSeasonProfiles, type ScoutEvent } from "@/lib/starting-points";
+import { ARCHIVE, scoutSeasonFromArchive } from "./first-archive";
 
 const SEASON = Number(process.argv[2]);
-const PULL = process.argv.includes("--pull");
-const DIR = "data/season-pull/history";
 
-async function pull(season: number) {
-    const query = `{ eventsSearch(season:${season}, limit:5000){ code type start end regionCode finished awards { type placement teamNumber } teams { teamNumber stats { ... on TeamEventStats${season} { rank wins losses ties qualMatchesPlayed opr { totalPointsNp } } } } } }`;
-    const r = await fetch("https://api.ftcscout.org/graphql", {
-        method: "POST", headers: { "Content-Type": "application/json", "User-Agent": "PRIDE" },
-        body: JSON.stringify({ query }), signal: AbortSignal.timeout(300_000),
-    });
-    const j = await r.json() as { data?: { eventsSearch: ScoutEvent[] }; errors?: { message: string }[] };
-    if (!j.data) throw new Error(j.errors?.[0]?.message ?? `HTTP ${r.status}`);
-    mkdirSync(DIR, { recursive: true });
-    writeFileSync(`${DIR}/season-${season}.json`, JSON.stringify(j.data.eventsSearch));
-}
-
-async function load(season: number): Promise<ScoutEvent[]> {
-    const f = `${DIR}/season-${season}.json`;
-    if (!existsSync(f)) {
-        if (!PULL) throw new Error(`${f} missing — run with --pull`);
-        console.log(`pulling ${season} from FTCScout…`);
-        await pull(season);
+function load(season: number): ScoutEvent[] {
+    if (!existsSync(join(ARCHIVE, String(season)))) {
+        throw new Error(`season ${season} not archived — run: set -a; . ./.env.local; set +a; node scripts/run-ts.mjs scripts/first-archive-pull.ts ${season}`);
     }
-    return JSON.parse(readFileSync(f, "utf8"));
+    return scoutSeasonFromArchive(season);
 }
 
-async function main() {
-    if (!SEASON) throw new Error("usage: build-history-table.ts <season> [--pull]");
-    const [s1, s2, s3] = (await Promise.all([1, 2, 3].map(k => load(SEASON - k)))).map(teamSeasonProfiles);
+function main() {
+    if (!SEASON) throw new Error("usage: build-history-table.ts <season>");
+    const [s1, s2, s3] = [1, 2, 3].map(k => teamSeasonProfiles(load(SEASON - k)));
     const rookieAbove = maxTeamWithEvents(s2, s3);
-    // Sanity: a partial or truncated pull would rate almost everyone "rookie".
+    // Sanity: a partial or truncated archive would rate almost everyone "rookie".
     for (const [k, p] of [[1, s1], [2, s2], [3, s3]] as const) {
         const withStats = [...p.values()].filter(x => x.zMean !== null).length;
-        if (withStats < 4000) throw new Error(`season ${SEASON - k}: only ${withStats} teams with stats — incomplete pull?`);
+        if (withStats < 4000) throw new Error(`season ${SEASON - k}: only ${withStats} teams with stats — incomplete archive?`);
     }
     if (rookieAbove < 20000) throw new Error(`rookieAbove ${rookieAbove} looks wrong`);
     const z: Record<number, number> = {};
@@ -59,17 +45,17 @@ async function main() {
         z[t] = Math.round(historyZ(t, s1.get(t), s2.get(t), s3.get(t), rookieAbove) * 100) / 100;
     }
     // Typical robot of the season so far (mean event OPR), only used to scale
-    // forecasts before an event's first qual; a fresh table is not required.
+    // forecasts before an event's first qual and nobody has an earlier event.
     let seasonMeanRobot = 25;
-    if (existsSync(`${DIR}/season-${SEASON}.json`)) {
-        const means = (JSON.parse(readFileSync(`${DIR}/season-${SEASON}.json`, "utf8")) as ScoutEvent[])
+    if (existsSync(join(ARCHIVE, String(SEASON)))) {
+        const means = scoutSeasonFromArchive(SEASON)
             .map(e => e.teams.map(t => t.stats?.opr?.totalPointsNp).filter((x): x is number => Number.isFinite(x)))
             .filter(xs => xs.length >= 6).map(xs => xs.reduce((a, b) => a + b, 0) / xs.length);
         if (means.length) seasonMeanRobot = Math.round(means.reduce((a, b) => a + b, 0) / means.length * 10) / 10;
     }
     const out = `lib/data/starting-history-${SEASON}.json`;
-    writeFileSync(out, JSON.stringify({ season: SEASON, builtAt: new Date().toISOString().slice(0, 10), coefs: HISTORY_COEFS.join(","), rookieAbove, seasonMeanRobot, z }));
+    writeFileSync(out, JSON.stringify({ season: SEASON, source: "FIRST", builtAt: new Date().toISOString().slice(0, 10), coefs: HISTORY_COEFS.join(","), rookieAbove, seasonMeanRobot, z }));
     console.log(`${out}: ${Object.keys(z).length} teams, rookieAbove ${rookieAbove}, seasonMeanRobot ${seasonMeanRobot}`);
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main();

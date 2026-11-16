@@ -53,7 +53,7 @@ export async function loadLiveScoreboard(season: number, now = Date.now()): Prom
         await Promise.all(events.slice(i, i + CONCURRENCY).map(async e => {
             const matches = await fetchMatches(season, e.code).catch(() => []);
             // Each robot's starting point (#117; null = as before).
-            const start = await getStartingPoints(season, e.dateStart, eventTeamNumbers(matches)).catch(() => null);
+            const start = await getStartingPoints(season, e.dateStart, eventTeamNumbers(matches), { eventCode: e.code, fetch: false }).catch(() => null);
             const rows = predictionLedger(matches, start);
             if (rows.filter(r => r.level === "QUALIFICATION").length < MIN_QUALS) return;
             all.push(...rows);

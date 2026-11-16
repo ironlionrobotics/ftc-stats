@@ -2,7 +2,7 @@
  * Oracle calibration record — the public transparency dataset.
  *
  * Every figure here was RECOMPUTED from the raw backtest output in
- * `data/oracle-backtest/*.jsonl` (produced by `scripts/oracle-backtest.mjs`
+ * `data/oracle-backtest/*.jsonl` (produced by `scripts/oracle-backtest.ts`
  * against FTCScout's public API), not transcribed from prose. A finished
  * backtest is a fixed historical record, so curating it as static data keeps
  * the public page fast and every number reproducible — see REPRODUCE below.
@@ -105,11 +105,11 @@ export const ORACLE_CALIBRATION = {
     /** How anyone can regenerate every number above from scratch. */
     reproduce: {
         source: "https://api.ftcscout.org/graphql",
-        script: "scripts/oracle-backtest.mjs",
+        script: "scripts/oracle-backtest.ts",
         steps: [
-            "node scripts/oracle-backtest.mjs run <season>   # per-event aggregates, 2019-2025",
-            "node scripts/oracle-backtest.mjs matches <season>  # per-match features (2024, 2025)",
-            "node scripts/oracle-backtest.mjs report",
+            "node scripts/run-ts.mjs scripts/oracle-backtest.ts run <season>   # per-event aggregates, 2019-2025",
+            "node scripts/run-ts.mjs scripts/oracle-backtest.ts matches <season>  # per-match features (2024, 2025)",
+            "node scripts/run-ts.mjs scripts/oracle-backtest.ts report",
         ],
     },
 } as const;

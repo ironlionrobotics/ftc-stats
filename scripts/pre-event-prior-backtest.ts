@@ -22,41 +22,26 @@
  * can't forecast (< 2 quals played) count as 50 % for it. Fit on even-indexed
  * events, reported on odd-indexed (held out).
  *
- * Needs the match cache of scripts/playoff-update-backtest.ts (run it first).
+ * Data: the OFFICIAL FIRST season archive (data/first-archive/ftc/<S>/, built with
+ * scripts/first-archive-pull.ts; 2026 is read from data/season-pull/2026/). No FTCScout.
  * Run: node scripts/run-ts.mjs scripts/pre-event-prior-backtest.ts 2025 [2026]
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { componentOpr, type OprRow } from "@/lib/component-opr";
 import { winProbabilityFromNormalModel } from "@/lib/win-probability";
 import { LIVE_QUAL_UNCERTAINTY } from "@/lib/live-projection";
+import { archiveMatchEvents, type ArchM } from "./first-archive";
 
 const SEASONS = process.argv.slice(2).map(Number).filter(Boolean);
-const DIR = join(process.cwd(), "data", "playoff-backtest");
 
-interface M { t: number; s: number; red: number[]; blue: number[]; redNp: number; blueNp: number; redTot: number; blueTot: number }
+type M = ArchM;
 interface Ev { code: string; quals: M[]; playoffs: M[]; start?: string; type?: string }
 
 const usable = (m: M) => m.red.length > 0 && m.blue.length > 0
     && [m.redNp, m.blueNp, m.redTot, m.blueTot].every(v => typeof v === "number" && Number.isFinite(v));
 
-async function meta(season: number): Promise<Map<string, { start: string; type: string }>> {
-    const f = join(DIR, `meta-${season}.json`);
-    if (!existsSync(f)) {
-        const r = await fetch("https://api.ftcscout.org/graphql", {
-            method: "POST", headers: { "Content-Type": "application/json", "User-Agent": "PRIDE-prior-backtest" },
-            body: JSON.stringify({ query: `query{ eventsSearch(season:${season}, limit:5000){ code start type } }` }),
-        });
-        writeFileSync(f, JSON.stringify((await r.json()).data.eventsSearch));
-    }
-    const list: { code: string; start: string; type: string }[] = JSON.parse(readFileSync(f, "utf8"));
-    return new Map(list.map(e => [e.code, { start: e.start, type: e.type }]));
-}
-
-function load(season: number, info: Map<string, { start: string; type: string }>): Ev[] {
-    const events: Ev[] = JSON.parse(readFileSync(join(DIR, `season-${season}.json`), "utf8"));
-    return events
-        .map(e => ({ ...e, ...info.get(e.code), quals: e.quals.filter(usable).sort((a, b) => a.s - b.s) }))
+function load(season: number): Ev[] {
+    return archiveMatchEvents(season)
+        .map(e => ({ ...e, quals: e.quals.filter(usable) }))
         .filter(e => e.quals.length >= 6 && e.start)
         .sort((a, b) => a.start!.localeCompare(b.start!) || a.code.localeCompare(b.code));
 }
@@ -127,7 +112,7 @@ function score(preds: Pred[]) {
 
 async function main() {
     for (const season of SEASONS) {
-        const events = load(season, await meta(season));
+        const events = load(season);
         // Season history up to (not including) each event, in date order.
         const history = new Map<number, { sum: number; n: number }>();
         const prevAt: Map<number, { opr: number; n: number }>[] = [];

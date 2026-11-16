@@ -1,6 +1,6 @@
 /**
- * What the draft data says. Reads data/draft-science/teams-<season>.jsonl
- * (produced by scripts/draft-science.mjs) and answers three questions a
+ * What the draft data says. Reads data/draft-science-first/teams-<season>.jsonl
+ * (produced by scripts/draft-science.ts) and answers three questions a
  * strategy team actually asks:
  *
  *   1. How high do I need to finish to be reasonably safe?
@@ -19,9 +19,9 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const season = Number(process.argv[2] || 2025);
-const file = join(process.cwd(), "data", "draft-science", `teams-${season}.jsonl`);
+const file = join(process.cwd(), "data", "draft-science-first", `teams-${season}.jsonl`);
 if (!existsSync(file)) {
-    console.error(`Falta ${file}. Corre antes: node scripts/draft-science.mjs ${season}`);
+    console.error(`Falta ${file}. Corre antes: node scripts/run-ts.mjs scripts/draft-science.ts ${season}`);
     process.exit(1);
 }
 const rows = readFileSync(file, "utf8").trim().split("\n").filter(Boolean).map(l => JSON.parse(l));

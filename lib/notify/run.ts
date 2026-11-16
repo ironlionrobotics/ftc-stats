@@ -146,7 +146,7 @@ export async function runLiveNotify(deadline: number, now = Date.now()): Promise
         const playedMatches = matches.filter(m => (m.postResultTime?.length ?? 0) > 0 || (m.scoreRedFinal ?? 0) + (m.scoreBlueFinal ?? 0) > 0);
 
         // Each robot's starting point (#117; null = as before).
-        const start = await getStartingPoints(season, byCode.get(code)?.dateStart, eventTeamNumbers(matches, schedule, rankings)).catch(() => null);
+        const start = await getStartingPoints(season, byCode.get(code)?.dateStart, eventTeamNumbers(matches, schedule, rankings), { eventCode: code, fetch: false }).catch(() => null);
 
         const stateRef = db.collection("notify_state").doc(`${season}_${code}`);
         const { events, requestsSince } = await db.runTransaction(async tx => {

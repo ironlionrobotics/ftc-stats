@@ -3,13 +3,26 @@
 **Última actualización:** 13 nov 2026 (sesión 21 — temporada BIOBUZZ, caché Firestore, plan de apertura pública; decisiones #86–#98)
 **Premier Event objetivo:** julio 2026 — ✅ CUMPLIDO (FPEMX, ver `docs/memory/history.md` sesión 15)
 
+## 🧭 Plan FIRST-only + FRC (#118, 16-nov-2026) — ver `docs/plan-first-api-y-frc.md`
+
+- **Hecho:**
+  - archivo FTC de FIRST 2022–2026;
+  - historial y scripts sin FTCScout;
+  - punto de partida con eventos previos;
+  - cliente FRC v3;
+  - reglas REBUILT;
+  - Oracle FRC (3 robots, serpiente, final al mejor de 3).
+- **Bloqueado por Héctor:** token de la API de FRC en https://frc-events.firstinspires.org/services/API. Va en `.env.local` y en los secretos de App Hosting.
+- **Siguiente:**
+  - rutas `/frc/*` y UI;
+  - archivo FRC 2023–2026 y calibración (necesitan el token);
+  - clave de org compuesta (`FRC-4977`);
+  - regenerar `lib/reports/*` desde el archivo de FIRST.
+
 ## 🎯 Punto de partida del pronóstico (decisión #117, 15-nov-2026)
 
 - **Hecho, en el árbol de trabajo:** historial de 3 temporadas como tabla precalculada (`lib/data/starting-history-2026.json`). Da pronóstico desde la Q1.
-- **Pendiente: eventos previos de la temporada (#114).**
-  - FTCScout en vivo es demasiado lento (de 12 a 70 s por consulta).
-  - Propuesta: ridge propio desde `/matches` de FIRST.
-  - Necesita el OK de Héctor.
+- **Eventos previos de la temporada (#114): hechos el 16-nov** con la API de FIRST (#118).
 - **Cada temporada nueva (antes del 1-sep):**
   1. Correr `node scripts/run-ts.mjs scripts/build-history-table.ts <S> --pull`.
   2. Agregar la tabla a `TABLES` en `lib/starting-points-server.ts`.

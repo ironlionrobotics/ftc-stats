@@ -1521,8 +1521,12 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
   - Pesa 150 KB, solo en el servidor, y cubre 11,082 equipos.
   - Se regenera una vez por temporada o si cambian los coeficientes.
   - En tiempo de petición no hay red: no puede fallar ni hacer lenta la página.
-- **Eventos previos de la temporada: pendiente.** La alternativa es OPR ridge propio desde `/matches` de FIRST para los eventos previos de los robots del evento. Es más llamadas a la API y necesita el OK de Héctor.
-  - Para MXMOQ no cambia nada: es el primer evento de México en 2026 y ningún robot tiene eventos previos.
+- **Eventos previos de la temporada: implementados el 16-nov con la API oficial de FIRST** (#118).
+  - Por robot, `fetchTeamEvents` + `fetchMatches` de sus eventos que empezaron **antes**, con ridge λ = 1 propio y ≥ 6 qualys por evento.
+  - El resultado armado se guarda **por evento**: 30 días si el evento ya empezó (sus eventos previos son definitivos) y 6 h si no.
+  - Las páginas lo calculan con presupuesto de 2.5 s, un solo límite de 6 llamadas simultáneas a FIRST y vuelo único.
+  - El marcador de `/oracle` y los avisos usan `fetch: false`: leen la caché y nunca llaman a FIRST.
+  - Backtest con el archivo de FIRST: 2025 log loss 0.564 → **0.519**; 2024 → 0.494; 2026 → 0.514.
 - **Backtest solo con historial** (código de producción):
 
   | | Partidos | Acierto | Log loss | Primer tercio |
@@ -1541,3 +1545,46 @@ Con eso el usuario no podía leer el color. Además, el rojo y el azul de alianz
 - Estrategia (`pick-metrics`).
 - Marcador de `/oracle` (clave `live_scoreboard_v2_`).
 
+
+## #118 · Todo con la API oficial de FIRST y base para FRC (2026-11-16)
+
+**Pedido de Héctor:** cambiar todo a la API de FIRST, incluido el pasado, y que PRIDE funcione para FRC. El plan está en `docs/plan-first-api-y-frc.md`.
+
+**FTC sin FTCScout:**
+- **Archivo de temporadas oficial:** `scripts/first-archive-pull.ts` → `data/first-archive/ftc/<S>/`, ignorado por git.
+  - Cubre 2022–2026 completos (4,954 eventos de 2022–2025, unas 62 mil llamadas, sin errores 429). 2019–2021 están en curso.
+  - Lo lee `scripts/first-archive.ts`, con OPR propio (ridge λ = 1) y premios por `awardId` + `series`.
+- **Tabla de historial:** `lib/data/starting-history-2026.json` sale ahora de ese archivo.
+  - Los coeficientes reajustados con datos de FIRST salieron iguales: año pasado 0.373 contra 0.371, Worlds 0.387 contra 0.383. Se quedan los de #117.
+  - La tabla nueva correlaciona r = 0.993 con la de FTCScout (MAE 0.03).
+- **Scripts de análisis:** los 8 leen el archivo. Los `.mjs` pasaron a `.ts` y se corren con `node scripts/run-ts.mjs`.
+  - Las salidas van a carpetas `*-first/`, para no mezclarlas con las de FTCScout.
+  - Cifras con datos de FIRST:
+    - partidos de playoffs: 75.4 % (antes 75.8 %);
+    - #113: 76.6 %, log loss 0.491;
+    - #114: 0.564 → 0.525;
+    - #117: 0.519.
+- **FTCScout:** queda solo como mención histórica en documentos y en datos congelados de `lib/reports/*` (por regenerar).
+
+**Base multiprograma:**
+- **Temporada:** `getCurrentSeason(program, now)`. En FRC es el año calendario.
+- **Reglas:** `seasonRulesFor(season, program)`, con **REBUILT 2026** (manual TU22).
+  - Puntos: FUEL 1 en el HUB activo; TOWER 15 en auto / 10, 20, 30.
+  - Faltas: menor 5, mayor 15.
+  - RP extra con su umbral (Regional/District, DCMP, CMP): ENERGIZED ≥ 100 / 240 / 360 FUEL; SUPERCHARGED ≥ 360 / 360 / 500; TRAVERSAL ≥ 50 pts de TOWER.
+  - Desempates: RS, promedio sin faltas, FUEL en auto, TOWER y sorteo.
+- **Oracle:**
+  - `bestFieldedLineup(members, fieldSize)`: en FRC juegan 3 robots, los mejores 3 de 4 en Championship.
+  - `generateAlliances(..., fieldSize)`: draft en serpiente de 8×3.
+  - `alliancesFromOfficial(..., fieldSize)` usa `round3`.
+  - `finalsBestOf: 3` (FRC M14–M16): cuenta los juegos reales ya jugados (`M14`, `M14-2`, `M14-3`) y simula el resto.
+  - El bracket de 8 de PRIDE coincide con la Tabla 10-2 del manual de FRC.
+  - Con los parámetros por omisión, FTC queda idéntico: 1,280 comparaciones sin diferencias.
+- **Cliente `lib/frc-api.ts`** (API FRC v3, solo en el servidor) normaliza a los mismos tipos de FTC:
+  - claves PascalCase;
+  - `Qualification` → `QUALIFICATION`;
+  - alianzas de números a `{ teamNumber }`;
+  - programa con resultados combinado;
+  - **faltas invertidas**, porque FRC reporta los puntos *otorgados a* cada alianza y PRIDE lee los *recibidos* (#48). Esto falta verificarlo con la primera respuesta real.
+  - Necesita `FRC_API_USERNAME` / `FRC_API_KEY`, que requieren registro de Héctor. Sin ellas devuelve vacío.
+  - Términos: no comercial y con atribución.

@@ -14,86 +14,27 @@
  * jointly (the offset removes part of the error the inflation was covering).
  * Fit on even-indexed events, reported on odd-indexed ones (held out).
  *
+ * Data: the OFFICIAL FIRST season archive (data/first-archive/ftc/<S>/, built with
+ * scripts/first-archive-pull.ts; 2026 is read from data/season-pull/2026/). No
+ * FTCScout. Scores are final − fouls received (decision #48); OPR is our ridge.
  * Run: node scripts/run-ts.mjs scripts/playoff-update-backtest.ts 2026 [2025 ...]
- * Cache: data/playoff-backtest/season-<S>.json (delete to refetch).
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { componentOpr } from "@/lib/component-opr";
 import { winProbabilityFromNormalModel } from "@/lib/win-probability";
+import { archiveMatchEvents, type ArchM } from "./first-archive";
 
 const SEASONS = process.argv.slice(2).map(Number).filter(Boolean);
-const DIR = join(process.cwd(), "data", "playoff-backtest");
 
-interface GqlTeam { teamNumber: number; alliance: "Red" | "Blue"; onField?: boolean | null }
-interface GqlSide { totalPointsNp: number | null; totalPoints: number | null }
-interface GqlMatch {
-    matchNum: number; series: number; tournamentLevel: string; actualStartTime: string | null;
-    scores: { red?: GqlSide; blue?: GqlSide } | null; teams: GqlTeam[];
-}
-interface M { t: number; s: number; red: number[]; blue: number[]; redNp: number; blueNp: number; redTot: number; blueTot: number }
+type M = ArchM;
 interface Ev { code: string; quals: M[]; playoffs: M[] }
-
-async function gql<T>(query: string): Promise<T> {
-    for (let attempt = 0; attempt < 4; attempt++) {
-        try {
-            const r = await fetch("https://api.ftcscout.org/graphql", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "User-Agent": "PRIDE-playoff-backtest" },
-                body: JSON.stringify({ query }),
-            });
-            if (r.status === 429 || r.status >= 500) throw new Error(`HTTP ${r.status}`);
-            const j = await r.json();
-            if (j.errors) throw new Error(j.errors[0].message);
-            return j.data as T;
-        } catch (e) {
-            if (attempt === 3) throw e;
-            await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
-        }
-    }
-    throw new Error("unreachable");
-}
 
 const usable = (m: M) => m.red.length > 0 && m.blue.length > 0
     && [m.redNp, m.blueNp, m.redTot, m.blueTot].every(v => typeof v === "number" && Number.isFinite(v));
 
-async function load(season: number): Promise<Ev[]> {
-    const cache = join(DIR, `season-${season}.json`);
-    let events: Ev[];
-    if (existsSync(cache)) {
-        events = JSON.parse(readFileSync(cache, "utf8"));
-    } else {
-        const list = (await gql<{ eventsSearch: { code: string; finished: boolean; hasMatches: boolean }[] }>(
-            `query{ eventsSearch(season:${season}, limit:5000){ code finished hasMatches } }`)).eventsSearch
-            .filter(e => e.finished && e.hasMatches).map(e => e.code);
-        events = [];
-        for (let i = 0; i < list.length; i += 4) {
-            const batch = await Promise.all(list.slice(i, i + 4).map(async code => {
-                const d = await gql<{ eventByCode: { matches: GqlMatch[] } | null }>(`query{ eventByCode(season:${season}, code:"${code}"){ matches { matchNum series tournamentLevel actualStartTime scores { ... on MatchScores${season} { red { totalPointsNp totalPoints } blue { totalPointsNp totalPoints } } } teams { teamNumber alliance onField } } } }`);
-                const conv = (m: GqlMatch): M => ({
-                    t: Date.parse(m.actualStartTime ?? "") || 0,
-                    s: m.series * 1000 + m.matchNum,
-                    red: m.teams.filter(x => x.alliance === "Red" && x.onField !== false).map(x => x.teamNumber),
-                    blue: m.teams.filter(x => x.alliance === "Blue" && x.onField !== false).map(x => x.teamNumber),
-                    redNp: m.scores!.red!.totalPointsNp as number, blueNp: m.scores!.blue!.totalPointsNp as number,
-                    redTot: m.scores!.red!.totalPoints as number, blueTot: m.scores!.blue!.totalPoints as number,
-                });
-                const all = (d.eventByCode?.matches ?? []).filter(m => m.scores?.red && m.scores?.blue);
-                return {
-                    code,
-                    quals: all.filter(m => m.tournamentLevel === "Quals").map(conv),
-                    playoffs: all.filter(m => m.tournamentLevel !== "Quals").map(conv).sort((a, b) => (a.t - b.t) || (a.s - b.s)),
-                };
-            }));
-            events.push(...batch);
-            process.stderr.write(`\r${season}: ${Math.min(i + 4, list.length)}/${list.length}`);
-        }
-        process.stderr.write("\n");
-        mkdirSync(DIR, { recursive: true });
-        writeFileSync(cache, JSON.stringify(events));
-    }
-    return events
-        .map(e => ({ ...e, quals: e.quals.filter(usable), playoffs: e.playoffs.filter(usable) }))
+function load(season: number): Ev[] {
+    return archiveMatchEvents(season)
+        .sort((a, b) => a.start.localeCompare(b.start) || a.code.localeCompare(b.code))
+        .map(e => ({ code: e.code, quals: e.quals.filter(usable), playoffs: e.playoffs.filter(usable) }))
         .filter(e => e.quals.length >= 6 && e.playoffs.length >= 3);
 }
 
@@ -165,7 +106,7 @@ const INFL = [1.2, 1.6, 2.0, 2.4, 2.8];
 
 async function main() {
     for (const season of SEASONS) {
-        const events = await load(season);
+        const events = load(season);
         const fit = events.filter((_, i) => i % 2 === 0), held = events.filter((_, i) => i % 2 === 1);
         const run = (evs: Ev[], k: number, infl: number, onlyHist = false) =>
             score(evs.flatMap(e => replay(e, k, infl)).filter(p => !onlyHist || p.hasHistory));

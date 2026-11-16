@@ -9,7 +9,7 @@ import { useTranslations } from "next-intl";
 /**
  * Event advisor — compares historical event fields ("¿dónde me conviene
  * competir?") against the user's projected OPR. Data: static profiles
- * generated from the global backtest (scripts/oracle-backtest.mjs
+ * generated from the global backtest (scripts/oracle-backtest.ts
  * export-profiles), lazy-loaded so the analytics route bundle stays lean.
  * Estimates are directional and labeled as such (decisions.md #57-#58).
  * (Not to be confused with EventSelector.tsx, the Data Lab event picker.)
